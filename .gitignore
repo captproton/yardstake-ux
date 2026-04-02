@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Spotlight
+.Spotlight-V100
+
+# Trashes
+.Trashes
+
+# VS Code
+.vscode/
+
+# Node (if ever added)
+node_modules/
