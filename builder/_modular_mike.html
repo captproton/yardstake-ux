@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modular Mike's Journey | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .journey-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #3B82F6, #06B6D4, #10B981); transform: translateX(-50%); z-index: 0; }
+        .step-card { position: relative; z-index: 10; transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-5px); }
+        .marker { width: 40px; height: 40px; border-radius: 50%; background: #1E293B; border: 4px solid #3B82F6; display: flex; items-center; justify-content: center; font-weight: 800; color: #3B82F6; }
+        .text-gradient { background: linear-gradient(to right, #22D3EE, #3B82F6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="antialiased p-6 md:p-12">
+
+    <!-- Header -->
+    <header class="max-w-4xl mx-auto text-center mb-20">
+        <div class="inline-block px-4 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-black uppercase tracking-widest mb-4 border border-blue-500/20">
+            Manufacturer Persona Path: Modular Mike (Oregon ADU Supplier)
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight">From Cold Call to <span class="text-gradient">Qualified Lead</span></h1>
+        <p class="text-slate-400 text-lg">Mike builds quality ADUs in Oregon. His problem isn't the product — it's finding homeowners who already know their lot qualifies. Yardstake solves that.</p>
+    </header>
+
+    <div class="max-w-5xl mx-auto relative">
+        <div class="journey-line hidden md:block"></div>
+
+        <!-- Step 1: Victor's Demo -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Call from Victor</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Victor calls Mike. Not a cold pitch — a demo. Victor pulls up the Yardstake feasibility engine, enters Mike's own factory address in Portland, and shows Mike how many lots within 20 miles qualify for his Studio XL model. Mike has never seen his own market mapped this precisely. The conversation shifts from "why would I partner with you" to "how does the commission work."
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2">1</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-slate-800/50 p-6 rounded-3xl border border-slate-700">
+                    <span class="text-xs font-bold text-blue-400 uppercase">Victor's Hook</span>
+                    <p class="text-sm font-bold mt-1 text-white">"Here's how many Portland lots your Studio XL fits right now."</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Self-Service Registration -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-blue-600/10 p-6 rounded-3xl border border-blue-500/20">
+                    <span class="text-xs font-bold text-blue-400 uppercase">Onboarding</span>
+                    <p class="text-sm font-bold mt-1 text-white">5-step wizard. Commission terms accepted. Pending Victor's approval.</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-cyan-400 text-cyan-400">2</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">Zero-Cost to Start</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Mike registers at yardstake.com/manufacturers. Five steps: company details, Oregon service cities, commission agreement (3% to start, tiered on volume), ADU catalog description. No upfront fee. No subscription. Mike pays only when he closes a sale — Yardstake's commission is collected automatically through Stripe. Victor approves the application same day.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 3: Stripe Connect -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Payment Rail</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Mike connects his Stripe Express account. From this point, every sale closed through Yardstake triggers an automatic transfer — commission deducted, remainder to Mike's account. No invoices. No net-30. No chasing payments. Mike's accountant calls it the cleanest revenue channel they've ever seen.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-indigo-400 text-indigo-400">3</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-indigo-900/20 p-6 rounded-3xl border border-indigo-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-indigo-400 uppercase">Stripe Connect Express</span>
+                    <p class="text-sm font-bold mt-1 text-white">Commission auto-deducted. Remainder transferred on sale close.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: First Lead -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-cyan-500/10 p-6 rounded-3xl border border-cyan-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-cyan-400 uppercase">Lead Routed</span>
+                    <p class="text-sm font-bold mt-1 text-white">Hot lead. High confidence parcel. Portland. Studio XL fits.</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-cyan-400 text-cyan-400">4</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">A Lead Who Already Knows She Qualifies</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Mike's dashboard shows a new inquiry. Annie — Portland homeowner, High confidence parcel, 800 sq ft buildable, has already purchased the $49 premium report. She isn't researching. She's buying. The LeadScore is 87/100. Mike calls her within the hour. She's the easiest conversation he's had in years — the platform already answered every question she used to ask contractors.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 5: Sale Closes -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">Transaction #1</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    The sale closes. Yardstake records the transaction, calculates the commission, and queues the Stripe transfer. Mike's manufacturer dashboard shows his first completed sale, his commission statement, and — more importantly — 23 more High confidence parcels in his service area still waiting. The flywheel has started.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-white text-white">5</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-white/10 p-6 rounded-[40px] border border-white/20 text-center shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-emerald-500/5 blur-3xl rounded-full"></div>
+                    <div class="relative z-10">
+                        <div class="text-3xl mb-1">&#128176;</div>
+                        <p class="text-xl font-black text-white uppercase tracking-tighter">Sale #1 Complete</p>
+                        <p class="text-[10px] text-emerald-400 uppercase font-black tracking-widest mt-1">Commission tracked. 23 more High-confidence leads in pipeline.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="max-w-4xl mx-auto text-center py-12 border-t border-slate-800 mt-20">
+        <p class="text-slate-500 text-sm italic">"Every lead Yardstake sends me already knows their lot qualifies. I've never closed this fast in fifteen years of building ADUs."</p>
+        <p class="text-slate-600 text-xs mt-2 uppercase font-bold text-white">— Modular Mike, Oregon ADU Manufacturer</p>
+    </footer>
+
+</body>
+</html>

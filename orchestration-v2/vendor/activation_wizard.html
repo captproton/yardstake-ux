@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Activation | Yardstake Orchestration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+        
+        /* Hide all steps by default, show active */
+        .wizard-step { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        .wizard-step.active { display: block; opacity: 1; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col justify-center py-10 px-6 bg-[url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center bg-fixed bg-no-repeat bg-blend-overlay" style="background-color: rgba(15, 23, 42, 0.9);">
+
+    <div class="max-w-5xl mx-auto w-full glass-card rounded-[2rem] overflow-hidden shadow-2xl flex flex-col md:flex-row">
+        
+        <!-- Left Sidebar: Progress -->
+        <div class="md:w-1/3 bg-slate-900/80 p-8 border-r border-slate-700/50">
+            <div class="flex items-center space-x-2 mb-12">
+                <i data-lucide="factory" class="text-blue-500 w-8 h-8"></i>
+                <span class="text-2xl font-bold tracking-tight text-white">Yardstake</span>
+            </div>
+            
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">Activation Progress</h3>
+            
+            <div class="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-slate-700">
+                
+                <!-- Nav Step 1 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:space-x-4 group" id="nav-step-1">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-2 border-blue-500 bg-blue-900 text-blue-400 font-bold z-10 transition-colors">1</div>
+                    <div class="flex-col">
+                        <h4 class="text-sm font-bold text-white">Orchestration Agreement</h4>
+                        <p class="text-xs text-slate-400">Project hold & fee terms</p>
+                    </div>
+                </div>
+
+                <!-- Nav Step 2 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:space-x-4 group opacity-50" id="nav-step-2">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-2 border-slate-700 bg-slate-800 text-slate-500 font-bold z-10 transition-colors">2</div>
+                    <div class="flex-col">
+                        <h4 class="text-sm font-bold text-slate-300">Stripe Connect Setup</h4>
+                        <p class="text-xs text-slate-400">Bank routing & KYC</p>
+                    </div>
+                </div>
+
+                <!-- Nav Step 3 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:space-x-4 group opacity-50" id="nav-step-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-2 border-slate-700 bg-slate-800 text-slate-500 font-bold z-10 transition-colors">3</div>
+                    <div class="flex-col">
+                        <h4 class="text-sm font-bold text-slate-300">Catalog Initialization</h4>
+                        <p class="text-xs text-slate-400">Net pricing & options</p>
+                    </div>
+                </div>
+
+                <!-- Nav Step 4 -->
+                <div class="relative flex items-center justify-between md:justify-normal md:space-x-4 group opacity-50" id="nav-step-4">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full border-2 border-slate-700 bg-slate-800 text-slate-500 font-bold z-10 transition-colors">4</div>
+                    <div class="flex-col">
+                        <h4 class="text-sm font-bold text-slate-300">Preferred GC Handoff</h4>
+                        <p class="text-xs text-slate-400">Bonus Draw Eligibility</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Content: The Wizard Steps -->
+        <div class="md:w-2/3 p-8 lg:p-12 relative flex flex-col justify-between min-h-[600px] bg-slate-800/50">
+            
+            <!-- STEP 1: Terms -->
+            <div id="step-1" class="wizard-step active">
+                <h2 class="text-3xl font-extrabold text-white mb-2">Welcome to Yardstake Managed Marketplace</h2>
+                <p class="text-slate-400 mb-8">We take over the entire sales process, securely hold buyer funds via Stripe, and pay you out via direct milestone draws. Review the terms below.</p>
+                
+                <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl mb-8 space-y-4 h-64 overflow-y-auto">
+                    <h4 class="font-bold text-white">1. Master Orchestration Agreement</h4>
+                    <p class="text-sm text-slate-400">Yardstake acts as the master project facilitator. We collect a 10% total deposit upfront from the buyer to lock in engineering and secure factory allocation. Yardstake holds remaining project funds in a master custodial account.</p>
+                    <h4 class="font-bold text-white mt-4">2. The 5% Platform Orchestration Fee</h4>
+                    <p class="text-sm text-slate-400">Yardstake deducts a flat 5% platform fee from Gross Transaction Volume (GTV) prior to rendering your milestone disbursements.</p>
+                    <h4 class="font-bold text-white mt-4">3. Photo-Verified Milestone Draws</h4>
+                    <p class="text-sm text-slate-400">As a certified vendor, you agree to utilize the Yardstake Draw Request Builder. All payouts (e.g. framing completion, MEP rough-in) are triggered strictly by uploading GPS/Timestamped verification photos within the Vendor Portal.</p>
+                </div>
+
+                <div class="flex items-center space-x-3 mb-8">
+                    <input type="checkbox" id="terms-check" class="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 border-2 cursor-pointer">
+                    <label for="terms-check" class="text-sm font-medium text-slate-300">I, as an authorized officer of Modular Mike Inc., accept the Master Orchestration Agreement.</label>
+                </div>
+            </div>
+
+            <!-- STEP 2: Stripe Connect -->
+            <div id="step-2" class="wizard-step">
+                <h2 class="text-3xl font-extrabold text-white mb-2">Unlock Milestone Payouts</h2>
+                <p class="text-slate-400 mb-8">Because we hold project funds in a master custodial account, you must securely connect your bank account via Stripe to receive your automated draw requests.</p>
+                
+                <div class="bg-slate-900 border border-emerald-500/20 p-8 rounded-2xl text-center">
+                    <div class="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                        <i data-lucide="shield-check" class="w-8 h-8 text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Verify Identity & Routing</h3>
+                    <p class="text-sm text-slate-400 mb-6 max-w-sm mx-auto">You will be securely redirected to Stripe to provide your business EIN, owner identity, and routing numbers.</p>
+                    
+                    <button class="bg-[#635BFF] hover:bg-[#4B44D4] text-white font-bold py-3 px-6 rounded-xl inline-flex items-center space-x-2 transition-colors">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        <span>Connect with Stripe</span>
+                    </button>
+                    <p class="text-[10px] text-slate-500 mt-4 uppercase tracking-widest font-bold">Standard 2-3 Day Clearing Times Apply</p>
+                </div>
+            </div>
+
+            <!-- STEP 3: Catalog -->
+            <div id="step-3" class="wizard-step">
+                <h2 class="text-3xl font-extrabold text-white mb-2">Base Pricing & Options</h2>
+                <p class="text-slate-400 mb-8">Set the "Fixed Box" net pricing for your primary model. This exact pricing gets quoted directly in the buyer's e-commerce flow.</p>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Model Name</label>
+                        <input type="text" value="Studio XL" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" readonly>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Base Factory Cost</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-3 text-slate-500 font-bold">$</span>
+                                <input type="number" placeholder="115,000" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Transportation Fee Base</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-3 text-slate-500 font-bold">$</span>
+                                <input type="number" placeholder="5,500" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl flex items-start space-x-3 mt-4">
+                        <i data-lucide="info" class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5"></i>
+                        <p class="text-xs text-blue-200">The 5% platform fee will be dynamically added onto this base rate in the consumer-facing checkout. You do not need to mark these prices up.</p>
+                    </div>
+
+                    <div class="mt-8 text-center text-slate-500 text-xs font-bold uppercase tracking-widest">
+                        Don't have all your pricing handy? You can add additional models, trim packages, and options from your dashboard later.
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4: Preferred GC -->
+            <div id="step-4" class="wizard-step">
+                <div class="flex justify-between items-start mb-2">
+                    <h2 class="text-3xl font-extrabold text-white">Preferred GC Assignment</h2>
+                    <span class="bg-emerald-500/20 text-emerald-400 text-xs font-black uppercase px-3 py-1 rounded-full border border-emerald-500/30">Target: $500 Bonus</span>
+                </div>
+                <p class="text-slate-400 mb-8">Provide the contact info for the local site contractor who handles your foundation pours and crane rigging. They will be invited to handle "Track B" on your local orders.</p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Contractor Business Name</label>
+                        <input type="text" placeholder="e.g. Backyard Bill Excavatons LLC" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Primary Contact Email</label>
+                        <input type="email" placeholder="bill@example.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Primary Phone</label>
+                        <input type="tel" placeholder="(555) 123-4567" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center text-slate-500 text-xs font-bold uppercase tracking-widest">
+                    You can skip this and complete it later from your dashboard.
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="mt-12 flex justify-between items-center pt-6 border-t border-slate-700/50">
+                <button type="button" class="text-slate-400 hover:text-white font-bold transition-colors opacity-0 pointer-events-none" id="btn-back">
+                    &larr; Back
+                </button>
+                <button type="button" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-blue-500/20" id="btn-next" onclick="nextStep()">
+                    Acknowledge & Continue
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Simple JS to handle step transitions for the Mock -->
+    <script>
+        lucide.createIcons();
+        
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        function updateUI() {
+            // Hide all steps
+            document.querySelectorAll('.wizard-step').forEach(el => {
+                el.classList.remove('active');
+            });
+            // Show current step
+            document.getElementById(`step-${currentStep}`).classList.add('active');
+
+            // Update Nav visual state
+            document.querySelectorAll('[id^="nav-step-"]').forEach((el, idx) => {
+                const stepNum = idx + 1;
+                const numberCircle = el.querySelector('div:first-child');
+                
+                if (stepNum < currentStep) {
+                    // Completed
+                    el.classList.remove('opacity-50');
+                    numberCircle.classList.remove('border-blue-500', 'bg-blue-900', 'text-blue-400', 'border-slate-700', 'bg-slate-800', 'text-slate-500');
+                    numberCircle.classList.add('border-emerald-500', 'bg-emerald-900', 'text-emerald-400');
+                    numberCircle.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                } else if (stepNum === currentStep) {
+                    // Current
+                    el.classList.remove('opacity-50');
+                    numberCircle.classList.remove('border-emerald-500', 'bg-emerald-900', 'text-emerald-400', 'border-slate-700', 'bg-slate-800', 'text-slate-500');
+                    numberCircle.classList.add('border-blue-500', 'bg-blue-900', 'text-blue-400');
+                    numberCircle.innerHTML = stepNum;
+                } else {
+                    // Future
+                    el.classList.add('opacity-50');
+                    numberCircle.classList.remove('border-blue-500', 'bg-blue-900', 'text-blue-400', 'border-emerald-500', 'bg-emerald-900', 'text-emerald-400');
+                    numberCircle.classList.add('border-slate-700', 'bg-slate-800', 'text-slate-500');
+                    numberCircle.innerHTML = stepNum;
+                }
+            });
+
+            // Update buttons
+            const btnBack = document.getElementById('btn-back');
+            const btnNext = document.getElementById('btn-next');
+            
+            // Re-render icons since we injected HTML above
+            lucide.createIcons();
+
+            if (currentStep > 1) {
+                btnBack.classList.remove('opacity-0', 'pointer-events-none');
+                btnBack.onclick = prevStep;
+            } else {
+                btnBack.classList.add('opacity-0', 'pointer-events-none');
+            }
+
+            if (currentStep === 2) {
+                btnNext.innerText = "Mark Stripe Setup Complete"; 
+            } else if (currentStep === 4) {
+                btnNext.innerText = "Finish & Open Dashboard";
+                btnNext.classList.remove('bg-blue-600', 'hover:bg-blue-500', 'shadow-blue-500/20');
+                btnNext.classList.add('bg-emerald-500', 'hover:bg-emerald-400', 'shadow-emerald-500/20');
+            } else {
+                btnNext.innerText = "Continue";
+                btnNext.classList.add('bg-blue-600', 'hover:bg-blue-500', 'shadow-blue-500/20');
+                btnNext.classList.remove('bg-emerald-500', 'hover:bg-emerald-400', 'shadow-emerald-500/20');
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            } else {
+                // Done! Redirect logic here in real app
+                window.location.href = 'vendor_dashboard.html';
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        }
+        
+        // Initialize
+        updateUI();
+    </script>
+</body>
+</html>

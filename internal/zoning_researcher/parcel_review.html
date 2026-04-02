@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parcel Review Queue – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/x-template" id="app-tpl">
+    <div class="min-h-screen bg-slate-50 font-sans text-slate-900">
+
+      <!-- Top Nav -->
+      <nav class="bg-slate-900 text-white px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">&#127968;</span>
+          <span class="text-xl font-bold tracking-tight">Yard<span class="text-teal-400">stake</span>
+            <span class="text-slate-500 font-medium text-base ml-1">Parcel Review Queue</span>
+          </span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400" />
+            <span class="text-xs text-amber-300 font-bold">{{ pendingCount }} parcels awaiting review</span>
+          </div>
+          <div class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center font-black text-xs">ZZ</div>
+        </div>
+      </nav>
+
+      <!-- Filter Bar -->
+      <div class="bg-white border-b border-slate-100 px-6 py-3 flex items-center space-x-4">
+        <div class="flex space-x-2">
+          <button v-for="f in filters" :key="f.id"
+            @click="activeFilter = f.id"
+            class="text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+            :class="activeFilter === f.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
+            {{ f.label }}
+            <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px]"
+              :class="activeFilter === f.id ? 'bg-white/20' : 'bg-white'">
+              {{ f.count }}
+            </span>
+          </button>
+        </div>
+        <div class="flex-1" />
+        <select v-model="jurisdictionFilter"
+          class="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 focus:outline-none focus:border-teal-400">
+          <option value="all">All Jurisdictions</option>
+          <option value="Portland">Portland</option>
+          <option value="Eugene">Eugene</option>
+          <option value="Salem">Salem</option>
+          <option value="Bend">Bend</option>
+          <option value="Medford">Medford</option>
+        </select>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex h-[calc(100vh-8.5rem)]">
+
+        <!-- Parcel List -->
+        <div class="w-2/5 border-r border-slate-200 overflow-y-auto bg-white">
+          <div v-for="parcel in filteredParcels" :key="parcel.id"
+            @click="selected = parcel"
+            class="px-5 py-4 border-b border-slate-50 cursor-pointer transition-all hover:bg-slate-50"
+            :class="selected && selected.id === parcel.id ? 'bg-teal-50/60 border-l-2 border-l-teal-500' : 'border-l-2 border-l-transparent'">
+            <div class="flex items-start justify-between mb-1">
+              <div>
+                <p class="text-sm font-bold text-slate-800">{{ parcel.address }}</p>
+                <p class="text-xs text-slate-400">{{ parcel.jurisdiction }}, OR &bull; {{ parcel.parcel_id }}</p>
+              </div>
+              <div class="flex flex-col items-end space-y-1">
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  :class="parcel.tier === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'">
+                  {{ parcel.tier }}
+                </span>
+                <span v-if="parcel.resolved" class="text-xs text-teal-600 font-bold">Resolved</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-1.5 mt-2">
+              <i-alert-circle :size="12" class="text-amber-400 shrink-0" />
+              <p class="text-xs text-slate-500 truncate">{{ parcel.flags[0] }}</p>
+            </div>
+          </div>
+          <div v-if="filteredParcels.length === 0" class="p-8 text-center text-slate-400">
+            <p class="font-bold text-sm">No parcels match this filter.</p>
+          </div>
+        </div>
+
+        <!-- Detail Panel -->
+        <div class="flex-1 overflow-y-auto">
+          <!-- Empty state -->
+          <div v-if="!selected" class="flex items-center justify-center h-full">
+            <div class="text-center text-slate-400">
+              <p class="text-4xl mb-3">&#128270;</p>
+              <p class="font-bold text-sm">Select a parcel to review</p>
+              <p class="text-xs mt-1">{{ pendingCount }} parcels need attention</p>
+            </div>
+          </div>
+
+          <!-- Parcel Detail -->
+          <div v-else class="p-6 space-y-5">
+
+            <!-- Header -->
+            <div class="flex items-start justify-between">
+              <div>
+                <h2 class="text-lg font-extrabold text-slate-900">{{ selected.address }}</h2>
+                <p class="text-sm text-slate-500 mt-0.5">{{ selected.jurisdiction }}, OR &bull; Parcel {{ selected.parcel_id }}</p>
+              </div>
+              <span class="text-sm font-extrabold px-3 py-1 rounded-full"
+                :class="selected.tier === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'">
+                {{ selected.tier }} Confidence
+              </span>
+            </div>
+
+            <!-- Flags -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Flags Triggering Review</h3>
+              <div class="space-y-2">
+                <div v-for="flag in selected.flags" :key="flag"
+                  class="flex items-start space-x-2 text-sm">
+                  <i-alert-circle :size="15" class="text-amber-400 mt-0.5 shrink-0" />
+                  <span class="text-slate-700">{{ flag }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Parcel Data -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Parcel Data</h3>
+              <div class="grid grid-cols-2 gap-y-3 gap-x-6">
+                <div v-for="field in selected.data" :key="field.label">
+                  <p class="text-xs text-slate-400 mb-0.5">{{ field.label }}</p>
+                  <p class="text-sm font-bold" :class="field.uncertain ? 'text-amber-600' : 'text-slate-800'">
+                    {{ field.value }}
+                    <span v-if="field.uncertain" class="text-xs font-normal text-amber-500 ml-1">&#9651; unverified</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feasibility Snapshot -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Feasibility Snapshot</h3>
+              <div class="space-y-2">
+                <div v-for="check in selected.checks" :key="check.label"
+                  class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
+                  <span class="text-sm text-slate-600">{{ check.label }}</span>
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                    :class="check.status === 'Pass' ? 'bg-teal-100 text-teal-700' : check.status === 'Fail' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'">
+                    {{ check.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">Zara's Notes</h3>
+              <textarea v-model="selected.notes"
+                rows="3"
+                placeholder="Add context for this parcel..."
+                class="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 focus:outline-none resize-none transition-colors" />
+            </div>
+
+            <!-- Action Buttons -->
+            <div v-if="!selected.resolved" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+              <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">Resolution</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <button @click="resolve(selected, 'high')"
+                  class="px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white text-sm font-extrabold rounded-xl transition-colors flex items-center justify-center space-x-2">
+                  <i-check-circle2 :size="16" />
+                  <span>Confirm High</span>
+                </button>
+                <button @click="resolve(selected, 'medium')"
+                  class="px-4 py-3 bg-white hover:bg-amber-50 border border-amber-200 text-amber-700 text-sm font-extrabold rounded-xl transition-colors">
+                  Keep Medium
+                </button>
+                <button @click="resolve(selected, 'escalate')"
+                  class="px-4 py-3 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-extrabold rounded-xl transition-colors">
+                  Escalate to Planner
+                </button>
+                <button @click="resolve(selected, 'unresolvable')"
+                  class="px-4 py-3 bg-white hover:bg-red-50 border border-red-200 text-red-600 text-sm font-extrabold rounded-xl transition-colors">
+                  Flag Unresolvable
+                </button>
+              </div>
+              <div class="mt-4 space-y-2 text-xs text-slate-400">
+                <p><span class="font-bold text-teal-600">Confirm High</span> — Overrides to High. You've verified the flags are non-blocking.</p>
+                <p><span class="font-bold text-amber-600">Keep Medium</span> — Correct. Homeowner sees result with expert-review caveat.</p>
+                <p><span class="font-bold text-indigo-600">Escalate</span> — Sends to licensed planner. Homeowner sees "Complex — contact us."</p>
+                <p><span class="font-bold text-red-600">Unresolvable</span> — ADU not feasible on this parcel. No result shown.</p>
+              </div>
+            </div>
+
+            <!-- Resolved State -->
+            <div v-else class="bg-teal-50 border border-teal-200 rounded-2xl p-5 flex items-center space-x-4">
+              <i-check-circle2 :size="24" class="text-teal-500 shrink-0" />
+              <div>
+                <p class="font-extrabold text-teal-800">Resolved: {{ selected.resolution }}</p>
+                <p class="text-sm text-teal-700 mt-0.5">{{ selected.notes || 'No notes added.' }}</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script>
+    const { createApp, ref, computed } = Vue;
+
+    function makeIcon(paths) {
+      return {
+        props: { size: { default: 24 } },
+        template: `<svg xmlns="http://www.w3.org/2000/svg" :width="size" :height="size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`
+      };
+    }
+
+    const IcoCheckCircle2 = makeIcon('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>');
+    const IcoAlertCircle  = makeIcon('<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>');
+
+    const App = {
+      template: '#app-tpl',
+      setup() {
+        const activeFilter       = ref('pending');
+        const jurisdictionFilter = ref('all');
+        const selected           = ref(null);
+
+        const parcels = ref([
+          {
+            id: 1, address: '714 NW Spruce Ave', jurisdiction: 'Eugene', parcel_id: '16-03-27-23-09800',
+            tier: 'Medium', resolved: false, resolution: null, notes: '',
+            flags: ['Overlay zone present: Willamette River Greenway Buffer (100ft)', 'Lot width under 40ft — side setback calc may fail'],
+            data: [
+              { label: 'Lot Area',          value: '5,200 sqft',    uncertain: false },
+              { label: 'Lot Width',         value: '38 ft',          uncertain: false },
+              { label: 'Zoning',            value: 'R-2',            uncertain: false },
+              { label: 'Overlay',           value: 'Greenway Buffer', uncertain: true },
+              { label: 'Primary Dwelling',  value: '1,240 sqft',    uncertain: false },
+              { label: 'Flood Zone',        value: 'Zone X',         uncertain: false },
+            ],
+            checks: [
+              { label: 'Zoning allows ADU', status: 'Pass' },
+              { label: 'Minimum lot size',  status: 'Pass' },
+              { label: 'Rear setback (4ft)', status: 'Pass' },
+              { label: 'Side setback (4ft)', status: 'Unknown' },
+              { label: 'Overlay zone clearance', status: 'Unknown' },
+              { label: 'Lot coverage (50%)', status: 'Pass' },
+            ],
+          },
+          {
+            id: 2, address: '2280 Commercial St SE', jurisdiction: 'Salem', parcel_id: '073W26BD01800',
+            tier: 'Medium', resolved: false, resolution: null, notes: '',
+            flags: ['Parcel geometry partial — missing eastern boundary segment', 'Lot area derived from incomplete polygon (estimate only)'],
+            data: [
+              { label: 'Lot Area',         value: '~7,800 sqft',  uncertain: true  },
+              { label: 'Lot Width',        value: '65 ft',          uncertain: false },
+              { label: 'Zoning',           value: 'RS (Res. Single)', uncertain: false },
+              { label: 'Overlay',          value: 'None',           uncertain: false },
+              { label: 'Primary Dwelling', value: '1,600 sqft',    uncertain: false },
+              { label: 'Flood Zone',       value: 'Zone X',         uncertain: false },
+            ],
+            checks: [
+              { label: 'Zoning allows ADU',  status: 'Pass' },
+              { label: 'Minimum lot size',   status: 'Unknown' },
+              { label: 'Rear setback (5ft)', status: 'Pass' },
+              { label: 'Side setback (5ft)', status: 'Pass' },
+              { label: 'Lot coverage (40%)', status: 'Unknown' },
+              { label: 'Geometry complete',  status: 'Fail' },
+            ],
+          },
+          {
+            id: 3, address: '408 NW 7th St', jurisdiction: 'Bend', parcel_id: '1713220001700',
+            tier: 'Low', resolved: false, resolution: null, notes: '',
+            flags: ['Historic Preservation Overlay: Old Bend Neighborhood', 'Design standards apply — no automated approval possible', 'Potential height restriction conflict with HPZ rules'],
+            data: [
+              { label: 'Lot Area',         value: '6,000 sqft',  uncertain: false },
+              { label: 'Lot Width',        value: '50 ft',        uncertain: false },
+              { label: 'Zoning',           value: 'RS',           uncertain: false },
+              { label: 'Overlay',          value: 'HPZ — Old Bend', uncertain: false },
+              { label: 'Primary Dwelling', value: '1,100 sqft',  uncertain: false },
+              { label: 'Flood Zone',       value: 'Zone X',       uncertain: false },
+            ],
+            checks: [
+              { label: 'Zoning allows ADU',   status: 'Pass'    },
+              { label: 'Minimum lot size',    status: 'Pass'    },
+              { label: 'Setbacks clear',      status: 'Pass'    },
+              { label: 'HPZ design review',   status: 'Fail'    },
+              { label: 'Automated approval',  status: 'Fail'    },
+            ],
+          },
+          {
+            id: 4, address: '1045 Crater Lake Ave', jurisdiction: 'Medford', parcel_id: '37-1W-36AB-1200',
+            tier: 'Medium', resolved: false, resolution: null, notes: '',
+            flags: ['Zoning text ambiguous: code reads "RS-2/PD" — PD suffix unclear', 'No matching rule in Medford strategy for PD overlay'],
+            data: [
+              { label: 'Lot Area',         value: '8,400 sqft',  uncertain: false },
+              { label: 'Lot Width',        value: '70 ft',        uncertain: false },
+              { label: 'Zoning',           value: 'RS-2/PD',      uncertain: true  },
+              { label: 'Overlay',          value: 'Planned Development', uncertain: true },
+              { label: 'Primary Dwelling', value: '1,800 sqft',  uncertain: false },
+              { label: 'Flood Zone',       value: 'Zone X',       uncertain: false },
+            ],
+            checks: [
+              { label: 'Zoning allows ADU', status: 'Unknown' },
+              { label: 'PD overlay rules',  status: 'Unknown' },
+              { label: 'Minimum lot size',  status: 'Pass'    },
+              { label: 'Setbacks clear',    status: 'Pass'    },
+              { label: 'Lot coverage',      status: 'Pass'    },
+            ],
+          },
+          {
+            id: 5, address: '3312 SE Division St', jurisdiction: 'Portland', parcel_id: 'R123456',
+            tier: 'Medium', resolved: true, resolution: 'Confirmed High', notes: 'Overlay is WRG buffer but parcel is 180ft from greenway — well outside 100ft zone. Confirmed with city GIS. Safe to upgrade to High.',
+            flags: ['Overlay zone present: Willamette River Greenway (outer boundary)'],
+            data: [
+              { label: 'Lot Area',         value: '5,000 sqft',  uncertain: false },
+              { label: 'Lot Width',        value: '50 ft',        uncertain: false },
+              { label: 'Zoning',           value: 'R2a',          uncertain: false },
+              { label: 'Overlay',          value: 'WRG (outer)',  uncertain: false },
+              { label: 'Primary Dwelling', value: '1,500 sqft',  uncertain: false },
+              { label: 'Flood Zone',       value: 'Zone X',       uncertain: false },
+            ],
+            checks: [
+              { label: 'Zoning allows ADU',   status: 'Pass' },
+              { label: 'Setbacks clear',      status: 'Pass' },
+              { label: 'Overlay clearance',   status: 'Pass' },
+              { label: 'Lot coverage (50%)',  status: 'Pass' },
+            ],
+          },
+        ]);
+
+        const filters = computed(() => [
+          { id: 'pending',  label: 'Pending',  count: parcels.value.filter(p => !p.resolved).length },
+          { id: 'resolved', label: 'Resolved', count: parcels.value.filter(p => p.resolved).length  },
+          { id: 'all',      label: 'All',      count: parcels.value.length                           },
+          { id: 'low',      label: 'Low Only', count: parcels.value.filter(p => p.tier === 'Low').length },
+        ]);
+
+        const filteredParcels = computed(() => {
+          let list = parcels.value;
+          if (jurisdictionFilter.value !== 'all') list = list.filter(p => p.jurisdiction === jurisdictionFilter.value);
+          if (activeFilter.value === 'pending')  list = list.filter(p => !p.resolved);
+          if (activeFilter.value === 'resolved') list = list.filter(p => p.resolved);
+          if (activeFilter.value === 'low')      list = list.filter(p => p.tier === 'Low');
+          return list;
+        });
+
+        const pendingCount = computed(() => parcels.value.filter(p => !p.resolved).length);
+
+        const resolutionLabels = {
+          high: 'Confirmed High',
+          medium: 'Kept as Medium',
+          escalate: 'Escalated to Planner',
+          unresolvable: 'Flagged Unresolvable',
+        };
+
+        const resolve = (parcel, action) => {
+          parcel.resolved   = true;
+          parcel.resolution = resolutionLabels[action];
+          // Auto-select next pending parcel
+          const next = parcels.value.find(p => !p.resolved && p.id !== parcel.id);
+          if (next) selected.value = next;
+        };
+
+        return {
+          activeFilter, jurisdictionFilter, selected,
+          parcels, filters, filteredParcels, pendingCount,
+          resolve,
+        };
+      },
+    };
+
+    const app = createApp(App);
+    app.component('i-check-circle2', IcoCheckCircle2);
+    app.component('i-alert-circle',  IcoAlertCircle);
+    app.mount('#root');
+  </script>
+</body>
+</html>

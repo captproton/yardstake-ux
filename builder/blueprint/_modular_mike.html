@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modular Mike's Journey | Yardstake Managed Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .journey-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #3B82F6, #06B6D4, #10B981); transform: translateX(-50%); z-index: 0; }
+        .step-card { position: relative; z-index: 10; transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-5px); }
+        .marker { width: 40px; height: 40px; border-radius: 50%; background: #1E293B; border: 4px solid #3B82F6; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #3B82F6; z-index: 20; position: relative;}
+        .text-gradient { background: linear-gradient(to right, #22D3EE, #3B82F6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="antialiased p-6 md:p-12">
+
+    <!-- Header -->
+    <header class="max-w-4xl mx-auto text-center mb-20">
+        <div class="inline-block px-4 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-black uppercase tracking-widest mb-4 border border-blue-500/20">
+            Vendor Persona Blueprint: Modular Mike
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight">The Move to <span class="text-gradient">Marketplace Vendor</span></h1>
+        <p class="text-slate-400 text-lg">Mike stops acting as his own sales closer. Yardstake's e-commerce flow brings him fully locked-in, secured construction orders.</p>
+    </header>
+
+    <div class="max-w-5xl mx-auto relative pt-10">
+        <div class="journey-line hidden md:block"></div>
+
+        <!-- Step 1: Onboarding -->
+        <div class="flex flex-col md:flex-row items-center mb-24 relative">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1 step-card">
+                <h3 class="text-2xl font-bold mb-2 text-white">Vendor Portal Registration</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Mike logs into his specialized Vendor Dashboard. Instead of hunting for leads, he populates his ADU catalog directly into the platform's Customization Studio. He uploads his State Insignia templates and standard production schedule docs into the Document Center.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2">1</div>
+            <div class="md:w-1/2 md:pl-12 order-3 step-card">
+                <div class="bg-slate-800/50 p-6 rounded-3xl border border-slate-700">
+                    <span class="text-xs font-bold text-blue-400 uppercase">Phase 1: Catalog Creation</span>
+                    <p class="text-sm font-bold mt-1 text-white">Role-Based Access Control and document baseline creation.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Order Fulfillment -->
+        <div class="flex flex-col md:flex-row items-center mb-24 relative">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1 step-card">
+                <div class="bg-blue-600/10 p-6 rounded-3xl border border-blue-500/20">
+                    <span class="text-xs font-bold text-blue-400 uppercase">Phase 2: Execution Order</span>
+                    <p class="text-sm font-bold mt-1 text-white">Mike transitions from prospector to pure producer.</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-cyan-400 text-cyan-400">2</div>
+            <div class="md:w-1/2 md:pl-12 order-2 step-card">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Fully-Funded Deal Arrives</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Because the platform handled Annie's e-commerce checkout and deposit, Mike receives a locked-in execution order without picking up the phone. He sees the exact model and customization choices she made.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 3: Production Updates -->
+        <div class="flex flex-col md:flex-row items-center mb-24 relative">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1 step-card">
+                <h3 class="text-2xl font-bold mb-2 text-white">Track A: The Factory Run</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Mike begins the build. Instead of calling Annie to answer questions, he just updates his status on the dashboard. The platform's "Move That Bus" feature translates his production pings into a beautiful timeline for Annie automatically.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-indigo-400 text-indigo-400">3</div>
+            <div class="md:w-1/2 md:pl-12 order-3 step-card">
+                <div class="bg-indigo-900/20 p-6 rounded-3xl border border-indigo-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-indigo-400 uppercase">Phase 3: Factory Feed</span>
+                    <p class="text-sm font-bold mt-1 text-white">Shielding Mike from anxious homeowner phone calls.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Structured Invoices -->
+        <div class="flex flex-col md:flex-row items-center mb-24 relative">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1 step-card">
+                <div class="bg-cyan-500/10 p-6 rounded-3xl border border-cyan-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-cyan-400 uppercase">Phase 4: Draw Payments</span>
+                    <p class="text-sm font-bold mt-1 text-white">Draw Request Builder replaces standard invoicing.</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-cyan-400 text-cyan-400">4</div>
+            <div class="md:w-1/2 md:pl-12 order-2 step-card">
+                <h3 class="text-2xl font-bold mb-2 text-white">Automated Milestone Payouts</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Mike finishes framing. He logs into the Vendor Portal, uses the Draw Request Builder, and uploads the required proof-of-work photos. The system pushes it to Annie, she approves, and Mike receives his payout via Stripe Connect Destination Charges. Zero chasing.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 5: Final Delivery -->
+        <div class="flex flex-col md:flex-row items-center mb-24 relative">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1 step-card">
+                <h3 class="text-2xl font-bold mb-2 text-white">Handover to the Site GC</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    On Crane Day, Mike coordinates with the Site GC and Fiona. Once the unit is on the foundation, Yardstake automatically generates and processes the complex lender paperwork to ensure Mike's final completion payout clears rapidly.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-white text-white">5</div>
+            <div class="md:w-1/2 md:pl-12 order-3 step-card">
+                <div class="bg-white/10 p-6 rounded-[40px] border border-white/20 text-center shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-emerald-500/5 blur-3xl rounded-full"></div>
+                    <div class="relative z-10">
+                        <div class="text-3xl mb-1">&#128176;</div>
+                        <p class="text-xl font-black text-white uppercase tracking-tighter">Transaction Complete</p>
+                        <p class="text-[10px] text-emerald-400 uppercase font-black tracking-widest mt-1">Lender draws automated. Mike secures final payment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="max-w-4xl mx-auto text-center py-12 border-t border-slate-800 mt-20">
+        <p class="text-slate-500 text-sm italic">"I don't play salesperson anymore. Yardstake sends me an order, I upload photos when the frame is done, and my bank account fills up."</p>
+        <p class="text-slate-600 text-xs mt-2 uppercase font-bold text-white">— Modular Mike, Factory Rep</p>
+    </footer>
+
+</body>
+</html>

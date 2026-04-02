@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ordinance Editor – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    .highlight { background-color: #ccfbf1; border-radius: 2px; padding: 0 2px; }
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/x-template" id="app-tpl">
+    <div class="min-h-screen bg-slate-100 font-sans text-slate-900">
+
+      <!-- Top Nav -->
+      <nav class="bg-slate-900 text-white px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">&#127968;</span>
+          <span class="text-xl font-bold tracking-tight">Yard<span class="text-teal-400">stake</span>
+            <span class="text-slate-500 font-medium text-base ml-1">Ordinance Editor</span>
+          </span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="w-2 h-2 rounded-full" :class="allRulesCoded ? 'bg-teal-400' : 'bg-amber-400'" />
+            <span :class="allRulesCoded ? 'text-teal-300' : 'text-amber-300'">
+              {{ rulesCoded }} / {{ totalRules }} rules coded
+            </span>
+          </div>
+          <button @click="runTests"
+            :disabled="testRunning"
+            class="flex items-center space-x-2 px-4 py-2 text-sm font-bold rounded-xl transition-all"
+            :class="testRunning ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-500 text-white'">
+            <i-play :size="14" :class="testRunning ? 'animate-pulse' : ''" />
+            <span>{{ testRunning ? 'Running...' : 'Run Tests' }}</span>
+          </button>
+          <div class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center font-black text-xs">ZZ</div>
+        </div>
+      </nav>
+
+      <!-- Jurisdiction Header -->
+      <div class="bg-white border-b border-slate-100 px-6 py-3">
+        <div class="flex items-center space-x-3 text-sm">
+          <span class="font-extrabold text-slate-800">Corvallis, OR</span>
+          <span class="text-slate-300">&bull;</span>
+          <span class="text-slate-500">41,800 parcels indexed</span>
+          <span class="text-slate-300">&bull;</span>
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">In Progress</span>
+          <span class="text-slate-300">&bull;</span>
+          <span class="text-slate-400 text-xs">Corvallis ADU Ordinance 2024-07 &mdash; Chapter 9.6100</span>
+        </div>
+      </div>
+
+      <!-- Two-Panel Layout -->
+      <div class="flex h-[calc(100vh-8.5rem)]">
+
+        <!-- LEFT: Ordinance Source Text -->
+        <div class="w-2/5 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
+          <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-sm font-extrabold text-slate-700">Ordinance Source</h2>
+            <div class="flex space-x-2">
+              <button @click="activeSource = 'ordinance'"
+                class="text-xs font-bold px-3 py-1 rounded-lg transition-colors"
+                :class="activeSource === 'ordinance' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:bg-slate-100'">
+                PDF Text
+              </button>
+              <button @click="activeSource = 'notes'"
+                class="text-xs font-bold px-3 py-1 rounded-lg transition-colors"
+                :class="activeSource === 'notes' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:bg-slate-100'">
+                My Notes
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto px-5 py-5 text-xs leading-relaxed text-slate-600">
+            <div v-if="activeSource === 'ordinance'">
+              <p class="font-bold text-slate-800 mb-3">9.6100 — Accessory Dwelling Units</p>
+              <p class="mb-3">An accessory dwelling unit (ADU) may be established on any lot in an R-1, R-2, or R-3 zoning district that contains a single-family dwelling, subject to the following standards:</p>
+              <p class="font-bold text-slate-700 mb-2">9.6105 — Maximum Unit Size</p>
+              <p class="mb-3">An ADU shall not exceed <span class="highlight font-bold">800 square feet</span> of floor area, or <span class="highlight font-bold">50% of the primary dwelling</span>, whichever is less, except that no ADU shall be required to be smaller than 250 square feet.</p>
+              <p class="font-bold text-slate-700 mb-2">9.6110 — Height Limit</p>
+              <p class="mb-3">A detached ADU shall not exceed <span class="highlight font-bold">15 feet</span> in height as measured from average finished grade at the building perimeter to the highest point of the structure, except that a detached ADU located within <span class="highlight font-bold">500 feet of a transit corridor</span> may be permitted up to <span class="highlight font-bold">18 feet</span>.</p>
+              <p class="font-bold text-slate-700 mb-2">9.6115 — Setbacks</p>
+              <p class="mb-3">A detached ADU shall maintain minimum setbacks of <span class="highlight font-bold">4 feet</span> from the rear property line and <span class="highlight font-bold">4 feet</span> from each side property line. Front setback shall match the primary dwelling or <span class="highlight font-bold">20 feet</span>, whichever is greater.</p>
+              <p class="font-bold text-slate-700 mb-2">9.6120 — Lot Coverage</p>
+              <p class="mb-3">The combined lot coverage of all structures, including an ADU, shall not exceed <span class="highlight font-bold">50 percent</span> of the total lot area.</p>
+              <p class="font-bold text-slate-700 mb-2">9.6125 — Parking</p>
+              <p class="mb-3">One off-street parking space is required for an ADU unless: (a) the ADU is located within <span class="highlight font-bold">one-quarter mile</span> of a fixed-route transit stop with service at least every 30 minutes during peak hours; or (b) the ADU is part of a structure within a historic preservation district.</p>
+              <p class="font-bold text-slate-700 mb-2">9.6130 — Owner Occupancy</p>
+              <p class="mb-3">Owner occupancy of either the primary dwelling or the ADU is <span class="highlight font-bold">not required</span> as of January 1, 2020, per ORS 197.312.</p>
+              <p class="font-bold text-slate-700 mb-2">9.6135 — Design Standards</p>
+              <p class="mb-3">The exterior design of a detached ADU shall be compatible with the primary dwelling in terms of exterior materials, roof pitch, and window placement. No design review approval is required.</p>
+              <p class="font-bold text-slate-700 mb-2">9.6140 — Permit Process</p>
+              <p class="mb-4">ADUs are a permitted use in all R zones and do not require a conditional use permit or neighborhood notification. Building permit required.</p>
+              <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-slate-400 italic">
+                Source: City of Corvallis Development Code, Chapter 9, Section 9.6100 &mdash; Last amended 2024-07-15
+              </div>
+            </div>
+            <div v-else class="space-y-3">
+              <div class="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                <p class="font-bold text-amber-700 text-xs mb-1">Transit corridor definition</p>
+                <p class="text-amber-600">Need to confirm which routes qualify as "transit corridors" for the 500ft height bonus. Contact Corvallis Transit System for GTFS or check existing stops table.</p>
+              </div>
+              <div class="p-3 bg-teal-50 border border-teal-100 rounded-lg">
+                <p class="font-bold text-teal-700 text-xs mb-1">Parking waiver &mdash; 0.25 mile radius</p>
+                <p class="text-teal-600">Note: Corvallis uses 1/4 mile (not 1/2 mile like Portland). Make sure transit_proximity_ft = 1320, not 2640.</p>
+              </div>
+              <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                <p class="font-bold text-slate-600 text-xs mb-1">No owner-occupancy requirement</p>
+                <p class="text-slate-500">ORS 197.312 preempts local owner-occupancy rules statewide. Can skip this field in strategy.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Rule Editor -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+          <div class="px-5 py-3 border-b border-slate-200 bg-white flex items-center justify-between">
+            <h2 class="text-sm font-extrabold text-slate-700">Strategy Rules &mdash; CORVallisOregonStrategy</h2>
+            <span class="text-xs text-slate-400">All values in feet unless noted</span>
+          </div>
+
+          <div class="flex-1 overflow-y-auto px-5 py-5 space-y-3">
+            <div v-for="rule in rules" :key="rule.id"
+              class="bg-white rounded-xl border shadow-sm overflow-hidden transition-all"
+              :class="rule.valid === true ? 'border-teal-100' : rule.valid === false ? 'border-red-100' : 'border-slate-100'">
+              <div class="flex items-center justify-between px-5 py-3 border-b border-slate-50">
+                <div class="flex items-center space-x-3">
+                  <i-check-circle2 v-if="rule.valid === true" :size="16" class="text-teal-500" />
+                  <i-alert-circle v-else-if="rule.valid === false" :size="16" class="text-red-400" />
+                  <div v-else class="w-4 h-4 rounded-full border-2 border-slate-200" />
+                  <span class="text-sm font-extrabold text-slate-800">{{ rule.label }}</span>
+                  <span class="text-xs font-mono text-slate-400">{{ rule.method }}</span>
+                </div>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  :class="rule.valid === true ? 'bg-teal-100 text-teal-700' : rule.valid === false ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400'">
+                  {{ rule.valid === true ? 'Coded' : rule.valid === false ? 'Error' : 'Pending' }}
+                </span>
+              </div>
+
+              <div class="px-5 py-4">
+                <div class="grid grid-cols-2 gap-3">
+                  <div v-for="field in rule.fields" :key="field.key" class="space-y-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ field.label }}</label>
+                    <div class="flex items-center space-x-2">
+                      <input
+                        v-model="field.value"
+                        @change="validateRule(rule)"
+                        type="text"
+                        class="flex-1 text-sm font-mono px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 focus:outline-none transition-colors"
+                        :class="field.error ? 'border-red-300 bg-red-50' : ''"
+                        :placeholder="field.placeholder"
+                      />
+                      <span v-if="field.unit" class="text-xs text-slate-400 shrink-0">{{ field.unit }}</span>
+                    </div>
+                    <p v-if="field.error" class="text-xs text-red-500">{{ field.error }}</p>
+                    <p v-else class="text-xs text-slate-400">{{ field.hint }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Test Results Panel -->
+          <transition name="fade">
+            <div v-if="showTestResults" class="border-t border-slate-200 bg-slate-900 text-white px-5 py-4 max-h-48 overflow-y-auto">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Test Results &mdash; CORVallisOregonStrategy</p>
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-bold text-teal-400">{{ testResults.filter(r=>r.pass).length }} passed</span>
+                  <span class="text-slate-600">/</span>
+                  <span class="text-xs font-bold text-red-400">{{ testResults.filter(r=>!r.pass).length }} failed</span>
+                  <button @click="showTestResults = false" class="text-slate-500 hover:text-white ml-2">
+                    <i-x :size="14" />
+                  </button>
+                </div>
+              </div>
+              <div class="space-y-1">
+                <div v-for="r in testResults" :key="r.name"
+                  class="flex items-center space-x-3 text-xs py-0.5">
+                  <i-check-circle2 v-if="r.pass" :size="13" class="text-teal-400 shrink-0" />
+                  <i-alert-circle v-else :size="13" class="text-red-400 shrink-0" />
+                  <span :class="r.pass ? 'text-slate-300' : 'text-red-300'">{{ r.name }}</span>
+                  <span v-if="!r.pass" class="text-red-500 ml-auto">{{ r.error }}</span>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script>
+    const { createApp, ref, computed } = Vue;
+
+    function makeIcon(paths) {
+      return {
+        props: { size: { default: 24 } },
+        template: `<svg xmlns="http://www.w3.org/2000/svg" :width="size" :height="size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`
+      };
+    }
+
+    const IcoCheckCircle2 = makeIcon('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>');
+    const IcoAlertCircle  = makeIcon('<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>');
+    const IcoPlay         = makeIcon('<polygon points="5 3 19 12 5 21 5 3"/>');
+    const IcoX            = makeIcon('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>');
+
+    const App = {
+      template: '#app-tpl',
+      setup() {
+        const activeSource   = ref('ordinance');
+        const testRunning    = ref(false);
+        const showTestResults = ref(false);
+
+        const rules = ref([
+          {
+            id: 'setbacks', label: 'Setbacks', method: 'calculate_setbacks()', valid: true,
+            fields: [
+              { key: 'rear',  label: 'Rear Setback',  value: '4',  placeholder: 'ft', unit: 'ft',  hint: 'From §9.6115', error: null },
+              { key: 'side',  label: 'Side Setback',  value: '4',  placeholder: 'ft', unit: 'ft',  hint: 'From §9.6115', error: null },
+              { key: 'front', label: 'Front Setback', value: '20', placeholder: 'ft', unit: 'ft',  hint: 'Match primary or 20ft', error: null },
+            ]
+          },
+          {
+            id: 'height', label: 'Height Limit', method: 'max_height()', valid: null,
+            fields: [
+              { key: 'base',        label: 'Base Height',         value: '15', placeholder: 'ft', unit: 'ft',  hint: 'From §9.6110', error: null },
+              { key: 'transit',     label: 'Transit Bonus Height', value: '18', placeholder: 'ft', unit: 'ft',  hint: 'Within 500ft corridor', error: null },
+              { key: 'transit_ft',  label: 'Transit Proximity',   value: '',   placeholder: '500', unit: 'ft', hint: 'Radius for bonus — confirm with GTFS', error: null },
+            ]
+          },
+          {
+            id: 'coverage', label: 'Lot Coverage', method: 'max_lot_coverage()', valid: true,
+            fields: [
+              { key: 'max_pct', label: 'Max Coverage', value: '50', placeholder: '%', unit: '%', hint: 'From §9.6120', error: null },
+            ]
+          },
+          {
+            id: 'unit_size', label: 'Max Unit Size', method: 'max_unit_size()', valid: null,
+            fields: [
+              { key: 'absolute_sqft', label: 'Absolute Max',      value: '800',  placeholder: 'sqft', unit: 'sqft', hint: 'From §9.6105', error: null },
+              { key: 'pct_primary',   label: '% of Primary',      value: '50',   placeholder: '%',    unit: '%',   hint: 'Whichever is less', error: null },
+              { key: 'min_sqft',      label: 'Minimum Floor Area', value: '250',  placeholder: 'sqft', unit: 'sqft', hint: 'Floor per §9.6105', error: null },
+            ]
+          },
+          {
+            id: 'parking', label: 'Parking Waiver', method: 'parking_required?()', valid: null,
+            fields: [
+              { key: 'waiver_radius', label: 'Transit Waiver Radius', value: '',   placeholder: '1320', unit: 'ft', hint: '0.25 mi = 1320ft — confirm', error: null },
+              { key: 'freq_minutes',  label: 'Min Service Frequency', value: '30', placeholder: 'min',  unit: 'min', hint: 'Peak hours per §9.6125', error: null },
+            ]
+          },
+          {
+            id: 'permit', label: 'Permit Type', method: 'permit_type()', valid: true,
+            fields: [
+              { key: 'type',     label: 'Process Type',        value: 'Permitted Use',  placeholder: '',  unit: null, hint: 'No CUP required — §9.6140', error: null },
+              { key: 'notif',    label: 'Notification Required', value: 'No',           placeholder: '',  unit: null, hint: 'Per §9.6140', error: null },
+            ]
+          },
+        ]);
+
+        const rulesCoded  = computed(() => rules.value.filter(r => r.valid === true).length);
+        const totalRules  = computed(() => rules.value.length);
+        const allRulesCoded = computed(() => rulesCoded.value === totalRules.value);
+
+        const validateRule = (rule) => {
+          const allFilled = rule.fields.every(f => f.value && f.value.trim() !== '');
+          rule.valid = allFilled ? true : null;
+        };
+
+        const testResults = ref([]);
+
+        const runTests = () => {
+          testRunning.value = true;
+          showTestResults.value = false;
+          setTimeout(() => {
+            testResults.value = [
+              { name: 'test_setback_rear_4ft_standard_lot',           pass: true,  error: null },
+              { name: 'test_setback_side_4ft',                        pass: true,  error: null },
+              { name: 'test_lot_coverage_50pct_limit',                pass: true,  error: null },
+              { name: 'test_max_unit_size_800sqft_absolute',          pass: true,  error: null },
+              { name: 'test_max_unit_size_50pct_of_primary',          pass: true,  error: null },
+              { name: 'test_height_base_15ft',                        pass: true,  error: null },
+              { name: 'test_height_transit_bonus_missing_radius',     pass: false, error: 'transit_proximity_ft is blank — cannot evaluate waiver' },
+              { name: 'test_parking_waiver_missing_radius',           pass: false, error: 'waiver_radius is blank — test skipped' },
+              { name: 'test_permit_type_is_permitted_use',            pass: true,  error: null },
+              { name: 'test_no_owner_occupancy_requirement',          pass: true,  error: null },
+            ];
+            testRunning.value = false;
+            showTestResults.value = true;
+          }, 1800);
+        };
+
+        return {
+          activeSource, testRunning, showTestResults,
+          rules, rulesCoded, totalRules, allRulesCoded,
+          testResults, validateRule, runTests,
+        };
+      },
+    };
+
+    const app = createApp(App);
+    app.component('i-check-circle2', IcoCheckCircle2);
+    app.component('i-alert-circle',  IcoAlertCircle);
+    app.component('i-play',          IcoPlay);
+    app.component('i-x',             IcoX);
+    app.mount('#root');
+  </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Sam's Journey | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .journey-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #3B82F6, #10B981, #6366F1); transform: translateX(-50%); z-index: 0; }
+        .step-card { position: relative; z-index: 10; transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-5px); }
+        .marker { width: 40px; height: 40px; border-radius: 50%; background: #1E293B; border: 4px solid #3B82F6; display: flex; items-center; justify-content: center; font-weight: 800; color: #3B82F6; }
+        .text-gradient { background: linear-gradient(to right, #60A5FA, #3B82F6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .code-snippet { font-family: 'monospace'; background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 4px; color: #93C5FD; }
+    </style>
+</head>
+<body class="antialiased p-6 md:p-12">
+
+    <!-- Header -->
+    <header class="max-w-4xl mx-auto text-center mb-20">
+        <div class="inline-block px-4 py-1 bg-blue-600/20 text-blue-400 rounded-full text-xs font-black uppercase tracking-widest mb-4 border border-blue-500/20">
+            Technical Persona Path: System Sam (Lead Dev)
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight text-white">Architecting the <span class="text-gradient">Digital Twin</span></h1>
+        <p class="text-slate-400 text-lg">Following the Lead Developer as he builds the Rails 8 backbone of the managed agency marketplace.</p>
+    </header>
+
+    <div class="max-w-5xl mx-auto relative">
+        <div class="journey-line hidden md:block"></div>
+
+        <!-- Step 1: Foundation -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">Project Init: Rails 8 & Jumpstart</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Sam initializes the monolith using **Rails 8** and **Jumpstart Pro**. He sets up multi-tenancy for the Builders and establishes the core <code class="code-snippet">Project</code> state machine.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2">1</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 shadow-xl">
+                    <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Stack Logic</span>
+                    <p class="text-sm font-bold mt-1 italic text-white">PostgreSQL • Hotwire • Solid Queue</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: The Digital Twin Engine -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-emerald-600/10 p-6 rounded-3xl border border-emerald-500/20">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Spatial Engine</span>
+                    <p class="text-sm font-bold mt-1 text-white">PostGIS + RGeo: City-Accurate Calculations</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-emerald-500 text-emerald-500">2</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Digital Twin Engine</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Sam builds the spatial infrastructure that makes Yardstake's accuracy possible: PostGIS geometry validation, SRID-aware coordinate transformations, and the Strategy Pattern that encodes each jurisdiction's ADU rules as testable Ruby code. When Zara codes a new setback rule, Sam's engine runs it against 100,000 parcels instantly.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 3: FinTech Rails -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">Ironclad Stripe Connect</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Sam implements **Separate Charges and Transfers**. He writes the logic that holds $150k in the platform balance and programmatically triggers transfers only after "Anxious Annie" clicks approve.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-indigo-400 text-indigo-400">3</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-indigo-900/20 p-6 rounded-3xl border border-indigo-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-indigo-400 uppercase tracking-widest">Financial Safety</span>
+                    <p class="text-sm font-bold mt-1 text-white">Debt Extinguishment Logic Verified</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Real-time Orchestration -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-blue-600/10 p-6 rounded-3xl border border-blue-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Frontend Sync</span>
+                    <p class="text-sm font-bold mt-1 text-white">Solid Cable / Turbo Streams</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-blue-400 text-blue-400">4</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Dual-Track Sync</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Using **Solid Cable**, Sam ensures the Factory Track and Site Track are perfectly synchronized. When "Backyard Bill" updates a site photo, the UI updates instantly for Mike and Annie.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 5: System Health -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">Oregon Beta: Production Grade</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    With 99.9% uptime and 847K+ parcels indexed across five Oregon jurisdictions, Sam monitors SolidQueue health, import job success rates, and feasibility score generation latency. The platform handles the first 20 sales without a production incident. Every edge case Zara finds in the data becomes a failing test before it becomes a fix.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-white text-white">5</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-white/10 p-6 rounded-[40px] border border-white/20 text-center shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-blue-500/5 blur-3xl rounded-full"></div>
+                    <div class="relative z-10">
+                        <div class="text-3xl mb-1">🛡️</div>
+                        <p class="text-xl font-black text-white uppercase tracking-tighter">System Health: OPTIMAL</p>
+                        <p class="text-[10px] text-blue-400 uppercase font-black tracking-widest mt-1">847K Parcels. 5 Jurisdictions. 91.7% Accuracy.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="max-w-4xl mx-auto text-center py-12 border-t border-slate-800 mt-20">
+        <p class="text-slate-500 text-sm italic">"The beauty of Yardstake isn't in the 3D visuals; it's in the underlying Rails logic that turns physical construction into an immutable ledger."</p>
+        <p class="text-slate-600 text-xs mt-2 uppercase font-bold text-white">— System Sam, Lead Developer</p>
+    </footer>
+
+</body>
+</html>

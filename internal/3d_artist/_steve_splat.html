@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splat Steve's Journey | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .journey-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #10B981, #06B6D4, #3B82F6); transform: translateX(-50%); z-index: 0; }
+        .step-card { position: relative; z-index: 10; transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-5px); }
+        .marker { width: 40px; height: 40px; border-radius: 50%; background: #1E293B; border: 4px solid #10B981; display: flex; items-center; justify-content: center; font-weight: 800; color: #10B981; }
+        .text-gradient { background: linear-gradient(to right, #34D399, #10B981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="antialiased p-6 md:p-12">
+
+    <!-- Header -->
+    <header class="max-w-4xl mx-auto text-center mb-20">
+        <div class="inline-block px-4 py-1 bg-emerald-600/20 text-emerald-400 rounded-full text-xs font-black uppercase tracking-widest mb-4 border border-emerald-500/20">
+            Technical Persona Path: Splat Steve (3D Specialist)
+        </div>
+        <div class="inline-block px-4 py-2 bg-amber-500/10 text-amber-300 rounded-2xl text-sm font-bold mb-6 border border-amber-500/30">
+            Phase 2 Role — Activates Post Oregon Beta Validation &amp; Series A
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight text-white">From Raw Video to <span class="text-gradient">Photorealistic AR</span></h1>
+        <p class="text-slate-400 text-lg">The AR pipeline that converts validated Oregon sales into a visual conversion accelerator for the West Coast expansion. Steve's work begins after the core model is proven.</p>
+    </header>
+
+    <div class="max-w-5xl mx-auto relative">
+        <div class="journey-line hidden md:block"></div>
+
+        <!-- Step 1: The Pipeline Trigger -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">Minute 0: The Solid Queue Ping</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Modular Mike uploads a 60s video of his "Studio XL" model. Steve’s automated pipeline triggers, sending the MP4 to the Luma AI API for raw Gaussian Splat generation.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2">1</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-emerald-900/20 p-6 rounded-3xl border border-emerald-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Pipeline Input</span>
+                    <p class="text-sm font-bold mt-1 italic text-white">4K @ 60fps Raw Ingest...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Semantic Segmentation -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-blue-600/10 p-6 rounded-3xl border border-blue-500/20">
+                    <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">AI Action</span>
+                    <p class="text-sm font-bold mt-1 text-white">LangSplat Point-Cloud Tagging</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-blue-500 text-blue-500">2</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">The "Smart" Splat</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Steve runs the `.splat` through a semantic model. He "tags" the roof and siding point clusters. This allows the buyer to swap paint colors on a photo-real model without needing a mesh.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 3: Hybrid Merging -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Interior Fusion</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Steve takes Design Diane’s interior `.glb` and "masks" the interior of the splat. He fuses the two environments, ensuring the transition from the "real" exterior to the "upgradable" interior is seamless.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-cyan-400 text-cyan-400">3</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-cyan-500/10 p-6 rounded-3xl border border-cyan-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-cyan-400 uppercase tracking-widest">Fidelity Check</span>
+                    <p class="text-sm font-bold mt-1 text-white">Splat Exterior + Mesh Interior = Success</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Mobile Optimization -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-purple-600/10 p-6 rounded-3xl border border-purple-500/20 shadow-xl">
+                    <span class="text-xs font-bold text-purple-400 uppercase tracking-widest">Performance</span>
+                    <p class="text-sm font-bold mt-1 text-white">KTX2 Texture Compression</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-purple-500 text-purple-500">4</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">Buttery Smooth 60 FPS</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Steve optimizes the assets for mobile WebGL. He ensures the "Anxious Annies" of the world can spin the house on a 3-year-old iPhone without any lag.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 5: The "Aha!" Moment -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Reveal Gate</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    The render is complete. Steve clicks "Push to Marketplace." Mike gets the notification, sees the photorealistic version of his factory unit, and is officially hooked on the platform.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-white text-white">5</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-white/10 p-6 rounded-[40px] border border-white/20 text-center shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-emerald-500/5 blur-3xl rounded-full"></div>
+                    <div class="relative z-10">
+                        <div class="text-3xl mb-1">✨</div>
+                        <p class="text-xl font-black text-white uppercase tracking-tighter">Phase 2 — Scheduled Post-Series A</p>
+                        <p class="text-[10px] text-emerald-400 uppercase font-black tracking-widest mt-1">Trigger: Oregon Beta Validates All 5 Criteria</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="max-w-4xl mx-auto text-center py-12 border-t border-slate-800 mt-20">
+        <p class="text-slate-500 text-sm italic">"Traditional photogrammetry looks like melted wax. Gaussian Splatting looks like reality. That's the Yardstake difference."</p>
+        <p class="text-slate-600 text-xs mt-2 uppercase font-bold text-white">— Splat Steve, AI Pipeline Specialist</p>
+    </footer>
+
+</body>
+</html>

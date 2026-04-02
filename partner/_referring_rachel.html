@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referring Rachel's Journey | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .journey-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #F59E0B, #EC4899, #8B5CF6); transform: translateX(-50%); z-index: 0; }
+        .step-card { position: relative; z-index: 10; transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-5px); }
+        .marker { width: 40px; height: 40px; border-radius: 50%; background: #1E293B; border: 4px solid #F59E0B; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #F59E0B; }
+        .text-gradient { background: linear-gradient(to right, #F59E0B, #EC4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="antialiased p-6 md:p-12">
+
+    <!-- Header -->
+    <header class="max-w-4xl mx-auto text-center mb-20">
+        <div class="inline-block px-4 py-1 bg-amber-600/20 text-amber-400 rounded-full text-xs font-black uppercase tracking-widest mb-4 border border-amber-500/20">
+            Channel Partner Persona: Referring Rachel (Oregon Realtor / ADU Professional)
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight">From <span class="text-gradient">Client Conversation</span> to Closed Deal</h1>
+        <p class="text-slate-400 text-lg">Rachel works with Oregon homeowners every day. She doesn't build ADUs — but she knows who does, and she knows that a confident feasibility answer closes more deals. Yardstake becomes her secret weapon.</p>
+    </header>
+
+    <!-- Persona Variants callout -->
+    <div class="max-w-4xl mx-auto mb-20 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-amber-500/10 p-5 rounded-2xl border border-amber-500/20">
+            <span class="text-xs font-bold text-amber-400 uppercase block mb-1">Variant A</span>
+            <p class="text-sm font-bold text-white">Realtor Rachel</p>
+            <p class="text-xs text-slate-400 mt-1">Oregon real estate agent. Sends buyer clients to Yardstake before listing consultation. ADU potential increases perceived home value and listing price.</p>
+        </div>
+        <div class="bg-pink-500/10 p-5 rounded-2xl border border-pink-500/20">
+            <span class="text-xs font-bold text-pink-400 uppercase block mb-1">Variant B</span>
+            <p class="text-sm font-bold text-white">Lender Rachel</p>
+            <p class="text-xs text-slate-400 mt-1">Credit union or RenoFi-type ADU lender. Refers pre-qualified borrowers who already have a $49 report — the report proves feasibility and speeds underwriting.</p>
+        </div>
+        <div class="bg-purple-500/10 p-5 rounded-2xl border border-purple-500/20">
+            <span class="text-xs font-bold text-purple-400 uppercase block mb-1">Variant C</span>
+            <p class="text-sm font-bold text-white">Consultant Rachel</p>
+            <p class="text-xs text-slate-400 mt-1">ADU permitting consultant or housing advocate. Sends every new client to the free check first — reduces their own intake burden and pre-qualifies project candidates.</p>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto relative">
+        <div class="journey-line hidden md:block"></div>
+
+        <!-- Step 1: Discovery -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">Victor's Introduction</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Victor calls Rachel — not a cold pitch. He tells her: "I have a tool that tells your clients in 60 seconds whether their lot qualifies for an ADU. It's free for them. It makes you look like the most informed agent in Portland." He sends her a personal referral link: <code class="text-amber-400 text-xs bg-slate-800 px-2 py-0.5 rounded">yardstake.com/check?ref=rachel</code>. Rachel runs the check on her own home address before she even hangs up.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2">1</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-amber-500/10 p-6 rounded-3xl border border-amber-500/20">
+                    <span class="text-xs font-bold text-amber-400 uppercase">Acquisition</span>
+                    <p class="text-sm font-bold mt-1 text-white">Victor's warm outreach. Personal referral link. Rachel checks her own address in 60 seconds.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: First Client Referral -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-pink-600/10 p-6 rounded-3xl border border-pink-500/20">
+                    <span class="text-xs font-bold text-pink-400 uppercase">First Referral</span>
+                    <p class="text-sm font-bold mt-1 text-white">"Before we talk listing price, run this free check on your address."</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-pink-400 text-pink-400">2</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">A Tool That Makes Her Look Good</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Rachel meets with a homeowner client in SE Portland. Before she talks listing price, she opens her laptop and says: "Let me show you something." She runs the free check through her referral link. High confidence result. The client's eyes go wide — they didn't know they could build up to 800 sq ft. The conversation pivots from selling the home to building equity. Rachel has differentiated herself from every other agent in the room.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 3: Conversion -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">The Client Upgrades to $49</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Rachel's client wants the full report. They buy it through Rachel's referral link. Yardstake's analytics attribute the conversion to Rachel's referral. In Phase 2, when referral incentives are live, Rachel earns a referral credit or a reduced commission fee — but even now, in Oregon Beta, the value Rachel gets is <em>professional</em>: her clients trust her more, her listings differentiate on ADU potential, and she closes more deals.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-purple-400 text-purple-400">3</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-purple-500/10 p-6 rounded-3xl border border-purple-500/20">
+                    <span class="text-xs font-bold text-purple-400 uppercase">Conversion Tracked</span>
+                    <p class="text-sm font-bold mt-1 text-white">$49 report purchased via Rachel's referral link. Attribution logged. Val's funnel updated.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Rachel as a Multiplier -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-amber-900/20 p-6 rounded-3xl border border-amber-700/30">
+                    <span class="text-xs font-bold text-amber-400 uppercase">Multiplier Effect</span>
+                    <p class="text-sm font-bold mt-1 text-white">1 Rachel partner = 10–30 Annie referrals/year at near-zero acquisition cost.</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-amber-300 text-amber-300">4</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2 text-white">One Partner, Many Annies</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    A single Realtor Rachel who closes 20 transactions a year sends 5–8 homeowners to Yardstake's free check. A single Lender Rachel who reviews 50 ADU loan applications refers 15–20. A single Consultant Rachel pre-qualifies every client through the free check as standard intake. Rachel is not a user — she's a pipeline. Three active Rachel partners during Oregon Beta can drive more qualified free-check volume than any paid advertising channel Victor has access to.
+                </p>
+            </div>
+        </div>
+
+        <!-- Step 5: Rachel's Long-Term Relationship -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2 text-white">Sticky by Design</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Rachel doesn't churn. Her referral link is in her email signature, her client intake packet, and her listing consultation slide deck. She mentions Yardstake at every ADU conversation without being asked. When Yardstake launches in California, Rachel asks Victor if her Bay Area network counts. The Rachel relationship compounds over time with zero marginal cost.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-white text-white">5</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-white/10 p-6 rounded-[40px] border border-white/20 text-center shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 bg-amber-500/5 blur-3xl rounded-full"></div>
+                    <div class="relative z-10">
+                        <div class="text-3xl mb-1">&#128273;</div>
+                        <p class="text-xl font-black text-white uppercase tracking-tighter">Referral Partner Active</p>
+                        <p class="text-[10px] text-amber-400 uppercase font-black tracking-widest mt-1">Criteria #2 + #4: Drives free→paid conversions + ADU sales</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- What Rachel Needs section -->
+    <div class="max-w-4xl mx-auto mt-8 mb-20">
+        <h2 class="text-2xl font-extrabold text-center mb-8 text-white">What Rachel Needs to Activate</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700">
+                <h3 class="text-sm font-black text-amber-400 uppercase mb-3">Minimum Viable (Oregon Beta)</h3>
+                <ul class="space-y-2 text-sm text-slate-300">
+                    <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">✓</span> Personal referral link with <code class="text-amber-400 bg-slate-900 px-1 rounded text-xs">?ref=</code> param (Val tracks attribution)</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">✓</span> One-page partner brief (PDF) Rachel can print or email clients</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">✓</span> Victor's personal introduction and demo (30 min via Zoom)</li>
+                    <li class="flex items-start gap-2"><span class="text-amber-400 mt-0.5">✓</span> A way for Rachel to see her own referral count (even just an email from Val monthly)</li>
+                </ul>
+            </div>
+            <div class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700">
+                <h3 class="text-sm font-black text-purple-400 uppercase mb-3">Phase 2 Upgrades (Post-Series A)</h3>
+                <ul class="space-y-2 text-sm text-slate-300">
+                    <li class="flex items-start gap-2"><span class="text-purple-400 mt-0.5">○</span> Rachel dashboard: referrals sent, conversions, referral credits earned</li>
+                    <li class="flex items-start gap-2"><span class="text-purple-400 mt-0.5">○</span> Embeddable widget: Rachel puts a free-check input on her own website</li>
+                    <li class="flex items-start gap-2"><span class="text-purple-400 mt-0.5">○</span> Formal referral incentive: credit toward $49 report or cash per conversion</li>
+                    <li class="flex items-start gap-2"><span class="text-purple-400 mt-0.5">○</span> Co-branded report PDF with Rachel's name/logo on cover</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- What Rachel Does NOT Need -->
+    <div class="max-w-4xl mx-auto mb-20 bg-slate-800/40 rounded-2xl border border-slate-700 p-8">
+        <h2 class="text-lg font-extrabold text-white mb-4">What Rachel Does NOT Need (Oregon Beta)</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-slate-400">
+            <div class="flex items-start gap-2"><span class="text-red-400">✗</span> A platform account or login</div>
+            <div class="flex items-start gap-2"><span class="text-red-400">✗</span> Commission payment infrastructure (that's Mike's layer)</div>
+            <div class="flex items-start gap-2"><span class="text-red-400">✗</span> A dedicated dashboard in Oregon Beta</div>
+            <div class="flex items-start gap-2"><span class="text-red-400">✗</span> An onboarding wizard</div>
+            <div class="flex items-start gap-2"><span class="text-red-400">✗</span> A contract (referrals are informal in Beta)</div>
+            <div class="flex items-start gap-2"><span class="text-red-400">✗</span> Training beyond Victor's 30-min demo</div>
+        </div>
+        <p class="text-xs text-slate-500 mt-6 italic">The entire Rachel activation in Oregon Beta is a Google Analytics UTM param, a PDF one-pager, and Victor's phone. That's the point — maximum leverage, near-zero build cost.</p>
+    </div>
+
+    <!-- Footer -->
+    <footer class="max-w-4xl mx-auto text-center mt-20 pt-8 border-t border-slate-800">
+        <p class="text-xs text-slate-600 uppercase tracking-widest font-bold">Yardstake · Partner Persona · Referring Rachel · Created March 25, 2026</p>
+    </footer>
+
+</body>
+</html>

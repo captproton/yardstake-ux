@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Builder Dashboard – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Inline SVG icon components (Lucide-style)
+    const _I = ({ size = 24, className, children }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+           className={className}>{children}</svg>
+    );
+    const TrendingUp   = p => <_I {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></_I>;
+    const MapPin       = p => <_I {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></_I>;
+    const Users        = p => <_I {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></_I>;
+    const ArrowUpRight = p => <_I {...p}><path d="M7 7h10v10"/><path d="M7 17 17 7"/></_I>;
+    const Plus         = p => <_I {...p}><path d="M5 12h14"/><path d="M12 5v14"/></_I>;
+    const ShieldCheck  = p => <_I {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></_I>;
+    const LayoutGrid   = p => <_I {...p}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></_I>;
+    const Zap          = p => <_I {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_I>;
+    const ChevronRight = p => <_I {...p}><path d="m9 18 6-6-6-6"/></_I>;
+    const Info         = p => <_I {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></_I>;
+
+    const App = () => {
+  const demandSignals = [
+    { 
+      id: 1, 
+      name: "The Glass Loft", 
+      architect: "Design Diane", 
+      requests: 8, 
+      opportunity: "$1.44M", 
+      location: "Austin, TX",
+      fit: "High" 
+    },
+    { 
+      id: 2, 
+      name: "Eco-Studio 400", 
+      architect: "Modernist Mark", 
+      requests: 3, 
+      opportunity: "$540k", 
+      location: "San Antonio, TX",
+      fit: "Medium" 
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-6 md:p-12">
+      <div className="max-w-6xl mx-auto space-y-10">
+        
+        {/* Header */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <div className="flex items-center space-x-2 mb-2 text-cyan-400">
+              <TrendingUp size={18} />
+              <span className="text-xs font-black uppercase tracking-widest">Marketplace Demand Signals</span>
+            </div>
+            <h1 className="text-4xl font-black tracking-tight">Expand Your Catalog</h1>
+            <p className="text-slate-400 mt-2">Homeowners in your delivery radius are requesting these designs.</p>
+          </div>
+          <div className="bg-blue-600/10 border border-blue-500/20 p-4 rounded-3xl flex items-center space-x-4">
+             <div className="bg-blue-600 p-3 rounded-2xl">
+                <Users className="text-white" size={24} />
+             </div>
+             <div>
+                <p className="text-2xl font-black text-white">12</p>
+                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Total Active Requests</p>
+             </div>
+          </div>
+        </header>
+
+        {/* Demand Feed */}
+        <div className="grid grid-cols-1 gap-6">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Top Requested Designs in Your Area</h3>
+          
+          {demandSignals.map((signal) => (
+            <div key={signal.id} className="bg-slate-800 rounded-[32px] border border-slate-700 p-8 hover:border-cyan-500/50 transition-all group relative overflow-hidden">
+              {/* Background Glow */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+              
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+                <div className="flex items-start space-x-6">
+                  <div className="w-32 h-24 bg-slate-900 rounded-2xl border border-slate-700 flex items-center justify-center text-3xl overflow-hidden">
+                    🏠
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="bg-cyan-500 text-slate-900 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter italic">HOT DEMAND</span>
+                      <span className="text-xs font-bold text-slate-500">{signal.location}</span>
+                    </div>
+                    <h2 className="text-2xl font-black text-white group-hover:text-cyan-400 transition-colors">{signal.name}</h2>
+                    <p className="text-sm text-slate-400">by {signal.architect}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-12">
+                  <div className="text-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Ready Buyers</p>
+                    <p className="text-xl font-black text-white">{signal.requests}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">GTV Opportunity</p>
+                    <p className="text-xl font-black text-cyan-400">{signal.opportunity}</p>
+                  </div>
+                  <div className="text-center hidden sm:block">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Factory Fit</p>
+                    <p className="text-xl font-black text-green-500">{signal.fit}</p>
+                  </div>
+                  <button className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold flex items-center space-x-2 hover:bg-cyan-400 transition-all shadow-xl active:scale-95">
+                    <Plus size={18} />
+                    <span>Adopt Design</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* How it Works / Value Prop */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { 
+              icon: <Zap className="text-yellow-400" />, 
+              title: "Zero CAC", 
+              desc: "Skip the marketing costs. These buyers have already configured this model." 
+            },
+            { 
+              icon: <ShieldCheck className="text-green-400" />, 
+              title: "Pre-Qualified", 
+              desc: "Yardstake has verified zoning and soft-pull credit for these leads." 
+            },
+            { 
+              icon: <LayoutGrid className="text-blue-400" />, 
+              title: "Instant Assets", 
+              desc: "Adopting a design gives you immediate access to the 3D Twins and Specs." 
+            }
+          ].map((card, i) => (
+            <div key={i} className="bg-white/5 border border-white/10 p-6 rounded-3xl">
+              <div className="mb-4">{card.icon}</div>
+              <h4 className="font-bold text-white mb-2">{card.title}</h4>
+              <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <footer className="text-center py-10 border-t border-slate-800">
+           <p className="text-slate-600 text-[10px] font-black uppercase tracking-widest">Yardstake Supply-side activation engine v1.2</p>
+        </footer>
+
+      </div>
+    </div>
+  );
+};
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

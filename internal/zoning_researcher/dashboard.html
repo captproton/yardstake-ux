@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jurisdiction Research Hub – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/x-template" id="app-tpl">
+    <div class="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+
+      <!-- Sidebar -->
+      <aside class="w-64 bg-slate-900 text-white p-6 flex-col hidden lg:flex border-r border-slate-800">
+        <div class="flex items-center space-x-2 mb-10">
+          <span class="text-2xl">&#127968;</span>
+          <span class="text-xl font-bold tracking-tight text-white">Yard<span class="text-teal-400">stake</span></span>
+        </div>
+        <nav class="space-y-1 flex-grow">
+          <button
+            v-for="item in navItems"
+            :key="item.id"
+            @click="activeTab = item.id"
+            class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all"
+            :class="activeTab === item.id ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/40' : 'text-slate-400 hover:bg-slate-800'"
+          >
+            <component :is="item.icon" :size="18" />
+            <span class="text-sm font-bold">{{ item.label }}</span>
+          </button>
+        </nav>
+        <div class="mt-auto pt-6 border-t border-slate-800">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-full bg-teal-600 flex items-center justify-center font-black text-sm">ZZ</div>
+            <div>
+              <p class="text-sm font-bold text-white">Zoning Zara</p>
+              <p class="text-xs text-teal-400">Research Lead</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="flex-1 p-6 lg:p-10 overflow-y-auto">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="text-2xl font-extrabold text-slate-900">Jurisdiction Research Hub</h1>
+            <p class="text-sm text-slate-500 mt-1">Oregon Beta — Digital Twin data operations</p>
+          </div>
+          <button
+            @click="handleRefresh"
+            class="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white text-sm font-bold rounded-xl hover:bg-teal-700 transition-colors"
+          >
+            <i-refresh-ccw :size="15" :class="refreshing ? 'animate-spin' : ''" />
+            <span>{{ refreshing ? 'Syncing...' : 'Sync Data' }}</span>
+          </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div v-for="s in stats" :key="s.label" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ s.label }}</p>
+              <component :is="s.icon" :size="18" :class="s.color" />
+            </div>
+            <p class="text-2xl font-extrabold text-slate-900">{{ s.value }}</p>
+            <p class="text-xs text-slate-400 mt-1">{{ s.sub }}</p>
+          </div>
+        </div>
+
+        <!-- PIPELINE TAB -->
+        <div v-if="activeTab === 'pipeline'" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="font-extrabold text-slate-800">Oregon Jurisdiction Pipeline</h2>
+            <span class="text-xs text-slate-400">8 jurisdictions tracked</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th v-for="h in ['Jurisdiction','Status','Parcels','Data Quality','High / Med / Low','Last Updated','']"
+                      :key="h" class="text-left px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{{ h }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                <tr v-for="j in jurisdictions" :key="j.name" class="hover:bg-slate-50 transition-colors">
+                  <td class="px-5 py-4 font-bold text-slate-800">{{ j.name }}, {{ j.state }}</td>
+                  <td class="px-5 py-4">
+                    <span class="text-xs font-bold px-2.5 py-1 rounded-full" :class="statusBadge(j.status)">{{ j.status }}</span>
+                  </td>
+                  <td class="px-5 py-4 text-slate-600">{{ j.parcels }}</td>
+                  <td class="px-5 py-4">
+                    <div v-if="j.quality > 0" class="flex items-center space-x-2">
+                      <div class="w-24 bg-slate-100 rounded-full h-2">
+                        <div
+                          class="h-2 rounded-full"
+                          :class="j.quality >= 90 ? 'bg-teal-500' : j.quality >= 80 ? 'bg-amber-400' : 'bg-red-400'"
+                          :style="{ width: j.quality + '%' }"
+                        />
+                      </div>
+                      <span class="text-xs font-bold text-slate-600">{{ j.quality }}%</span>
+                    </div>
+                    <span v-else class="text-xs text-slate-300">—</span>
+                  </td>
+                  <td class="px-5 py-4">
+                    <div v-if="j.status === 'Active'" class="flex space-x-2 text-xs font-bold">
+                      <span class="text-teal-700">{{ j.high }}%</span>
+                      <span class="text-slate-300">/</span>
+                      <span class="text-amber-600">{{ j.med }}%</span>
+                      <span class="text-slate-300">/</span>
+                      <span class="text-red-500">{{ j.low }}%</span>
+                    </div>
+                    <span v-else class="text-xs text-slate-300">Pending</span>
+                  </td>
+                  <td class="px-5 py-4 text-slate-400 text-xs">{{ j.updated }}</td>
+                  <td class="px-5 py-4">
+                    <button
+                      v-if="j.status === 'Active'"
+                      @click.stop="openDrawer(j)"
+                      class="text-teal-600 hover:text-teal-800 hover:bg-teal-50 p-1 rounded-lg transition-colors"
+                    >
+                      <i-chevron-right :size="16" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CONFIDENCE MODEL TAB -->
+        <div v-if="activeTab === 'confidence'" class="space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 class="font-extrabold text-slate-800 mb-1">Three-Tier Confidence Model</h2>
+            <p class="text-sm text-slate-500 mb-6">Thresholds applied across all feasibility queries. Tuned from closed-transaction feedback.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div v-for="t in confidenceTiers" :key="t.tier" class="rounded-2xl p-5 border" :class="t.card">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-lg font-extrabold" :class="t.title">{{ t.tier }}</span>
+                  <span class="text-xs font-bold px-2 py-1 rounded-full" :class="t.badge">{{ t.range }}</span>
+                </div>
+                <p class="text-xs text-slate-600 mb-3 leading-relaxed">{{ t.desc }}</p>
+                <ul class="space-y-1">
+                  <li v-for="c in t.criteria" :key="c" class="text-xs text-slate-500 flex items-start space-x-1.5">
+                    <span class="mt-0.5" :class="t.bullet">&#8226;</span>
+                    <span>{{ c }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 class="font-extrabold text-slate-800 mb-4">Confidence Distribution by Jurisdiction</h2>
+            <div class="space-y-4">
+              <div v-for="j in activeJurisdictions" :key="j.name" class="flex items-center space-x-4">
+                <span class="w-24 text-sm font-bold text-slate-700 shrink-0">{{ j.name }}</span>
+                <div class="flex-1 flex rounded-full overflow-hidden h-5">
+                  <div class="bg-teal-500 flex items-center justify-center text-white text-[10px] font-bold" :style="{ width: j.high + '%' }">{{ j.high }}%</div>
+                  <div class="bg-amber-400 flex items-center justify-center text-white text-[10px] font-bold" :style="{ width: j.med + '%' }">{{ j.med }}%</div>
+                  <div class="bg-red-400 flex items-center justify-center text-white text-[10px] font-bold" :style="{ width: j.low + '%' }">{{ j.low }}%</div>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-6 mt-5 pt-4 border-t border-slate-100">
+              <div v-for="leg in legend" :key="leg.label" class="flex items-center space-x-2">
+                <div class="w-3 h-3 rounded-full" :class="leg.bg" />
+                <span class="text-xs text-slate-500">{{ leg.label }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACCURACY AUDIT TAB -->
+        <div v-if="activeTab === 'audit'" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h2 class="font-extrabold text-slate-800">Closed Transaction Accuracy Audit</h2>
+              <p class="text-xs text-slate-400 mt-0.5">12 transactions closed — 11 predictions confirmed correct (91.7%)</p>
+            </div>
+            <div class="text-right">
+              <p class="text-2xl font-extrabold text-teal-600">91.7%</p>
+              <p class="text-xs text-slate-400">Accuracy Rate</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th v-for="h in ['Project','Jurisdiction','Predicted Tier','Outcome','Match','Notes']"
+                      :key="h" class="text-left px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{{ h }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                <tr v-for="r in auditRows" :key="r.id" class="hover:bg-slate-50 transition-colors" :class="!r.match ? 'bg-red-50/30' : ''">
+                  <td class="px-5 py-3 font-bold text-slate-700">{{ r.id }}</td>
+                  <td class="px-5 py-3 text-slate-600">{{ r.jurisdiction }}, OR</td>
+                  <td class="px-5 py-3">
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="predictedBadge(r.predicted)">{{ r.predicted }}</span>
+                  </td>
+                  <td class="px-5 py-3 text-slate-600">{{ r.outcome }}</td>
+                  <td class="px-5 py-3">
+                    <i-check-circle2 v-if="r.match" :size="18" class="text-teal-500" />
+                    <i-alert-circle v-else :size="18" class="text-red-500" />
+                  </td>
+                  <td class="px-5 py-3 text-slate-400 text-xs">{{ r.note }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DATA QUEUE TAB -->
+        <div v-if="activeTab === 'queue'" class="space-y-4">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 class="font-extrabold text-slate-800 mb-1">Incoming Jurisdiction Requests</h2>
+            <p class="text-sm text-slate-500 mb-6">Requested by product, sales, or growth. Zara triages and schedules based on data availability and strategic priority.</p>
+            <div class="space-y-4">
+              <div
+                v-for="q in queue"
+                :key="q.jurisdiction"
+                class="flex items-start justify-between p-4 rounded-xl border border-slate-100 hover:border-teal-200 hover:bg-teal-50/30 transition-all"
+              >
+                <div class="flex-1">
+                  <div class="flex items-center space-x-3 mb-1">
+                    <span class="font-bold text-slate-800">{{ q.jurisdiction }}</span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="priorityBadge(q.priority)">{{ q.priority }}</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mb-1">Requested by: <span class="font-semibold text-slate-700">{{ q.source }}</span></p>
+                  <p class="text-xs text-slate-400">{{ q.notes }}</p>
+                </div>
+                <div class="text-right ml-6 shrink-0">
+                  <div class="flex items-center space-x-1 text-xs text-slate-500">
+                    <i-clock :size="12" />
+                    <span>{{ q.effort }}</span>
+                  </div>
+                  <button class="mt-2 text-xs font-bold text-teal-600 hover:text-teal-800 transition-colors flex items-center space-x-1">
+                    <span>Start Intake</span>
+                    <i-chevron-right :size="12" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-teal-900 rounded-2xl p-6 text-white">
+            <h3 class="font-extrabold mb-1">Data Operations Reality Check</h3>
+            <p class="text-sm text-teal-200 leading-relaxed">Each new jurisdiction requires 40–80 hours of research, validation, and rule coding before it goes live. This is not a light software layer — it is the moat. Rushing data quality to hit an expansion target is how the confidence model breaks and homeowners get wrong answers.</p>
+            <div class="mt-4 flex items-center space-x-2 text-teal-300 text-xs font-bold">
+              <i-shield-check :size="14" />
+              <span>Accuracy target: 90%+ in High confidence tier before any jurisdiction goes live.</span>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ─── Drawer Backdrop ─── -->
+      <div
+        v-if="drawerOpen"
+        @click="closeDrawer"
+        class="fixed inset-0 bg-slate-900/40 z-40"
+        style="backdrop-filter: blur(2px);"
+      />
+
+      <!-- ─── Slide-Over Drawer ─── -->
+      <div
+        class="fixed top-0 right-0 h-full bg-white shadow-2xl z-50 flex flex-col overflow-hidden"
+        style="width: 480px; transition: transform 0.3s ease;"
+        :style="{ transform: drawerOpen ? 'translateX(0)' : 'translateX(100%)' }"
+      >
+        <template v-if="drawer">
+
+          <!-- Drawer Header -->
+          <div class="px-6 py-5 border-b border-slate-100 flex items-start justify-between shrink-0">
+            <div>
+              <div class="flex items-center space-x-3 mb-1">
+                <h2 class="text-xl font-extrabold text-slate-900">{{ drawer.name }}, {{ drawer.state }}</h2>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full" :class="statusBadge(drawer.status)">{{ drawer.status }}</span>
+              </div>
+              <p class="text-xs text-slate-400">{{ drawer.parcels }} parcels &bull; Last updated {{ drawer.updated }}</p>
+            </div>
+            <button @click="closeDrawer" class="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100 ml-4 shrink-0">
+              <i-x :size="18" />
+            </button>
+          </div>
+
+          <!-- Drawer Body -->
+          <div class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+            <!-- At a Glance -->
+            <div>
+              <p class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">At a Glance</p>
+              <div class="grid grid-cols-3 gap-3">
+                <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                  <p class="text-xl font-extrabold"
+                    :class="drawer.quality >= 90 ? 'text-teal-600' : drawer.quality >= 80 ? 'text-amber-500' : 'text-red-500'">
+                    {{ drawer.quality }}%
+                  </p>
+                  <p class="text-[11px] text-slate-400 mt-0.5 font-bold">Data Quality</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                  <p class="text-xl font-extrabold text-teal-600">{{ drawer.high }}%</p>
+                  <p class="text-[11px] text-slate-400 mt-0.5 font-bold">High Confidence</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                  <p class="text-xl font-extrabold" :class="drawer.accuracy >= 90 ? 'text-teal-600' : 'text-amber-500'">
+                    {{ drawer.accuracy }}%
+                  </p>
+                  <p class="text-[11px] text-slate-400 mt-0.5 font-bold">Accuracy Rate</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Confidence Distribution -->
+            <div>
+              <p class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Confidence Distribution</p>
+              <div class="flex rounded-full overflow-hidden h-6 mb-2">
+                <div class="bg-teal-500 flex items-center justify-center text-white text-[11px] font-bold" :style="{ width: drawer.high + '%' }">{{ drawer.high }}%</div>
+                <div class="bg-amber-400 flex items-center justify-center text-white text-[11px] font-bold" :style="{ width: drawer.med + '%' }">{{ drawer.med }}%</div>
+                <div class="bg-red-400 flex items-center justify-center text-white text-[11px] font-bold" :style="{ width: drawer.low + '%' }">{{ drawer.low }}%</div>
+              </div>
+              <div class="flex items-center space-x-5 mt-2">
+                <div class="flex items-center space-x-1.5"><div class="w-2.5 h-2.5 rounded-full bg-teal-500"/><span class="text-xs text-slate-500">High</span></div>
+                <div class="flex items-center space-x-1.5"><div class="w-2.5 h-2.5 rounded-full bg-amber-400"/><span class="text-xs text-slate-500">Medium</span></div>
+                <div class="flex items-center space-x-1.5"><div class="w-2.5 h-2.5 rounded-full bg-red-400"/><span class="text-xs text-slate-500">Low</span></div>
+              </div>
+            </div>
+
+            <!-- Rulebook Status -->
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Rulebook Status</p>
+                <span class="text-xs font-bold"
+                  :class="drawer.rules.every(r => r.coded) ? 'text-teal-600' : 'text-amber-500'">
+                  {{ drawer.rules.filter(r => r.coded).length }} / {{ drawer.rules.length }} coded
+                </span>
+              </div>
+              <div class="space-y-1.5">
+                <div v-for="rule in drawer.rules" :key="rule.name"
+                  class="flex items-center space-x-3 px-3 py-2 rounded-lg"
+                  :class="rule.coded ? 'bg-teal-50' : 'bg-amber-50'">
+                  <i-check-circle2 v-if="rule.coded" :size="14" class="text-teal-500 shrink-0" />
+                  <div v-else class="w-3.5 h-3.5 rounded-full border-2 border-amber-300 shrink-0" />
+                  <span class="text-xs font-mono" :class="rule.coded ? 'text-slate-700' : 'text-amber-700'">{{ rule.name }}</span>
+                  <span v-if="!rule.coded" class="ml-auto text-[10px] font-bold text-amber-500 uppercase tracking-wider">pending</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Queries -->
+            <div>
+              <p class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Recent Feasibility Queries</p>
+              <div class="space-y-1">
+                <div v-for="q in drawer.recentQueries" :key="q.address"
+                  class="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors">
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">{{ q.address }}</p>
+                    <p class="text-xs text-slate-400">{{ q.date }}</p>
+                  </div>
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full ml-3 shrink-0"
+                    :class="q.tier === 'High' ? 'bg-teal-100 text-teal-700' : q.tier === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'">
+                    {{ q.tier }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Drawer Footer: Quick Actions -->
+          <div class="px-6 py-4 border-t border-slate-100 space-y-2 shrink-0 bg-slate-50">
+            <p class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</p>
+            <a href="ordinance_editor.html"
+              class="flex items-center justify-between w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-teal-300 hover:bg-teal-50/50 transition-all group">
+              <span class="text-sm font-bold text-slate-700 group-hover:text-teal-700">Open Ordinance Editor</span>
+              <i-chevron-right :size="16" class="text-slate-300 group-hover:text-teal-500" />
+            </a>
+            <a href="parcel_review.html"
+              class="flex items-center justify-between w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-teal-300 hover:bg-teal-50/50 transition-all group">
+              <span class="text-sm font-bold text-slate-700 group-hover:text-teal-700">Review Flagged Parcels</span>
+              <i-chevron-right :size="16" class="text-slate-300 group-hover:text-teal-500" />
+            </a>
+            <a href="jurisdiction_intake.html"
+              class="flex items-center justify-between w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl hover:border-teal-300 hover:bg-teal-50/50 transition-all group">
+              <span class="text-sm font-bold text-slate-700 group-hover:text-teal-700">View Intake Record</span>
+              <i-chevron-right :size="16" class="text-slate-300 group-hover:text-teal-500" />
+            </a>
+          </div>
+
+        </template>
+      </div>
+
+    </div>
+  </script>
+
+  <script>
+    const { createApp, ref, computed } = Vue;
+
+    function makeIcon(paths) {
+      return {
+        props: { size: { default: 24 }, strokeWidth: { default: 2 } },
+        template: `<svg xmlns="http://www.w3.org/2000/svg" :width="size" :height="size" viewBox="0 0 24 24" fill="none" stroke="currentColor" :stroke-width="strokeWidth" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`
+      };
+    }
+
+    const IcoMap          = makeIcon('<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/>');
+    const IcoDatabase     = makeIcon('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>');
+    const IcoShieldCheck  = makeIcon('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/>');
+    const IcoBarChart3    = makeIcon('<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>');
+    const IcoCheckCircle2 = makeIcon('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>');
+    const IcoAlertCircle  = makeIcon('<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>');
+    const IcoClock        = makeIcon('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>');
+    const IcoRefreshCcw   = makeIcon('<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>');
+    const IcoInbox        = makeIcon('<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>');
+    const IcoChevronRight = makeIcon('<path d="m9 18 6-6-6-6"/>');
+    const IcoLayers       = makeIcon('<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>');
+    const IcoX            = makeIcon('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>');
+
+    const RULES_BASE = [
+      { name: 'calculate_setbacks()',  coded: true  },
+      { name: 'max_height()',          coded: true  },
+      { name: 'max_lot_coverage()',    coded: true  },
+      { name: 'max_unit_size()',       coded: true  },
+      { name: 'parking_required?()',   coded: true  },
+      { name: 'permit_type()',         coded: true  },
+      { name: 'near_major_transit?()', coded: false },
+    ];
+
+    const App = {
+      template: '#app-tpl',
+      setup() {
+        const activeTab  = ref('pipeline');
+        const refreshing = ref(false);
+        const drawerOpen = ref(false);
+        const drawer     = ref(null);
+
+        const navItems = [
+          { id: 'pipeline',   label: 'Jurisdiction Pipeline', icon: 'i-map' },
+          { id: 'confidence', label: 'Confidence Model',      icon: 'i-layers' },
+          { id: 'audit',      label: 'Accuracy Audit',        icon: 'i-bar-chart3' },
+          { id: 'queue',      label: 'Data Queue',            icon: 'i-inbox' },
+        ];
+
+        const stats = [
+          { label: 'Active Jurisdictions', value: '5',       sub: 'Oregon Beta',             icon: 'i-map',           color: 'text-teal-500' },
+          { label: 'Parcels Indexed',      value: '847,231', sub: '+12,440 this week',       icon: 'i-database',      color: 'text-blue-500' },
+          { label: 'High Confidence Rate', value: '68%',     sub: 'Across all queries',      icon: 'i-shield-check',  color: 'text-emerald-500' },
+          { label: 'Accuracy Rate',        value: '91.7%',   sub: '11 / 12 closed projects', icon: 'i-check-circle2', color: 'text-teal-400' },
+        ];
+
+        const jurisdictions = [
+          {
+            name: 'Portland', state: 'OR', status: 'Active', parcels: '284,110',
+            quality: 94, high: 72, med: 21, low: 7, updated: '2026-03-04', accuracy: 100,
+            rules: RULES_BASE.map(r => ({ ...r })),
+            recentQueries: [
+              { address: '3312 SE Division St',    tier: 'High',   date: 'Mar 6' },
+              { address: '1847 NE Alberta St',     tier: 'High',   date: 'Mar 6' },
+              { address: '4201 N Mississippi Ave', tier: 'Medium', date: 'Mar 5' },
+              { address: '728 SW 11th Ave',        tier: 'High',   date: 'Mar 5' },
+              { address: '5519 SE Hawthorne Blvd', tier: 'Low',    date: 'Mar 4' },
+            ],
+          },
+          {
+            name: 'Eugene', state: 'OR', status: 'Active', parcels: '112,430',
+            quality: 91, high: 68, med: 22, low: 10, updated: '2026-03-01', accuracy: 67,
+            rules: RULES_BASE.map(r => ({ ...r, coded: true })),
+            recentQueries: [
+              { address: '714 NW Spruce Ave',    tier: 'Medium', date: 'Mar 5' },
+              { address: '1205 Hilyard St',      tier: 'High',   date: 'Mar 4' },
+              { address: '340 W 11th Ave',       tier: 'High',   date: 'Mar 3' },
+              { address: '88 Coburg Rd',         tier: 'High',   date: 'Mar 3' },
+              { address: '2310 Centennial Blvd', tier: 'Low',    date: 'Mar 2' },
+            ],
+          },
+          {
+            name: 'Salem', state: 'OR', status: 'Active', parcels: '98,750',
+            quality: 88, high: 61, med: 28, low: 11, updated: '2026-02-28', accuracy: 100,
+            rules: RULES_BASE.map(r => ({ ...r, coded: r.name !== 'near_major_transit?()' })),
+            recentQueries: [
+              { address: '2280 Commercial St SE', tier: 'Medium', date: 'Mar 4' },
+              { address: '445 Lancaster Dr NE',  tier: 'High',   date: 'Mar 3' },
+              { address: '1890 Fairgrounds Rd',  tier: 'High',   date: 'Mar 2' },
+              { address: '3310 State St',        tier: 'Medium', date: 'Mar 1' },
+              { address: '620 Winter St NE',     tier: 'High',   date: 'Feb 28' },
+            ],
+          },
+          {
+            name: 'Bend', state: 'OR', status: 'Active', parcels: '74,200',
+            quality: 86, high: 59, med: 29, low: 12, updated: '2026-02-25', accuracy: 100,
+            rules: RULES_BASE.map(r => ({
+              ...r,
+              coded: !['near_major_transit?()', 'permit_type()'].includes(r.name),
+            })),
+            recentQueries: [
+              { address: '408 NW 7th St',       tier: 'Low',    date: 'Mar 3' },
+              { address: '1765 NE 4th St',      tier: 'High',   date: 'Mar 2' },
+              { address: '540 SW Industrial Way', tier: 'High',  date: 'Mar 1' },
+              { address: '2830 NE Division St', tier: 'Medium', date: 'Feb 28' },
+              { address: '19800 SW Amber Ln',   tier: 'High',   date: 'Feb 27' },
+            ],
+          },
+          {
+            name: 'Medford', state: 'OR', status: 'Active', parcels: '52,600',
+            quality: 83, high: 55, med: 31, low: 14, updated: '2026-02-20', accuracy: 100,
+            rules: RULES_BASE.map(r => ({ ...r, coded: r.name !== 'near_major_transit?()' })),
+            recentQueries: [
+              { address: '1045 Crater Lake Ave', tier: 'Medium', date: 'Mar 2' },
+              { address: '312 W Main St',        tier: 'High',   date: 'Mar 1' },
+              { address: '2800 Table Rock Rd',   tier: 'High',   date: 'Feb 28' },
+              { address: '714 Holmes Ave',       tier: 'Medium', date: 'Feb 27' },
+              { address: '1620 E Jackson St',    tier: 'High',   date: 'Feb 26' },
+            ],
+          },
+          { name: 'Corvallis', state: 'OR', status: 'In Progress', parcels: '41,800', quality: 61, high: 0, med: 0, low: 0, updated: '2026-03-05', accuracy: 0, rules: [], recentQueries: [] },
+          { name: 'Ashland',   state: 'OR', status: 'Backlog',     parcels: '18,900', quality: 0,  high: 0, med: 0, low: 0, updated: '—',          accuracy: 0, rules: [], recentQueries: [] },
+          { name: 'Albany',    state: 'OR', status: 'Backlog',     parcels: '40,100', quality: 0,  high: 0, med: 0, low: 0, updated: '—',          accuracy: 0, rules: [], recentQueries: [] },
+        ];
+
+        const activeJurisdictions = computed(() => jurisdictions.filter(j => j.status === 'Active'));
+
+        const confidenceTiers = [
+          {
+            tier: 'High',   range: '80 – 100%',
+            card: 'bg-teal-50 border-teal-100',   title: 'text-teal-700',  badge: 'bg-teal-100 text-teal-700',  bullet: 'text-teal-400',
+            desc: 'Automated result delivered to homeowner. Complete geometry, confirmed zoning, no overlay conflicts.',
+            criteria: ['Full GeoJSON geometry', 'Confirmed zoning class', 'No HPZ / flood overlay', 'Setbacks calculable from parcel data'],
+          },
+          {
+            tier: 'Medium', range: '50 – 79%',
+            card: 'bg-amber-50 border-amber-100', title: 'text-amber-700', badge: 'bg-amber-100 text-amber-700', bullet: 'text-amber-400',
+            desc: 'Result shown with caveat. Human expert review triggered before homeowner commits a token.',
+            criteria: ['Overlay zone present', 'Missing utility easement data', 'Parcel geometry partial', 'Zoning text ambiguous'],
+          },
+          {
+            tier: 'Low',    range: '0 – 49%',
+            card: 'bg-red-50 border-red-100',     title: 'text-red-700',   badge: 'bg-red-100 text-red-700',     bullet: 'text-red-400',
+            desc: 'No automated answer. Routed directly to Zara or a licensed planner before any result is surfaced.',
+            criteria: ['Historic preservation district', 'FEMA flood zone AE/AH', 'Conflicting field values', 'Jurisdiction data stale >18 months'],
+          },
+        ];
+
+        const legend = [
+          { bg: 'bg-teal-500',  label: 'High' },
+          { bg: 'bg-amber-400', label: 'Medium' },
+          { bg: 'bg-red-400',   label: 'Low' },
+        ];
+
+        const auditRows = [
+          { id: '#102', jurisdiction: 'Portland', predicted: 'High',   outcome: 'Built',             match: true,  note: 'Perfect. No variance.' },
+          { id: '#107', jurisdiction: 'Eugene',   predicted: 'High',   outcome: 'Built',             match: true,  note: 'Completed on schedule.' },
+          { id: '#114', jurisdiction: 'Portland', predicted: 'High',   outcome: 'Built',             match: true,  note: 'Minor change order only.' },
+          { id: '#119', jurisdiction: 'Salem',    predicted: 'Medium', outcome: 'Built',             match: true,  note: 'Variance approved by city.' },
+          { id: '#123', jurisdiction: 'Eugene',   predicted: 'Medium', outcome: 'Variance Required', match: false, note: 'Unexpected HPZ buffer rule. Threshold tightened.' },
+          { id: '#128', jurisdiction: 'Portland', predicted: 'High',   outcome: 'Built',             match: true,  note: 'Transit waiver applied correctly.' },
+          { id: '#131', jurisdiction: 'Bend',     predicted: 'High',   outcome: 'Built',             match: true,  note: 'Setback calc confirmed.' },
+          { id: '#135', jurisdiction: 'Salem',    predicted: 'High',   outcome: 'Built',             match: true,  note: 'Lot coverage 48%. Pass.' },
+          { id: '#140', jurisdiction: 'Eugene',   predicted: 'High',   outcome: 'Built',             match: true,  note: 'Confirmed geometry match.' },
+          { id: '#144', jurisdiction: 'Portland', predicted: 'High',   outcome: 'Built',             match: true,  note: 'ADU + JADU combo. Passed.' },
+          { id: '#149', jurisdiction: 'Bend',     predicted: 'High',   outcome: 'Built',             match: true,  note: 'No issues.' },
+          { id: '#153', jurisdiction: 'Medford',  predicted: 'High',   outcome: 'Built',             match: true,  note: 'New jurisdiction. First live test.' },
+        ];
+
+        const queue = [
+          { jurisdiction: 'Corvallis, OR',   source: 'Victor (Expansion Plan)',  priority: 'High',   effort: '~3 days', notes: 'Shapefile received. Ordinance PDF in review.' },
+          { jurisdiction: 'Ashland, OR',     source: 'Viral Val (Builder Lead)', priority: 'Medium', effort: '~4 days', notes: 'Waiting on city GIS export.' },
+          { jurisdiction: 'Albany, OR',      source: 'Victor (Expansion Plan)',  priority: 'Medium', effort: '~3 days', notes: 'In backlog. No data received yet.' },
+          { jurisdiction: 'Grants Pass, OR', source: 'Builder Request',          priority: 'Low',    effort: '~5 days', notes: 'Ordinance last updated 2022. Verify currency.' },
+        ];
+
+        function handleRefresh() {
+          refreshing.value = true;
+          setTimeout(() => { refreshing.value = false; }, 1800);
+        }
+
+        function openDrawer(j) {
+          drawer.value = j;
+          drawerOpen.value = true;
+        }
+
+        function closeDrawer() {
+          drawerOpen.value = false;
+        }
+
+        function statusBadge(status) {
+          const map = {
+            'Active':      'bg-teal-100 text-teal-800',
+            'In Progress': 'bg-amber-100 text-amber-800',
+            'Backlog':     'bg-slate-100 text-slate-600',
+          };
+          return map[status] || 'bg-slate-100 text-slate-600';
+        }
+
+        function priorityBadge(p) {
+          const map = { High: 'bg-red-100 text-red-700', Medium: 'bg-amber-100 text-amber-700', Low: 'bg-slate-100 text-slate-600' };
+          return map[p] || '';
+        }
+
+        function predictedBadge(p) {
+          if (p === 'High')   return 'bg-teal-100 text-teal-800';
+          if (p === 'Medium') return 'bg-amber-100 text-amber-800';
+          return 'bg-red-100 text-red-700';
+        }
+
+        return {
+          activeTab, refreshing, drawerOpen, drawer,
+          navItems, stats, jurisdictions, activeJurisdictions,
+          confidenceTiers, legend, auditRows, queue,
+          handleRefresh, openDrawer, closeDrawer,
+          statusBadge, priorityBadge, predictedBadge,
+        };
+      },
+    };
+
+    const app = createApp(App);
+    app.component('i-map',           IcoMap);
+    app.component('i-database',      IcoDatabase);
+    app.component('i-shield-check',  IcoShieldCheck);
+    app.component('i-bar-chart3',    IcoBarChart3);
+    app.component('i-check-circle2', IcoCheckCircle2);
+    app.component('i-alert-circle',  IcoAlertCircle);
+    app.component('i-clock',         IcoClock);
+    app.component('i-refresh-ccw',   IcoRefreshCcw);
+    app.component('i-inbox',         IcoInbox);
+    app.component('i-chevron-right', IcoChevronRight);
+    app.component('i-layers',        IcoLayers);
+    app.component('i-x',             IcoX);
+    app.mount('#root');
+  </script>
+</body>
+</html>

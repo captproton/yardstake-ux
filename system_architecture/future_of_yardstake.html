@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yardstake Marketplace Strategy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #1E293B; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        @media (max-width: 640px) { .chart-container { height: 300px; } }
+        .text-gradient { background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: linear-gradient(to right, #1E40AF, #06B6D4); }
+        .hover-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Navigation / Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl">🏗️</span>
+                <h1 class="text-xl font-bold text-slate-800 tracking-tight">Yard<span class="text-cyan-600">stake</span> Blueprint</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium text-slate-500">
+                <a href="#acquisition" class="hover:text-blue-800 transition">Acquisition</a>
+                <a href="#onboarding" class="hover:text-blue-800 transition">Onboarding</a>
+                <a href="#finance" class="hover:text-blue-800 transition">Finance</a>
+                <a href="#tech" class="hover:text-blue-800 transition">Tech Stack</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-800 text-white py-20 px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">The "Concierge" Construction Marketplace</h2>
+            <p class="text-xl md:text-2xl text-blue-100 mb-8 max-w-2xl mx-auto">Bridging the gap between Homeowner emotions and Modular Builder logistics through Yardstake.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div class="text-3xl mb-1">🏡</div>
+                    <div class="text-sm font-semibold uppercase tracking-wider text-blue-200">For Homeowners</div>
+                    <div class="font-bold">Extreme Makeover Experience</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div class="text-3xl mb-1">👷</div>
+                    <div class="text-sm font-semibold uppercase tracking-wider text-blue-200">For Builders</div>
+                    <div class="font-bold">Zero-Chase Payments</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 gap-16">
+
+        <!-- SECTION 1: Acquisition Strategy -->
+        <section id="acquisition" class="scroll-mt-24">
+            <div class="text-center mb-10">
+                <h3 class="text-3xl font-bold text-slate-800 mb-4">The "Trojan Horse" Acquisition Engine</h3>
+                <p class="text-slate-600 max-w-3xl mx-auto text-lg">
+                    How do we get skeptical builders to join? Yardstake doesn't sell software. We give away <span class="text-blue-600 font-bold">Free Digital Twins</span>. 
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center text-center">
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-600 hover-card h-full">
+                    <div class="text-4xl mb-3">📱</div>
+                    <h4 class="font-bold text-lg mb-2">1. The Hook</h4>
+                    <p class="text-sm text-slate-500">Builder uploads smartphone video of model unit.</p>
+                </div>
+                <div class="hidden md:flex justify-center text-blue-300 text-4xl font-bold">&rarr;</div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-cyan-500 hover-card h-full relative">
+                    <div class="text-4xl mb-3">🧠</div>
+                    <div class="animate-pulse absolute top-4 right-4 text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-bold">AI Working</div>
+                    <h4 class="font-bold text-lg mb-2">2. The Distraction</h4>
+                    <p class="text-sm text-slate-500">Onboarding to Yardstake while the model renders.</p>
+                </div>
+                <div class="hidden md:flex justify-center text-blue-300 text-4xl font-bold">&rarr;</div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-orange-500 hover-card h-full text-center">
+                    <div class="text-4xl mb-3">✨</div>
+                    <h4 class="font-bold text-lg mb-2">3. The Reveal</h4>
+                    <p class="text-sm text-slate-500">Interactive 3D Model appears. Vendor is hooked.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Onboarding Data -->
+        <section id="onboarding" class="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4">12 Minutes to "Aha!"</h3>
+                    <p class="text-slate-600 mb-6 leading-relaxed">
+                        The Yardstake Experience is ruthlessly efficient.
+                    </p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="bg-green-100 text-green-700 rounded-full p-1 mr-3 text-xs mt-1">✔️</span>
+                            <div><strong class="block text-slate-800">Frictionless Scale Calibration</strong></div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="flex flex-col items-center">
+                    <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4">Onboarding Timeline (Minutes)</h4>
+                    <div class="chart-container"><canvas id="onboardingChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Finance -->
+        <section id="finance">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex flex-col">
+                    <h4 class="text-lg font-bold text-slate-700 mb-2">Revenue Split ($150k ADU)</h4>
+                    <div class="chart-container flex-grow"><canvas id="revenueChart"></canvas></div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-100 flex flex-col">
+                    <h4 class="text-lg font-bold text-slate-700 mb-2">Milestone Draw Schedule</h4>
+                    <div class="chart-container flex-grow"><canvas id="milestoneChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800 mt-12 text-center">
+        <p class="mb-2 font-bold text-slate-200 uppercase">Yardstake Blueprint</p>
+        <p class="text-xs">Built with Rails 8 & Jumpstart Pro</p>
+    </footer>
+
+    <script>
+        function formatLabels(labels) { return labels.map(l => l.length > 16 ? l.match(/.{1,16}(\s|$)/g).map(s => s.trim()) : l); }
+        const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } } };
+
+        new Chart(document.getElementById('onboardingChart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: formatLabels(['Upload Video', 'Financial Setup', 'Calibration', 'Upsells', 'Logistics', 'Team', 'Launch']), datasets: [{ label: 'Minutes', data: [2, 3, 1, 1, 2, 1, 1], backgroundColor: '#1E40AF', borderRadius: 6 }] },
+            options: commonOptions
+        });
+
+        new Chart(document.getElementById('revenueChart').getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: formatLabels(['Vendor (95%)', 'Yardstake (5%)']), datasets: [{ data: [142500, 7500], backgroundColor: ['#1E40AF', '#F97316'] }] },
+            options: { ...commonOptions, cutout: '70%' }
+        });
+
+        new Chart(document.getElementById('milestoneChart').getContext('2d'), {
+            type: 'bar',
+            data: { labels: formatLabels(['Deposit', 'Framing', 'Ready to Ship', 'Final']), datasets: [{ label: '% Cost', data: [20, 40, 30, 10], backgroundColor: '#06B6D4', borderRadius: 4 }] },
+            options: { ...commonOptions, scales: { y: { beginAtZero: true, max: 50, ticks: { callback: v => v + "%" } } } }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backyard Bill's Journey | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .journey-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #F97316, #3B82F6, #10B981); transform: translateX(-50%); z-index: 0; }
+        .step-card { position: relative; z-index: 10; transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-5px); }
+        .marker { width: 40px; height: 40px; border-radius: 50%; background: #1E293B; border: 4px solid #F97316; display: flex; items-center; justify-content: center; font-weight: 800; color: #F97316; }
+        .text-gradient { background: linear-gradient(to right, #F97316, #FB923C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="antialiased p-6 md:p-12">
+
+    <!-- Header -->
+    <header class="max-w-4xl mx-auto text-center mb-20">
+        <div class="inline-block px-4 py-1 bg-orange-600/20 text-orange-400 rounded-full text-xs font-black uppercase tracking-widest mb-4 border border-orange-500/20">
+            Persona Path: Backyard Bill (Site GC)
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4 tracking-tight">The Skeptic to <span class="text-gradient">Super-User</span></h1>
+        <p class="text-slate-400 text-lg">How the Site GC learns to love the "Magic Link" and instant payouts.</p>
+    </header>
+
+    <div class="max-w-5xl mx-auto relative">
+        <div class="journey-line hidden md:block"></div>
+
+        <!-- Day 0: The Skeptic -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2">Day 0: The "App" Fatigue</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Bill hears about a new platform. He groans—he's tired of complicated software that takes longer to learn than it takes to dig a trench. He just wants to pour concrete and get home.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2">0</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 shadow-xl">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Mindset</span>
+                    <p class="text-sm font-bold mt-1 italic">"If I have to remember a password, I'm out."</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- The Invite: No Login Required -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-blue-600/10 p-6 rounded-3xl border border-blue-500/20">
+                    <span class="text-xs font-bold text-blue-400 uppercase">UX Event</span>
+                    <p class="text-sm font-bold mt-1">SMS "Magic Link" Received</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-blue-500 text-blue-500">1</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2">The "Magic Link" Invite</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Bill gets a text. He clicks it. It opens a browser with the project address, a map, and a 3-item checklist. No password, no download. Just work.
+                </p>
+            </div>
+        </div>
+
+        <!-- Phase 0: The Site Survey -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2">The First $500</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Bill finishes the site survey and snaps 4 photos of the utility stubs. He hits "Submit." 24 hours later, $500 hits his bank via Stripe. He didn't even have to send an invoice.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-cyan-400 text-cyan-400">2</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-cyan-500/10 p-6 rounded-3xl border border-cyan-500/20">
+                    <span class="text-xs font-bold text-cyan-400 uppercase">Payout</span>
+                    <p class="text-sm font-bold mt-1">Site Survey Labor Cleared</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- The Bedrock Surprise -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-red-500/10 p-6 rounded-3xl border border-red-500/20">
+                    <span class="text-xs font-bold text-red-500 uppercase">Change Order</span>
+                    <p class="text-sm font-bold mt-1">+$6,000 Approved in 15 Minutes</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-red-500 text-red-500">3</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2">The "Dispute Shield"</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Bill hits bedrock. Usually, this is a 3-day argument. He snaps a photo, enters "$6,000," and hits send. The homeowner approves via SMS before Bill even puts his shovel down.
+                </p>
+            </div>
+        </div>
+
+        <!-- The Foundation Draw -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 md:text-right order-2 md:order-1">
+                <h3 class="text-2xl font-bold mb-2">The Digital Draw</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Foundation is poured. Bill uploads the geo-tagged proof. Yardstake automatically generates the Lien Waiver. Bill e-signs with one tap. $30,000 is transferred instantly.
+                </p>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-green-500 text-green-500">4</div>
+            <div class="md:w-1/2 md:pl-12 order-3">
+                <div class="bg-green-500/10 p-6 rounded-3xl border border-green-500/20">
+                    <span class="text-xs font-bold text-green-500 uppercase">Financial Event</span>
+                    <p class="text-sm font-bold mt-1">Major Milestone Disbursement</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completion & Referral -->
+        <div class="flex flex-col md:flex-row items-center mb-24">
+            <div class="md:w-1/2 md:pr-12 order-3 md:order-1">
+                <div class="bg-white/10 p-6 rounded-[40px] border border-white/20 text-center">
+                    <div class="text-3xl mb-1">🤝</div>
+                    <p class="text-xl font-black text-white">Full Convert</p>
+                    <p class="text-[10px] text-green-400 uppercase font-black tracking-widest mt-1">Next Project: Already Booked</p>
+                </div>
+            </div>
+            <div class="marker mb-4 md:mb-0 order-1 md:order-2 border-white text-white">5</div>
+            <div class="md:w-1/2 md:pl-12 order-2">
+                <h3 class="text-2xl font-bold mb-2">Crane Day & Wrap</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    The house lands perfectly. Bill finishes the utility tie-ins. He's realized Yardstake isn't an "app"—it's a financial engine that gets his crew paid without the headache.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="max-w-4xl mx-auto text-center py-12 border-t border-slate-800 mt-20">
+        <p class="text-slate-500 text-sm italic">"I spent twenty years chasing checks and fighting over bedrock. With Yardstake, I just snap a photo and the money's there."</p>
+        <p class="text-slate-600 text-xs mt-2 uppercase font-bold">— Backyard Bill, Site GC</p>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Factory Floor Checklist – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const _I = ({ size = 24, className, children, strokeWidth = 2 }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+           className={className}>{children}</svg>
+    );
+    const Camera       = p => <_I {...p}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></_I>;
+    const CheckCircle2 = p => <_I {...p}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></_I>;
+    const Lock         = p => <_I {...p}><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></_I>;
+    const UploadCloud  = p => <_I {...p}><polyline points="16 16 12 12 8 16"/><line x1="12" x2="12" y1="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></_I>;
+    const HardHat      = p => <_I {...p}><path d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z"/><path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M4 15v-3a8 8 0 0 1 16 0v3"/></_I>;
+    const Battery      = p => <_I {...p}><rect width="16" height="10" x="2" y="7" rx="2"/><line x1="22" x2="22" y1="11" y2="13"/></_I>;
+    const Wifi         = p => <_I {...p}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></_I>;
+    const ChevronLeft  = p => <_I {...p}><path d="m15 18-6-6 6-6"/></_I>;
+    const XCircle      = p => <_I {...p}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></_I>;
+    const FileCheck    = p => <_I {...p}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 12 2 2 4-4"/></_I>;
+
+    const App = () => {
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [activeTask, setActiveTask] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // Mock Data: Project on the factory floor
+  const project = {
+    id: "102",
+    model: "Modern Sanctuary XL",
+    buyer: "Annie Smith",
+    station: "Station 3",
+    currentMilestone: {
+      id: "m_mep",
+      title: "Rough MEP (Mechanical, Electrical, Plumbing)",
+      payout: "$60,000.00",
+      description: "Capture open-wall utility runs before drywall installation.",
+      tasks: [
+        { id: "t1", label: "Main Electrical Panel (Open)", required: true },
+        { id: "t2", label: "Kitchen Plumbing Stack", required: true },
+        { id: "t3", label: "HVAC Ceiling Ducts", required: true },
+        { id: "t4", label: "State Inspector Sign-off Tag", required: false }
+      ]
+    },
+    timeline: [
+      { status: 'done', label: 'Chassis & Floor' },
+      { status: 'done', label: 'Framing & Roof' },
+      { status: 'active', label: 'Rough MEP' },
+      { status: 'locked', label: 'Insulation & Drywall' },
+      { status: 'locked', label: 'Finishes & QA' },
+    ]
+  };
+
+  const requiredTasksCount = project.currentMilestone.tasks.filter(t => t.required).length;
+  const completedRequiredCount = completedTasks.filter(taskId => 
+    project.currentMilestone.tasks.find(t => t.id === taskId && t.required)
+  ).length;
+  const isReadyToSubmit = completedRequiredCount === requiredTasksCount;
+
+  const handleCaptureClick = (taskId) => {
+    setActiveTask(taskId);
+    setIsCapturing(true);
+    
+    // Simulate camera delay and capture
+    setTimeout(() => {
+      if (!completedTasks.includes(taskId)) {
+        setCompletedTasks([...completedTasks, taskId]);
+      }
+      setIsCapturing(false);
+      setActiveTask(null);
+    }, 1500);
+  };
+
+  const removePhoto = (taskId) => {
+    setCompletedTasks(completedTasks.filter(id => id !== taskId));
+  };
+
+  const handleSubmit = () => {
+    setSubmitted(true);
+  };
+
+  // If submitted, show the giant success screen
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-500">
+        <div className="w-32 h-32 bg-green-500 rounded-full flex items-center justify-center mb-8 shadow-[0_0_60px_rgba(34,197,94,0.4)]">
+          <CheckCircle2 size={64} className="text-slate-950" strokeWidth={3} />
+        </div>
+        <h1 className="text-5xl font-black text-white mb-4 uppercase tracking-tight">Milestone Submitted</h1>
+        <p className="text-2xl text-slate-400 max-w-2xl leading-relaxed mb-12">
+          Photos sent to homeowner. The <strong>{project.currentMilestone.payout}</strong> transfer is queued.
+        </p>
+        <button 
+          onClick={() => { setSubmitted(false); setCompletedTasks([]); }}
+          className="px-12 py-6 bg-slate-800 text-white rounded-2xl font-black text-2xl uppercase tracking-widest active:bg-slate-700 transition-colors"
+        >
+          Return to Queue
+        </button>
+      </div>
+    );
+  }
+
+  // Camera Overlay Simulation
+  if (isCapturing) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <div className="flex-grow relative overflow-hidden">
+          {/* Simulated Camera Viewfinder */}
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504307651254-35680f356f58?auto=format&fit=crop&q=80&w=1200')] bg-cover bg-center opacity-70"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-64 h-64 border-4 border-yellow-400 rounded-3xl opacity-50 relative">
+              <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-yellow-400"></div>
+              <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-yellow-400"></div>
+              <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-yellow-400"></div>
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-yellow-400"></div>
+            </div>
+          </div>
+          <div className="absolute top-8 left-0 right-0 text-center">
+             <div className="inline-block bg-black/60 backdrop-blur-md px-6 py-3 rounded-full text-yellow-400 font-bold text-xl uppercase tracking-widest">
+               Align Subject in Frame
+             </div>
+          </div>
+        </div>
+        <div className="h-48 bg-black border-t border-slate-800 flex items-center justify-center pb-8">
+           <div className="w-24 h-24 rounded-full border-4 border-white flex items-center justify-center animate-pulse">
+             <div className="w-20 h-20 bg-white rounded-full"></div>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col select-none">
+      {/* iPad Industrial Status Bar */}
+      <header className="bg-slate-900 border-b-2 border-slate-800 p-4 flex justify-between items-center">
+        <div className="flex items-center space-x-6">
+          <button className="flex items-center text-slate-400 text-xl font-bold py-2 px-4 rounded-xl active:bg-slate-800 transition-colors">
+            <ChevronLeft size={28} className="mr-1" />
+            Queue
+          </button>
+          <div className="h-8 w-0.5 bg-slate-700"></div>
+          <div className="flex items-center space-x-3">
+            <div className="bg-yellow-500 text-slate-950 p-2 rounded-lg">
+              <HardHat size={24} strokeWidth={2.5} />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500">Active Build</p>
+              <h1 className="text-xl font-black text-white">{project.id}: {project.model}</h1>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center space-x-6 text-slate-400">
+          <div className="flex items-center space-x-2 bg-slate-800 px-4 py-2 rounded-lg">
+             <span className="text-sm font-bold text-slate-300">Station 3</span>
+          </div>
+          <Wifi size={24} />
+          <Battery size={24} className="text-green-500" />
+        </div>
+      </header>
+
+      <div className="flex-grow flex flex-col md:flex-row overflow-hidden">
+        {/* Left Sidebar: Timeline Context */}
+        <aside className="w-full md:w-80 bg-slate-900/50 border-r-2 border-slate-800 p-6 overflow-y-auto hidden lg:block">
+          <h2 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">Assembly Line Progress</h2>
+          <div className="space-y-0 relative">
+            {/* Connecting line */}
+            <div className="absolute left-6 top-8 bottom-8 w-1 bg-slate-800 -z-10"></div>
+            
+            {project.timeline.map((step, index) => (
+              <div key={index} className={`flex items-center p-4 rounded-2xl ${step.status === 'active' ? 'bg-slate-800 ring-2 ring-blue-500/50' : 'opacity-60'}`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-4 border-slate-900 ${
+                  step.status === 'done' ? 'bg-green-500 text-slate-900' :
+                  step.status === 'active' ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' :
+                  'bg-slate-800 text-slate-500'
+                }`}>
+                  {step.status === 'done' ? <CheckCircle2 size={24} strokeWidth={3} /> : 
+                   step.status === 'locked' ? <Lock size={20} /> :
+                   <span className="text-lg font-black">{index + 1}</span>}
+                </div>
+                <div className="ml-4">
+                  <p className={`text-lg font-bold ${step.status === 'active' ? 'text-white' : 'text-slate-400'}`}>
+                    {step.label}
+                  </p>
+                  {step.status === 'active' && (
+                    <span className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Current Stage</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 p-6 bg-blue-900/20 border-2 border-blue-500/30 rounded-2xl">
+             <div className="flex items-center space-x-2 mb-2 text-blue-400">
+               <FileCheck size={20} />
+               <span className="text-xs font-bold uppercase tracking-widest">Payout Trigger</span>
+             </div>
+             <p className="text-2xl font-black text-white">{project.currentMilestone.payout}</p>
+             <p className="text-xs text-blue-200 mt-2 font-medium">Completing this checklist instantly requests the next draw transfer.</p>
+          </div>
+        </aside>
+
+        {/* Main Checklist Area */}
+        <main className="flex-grow bg-slate-950 p-6 md:p-8 lg:p-12 overflow-y-auto relative">
+          
+          <div className="max-w-4xl mx-auto space-y-8">
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-4xl font-black uppercase tracking-tight text-white mb-2">{project.currentMilestone.title}</h2>
+                <p className="text-lg text-slate-400">{project.currentMilestone.description}</p>
+              </div>
+              <div className="text-right hidden sm:block">
+                 <div className="bg-slate-800 px-4 py-2 rounded-xl text-xl font-black text-white">
+                   <span className={completedRequiredCount === requiredTasksCount ? 'text-green-400' : 'text-yellow-400'}>
+                     {completedRequiredCount}
+                   </span> 
+                   <span className="text-slate-500 mx-1">/</span> 
+                   <span className="text-slate-500">{requiredTasksCount}</span>
+                 </div>
+                 <p className="text-[10px] font-bold text-slate-500 uppercase mt-2 tracking-widest">Required Proof</p>
+              </div>
+            </div>
+
+            {/* Checklist Grid */}
+            <div className="grid grid-cols-1 gap-4">
+              {project.currentMilestone.tasks.map((task) => {
+                const isCompleted = completedTasks.includes(task.id);
+                return (
+                  <div 
+                    key={task.id} 
+                    className={`flex items-center justify-between p-4 md:p-6 rounded-2xl border-2 transition-all ${
+                      isCompleted 
+                      ? 'bg-green-900/20 border-green-500/50' 
+                      : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-6">
+                      <div className={`w-16 h-16 rounded-xl flex items-center justify-center shrink-0 ${
+                        isCompleted ? 'bg-green-500 text-slate-950' : 'bg-slate-800 text-slate-500'
+                      }`}>
+                        {isCompleted ? <CheckCircle2 size={32} strokeWidth={3} /> : <Camera size={32} />}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-3 mb-1">
+                          <h3 className={`text-xl md:text-2xl font-bold ${isCompleted ? 'text-green-50' : 'text-white'}`}>
+                            {task.label}
+                          </h3>
+                          {!task.required && (
+                            <span className="bg-slate-800 text-slate-400 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">Optional</span>
+                          )}
+                        </div>
+                        {isCompleted ? (
+                          <div className="flex items-center text-green-400 text-sm font-bold">
+                            <span className="w-2 h-2 rounded-full bg-green-400 mr-2"></span>
+                            Image Captured & GPS Tagged
+                          </div>
+                        ) : (
+                          <p className="text-slate-400 text-sm font-medium">Pending photographic proof</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-3">
+                      {isCompleted && (
+                        <button 
+                          onClick={() => removePhoto(task.id)}
+                          className="w-16 h-16 flex items-center justify-center rounded-xl bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-red-400 transition-colors"
+                        >
+                          <XCircle size={28} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleCaptureClick(task.id)}
+                        className={`px-8 h-16 rounded-xl font-black text-lg uppercase tracking-widest transition-all active:scale-95 flex items-center space-x-3 ${
+                          isCompleted 
+                          ? 'bg-slate-800 text-white' 
+                          : 'bg-yellow-500 text-slate-950 hover:bg-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.2)]'
+                        }`}
+                      >
+                        <Camera size={24} />
+                        <span className="hidden sm:inline">{isCompleted ? 'Retake' : 'Capture'}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sticky Bottom Action Bar */}
+            <div className="sticky bottom-0 mt-8 pt-8 pb-4 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent">
+              {isReadyToSubmit ? (
+                <button 
+                  onClick={handleSubmit}
+                  className="w-full py-8 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black text-2xl uppercase tracking-widest shadow-[0_10px_40px_-10px_rgba(37,99,235,0.6)] flex items-center justify-center space-x-4 transition-all active:scale-95"
+                >
+                  <UploadCloud size={32} />
+                  <span>Submit & Request {project.currentMilestone.payout}</span>
+                </button>
+              ) : (
+                <div className="w-full py-8 bg-slate-900 border-2 border-slate-800 text-slate-500 rounded-3xl font-black text-xl uppercase tracking-widest flex items-center justify-center space-x-4 cursor-not-allowed">
+                  <Lock size={28} />
+                  <span>Complete Required Photos to Unlock Payout</span>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

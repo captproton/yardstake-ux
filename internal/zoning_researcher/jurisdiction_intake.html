@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jurisdiction Intake – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/x-template" id="app-tpl">
+    <div class="min-h-screen bg-slate-50 font-sans text-slate-900">
+
+      <!-- Top Nav -->
+      <nav class="bg-slate-900 text-white px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <span class="text-2xl">&#127968;</span>
+          <span class="text-xl font-bold tracking-tight">Yard<span class="text-teal-400">stake</span>
+            <span class="text-slate-500 font-medium text-base ml-1">Jurisdiction Intake</span>
+          </span>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center font-black text-xs">ZZ</div>
+          <span class="text-sm font-bold hidden sm:block">Zoning Zara</span>
+        </div>
+      </nav>
+
+      <!-- Progress Bar -->
+      <div class="bg-white border-b border-slate-100 px-6 py-4">
+        <div class="max-w-3xl mx-auto">
+          <div class="flex items-center justify-between mb-3">
+            <h1 class="text-lg font-extrabold text-slate-800">New Jurisdiction: Corvallis, OR</h1>
+            <span class="text-xs text-slate-400 font-bold">Step {{ step }} of 4</span>
+          </div>
+          <div class="flex space-x-2">
+            <div
+              v-for="n in 4" :key="n"
+              class="h-1.5 flex-1 rounded-full transition-all duration-300"
+              :class="n <= step ? 'bg-teal-500' : 'bg-slate-100'"
+            />
+          </div>
+          <div class="flex justify-between mt-2">
+            <span v-for="(label, i) in stepLabels" :key="i"
+              class="text-xs font-bold"
+              :class="i + 1 <= step ? 'text-teal-600' : 'text-slate-300'">
+              {{ label }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <main class="max-w-3xl mx-auto px-6 py-10">
+
+        <!-- STEP 1: Upload & Source -->
+        <div v-if="step === 1" class="space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+            <h2 class="text-xl font-extrabold text-slate-800 mb-1">Upload Data Sources</h2>
+            <p class="text-sm text-slate-500 mb-8">Provide all available data for this jurisdiction. At minimum, a parcel Shapefile or GeoJSON is required.</p>
+
+            <div class="space-y-4">
+              <div v-for="source in sources" :key="source.id"
+                class="flex items-center justify-between p-4 rounded-xl border transition-all"
+                :class="source.loaded ? 'border-teal-200 bg-teal-50/40' : 'border-slate-100 hover:border-slate-200'">
+                <div class="flex items-center space-x-4">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                    :class="source.loaded ? 'bg-teal-100' : 'bg-slate-100'">
+                    {{ source.icon }}
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">{{ source.label }}</p>
+                    <p class="text-xs text-slate-400">{{ source.hint }}</p>
+                  </div>
+                </div>
+                <div>
+                  <span v-if="source.loaded" class="flex items-center space-x-1.5 text-xs font-bold text-teal-700">
+                    <i-check-circle2 :size="14" />
+                    <span>{{ source.filename }}</span>
+                  </span>
+                  <button v-else
+                    @click="loadSource(source.id)"
+                    class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-teal-100 hover:text-teal-700 transition-colors text-slate-600">
+                    Attach File
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start space-x-3">
+              <i-alert-circle :size="16" class="text-amber-500 mt-0.5 shrink-0" />
+              <p class="text-xs text-amber-700">The Shapefile is required. Ordinance PDF and website URL improve rule accuracy but can be added later.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Geometry Validation -->
+        <div v-if="step === 2" class="space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-extrabold text-slate-800 mb-1">Geometry Validation</h2>
+                <p class="text-sm text-slate-500">Scanning corvallis_parcels.shp &mdash; 41,800 parcels</p>
+              </div>
+              <div class="text-right">
+                <p class="text-2xl font-extrabold" :class="validating ? 'text-amber-500' : 'text-teal-600'">
+                  {{ validating ? validationProgress + '%' : '100%' }}
+                </p>
+                <p class="text-xs text-slate-400">{{ validating ? 'Validating...' : 'Complete' }}</p>
+              </div>
+            </div>
+
+            <!-- Progress bar while validating -->
+            <div v-if="validating" class="w-full bg-slate-100 rounded-full h-2 mb-6">
+              <div class="bg-amber-400 h-2 rounded-full transition-all duration-200"
+                :style="{ width: validationProgress + '%' }" />
+            </div>
+
+            <!-- Results -->
+            <div v-else class="space-y-3">
+              <div v-for="result in validationResults" :key="result.label"
+                class="flex items-center justify-between p-4 rounded-xl border"
+                :class="result.ok ? 'border-teal-100 bg-teal-50/30' : 'border-red-100 bg-red-50/30'">
+                <div class="flex items-center space-x-3">
+                  <i-check-circle2 v-if="result.ok" :size="18" class="text-teal-500" />
+                  <i-alert-circle v-else :size="18" class="text-red-500" />
+                  <div>
+                    <p class="text-sm font-bold text-slate-800">{{ result.label }}</p>
+                    <p class="text-xs text-slate-400">{{ result.detail }}</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-extrabold" :class="result.ok ? 'text-teal-700' : 'text-red-600'">{{ result.value }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resolution panel for errors -->
+            <div v-if="!validating" class="mt-6 p-5 bg-slate-800 text-white rounded-xl">
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Auto-Resolution Available</p>
+              <p class="text-sm text-slate-200 leading-relaxed">94 self-intersecting polygons can be repaired automatically using ST_MakeValid(). 12 SRID mismatches will be re-projected to EPSG:2913 (Oregon North). Review the sample output before committing.</p>
+              <div class="mt-4 flex items-center space-x-3">
+                <button @click="repairApplied = true"
+                  :class="repairApplied ? 'bg-teal-600' : 'bg-slate-600 hover:bg-teal-700'"
+                  class="text-xs font-bold px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+                  <i-check-circle2 v-if="repairApplied" :size="14" />
+                  <span>{{ repairApplied ? 'Repairs Applied' : 'Apply Auto-Repair' }}</span>
+                </button>
+                <button class="text-xs font-bold text-slate-400 hover:text-white transition-colors">View Sample Output</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Field Mapping -->
+        <div v-if="step === 3" class="space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+            <h2 class="text-xl font-extrabold text-slate-800 mb-1">Field Mapping</h2>
+            <p class="text-sm text-slate-500 mb-8">Map the Shapefile's attribute columns to Yardstake's canonical parcel schema. The system has pre-filled likely matches — review and confirm.</p>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-left text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <th class="pb-3 pr-4">Yardstake Field</th>
+                    <th class="pb-3 pr-4">Source Column</th>
+                    <th class="pb-3 pr-4">Sample Value</th>
+                    <th class="pb-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                  <tr v-for="row in fieldMappings" :key="row.target" class="py-2">
+                    <td class="py-3 pr-4 font-bold text-slate-800">{{ row.target }}</td>
+                    <td class="py-3 pr-4">
+                      <span class="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">{{ row.source }}</span>
+                    </td>
+                    <td class="py-3 pr-4 text-slate-500 text-xs">{{ row.sample }}</td>
+                    <td class="py-3">
+                      <span v-if="row.status === 'auto'" class="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">Auto-matched</span>
+                      <span v-else-if="row.status === 'review'" class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Review</span>
+                      <span v-else class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Optional</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-6 grid grid-cols-3 gap-4 pt-6 border-t border-slate-100">
+              <div v-for="stat in mappingStats" :key="stat.label" class="text-center">
+                <p class="text-2xl font-extrabold" :class="stat.color">{{ stat.value }}</p>
+                <p class="text-xs text-slate-400 mt-1">{{ stat.label }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Commit -->
+        <div v-if="step === 4" class="space-y-6">
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+            <h2 class="text-xl font-extrabold text-slate-800 mb-1">Review &amp; Commit</h2>
+            <p class="text-sm text-slate-500 mb-8">Final summary before writing 41,800 parcels to the Yardstake database. Corvallis will appear as "In Progress" until the ordinance rulebook is complete.</p>
+
+            <div class="space-y-3">
+              <div v-for="summary in commitSummary" :key="summary.label"
+                class="flex items-center justify-between px-5 py-4 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="text-sm font-bold text-slate-600">{{ summary.label }}</span>
+                <span class="text-sm font-extrabold text-slate-900">{{ summary.value }}</span>
+              </div>
+            </div>
+
+            <div v-if="!committed" class="mt-8 p-5 bg-teal-900 text-white rounded-2xl">
+              <p class="text-sm font-extrabold mb-1">Ready to commit</p>
+              <p class="text-xs text-teal-300 leading-relaxed">This will not enable live feasibility queries yet. Corvallis will be marked "In Progress" until the ordinance rules are coded and integration tests pass.</p>
+              <button @click="committed = true"
+                class="mt-4 px-6 py-2.5 bg-teal-500 hover:bg-teal-400 text-white font-extrabold text-sm rounded-xl transition-colors">
+                Commit to Database
+              </button>
+            </div>
+
+            <div v-else class="mt-8 p-5 bg-teal-50 border border-teal-200 rounded-2xl flex items-start space-x-4">
+              <i-check-circle2 :size="24" class="text-teal-500 shrink-0 mt-0.5" />
+              <div>
+                <p class="font-extrabold text-teal-800">Committed successfully.</p>
+                <p class="text-sm text-teal-700 mt-1">41,800 parcels written. Corvallis, OR is now In Progress. Next step: open the Ordinance Editor to code zoning rules.</p>
+                <a href="ordinance_editor.html" class="inline-block mt-3 text-xs font-bold text-teal-700 underline underline-offset-2 hover:text-teal-900">
+                  Open Ordinance Editor &rarr;
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex items-center justify-between mt-8">
+          <button
+            v-if="step > 1"
+            @click="step--"
+            class="flex items-center space-x-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">
+            <i-arrow-left :size="16" />
+            <span>Back</span>
+          </button>
+          <div v-else />
+          <button
+            v-if="step < 4"
+            @click="advance"
+            :disabled="!canAdvance"
+            class="flex items-center space-x-2 px-6 py-2.5 text-sm font-extrabold rounded-xl transition-all"
+            :class="canAdvance ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-slate-100 text-slate-300 cursor-not-allowed'">
+            <span>{{ step === 3 ? 'Confirm Mapping' : 'Continue' }}</span>
+            <i-chevron-right :size="16" />
+          </button>
+        </div>
+
+      </main>
+    </div>
+  </script>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    function makeIcon(paths) {
+      return {
+        props: { size: { default: 24 } },
+        template: `<svg xmlns="http://www.w3.org/2000/svg" :width="size" :height="size" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`
+      };
+    }
+
+    const IcoCheckCircle2 = makeIcon('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>');
+    const IcoAlertCircle  = makeIcon('<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>');
+    const IcoChevronRight = makeIcon('<path d="m9 18 6-6-6-6"/>');
+    const IcoArrowLeft    = makeIcon('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>');
+
+    const App = {
+      template: '#app-tpl',
+      setup() {
+        const step             = ref(1);
+        const validating       = ref(true);
+        const validationProgress = ref(0);
+        const repairApplied    = ref(false);
+        const committed        = ref(false);
+
+        const stepLabels = ['Upload', 'Validate', 'Map Fields', 'Commit'];
+
+        const sources = ref([
+          { id: 'shp',  label: 'Parcel Shapefile',       hint: 'Required — .shp / .geojson',  icon: '&#128230;', loaded: true,  filename: 'corvallis_parcels.shp' },
+          { id: 'pdf',  label: 'Zoning Ordinance PDF',    hint: 'Recommended — city PDF doc',   icon: '&#128196;', loaded: true,  filename: 'corvallis_adu_ord_2024.pdf' },
+          { id: 'url',  label: 'Municipality Website URL', hint: 'Optional — for verification', icon: '&#127760;', loaded: false, filename: null },
+          { id: 'gtfs', label: 'GTFS Transit Feed',        hint: 'Optional — for parking waiver', icon: '&#128652;', loaded: false, filename: null },
+        ]);
+
+        const loadSource = (id) => {
+          const src = sources.value.find(s => s.id === id);
+          if (src) { src.loaded = true; src.filename = 'corvallis_' + id + '_data.zip'; }
+        };
+
+        const validationResults = [
+          { label: 'Total Parcels Ingested',       detail: 'Raw count from Shapefile',          value: '41,800',  ok: true  },
+          { label: 'Valid Geometries',              detail: 'Passed ST_IsValid check',           value: '41,694',  ok: true  },
+          { label: 'Self-Intersecting Polygons',    detail: 'Repairable via ST_MakeValid()',     value: '94 found', ok: false },
+          { label: 'SRID Mismatches',               detail: 'Re-project to EPSG:2913 required', value: '12 found', ok: false },
+          { label: 'Duplicate Parcel IDs',          detail: 'No duplicates detected',           value: '0',       ok: true  },
+          { label: 'Missing Geometry Records',      detail: 'Null geometry rows',               value: '0',       ok: true  },
+        ];
+
+        const fieldMappings = [
+          { target: 'parcel_id',       source: 'PARCEL_NO',   sample: '20-00001-AA-00000', status: 'auto'   },
+          { target: 'address',         source: 'SITE_ADDR',   sample: '123 NW Monroe Ave', status: 'auto'   },
+          { target: 'zoning_class',    source: 'ZONE_CODE',   sample: 'R-1',               status: 'auto'   },
+          { target: 'lot_area_sqft',   source: 'SHAPE_Area',  sample: '7,200',             status: 'review' },
+          { target: 'lot_width_ft',    source: 'LOT_WIDTH',   sample: '60',                status: 'auto'   },
+          { target: 'owner_name',      source: 'OWNERNM',     sample: 'Smith, John R.',    status: 'auto'   },
+          { target: 'geometry',        source: 'geometry',    sample: 'MULTIPOLYGON...',   status: 'auto'   },
+          { target: 'flood_zone',      source: 'FEMA_ZONE',   sample: 'X',                 status: 'optional'},
+          { target: 'historic_district',source: 'HIST_DIST',  sample: null,                status: 'optional'},
+        ];
+
+        const mappingStats = [
+          { label: 'Auto-matched',   value: '7',  color: 'text-teal-600' },
+          { label: 'Needs Review',   value: '1',  color: 'text-amber-500' },
+          { label: 'Optional / Skip', value: '2', color: 'text-slate-400' },
+        ];
+
+        const commitSummary = [
+          { label: 'Jurisdiction',           value: 'Corvallis, OR' },
+          { label: 'Total Parcels',          value: '41,800' },
+          { label: 'After Auto-Repair',      value: '41,800 valid' },
+          { label: 'Projection (SRID)',       value: 'EPSG:2913 (Oregon North)' },
+          { label: 'Zoning Rules Coded',     value: '0 / ~8 required' },
+          { label: 'Status After Commit',    value: 'In Progress' },
+          { label: 'Feasibility Queries Live', value: 'No — pending rulebook' },
+        ];
+
+        const canAdvance = computed(() => {
+          if (step.value === 1) return sources.value.find(s => s.id === 'shp')?.loaded;
+          if (step.value === 2) return repairApplied.value;
+          return true;
+        });
+
+        const advance = () => {
+          if (canAdvance.value && step.value < 4) step.value++;
+        };
+
+        // Simulate validation progress when entering step 2
+        const runValidation = () => {
+          validating.value = true;
+          validationProgress.value = 0;
+          const interval = setInterval(() => {
+            validationProgress.value += 7;
+            if (validationProgress.value >= 100) {
+              validationProgress.value = 100;
+              validating.value = false;
+              clearInterval(interval);
+            }
+          }, 120);
+        };
+
+        // Watch step changes manually
+        const advance2 = () => {
+          advance();
+          if (step.value === 2) runValidation();
+        };
+
+        return {
+          step, validating, validationProgress, repairApplied, committed,
+          stepLabels, sources, validationResults, fieldMappings, mappingStats, commitSummary,
+          canAdvance, loadSource,
+          advance: () => {
+            if (canAdvance.value && step.value < 4) {
+              step.value++;
+              if (step.value === 2) runValidation();
+            }
+          },
+        };
+      },
+    };
+
+    const app = createApp(App);
+    app.component('i-check-circle2', IcoCheckCircle2);
+    app.component('i-alert-circle',  IcoAlertCircle);
+    app.component('i-chevron-right', IcoChevronRight);
+    app.component('i-arrow-left',    IcoArrowLeft);
+    app.mount('#root');
+  </script>
+</body>
+</html>

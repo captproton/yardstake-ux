@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Vault – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // Inline SVG icon components (Lucide-style)
+    const _I = ({ size = 24, className, children }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+           className={className}>{children}</svg>
+    );
+    const ShieldCheck  = p => <_I {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></_I>;
+    const FileText     = p => <_I {...p}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="8" x2="16" y1="13" y2="13"/><line x1="8" x2="14" y1="17" y2="17"/></_I>;
+    const Key          = p => <_I {...p}><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></_I>;
+    const ImageIcon    = p => <_I {...p}><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></_I>;
+    const Download     = p => <_I {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></_I>;
+    const ExternalLink = p => <_I {...p}><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></_I>;
+    const Share2       = p => <_I {...p}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></_I>;
+    const Box          = p => <_I {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></_I>;
+    const Zap          = p => <_I {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_I>;
+    const Hammer       = p => <_I {...p}><path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14"/></_I>;
+    const ShieldAlert  = p => <_I {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></_I>;
+    const ArrowLeft    = p => <_I {...p}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></_I>;
+    const ChevronRight = p => <_I {...p}><path d="m9 18 6-6-6-6"/></_I>;
+    const Printer      = p => <_I {...p}><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect width="12" height="8" x="6" y="14" rx="1"/></_I>;
+    const History      = p => <_I {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></_I>;
+    const Info         = p => <_I {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></_I>;
+    const Heart        = p => <_I {...p}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></_I>;
+
+    const App = () => {
+  const [activeCategory, setActiveCategory] = useState('all');
+
+  const project = {
+    id: "102",
+    address: "123 Pinecrest Way, San Mateo, CA",
+    model: "Modern Sanctuary XL",
+    completionDate: "Feb 25, 2026",
+    totalGTV: "$150,000.00"
+  };
+
+  const documents = [
+    { id: 1, title: 'Final Tri-Party Agreement', category: 'legal', icon: FileText, size: '2.4 MB', date: 'Feb 24, 2026' },
+    { id: 2, title: 'Executed Lien Waiver (CA-8132)', category: 'legal', icon: ShieldCheck, size: '1.1 MB', date: 'Feb 25, 2026' },
+    { id: 3, title: 'City of San Mateo Approved Permit', category: 'compliance', icon: Box, size: '4.8 MB', date: 'Jan 12, 2026' },
+    { id: 4, title: 'CA HCD Insignia Certification', category: 'compliance', icon: ShieldAlert, size: '0.8 MB', date: 'Feb 18, 2026' },
+    { id: 5, title: 'Stripe Settlement Statement', category: 'finance', icon: History, size: '0.4 MB', date: 'Feb 25, 2026' },
+    { id: 6, title: 'Smeg Appliance Warranty Pack', category: 'warranty', icon: Zap, size: '12.2 MB', date: 'Feb 25, 2026' },
+    { id: 7, title: 'Builder Structural Warranty (10-Yr)', category: 'warranty', icon: Hammer, size: '1.5 MB', date: 'Feb 25, 2026' },
+  ];
+
+  const filteredDocs = activeCategory === 'all' 
+    ? documents 
+    : documents.filter(doc => doc.category === activeCategory);
+
+  const CategoryTab = ({ id, label }) => (
+    <button 
+      onClick={() => setActiveCategory(id)}
+      className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+        activeCategory === id 
+        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
+        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      {/* Top Header/Nav */}
+      <nav className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+             <div className="bg-blue-600 p-2 rounded-xl text-white shadow-md">
+                <Key size={20} />
+             </div>
+             <span className="text-xl font-black tracking-tight uppercase italic">Digital Vault</span>
+          </div>
+          <div className="flex items-center space-x-4">
+             <button className="hidden sm:flex items-center space-x-2 text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">
+                <Printer size={16} />
+                <span>Export All</span>
+             </button>
+             <button className="bg-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold flex items-center space-x-2 shadow-lg hover:bg-slate-800 transition-all">
+                <Share2 size={16} />
+                <span>Share with Lender</span>
+             </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-6xl mx-auto p-6 md:p-12">
+        {/* Welcome Back / Stats Bar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+           <div className="lg:col-span-2">
+              <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-2">The DNA of Your Home.</h1>
+              <p className="text-slate-500 font-medium">All legal, financial, and structural records for <span className="text-blue-600 font-bold">{project.address}</span> are secured here permanently.</p>
+           </div>
+           <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm flex items-center justify-between">
+              <div>
+                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Completion Date</p>
+                 <p className="text-xl font-black text-slate-900">{project.completionDate}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                 <ShieldCheck size={24} />
+              </div>
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+          
+          {/* Sidebar Filters */}
+          <div className="space-y-8">
+            <div>
+               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Categories</h3>
+               <div className="flex flex-col space-y-1">
+                  <CategoryTab id="all" label="All Documents" />
+                  <CategoryTab id="legal" label="Legal & AoP" />
+                  <CategoryTab id="compliance" label="Permits & Inspections" />
+                  <CategoryTab id="finance" label="Financial Records" />
+                  <CategoryTab id="warranty" label="Warranty & Manuals" />
+               </div>
+            </div>
+
+            {/* 3D Asset Recall */}
+            <div className="bg-slate-900 rounded-[32px] p-6 text-white shadow-xl relative overflow-hidden group">
+               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=400')] bg-cover bg-center opacity-30 group-hover:scale-105 transition-transform duration-700"></div>
+               <div className="relative z-10">
+                  <div className="flex items-center space-x-2 mb-4">
+                     <ImageIcon size={18} className="text-cyan-400" />
+                     <span className="text-[10px] font-black uppercase tracking-widest">Original 3DGS Twin</span>
+                  </div>
+                  <h4 className="font-bold mb-4">The "Studio XL" Configurator</h4>
+                  <button className="w-full py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-xs font-bold border border-white/20 transition-all flex items-center justify-center space-x-2">
+                     <span>Launch Viewer</span>
+                     <ExternalLink size={14} />
+                  </button>
+               </div>
+            </div>
+
+            {/* Permanent Support */}
+            <div className="bg-blue-50 border border-blue-100 rounded-[32px] p-6">
+               <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">F</div>
+                  <div>
+                     <p className="text-xs font-bold text-blue-900">Fixer Fiona</p>
+                     <p className="text-[10px] text-blue-600 uppercase font-black">Lifetime Support</p>
+                  </div>
+               </div>
+               <p className="text-[11px] text-blue-800 leading-relaxed mb-4 italic">
+                  "Your project is done, but our door is always open. Need help with a warranty claim or your local assessor?"
+               </p>
+               <button className="w-full py-2 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md">
+                  Message Fiona
+               </button>
+            </div>
+          </div>
+
+          {/* Main Document List */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="flex justify-between items-center mb-6">
+               <h2 className="text-xl font-bold flex items-center">
+                  <FileText size={20} className="mr-2 text-slate-400" />
+                  Records Repository
+               </h2>
+               <span className="text-xs text-slate-400 font-bold uppercase">{filteredDocs.length} Files</span>
+            </div>
+
+            <div className="space-y-3">
+              {filteredDocs.map((doc) => (
+                <div key={doc.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:border-blue-400 transition-all group flex items-center justify-between">
+                   <div className="flex items-center space-x-5">
+                      <div className="p-3 bg-slate-50 rounded-2xl text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                         <doc.icon size={24} />
+                      </div>
+                      <div>
+                         <h4 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{doc.title}</h4>
+                         <div className="flex items-center space-x-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                            <span>{doc.date}</span>
+                            <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+                            <span>{doc.size}</span>
+                         </div>
+                      </div>
+                   </div>
+                   <div className="flex items-center space-x-2">
+                      <button className="p-3 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                         <ExternalLink size={18} />
+                      </button>
+                      <button className="flex items-center space-x-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-900 hover:text-white transition-all">
+                         <Download size={16} />
+                         <span className="hidden sm:inline">Download</span>
+                      </button>
+                   </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Debt Extinguishment Final Notice */}
+            <div className="mt-12 p-8 bg-slate-900 rounded-[40px] text-white relative overflow-hidden border border-slate-800">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="space-y-2">
+                     <div className="flex items-center space-x-2 text-green-400">
+                        <ShieldCheck size={20} />
+                        <span className="text-xs font-black uppercase tracking-[0.2em]">Final Certification</span>
+                     </div>
+                     <h3 className="text-2xl font-black italic">Permanent Financial Release</h3>
+                     <p className="text-slate-400 text-sm max-w-md">
+                        Project #102 is officially settled. All builder debts have been extinguished under the Agent of the Payee framework. 
+                     </p>
+                  </div>
+                  <div className="text-center p-6 bg-white/5 rounded-3xl border border-white/10 min-w-[200px]">
+                     <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">GTV Ledgered</p>
+                     <p className="text-3xl font-black text-white">{project.totalGTV}</p>
+                     <p className="text-[10px] text-green-400 font-bold uppercase mt-2">Paid in Full</p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="text-center py-10">
+               <div className="flex items-center justify-center space-x-2 text-slate-300 mb-2">
+                  <Heart size={14} fill="currentColor" />
+                  <span className="text-xs font-bold uppercase tracking-widest">Built for the future by Yardstake</span>
+               </div>
+               <p className="text-[10px] text-slate-400 uppercase tracking-tighter">Yardstake Secure Ledger v2.4 • Member FDIC Insured Deposits (via Partner Banks)</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

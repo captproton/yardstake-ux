@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Builder Onboarding – Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Inline SVG icon components (Lucide-style)
+    const _I = ({ size = 24, className, children }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size}
+           viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+           className={className}>{children}</svg>
+    );
+    const Calculator  = p => <_I {...p}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/></_I>;
+    const ShieldCheck = p => <_I {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></_I>;
+    const TrendingUp  = p => <_I {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></_I>;
+    const Zap         = p => <_I {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></_I>;
+    const ArrowRight  = p => <_I {...p}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></_I>;
+    const HelpCircle  = p => <_I {...p}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></_I>;
+    const Layers      = p => <_I {...p}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></_I>;
+    const LayoutGrid  = p => <_I {...p}><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></_I>;
+
+    const App = () => {
+  const [netPrice, setNetPrice] = useState(120000);
+  const [step, setStep] = useState(2); // Step 2: Financials
+  const [renderProgress, setRenderProgress] = useState(34);
+  const [selectedModel, setSelectedModel] = useState('Modern Sanctuary XL');
+
+  // Mock Catalog for Builders with multiple models
+  const builderCatalog = [
+    { id: 1, name: 'Studio Pod', net: 65000, status: 'Live' },
+    { id: 2, name: 'Modern Sanctuary XL', net: netPrice, status: 'Rendering' },
+    { id: 3, name: 'Family Loft', net: 185000, status: 'Draft' }
+  ];
+
+  const valueProps = [
+    {
+      icon: <TrendingUp className="text-blue-500" size={20} />,
+      title: "Automated Marketing",
+      desc: "We generate your 3D Digital Twin and run national ads to find qualified buyers."
+    },
+    {
+      icon: <Zap className="text-orange-500" size={20} />,
+      title: "Zero-Chase Payments",
+      desc: "Funds are secured upfront. Payments hit your bank the second a milestone is approved."
+    },
+    {
+      icon: <ShieldCheck className="text-green-500" size={20} />,
+      title: "Legal Dispute Shield",
+      desc: "We handle the statutory lien waivers and mediate site surprises for you."
+    }
+  ];
+
+  // Calculation Logic: Gross = Net / 0.95
+  const grossPrice = Math.round(netPrice / 0.95);
+  const platformFee = grossPrice - netPrice;
+
+  // Simulate AI Rendering Progress
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRenderProgress(prev => (prev < 98 ? prev + 0.5 : 98));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      {/* Top Progress Navigation */}
+      <nav className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="text-2xl">🏗️</span>
+            <span className="text-xl font-bold tracking-tight text-slate-800">Yard<span className="text-blue-600">stake</span></span>
+          </div>
+          <div className="flex items-center space-x-8">
+            {[
+              { n: 1, t: "Upload" },
+              { n: 2, t: "Financials" },
+              { n: 3, t: "Calibration" },
+              { n: 4, t: "Reveal" }
+            ].map((s) => (
+              <div key={s.n} className={`flex items-center space-x-2 ${step === s.n ? 'opacity-100' : 'opacity-40'}`}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step === s.n ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                  {s.n}
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wider hidden md:block">{s.t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto p-6 md:p-12 lg:p-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+          
+          {/* Left Side: Catalog Overview & AI Progress */}
+          <div className="space-y-10">
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <LayoutGrid size={16} className="text-blue-600" />
+                <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Builder Catalog</span>
+              </div>
+              <h1 className="text-4xl font-extrabold tracking-tight mb-4">Pricing Your Models</h1>
+              <p className="text-lg text-slate-500 leading-relaxed">
+                Yardstake manages pricing per unit. Set your desired net for this model while we finish texturing your 3D Digital Twin.
+              </p>
+            </div>
+
+            {/* Catalog Quick-View for Multi-Model Builders */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Portfolio</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {builderCatalog.map((model) => (
+                  <div key={model.id} className={`p-4 rounded-2xl border transition-all flex justify-between items-center ${
+                    model.name === selectedModel 
+                    ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-100' 
+                    : 'bg-white border-slate-100 opacity-60'
+                  }`}>
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-2 h-2 rounded-full ${model.status === 'Live' ? 'bg-green-500' : 'bg-orange-500 animate-pulse'}`}></div>
+                      <span className="font-bold text-slate-800">{model.name}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Current Net</p>
+                      <p className="text-sm font-black text-slate-900">${model.net.toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Progress Box */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 h-1 bg-blue-600 transition-all duration-1000" style={{ width: `${renderProgress}%` }}></div>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                  <span className="font-bold text-slate-700 italic">Processing: {selectedModel}</span>
+                </div>
+                <span className="text-blue-600 font-black">{Math.floor(renderProgress)}%</span>
+              </div>
+              <p className="text-xs text-slate-500">
+                AI is currently mapping hot-swap nodes for your catalog upgrades.
+              </p>
+            </div>
+
+            {/* Value Props Summary */}
+            <div className="grid grid-cols-1 gap-4">
+              {valueProps.map((prop, i) => (
+                <div key={i} className="flex items-start space-x-4 p-5 bg-white rounded-2xl border border-slate-100">
+                  <div className="p-3 bg-slate-50 rounded-xl">{prop.icon}</div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm">{prop.title}</h4>
+                    <p className="text-xs text-slate-500 leading-snug mt-1">{prop.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Side: The Transparent Calculator (Model Specific) */}
+          <div className="bg-white rounded-[40px] p-8 md:p-12 shadow-2xl shadow-slate-200 border border-slate-100 sticky top-32">
+            <div className="flex items-center space-x-2 mb-8 bg-slate-50 w-fit px-4 py-2 rounded-full border border-slate-100">
+              <Calculator size={16} className="text-blue-600" />
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Price Configurator</span>
+            </div>
+
+            <div className="space-y-10">
+              {/* Input Section */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-slate-500 uppercase tracking-widest">Desired Net Payout</label>
+                    <p className="text-[10px] text-blue-600 font-bold uppercase">Model: {selectedModel}</p>
+                  </div>
+                  <div className="flex items-baseline space-x-1">
+                    <span className="text-2xl font-bold text-slate-400">$</span>
+                    <input 
+                      type="number" 
+                      value={netPrice}
+                      onChange={(e) => setNetPrice(Number(e.target.value))}
+                      className="text-5xl font-black text-slate-900 w-48 bg-transparent border-none focus:ring-0 p-0 text-right"
+                    />
+                  </div>
+                </div>
+                <input 
+                  type="range" 
+                  min="50000" 
+                  max="300000" 
+                  step="1000"
+                  value={netPrice}
+                  onChange={(e) => setNetPrice(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+              </div>
+
+              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-semibold text-slate-600">Platform Fee (5%)</span>
+                    <HelpCircle size={14} className="text-slate-300 cursor-help" />
+                  </div>
+                  <span className="font-bold text-slate-900">+ ${platformFee.toLocaleString()}</span>
+                </div>
+                <div className="h-px bg-slate-200"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-blue-600 uppercase tracking-widest">Marketplace List Price</span>
+                  <span className="text-3xl font-black text-blue-600">${grossPrice.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Multi-Model Benefit Card */}
+              <div className="bg-blue-600 rounded-3xl p-6 text-white relative overflow-hidden">
+                <div className="relative z-10 flex items-start space-x-4">
+                  <div className="bg-white/20 p-2 rounded-xl">
+                    <Layers size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold mb-1 italic text-sm">Consistent Margins</h4>
+                    <p className="text-[11px] text-blue-100 leading-relaxed">
+                      We apply your 5% fee logic globally across your catalog. 
+                      You can manage high-volume studio units and premium family models 
+                      with the same "Net-First" pricing strategy.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <button 
+                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center space-x-3 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 group"
+              >
+                <span>Confirm {selectedModel} Pricing</span>
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <p className="text-center text-[10px] text-slate-400 font-medium px-8 leading-relaxed">
+                Prices can be updated at any time in your Builder Command Center. 
+                Pending projects will lock in the price active at the time of the Retainer payment.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Floating Support Tag */}
+      <div className="fixed bottom-6 right-6 bg-white shadow-lg border border-slate-200 px-4 py-2 rounded-full flex items-center space-x-2 cursor-pointer hover:bg-slate-50 transition-colors">
+        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+        <span className="text-xs font-bold text-slate-600">Concierge: Fixer Fiona</span>
+      </div>
+    </div>
+  );
+};
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
