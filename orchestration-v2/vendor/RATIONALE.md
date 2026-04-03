@@ -99,6 +99,21 @@ Because he no longer actively hunts for sales, the UI must provide new psycholog
 
 ---
 
+## Built: Financial Ledger & Tax Reporting
+
+### 11. Financial Ledger & Tax Dashboard
+- **File:** `vendor_ledger.html`
+- **UI:**
+  - **KPI strip:** 4 summary cards — YTD Gross, YTD Fees (5%), YTD Net Received (Admin only), and In Custodial Hold (with lock icon). Net is hidden in Assistant view.
+  - **Filter bar:** Dropdowns for project, date range, and status. "Export CSV" button (Admin only) with spinner → toast notification.
+  - **Transaction ledger table:** 10 rows across 3 orders (ORD-9021, ORD-7702, ORD-6610) in states: Paid, Pending, Held. Columns: Date | Order | Milestone | Gross | Fee | Net | Status. Net column hidden in Assistant view.
+  - **Tax section (Admin only):** 1099-K notice with auto-calculated threshold comparison, link to Stripe Express Tax Dashboard, and a projected Q2 estimated tax nudge.
+  - **Access control note:** Visible to all roles — documents exactly what Admin vs. Office Assistant can and cannot see, with a link back to `delegate_inbox.html`.
+  - **Role toggle (demo):** Admin / Assistant switcher in the nav bar dynamically hides net payouts, tax section, and export button when switched to Assistant view.
+- **Rationale:** Without this screen, Mike's annual tax prep is manual reconciliation from Stripe emails — a major churn risk at fiscal year-end. The dual-view access model directly mirrors the permissions set in `delegate_inbox.html`, making it safe to share dashboard access with an office admin without exposing sensitive payout history.
+
+---
+
 ## Planned (GitHub Issues)
 
 | # | Feature | Issue |
@@ -106,7 +121,7 @@ Because he no longer actively hunts for sales, the UI must provide new psycholog
 | 1 | Catalog & Net-Pricing Management | [#1](https://github.com/captproton/yardstake-ux/issues/1) — ✅ Done |
 | 2 | Change Order & Supply Chain Exception Flow | [#2](https://github.com/captproton/yardstake-ux/issues/2) — ✅ Done |
 | 3 | Outbound Logistics & Freight Handoff | [#3](https://github.com/captproton/yardstake-ux/issues/3) — ✅ Done |
-| 4 | Financial Ledger & Tax Reporting Dashboard | [#4](https://github.com/captproton/yardstake-ux/issues/4) |
+| 4 | Financial Ledger & Tax Reporting Dashboard | [#4](https://github.com/captproton/yardstake-ux/issues/4) — ✅ Done |
 
 ---
 
