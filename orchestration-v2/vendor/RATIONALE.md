@@ -2,29 +2,84 @@
 
 **Location:** `user_experience/orchestration-v2/vendor/`
 
-This document explains the UI logic behind `vendor_dashboard.html`. In the Phase 2 Orchestration Model, the Vendor (Modular Mike) is completely removed from the sales, pitching, and payment collection process. He becomes a pure fulfillment partner who simply executes projects routed by Yardstake.
+This document explains the UI logic behind the Vendor (Modular Mike) experience in the Phase 2 Orchestration Model. Mike transitions from a lead-gen CRM user to a **Pure Fulfillment Partner** — he executes projects routed by Yardstake without any involvement in sales, pricing negotiation, or payment collection.
 
-However, because he no longer actively hunts for sales, the UI must provide new psychological levers to ensure he achieves **"Full Activation"** and remains highly engaged.
+Because he no longer actively hunts for sales, the UI must provide new psychological levers to ensure **Full Activation** and sustained high-frequency engagement.
 
-### Key Engagement Levers (The "Carrots")
+---
 
-*   **Platform Placement Score (Search Algorithm Gamification)**
-    *   *UI Feature:* A "Super Vendor (98/100)" badge in the nav bar and a prominent metric showing his rank based on an average < 4hr response time.
-    *   *Rationale:* Instead of penalizing slow vendors, we reward fast ones. High platform scores grant premium catalog visibility to future buyers. This motivates Mike to answer Concierge questions rapidly, preventing production bottlenecks.
+## Built: Engagement Levers (The "Carrots")
 
-*   **Gamified Milestone Draw Unlock (The Financial Choke Point)**
-    *   *UI Feature:* The Draw Request Builder displays his $40,000 payout as "grayed out" and "locked" until he uploads his proof-of-work photos. Once uploaded, the UI physically unlocks and turns green, replacing invoice sending with a dopamine-hit transaction.
-    *   *Rationale:* Tying the UI directly to liquidity trains Mike that the Yardstake app is his cash register, keeping him engaged.
+### 1. Platform Placement Score
+- **File:** `vendor_dashboard.html` (Kanban nav bar)
+- **UI:** A "Super Vendor (98/100)" badge and `Rank #1 in Portland` label, anchored to a `< 4hr avg response time` SLA.
+- **Rationale:** Rewards fast vendors rather than penalizing slow ones. High scores grant premium catalog visibility to future buyers, motivating Mike to answer Concierge questions rapidly and preventing production bottlenecks.
 
-*   **Preferred GC Network Bounty (Activation Completion)**
-    *   *UI Feature:* An activation progress bar prompting Mike to "Invite his Preferred GC" to earn a $500 bonus draw payout.
-    *   *Rationale:* According to the plan, recruiting a vendor's local Site GC is crucial for scaling the network efficiently. Paying a small bounty to Mike for this referral is significantly cheaper than standalone contractor customer acquisition cost (CAC).
+### 2. Gamified Milestone Draw Unlock
+- **File:** `vendor_sms_magic_link.html` (fully simulated with JS)
+- **UI:** The $40,000 payout button is grayed-out and locked until Mike taps through 3 GPS-tagged photos. On the 3rd photo, the UI transitions to a glowing green "Transfer $40,000 to Bank" CTA. A "Processing..." spinner precedes the final "Sent via Stripe Connect" confirmation state.
+- **Rationale:** Tying the app directly to liquidity trains Mike that Yardstake is his cash register. The multi-step photo sequence creates accountability without paperwork.
 
-*   **Demand Signals Widget (FOMO)**
-    *   *UI Feature:* A pulsating widget displaying live traffic (e.g., "42 Buyers are actively visualizing your Studio XL right now").
-    *   *Rationale:* To prevent vendor churn while a project is quiet, this creates Fear Of Missing Out. It proves the Magical Map is driving traffic and incentivizes him to keep his 3D catalog perfectly up to date.
+### 3. Preferred GC Network Bounty
+- **File:** `vendor_dashboard.html` (Kanban sidebar/KPI strip)
+- **UI:** A progress bar at "75% Activated" with a prominent `+$500 Bonus` label and "Invite Preferred GC" CTA.
+- **Rationale:** Recruiting a vendor's local Site GC is critical for network scaling. Paying Mike a small bounty is significantly cheaper than standalone GC customer acquisition cost (CAC).
 
-### Core Foundation Maintained
+### 4. Demand Signals Widget (FOMO)
+- **File:** `vendor_dashboard.html` (Kanban KPI strip)
+- **UI:** A pulsating widget displaying live buyer traffic (e.g., "42 Buyers are actively visualizing your Studio XL right now").
+- **Rationale:** Prevents vendor churn during quiet production periods. Proves the Magic Map is converting and incentivizes Mike to keep his 3D catalog perfectly maintained.
 
-*   **Removal of Lead Inbox / Sales CRM Features**
-    *   *Rationale:* Yardstake handles the e-commerce sale entirely. Mike logs in to execute the locked-in fulfillment specification.
+---
+
+## Built: Factory Floor UX
+
+### 5. Mobile-First Factory Kanban Board
+- **File:** `vendor_dashboard.html`
+- **UI:** A horizontally scrollable, snap-card Kanban board mapping 4 physical factory stations: `Queue / Pre-Prod → Framing Station → MEP Station → Ready for Freight`. On mobile, each column snaps to full-width. The active "Framing" card glows with a ring and surfaces the camera upload CTA directly on the card.
+- **Rationale:** Maps the digital interface directly to Mike's physical factory workflow. Moving a card mirrors moving the physical unit in the shop.
+
+### 6. SMS Zero-Dashboard Magic Link Flow
+- **File:** `vendor_sms_magic_link.html`
+- **UI:** A full-screen mobile mock (phone frame) showing what Mike sees when he taps a Yardstake SMS alert. No login required. Surfaced directly to the camera upload sequence for the active milestone.
+- **Rationale:** The best interface for a factory floor worker is no interface. A single SMS tap bypasses the dashboard entirely and routes Mike straight to the one action that unlocks his payout.
+
+---
+
+## Built: Delegation & Team Access
+
+### 7. Delegate Inbox (Assistant Invitation Flow)
+- **File:** `delegate_inbox.html`
+- **UI:** A form allowing Mike to invite his Office Manager (name, role, email, mobile number for SMS SLA alerts). Granular permission checkboxes distinguish between: Concierge comms (allowed), milestone photo upload (allowed), and Stripe payouts (Admin-only, locked). An **Owner Notifications** toggle (checked by default) lets Mike receive read-only CC'd copies of all urgent alerts without being on the hook to reply.
+- **Rationale:** Enforcing a `< 4hr` SLA without a delegation path guarantees churn for factory owners. This flow allows Mike to protect his Placement Score while staying out on the floor.
+
+---
+
+## Built: Activation
+
+### 8. Vendor Activation Wizard (4-Step Onboarding)
+- **File:** `activation_wizard.html`
+- **Steps:**
+  1. **Orchestration Agreement** — Accept platform terms (5% fee, photo-verified draws).
+  2. **Stripe Connect** — Mandatory KYC and bank routing setup.
+  3. **Catalog Initialization** — Net-pricing entry for primary models, with a reminder that additional models can be added post-setup.
+  4. **Preferred GC Handoff** — Referral entry for local site-prep partner.
+- **Rationale:** Ensures every vendor is legally and financially compliant before receiving a single routed order.
+
+---
+
+## Planned (GitHub Issues)
+
+| # | Feature | Issue |
+|---|---------|-------|
+| 1 | Catalog & Net-Pricing Management | [#1](https://github.com/captproton/yardstake-ux/issues/1) |
+| 2 | Change Order & Supply Chain Exception Flow | [#2](https://github.com/captproton/yardstake-ux/issues/2) |
+| 3 | Outbound Logistics & Freight Handoff | [#3](https://github.com/captproton/yardstake-ux/issues/3) |
+| 4 | Financial Ledger & Tax Reporting Dashboard | [#4](https://github.com/captproton/yardstake-ux/issues/4) |
+
+---
+
+## Core Foundation
+
+- **Removal of Lead Inbox / Sales CRM:** Yardstake handles the e-commerce sale entirely. Mike logs in purely to execute the locked-in fulfillment specification.
+- **Terminology:** All references to "Escrow" have been replaced with **"Project Funds"** and **"Custodial Holding"** to align with the Stripe Destination Charge architecture and avoid regulatory misinterpretation.
