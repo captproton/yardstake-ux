@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freight Handoff | ORD-7702 | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+        .state { display: none; }
+        .state.active { display: block; }
+        .photo-zone { transition: all 0.3s ease; }
+        @keyframes truck-drive { 0% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 100% { transform: translateX(-8px); } }
+        .truck-animate { animation: truck-drive 2.5s ease-in-out infinite; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900 border-b border-slate-800 z-50 sticky top-0">
+        <div class="px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="vendor_dashboard.html" class="flex items-center text-slate-400 hover:text-white text-sm font-bold transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kanban
+                </a>
+                <span class="text-slate-700">|</span>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="truck" class="w-4 h-4 text-blue-400"></i>
+                    <span class="text-white font-bold">Freight Handoff</span>
+                    <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded ml-1">ORD-7702</span>
+                </div>
+            </div>
+            <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">M</div>
+        </div>
+    </nav>
+
+    <main class="flex-grow px-4 sm:px-6 py-8 max-w-2xl mx-auto w-full">
+
+        <!-- STATE 1: Handoff Checklist -->
+        <div id="state-checklist" class="state active space-y-6">
+
+            <!-- Order Context -->
+            <div class="glass-card rounded-2xl p-4 flex items-center space-x-4 border-l-4 border-l-blue-500">
+                <div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="package" class="w-5 h-5 text-blue-400"></i>
+                </div>
+                <div class="flex-grow">
+                    <p class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-0.5">Ready for Freight</p>
+                    <h3 class="font-black text-white">Seattle DADU — Studio L, Cedar Planks</h3>
+                    <p class="text-xs text-slate-400">Final draw upon Site GC delivery confirmation: $35,000</p>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <h1 class="text-2xl font-black text-white">Confirm Unit Left Your Facility</h1>
+                <p class="text-sm text-slate-400 mt-1">Complete this checklist to establish chain-of-custody and protect your liability.</p>
+            </div>
+
+            <!-- Step 1: Pre-Shipment Photos -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Step 1 — Pre-Shipment Photos</label>
+                    <span id="photo-count-badge" class="text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">0 / 2 required</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Photo 1: Full exterior -->
+                    <div id="photo-zone-1" onclick="simulatePhoto(1)" class="photo-zone glass-card rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 transition-all border border-slate-700 group">
+                        <i data-lucide="camera" class="w-6 h-6 text-slate-500 group-hover:text-blue-400 transition-colors mb-1" id="photo-icon-1"></i>
+                        <span class="text-[10px] font-bold text-slate-500 group-hover:text-slate-300 transition-colors text-center px-2" id="photo-label-1">Full unit exterior</span>
+                    </div>
+                    <!-- Photo 2: Undercarriage -->
+                    <div id="photo-zone-2" onclick="simulatePhoto(2)" class="photo-zone glass-card rounded-xl h-28 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 transition-all border border-slate-700 group">
+                        <i data-lucide="camera" class="w-6 h-6 text-slate-500 group-hover:text-blue-400 transition-colors mb-1" id="photo-icon-2"></i>
+                        <span class="text-[10px] font-bold text-slate-500 group-hover:text-slate-300 transition-colors text-center px-2" id="photo-label-2">Undercarriage / chassis</span>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-600 mt-2 text-center">GPS coordinates and timestamps will be locked at capture.</p>
+            </div>
+
+            <!-- Step 2: Bill of Lading -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Step 2 — Bill of Lading Reference</label>
+                <div class="flex items-center space-x-2">
+                    <div class="flex-grow relative">
+                        <i data-lucide="file-text" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input id="bol-input" type="text" placeholder="e.g. BOL-2026-XPO-44821" value="BOL-2026-XPO-44821"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-900/40 border border-emerald-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Carrier -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Step 3 — Carrier <span class="text-slate-600 font-normal normal-case">(pre-filled by Concierge, editable)</span></label>
+                <div class="flex items-center space-x-2">
+                    <div class="flex-grow relative">
+                        <i data-lucide="truck" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input id="carrier-input" type="text" value="XPO Logistics — coordinated by Yardstake"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Digital Acknowledgment -->
+            <div id="ack-zone" class="glass-card rounded-2xl p-5 border border-slate-700">
+                <div class="flex items-start space-x-3">
+                    <button onclick="toggleAck()" id="ack-btn" class="w-6 h-6 rounded border-2 border-slate-600 flex-shrink-0 mt-0.5 flex items-center justify-center transition-all hover:border-blue-500">
+                        <i data-lucide="check" class="w-3.5 h-3.5 text-white hidden" id="ack-check"></i>
+                    </button>
+                    <p class="text-sm text-slate-300 leading-relaxed">
+                        <span class="font-bold text-white">Digital Acknowledgment:</span> I confirm this unit left my facility in the condition shown in the photos above. Timestamp and GPS coordinates are recorded and locked upon submission.
+                    </p>
+                </div>
+                <div id="ack-timestamp" class="hidden mt-3 pt-3 border-t border-slate-700/50 flex items-center space-x-2 text-[11px] text-slate-500 font-mono">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span id="ack-timestamp-text"></span>
+                </div>
+            </div>
+
+            <!-- Submit button -->
+            <button onclick="submitHandoff()" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center opacity-50 cursor-not-allowed" disabled>
+                <i data-lucide="send" class="w-4 h-4 mr-2"></i> Confirm Handoff & Notify Carrier
+            </button>
+            <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">Your Kanban card will move to "In Transit". Buyer will be notified.</p>
+        </div>
+
+        <!-- STATE 2: In Transit -->
+        <div id="state-transit" class="state space-y-6">
+
+            <div class="text-center py-6">
+                <div class="w-20 h-20 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4 truck-animate">
+                    <i data-lucide="truck" class="w-10 h-10 text-blue-400"></i>
+                </div>
+                <h1 class="text-2xl font-black text-white mb-2">Unit Is On the Move!</h1>
+                <p class="text-sm text-slate-400 max-w-xs mx-auto">The handoff is recorded. Your buyer has been notified and can track delivery status in their dashboard.</p>
+            </div>
+
+            <!-- Chain-of-custody confirmation -->
+            <div class="glass-card rounded-2xl p-5 border-l-4 border-l-blue-500">
+                <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Chain of Custody Locked</p>
+                <h3 class="font-black text-white mb-3">ORD-7702 · Seattle DADU</h3>
+                <div class="space-y-2 text-xs text-slate-400">
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-300">2 photos</span><span>Captured & GPS-stamped</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-300">BOL</span><span id="bol-confirm" class="font-mono">BOL-2026-XPO-44821</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-300">Carrier</span><span id="carrier-confirm">XPO Logistics</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-300">Departed</span><span id="transit-timestamp">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ETA Tracker -->
+            <div class="glass-card rounded-2xl p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Estimated Site Delivery</h3>
+                    <span class="text-white font-black">Apr 5, 2026</span>
+                </div>
+                <!-- Progress track -->
+                <div class="relative">
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="transit-bar" class="h-2 bg-blue-500 rounded-full transition-all duration-1000" style="width: 15%"></div>
+                    </div>
+                    <div class="flex justify-between mt-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <span class="text-blue-400">Mike's Facility</span>
+                        <span>In Transit</span>
+                        <span>Site Delivery</span>
+                    </div>
+                </div>
+                <div class="mt-4 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 flex items-center space-x-3">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-blue-400 flex-shrink-0"></i>
+                    <p class="text-xs text-blue-200">Last ping: <span class="font-bold">I-5 N, Tacoma, WA</span> — 47 miles from delivery site</p>
+                </div>
+            </div>
+
+            <!-- Final payout note -->
+            <div class="glass-card rounded-2xl p-5 border border-dashed border-slate-600">
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="lock" class="w-4 h-4 text-slate-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Final Draw Pending</p>
+                        <p class="text-sm text-white font-bold">$35,000 unlocks after Site GC confirms on-site delivery.</p>
+                        <p class="text-xs text-slate-500 mt-1">Backyard Bill will tap "Confirm Delivery" when the crane crew sets the unit on the foundation.</p>
+                    </div>
+                </div>
+            </div>
+
+            <a href="vendor_dashboard.html" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i> Back to Kanban
+            </a>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        let photosCapture = 0;
+        let ackConfirmed = false;
+
+        function simulatePhoto(num) {
+            const zone = document.getElementById(`photo-zone-${num}`);
+            const icon = document.getElementById(`photo-icon-${num}`);
+            const label = document.getElementById(`photo-label-${num}`);
+
+            if (zone.dataset.captured === 'true') return;
+            zone.dataset.captured = 'true';
+
+            // Flash
+            zone.classList.add('bg-white/20');
+            setTimeout(() => zone.classList.remove('bg-white/20'), 120);
+
+            setTimeout(() => {
+                icon.setAttribute('data-lucide', 'check-circle');
+                icon.className = 'w-6 h-6 text-emerald-400 mb-1';
+                label.textContent = num === 1 ? 'unit_exterior.jpg ✓' : 'undercarriage.jpg ✓';
+                label.className = 'text-[10px] font-bold text-emerald-400 text-center px-2';
+                zone.classList.remove('border-slate-700', 'hover:border-blue-500/50');
+                zone.classList.add('border-emerald-500/40', 'bg-emerald-500/5');
+                lucide.createIcons();
+
+                photosCapture++;
+                document.getElementById('photo-count-badge').textContent = `${photosCapture} / 2 required`;
+                if (photosCapture === 2) {
+                    document.getElementById('photo-count-badge').className = 'text-[10px] font-bold text-emerald-400 bg-emerald-900/40 px-2 py-0.5 rounded border border-emerald-500/30';
+                }
+                checkSubmitReady();
+            }, 200);
+        }
+
+        function toggleAck() {
+            ackConfirmed = !ackConfirmed;
+            const btn = document.getElementById('ack-btn');
+            const checkIcon = document.getElementById('ack-check');
+            const ts = document.getElementById('ack-timestamp');
+            const tsText = document.getElementById('ack-timestamp-text');
+
+            if (ackConfirmed) {
+                btn.classList.remove('border-slate-600');
+                btn.classList.add('border-blue-500', 'bg-blue-600');
+                checkIcon.classList.remove('hidden');
+                ts.classList.remove('hidden');
+                const now = new Date();
+                tsText.textContent = `GPS: 47.6062° N, 122.3321° W  ·  ${now.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+            } else {
+                btn.classList.add('border-slate-600');
+                btn.classList.remove('border-blue-500', 'bg-blue-600');
+                checkIcon.classList.add('hidden');
+                ts.classList.add('hidden');
+            }
+            lucide.createIcons();
+            checkSubmitReady();
+        }
+
+        function checkSubmitReady() {
+            const btn = document.getElementById('submit-btn');
+            if (photosCapture >= 2 && ackConfirmed) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.add('cursor-pointer');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.classList.remove('cursor-pointer');
+            }
+        }
+
+        function submitHandoff() {
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i> Submitting...';
+            btn.disabled = true;
+            lucide.createIcons();
+
+            // Set BOL and carrier confirm from inputs
+            const bol = document.getElementById('bol-input').value || 'BOL-2026-XPO-44821';
+            document.getElementById('bol-confirm').textContent = bol;
+            const carrier = document.getElementById('carrier-input').value || 'XPO Logistics';
+            document.getElementById('carrier-confirm').textContent = carrier;
+
+            // Set timestamps
+            const now = new Date();
+            const tsStr = now.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('transit-timestamp').textContent = tsStr;
+
+            setTimeout(() => {
+                showState('state-transit');
+                // Animate transit bar
+                setTimeout(() => {
+                    document.getElementById('transit-bar').style.width = '22%';
+                }, 400);
+            }, 1400);
+        }
+
+        function showState(id) {
+            document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
