@@ -45,6 +45,7 @@ The editor should be organized as **accordion sections**, one per option categor
 1. **Category header** — name, toggle to enable/disable the entire category for this model
 2. **Option rows** — each row has:
    - Option name (text input)
+   - **Thumbnail image upload zone** — small square (1:1) upload target; simulated upload swaps a placeholder into a preview swatch; this image is the visual shown to the buyer in the future buyer-facing configurator when this option is selected or hovered
    - "Standard" checkbox (included in base price, no upcharge)
    - Price delta field (e.g., `+$300`) — disabled/zeroed if Standard is checked
    - Active/inactive toggle (hide from buyer without deleting)
@@ -72,5 +73,6 @@ The editor should be organized as **accordion sections**, one per option categor
 - [ ] At least 3 fully populated categories (Exterior, Kitchen, Flooring) with 3–5 option rows each
 - [ ] Inline price delta editing with a simulated JS total update
 - [ ] "Add option" interaction simulated (appends a blank row)
+- [ ] Each option row has a thumbnail upload zone; simulated upload renders a small image swatch preview inline
 - [ ] Sticky footer price summary bar updates as options are toggled Standard ↔ Upgrade
 - [ ] Back navigation to `vendor_catalog.html`
