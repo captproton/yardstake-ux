@@ -34,7 +34,7 @@
                 <a href="#" class="flex items-center space-x-3 bg-fuchsia-600/20 text-fuchsia-400 px-4 py-3 rounded-xl font-bold">
                     <i data-lucide="alert-triangle" class="w-5 h-5"></i>
                     <span>Triage Queue</span>
-                    <span class="ml-auto bg-fuchsia-600 text-white text-[10px] px-2 py-0.5 rounded-full">3</span>
+                    <span class="ml-auto bg-fuchsia-600 text-white text-[10px] px-2 py-0.5 rounded-full">4</span>
                 </a>
                 <a href="#" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
                     <i data-lucide="gavel" class="w-5 h-5"></i>
@@ -58,6 +58,78 @@
                 <h1 class="text-2xl font-extrabold text-slate-900">Project Triage required</h1>
                 <p class="text-sm text-slate-500 mt-1">Reviewing blockers to maintain the "No Surprises" guarantee for buyers.</p>
             </header>
+
+            <!-- ⚠ NEW: Material Exception from Modular Mike — ORD-9021 -->
+            <div class="console-panel p-0 border-l-4 border-l-amber-500">
+                <div class="p-6 bg-white flex justify-between items-center border-b border-slate-100">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded">ORD-9021</span>
+                            <span class="text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-700 uppercase tracking-widest flex items-center"><i data-lucide="layers" class="w-3 h-3 mr-1"></i> Material Exception Pending</span>
+                            <span class="flex items-center space-x-1 text-[10px] text-amber-500 font-bold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+                                <span>3h 47m SLA</span>
+                            </span>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-900">Portland R5 — Modular Mike <span class="text-slate-400 font-normal text-base">→ Material Substitution Request</span></h2>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Context Pane -->
+                    <div class="space-y-5">
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Exception Submitted By</h4>
+                            <div class="bg-white border border-slate-200 rounded-xl p-3 flex items-center space-x-3">
+                                <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-sm flex-shrink-0">M</div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-800">Modular Mike</p>
+                                    <p class="text-xs text-slate-500">Framing Station · ORD-9021 · Portland R5</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Exception Details</h4>
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 leading-relaxed">
+                                <p class="font-bold mb-1">Material Sub: White Oak Flooring → Maple</p>
+                                <p class="text-xs text-amber-800">White Oak flooring (spec'd on drawing D-04) is backordered 8 weeks from our supplier. Proposing substitution with Maple — similar grain, same Coastal White stain per the palette.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Impact If Denied</h4>
+                            <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700">Build delayed 8 weeks. Buyer's Crane Day rescheduled. Mike's Placement Score at risk.</div>
+                        </div>
+                    </div>
+
+                    <!-- Action Pane -->
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Concierge Actions</h4>
+                        <div class="space-y-3">
+                            <button class="w-full text-left bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 p-4 rounded-xl flex items-center justify-between transition-colors group">
+                                <div>
+                                    <p class="font-bold text-sm text-emerald-800">1. Approve Substitution</p>
+                                    <p class="text-xs text-emerald-600 mt-0.5">Aesthetic match confirmed — no buyer sign-off required.</p>
+                                </div>
+                                <i data-lucide="check-circle" class="text-emerald-500"></i>
+                            </button>
+                            <button class="w-full text-left bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between transition-colors group">
+                                <div>
+                                    <p class="font-bold text-sm text-slate-800">2. Route to Buyer for Approval</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Buyer selected White Oak as primary aesthetic. Requires their sign-off.</p>
+                                </div>
+                                <i data-lucide="arrow-right" class="text-slate-400 group-hover:text-blue-500 transform group-hover:translate-x-1 transition-all"></i>
+                            </button>
+                            <button class="w-full text-left bg-red-50 hover:bg-red-100 border border-red-100 p-4 rounded-xl flex items-center justify-between transition-colors">
+                                <div>
+                                    <p class="font-bold text-sm text-red-700">3. Deny — Hold Original Spec</p>
+                                    <p class="text-xs text-red-500 mt-0.5">Mike must source an alternate White Oak supplier. Issue 2-week extension.</p>
+                                </div>
+                                <i data-lucide="x-circle" class="text-red-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="console-panel p-0 border-l-4 border-l-orange-500 animate-[pulse_3s_ease-in-out_infinite]">
                 <div class="p-6 bg-white flex justify-between items-center border-b border-slate-100">

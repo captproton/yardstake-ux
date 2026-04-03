@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raise Exception | ORD-9021 | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+        .state { display: none; }
+        .state.active { display: block; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900 border-b border-slate-800 z-50 sticky top-0">
+        <div class="px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="vendor_dashboard.html" class="flex items-center text-slate-400 hover:text-white text-sm font-bold transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kanban
+                </a>
+                <span class="text-slate-700">|</span>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+                    <span class="text-white font-bold">Raise Exception</span>
+                    <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded ml-1">ORD-9021</span>
+                </div>
+            </div>
+            <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">M</div>
+        </div>
+    </nav>
+
+    <main class="flex-grow px-4 sm:px-6 py-8 max-w-2xl mx-auto w-full">
+
+        <!-- STATE 1: Exception Form -->
+        <div id="state-form" class="state active space-y-6">
+
+            <!-- Order Context -->
+            <div class="glass-card rounded-2xl p-4 flex items-center space-x-4 border-l-4 border-l-amber-500">
+                <div class="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="package" class="w-5 h-5 text-amber-400"></i>
+                </div>
+                <div class="flex-grow">
+                    <p class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-0.5">Active Order</p>
+                    <h3 class="font-black text-white">Portland R5 — Studio XL, Coastal White</h3>
+                    <p class="text-xs text-slate-400">Framing Station · Next draw: $40,000</p>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <h1 class="text-2xl font-black text-white">What's the exception?</h1>
+                <p class="text-sm text-slate-400 mt-1">Yardstake's Concierge will review and coordinate with the buyer if required.</p>
+            </div>
+
+            <!-- Exception Type -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Exception Type</label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="type-selector">
+                    <button onclick="selectType(this, 'material')" class="type-btn glass-card rounded-xl p-4 text-left hover:border-amber-500/50 transition-all border-2 border-transparent group">
+                        <i data-lucide="layers" class="w-5 h-5 text-amber-400 mb-2"></i>
+                        <p class="font-bold text-white text-sm">Material Sub</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Replace a spec'd material</p>
+                    </button>
+                    <button onclick="selectType(this, 'timeline')" class="type-btn glass-card rounded-xl p-4 text-left hover:border-blue-500/50 transition-all border-2 border-transparent group">
+                        <i data-lucide="clock" class="w-5 h-5 text-blue-400 mb-2"></i>
+                        <p class="font-bold text-white text-sm">Timeline Extension</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Request more production time</p>
+                    </button>
+                    <button onclick="selectType(this, 'scope')" class="type-btn glass-card rounded-xl p-4 text-left hover:border-purple-500/50 transition-all border-2 border-transparent group">
+                        <i data-lucide="message-circle-question" class="w-5 h-5 text-purple-400 mb-2"></i>
+                        <p class="font-bold text-white text-sm">Scope Clarification</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Ambiguous spec or drawing</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Subtitle based on type -->
+            <div id="type-hint" class="hidden bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-xs text-amber-200/80">
+                <span id="type-hint-text"></span>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Describe the Issue</label>
+                <textarea id="description" rows="4" placeholder="e.g. White Oak flooring (spec'd on drawing D-04) is backordered 8 weeks from our supplier. Proposing substitution with Maple — similar grain, same color stain per the Coastal White palette…"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500 transition-colors placeholder-slate-600 resize-none"></textarea>
+            </div>
+
+            <!-- Optional Photo -->
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Supporting Photo <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                <div id="photo-zone" onclick="simulatePhotoAttach()" class="h-28 rounded-xl border-2 border-dashed border-slate-700 hover:border-amber-500/50 transition-colors flex items-center justify-center cursor-pointer group">
+                    <div class="text-center">
+                        <i data-lucide="camera" class="w-6 h-6 text-slate-500 group-hover:text-amber-400 transition-colors mx-auto mb-1" id="photo-icon"></i>
+                        <span id="photo-label" class="text-xs font-bold text-slate-500 group-hover:text-slate-300 transition-colors">Attach photo evidence</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="submitException()" id="submit-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-3.5 rounded-xl transition-colors shadow-lg shadow-amber-500/20 flex items-center justify-center">
+                <i data-lucide="send" class="w-4 h-4 mr-2"></i> Submit to Concierge
+            </button>
+            <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">Your Kanban card will update to "Exception Pending" until resolved.</p>
+        </div>
+
+        <!-- STATE 2: Pending (Waiting on Concierge / Buyer) -->
+        <div id="state-pending" class="state space-y-6">
+
+            <div class="text-center py-6">
+                <div class="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="clock" class="w-10 h-10 text-amber-400"></i>
+                </div>
+                <h1 class="text-2xl font-black text-white mb-2">Exception Submitted</h1>
+                <p class="text-sm text-slate-400 max-w-xs mx-auto">Yardstake's Concierge has been notified. They'll coordinate with the buyer if needed.</p>
+            </div>
+
+            <!-- Exception Summary Card -->
+            <div class="glass-card rounded-2xl p-5 border-l-4 border-l-amber-500">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <p class="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-1">Exception Raised</p>
+                        <h3 class="font-black text-white">Material Substitution</h3>
+                        <p class="text-xs text-slate-400 mt-1">ORD-9021 · Portland R5</p>
+                    </div>
+                    <span id="status-badge" class="bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase px-2 py-1 rounded border border-amber-500/20 flex items-center space-x-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+                        <span>Pending Concierge</span>
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400 italic border-t border-slate-700/50 pt-3">"White Oak flooring backordered 8 weeks. Proposing Maple substitution per Coastal White palette…"</p>
+            </div>
+
+            <!-- SLA Countdown -->
+            <div class="glass-card rounded-2xl p-5">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Concierge Response SLA</h3>
+                    <span id="countdown" class="font-black text-white text-lg">3h 47m</span>
+                </div>
+                <div class="w-full bg-slate-800 rounded-full h-2">
+                    <div id="sla-bar" class="bg-amber-500 h-2 rounded-full transition-all duration-1000" style="width: 65%"></div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2">Your Platform Score is not affected while an exception is under review.</p>
+            </div>
+
+            <!-- Simulate resolution buttons (for demo) -->
+            <div class="pt-2 border-t border-slate-700/50">
+                <p class="text-[10px] text-slate-600 uppercase tracking-widest font-bold text-center mb-3">Demo: Simulate Concierge Resolution</p>
+                <div class="flex space-x-3">
+                    <button onclick="resolveException('approved')" class="flex-1 bg-emerald-900/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-400 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                        ✅ Approve Substitution
+                    </button>
+                    <button onclick="resolveException('denied')" class="flex-1 bg-red-900/30 hover:bg-red-900/50 border border-red-500/20 text-red-400 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                        ❌ Deny — Use Original
+                    </button>
+                    <button onclick="resolveException('buyer')" class="flex-1 bg-blue-900/30 hover:bg-blue-900/50 border border-blue-500/20 text-blue-400 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                        🔄 Routed to Buyer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATE 3: Resolution -->
+        <div id="state-resolved" class="state space-y-6">
+            <div class="text-center py-6">
+                <div id="resolved-icon-wrapper" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="check-circle" class="w-10 h-10" id="resolved-icon"></i>
+                </div>
+                <h1 class="text-2xl font-black text-white mb-2" id="resolved-title">Exception Resolved</h1>
+                <p class="text-sm text-slate-400 max-w-xs mx-auto" id="resolved-body">The Concierge has reviewed your exception.</p>
+            </div>
+
+            <div id="resolved-card" class="glass-card rounded-2xl p-5 border-l-4">
+                <p class="text-[10px] font-bold uppercase tracking-widest mb-1" id="resolved-label"></p>
+                <p class="text-sm text-white font-medium" id="resolved-message"></p>
+            </div>
+
+            <a href="vendor_dashboard.html" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i> Back to Kanban
+            </a>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        let selectedType = null;
+
+        const typeHints = {
+            material: '⚠ Material substitutions require Concierge approval and may require buyer sign-off if the change affects the visual appearance or spec sheet.',
+            timeline: 'ℹ Timeline extensions will update the buyer\'s delivery estimate and may impact their Site GC crane scheduling.',
+            scope: '📐 If a drawing is ambiguous, the Concierge will coordinate with the design team to issue a clarification memo before production continues.'
+        };
+
+        function selectType(el, type) {
+            selectedType = type;
+            document.querySelectorAll('.type-btn').forEach(b => {
+                b.classList.remove('border-amber-500', 'border-blue-500', 'border-purple-500', 'bg-amber-500/5', 'bg-blue-500/5', 'bg-purple-500/5');
+                b.classList.add('border-transparent');
+            });
+            const colorMap = { material: ['border-amber-500', 'bg-amber-500/5'], timeline: ['border-blue-500', 'bg-blue-500/5'], scope: ['border-purple-500', 'bg-purple-500/5'] };
+            el.classList.remove('border-transparent');
+            el.classList.add(...colorMap[type]);
+
+            const hint = document.getElementById('type-hint');
+            document.getElementById('type-hint-text').textContent = typeHints[type];
+            hint.classList.remove('hidden');
+        }
+
+        function simulatePhotoAttach() {
+            const icon = document.getElementById('photo-icon');
+            const label = document.getElementById('photo-label');
+            const zone = document.getElementById('photo-zone');
+            icon.setAttribute('data-lucide', 'check-circle');
+            icon.className = 'w-6 h-6 text-emerald-400 mx-auto mb-1';
+            label.textContent = 'supplier_backorder_notice.jpg attached';
+            label.className = 'text-xs font-bold text-emerald-400';
+            zone.classList.remove('border-slate-700', 'hover:border-amber-500/50');
+            zone.classList.add('border-emerald-500/40', 'bg-emerald-500/5');
+            lucide.createIcons();
+        }
+
+        function submitException() {
+            if (!selectedType) {
+                alert('Please select an exception type first.');
+                return;
+            }
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 mr-2 animate-spin"></i> Submitting...';
+            lucide.createIcons();
+            setTimeout(() => {
+                showState('state-pending');
+                // Animate SLA bar down over time (demo)
+                let width = 65;
+                const interval = setInterval(() => {
+                    width -= 1;
+                    if (width <= 0) { clearInterval(interval); return; }
+                    document.getElementById('sla-bar').style.width = width + '%';
+                    if (width < 20) document.getElementById('sla-bar').classList.replace('bg-amber-500', 'bg-red-500');
+                }, 300);
+            }, 1200);
+        }
+
+        function resolveException(outcome) {
+            const configs = {
+                approved: {
+                    iconWrapper: 'bg-emerald-500/10 border border-emerald-500/20',
+                    icon: 'check-circle', iconColor: 'text-emerald-400',
+                    title: 'Substitution Approved',
+                    body: 'You may proceed with Maple flooring. The spec sheet has been updated.',
+                    cardBorder: 'border-l-emerald-500',
+                    label: '✅ Approved by Concierge',
+                    message: 'Maple flooring (similar grain, Coastal White stain) approved as a drop-in substitute for White Oak. No buyer sign-off required. Proceed with build.'
+                },
+                denied: {
+                    iconWrapper: 'bg-red-500/10 border border-red-500/20',
+                    icon: 'x-circle', iconColor: 'text-red-400',
+                    title: 'Substitution Denied',
+                    body: 'The original White Oak spec must be honored. Contact your supplier for alternatives.',
+                    cardBorder: 'border-l-red-500',
+                    label: '❌ Denied by Concierge',
+                    message: 'The buyer specifically selected White Oak as a primary aesthetic requirement. Please source an alternative White Oak supplier. Yardstake can provide a 2-week timeline extension if needed.'
+                },
+                buyer: {
+                    iconWrapper: 'bg-blue-500/10 border border-blue-500/20',
+                    icon: 'refresh-cw', iconColor: 'text-blue-400',
+                    title: 'Routed to Buyer',
+                    body: 'The Concierge has forwarded this to the buyer for a decision. You\'ll be notified within 24hrs.',
+                    cardBorder: 'border-l-blue-500',
+                    label: '🔄 Pending Buyer Reply',
+                    message: 'The Concierge forwarded the substitution request to the buyer (Buyer: Sarah T., Portland R5). Expected buyer response within 24 hours. Your production timeline will be extended accordingly.'
+                }
+            };
+            const c = configs[outcome];
+            document.getElementById('resolved-icon-wrapper').className = `w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${c.iconWrapper}`;
+            document.getElementById('resolved-icon').setAttribute('data-lucide', c.icon);
+            document.getElementById('resolved-icon').className = `w-10 h-10 ${c.iconColor}`;
+            document.getElementById('resolved-title').textContent = c.title;
+            document.getElementById('resolved-body').textContent = c.body;
+            document.getElementById('resolved-card').className = `glass-card rounded-2xl p-5 border-l-4 ${c.cardBorder}`;
+            document.getElementById('resolved-label').textContent = c.label;
+            document.getElementById('resolved-message').textContent = c.message;
+            lucide.createIcons();
+            showState('state-resolved');
+        }
+
+        function showState(id) {
+            document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

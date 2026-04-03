@@ -68,12 +68,29 @@ Because he no longer actively hunts for sales, the UI must provide new psycholog
 
 ---
 
+---
+
+## Built: Change Order & Exception Flow
+
+### 9. Change Order / Supply Chain Exception Flow
+- **Files:** `vendor_change_order.html`, `vendor_dashboard.html` (Raise Exception trigger), `concierge_dashboard.html` (exception alert)
+- **UI:**
+  - A "⚠ Raise Exception" link button appears on the active ORD-9021 Kanban card in the Framing Station column (`vendor_dashboard.html`), below the milestone upload CTA.
+  - Tapping it opens `vendor_change_order.html` — a 3-state full-page flow:
+    1. **Exception Form:** Exception type selector (Material Sub / Timeline Extension / Scope Clarification), description textarea, optional photo attach. Contextual hint text adapts per type.
+    2. **Pending State:** Animated SLA countdown bar (4hr Concierge SLA), status badge, and 3 demo resolution buttons to simulate Concierge decisions.
+    3. **Resolution State:** Visual confirmation card for Approved / Denied / Routed to Buyer outcomes with full decision rationale.
+  - `concierge_dashboard.html` now shows a new amber-bordered triage card for the material substitution exception, with 3 Concierge action buttons (Approve / Route to Buyer / Deny).
+- **Rationale:** Unauthorized material substitutions are a primary dispute surface. Formalizing the exception pathway protects Mike's Placement Score during production delays (SLA clock paused during review), gives Fiona structured options, and keeps the buyer informed — all without a single phone call.
+
+---
+
 ## Planned (GitHub Issues)
 
 | # | Feature | Issue |
 |---|---------|-------|
-| 1 | Catalog & Net-Pricing Management | [#1](https://github.com/captproton/yardstake-ux/issues/1) |
-| 2 | Change Order & Supply Chain Exception Flow | [#2](https://github.com/captproton/yardstake-ux/issues/2) |
+| 1 | Catalog & Net-Pricing Management | [#1](https://github.com/captproton/yardstake-ux/issues/1) — ✅ Done |
+| 2 | Change Order & Supply Chain Exception Flow | [#2](https://github.com/captproton/yardstake-ux/issues/2) — ✅ Done |
 | 3 | Outbound Logistics & Freight Handoff | [#3](https://github.com/captproton/yardstake-ux/issues/3) |
 | 4 | Financial Ledger & Tax Reporting Dashboard | [#4](https://github.com/captproton/yardstake-ux/issues/4) |
 
