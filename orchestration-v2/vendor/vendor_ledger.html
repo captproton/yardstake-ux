@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Ledger | Modular Mike | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+        .view { display: none; }
+        .view.active { display: contents; }
+        @media print {
+            nav, #access-bar, #export-btn, #filter-bar { display: none !important; }
+            body { background: white !important; color: #0F172A !important; }
+            .glass-card { background: white !important; border: 1px solid #e2e8f0 !important; }
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900 border-b border-slate-800 z-50 sticky top-0">
+        <div class="px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="vendor_dashboard.html" class="flex items-center text-slate-400 hover:text-white text-sm font-bold transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kanban
+                </a>
+                <span class="text-slate-700">|</span>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="file-bar-chart" class="w-4 h-4 text-emerald-400"></i>
+                    <span class="text-white font-bold">Financial Ledger</span>
+                    <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded ml-1">YTD 2026</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <!-- Access toggle (demo) -->
+                <div class="flex items-center space-x-1 bg-slate-800 rounded-lg p-1">
+                    <button onclick="setView('admin')" id="btn-admin" class="text-[10px] font-bold px-3 py-1 rounded transition-all bg-emerald-600 text-white">Admin</button>
+                    <button onclick="setView('assistant')" id="btn-assistant" class="text-[10px] font-bold px-3 py-1 rounded transition-all text-slate-400 hover:text-white">Assistant</button>
+                </div>
+                <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">M</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Access role bar -->
+    <div id="access-bar" class="bg-emerald-900/30 border-b border-emerald-500/20 px-6 py-2 flex items-center justify-between">
+        <div class="flex items-center space-x-2 text-xs text-emerald-300 font-bold">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span id="access-label">Viewing as: Mike (Admin) — Full ledger access</span>
+        </div>
+        <span class="text-[10px] text-slate-500 font-mono">Stripe Connect · KYC Verified</span>
+    </div>
+
+    <main class="flex-grow px-4 sm:px-6 py-8 max-w-5xl mx-auto w-full space-y-8">
+
+        <!-- Summary KPI Strip -->
+        <section>
+            <h1 class="text-xl font-black text-white mb-5">Year-to-Date Summary <span class="text-slate-500 font-normal text-base">Jan 1 – Apr 2, 2026</span></h1>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- YTD Gross -->
+                <div class="glass-card rounded-2xl p-5">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">YTD Gross Payouts</p>
+                    <p class="text-2xl font-black text-white">$287,500</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Before Yardstake fees</p>
+                </div>
+                <!-- YTD Fees -->
+                <div class="glass-card rounded-2xl p-5">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">YTD Fees (5%)</p>
+                    <p class="text-2xl font-black text-amber-400">−$14,375</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Yardstake platform fee</p>
+                </div>
+                <!-- YTD Net -->
+                <div class="glass-card rounded-2xl p-5 admin-only">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">YTD Net Received</p>
+                    <p class="text-2xl font-black text-emerald-400">$273,125</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Deposited to Stripe Connect</p>
+                </div>
+                <!-- Custodial Hold -->
+                <div class="glass-card rounded-2xl p-5">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">In Custodial Hold</p>
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="lock" class="w-4 h-4 text-blue-400 flex-shrink-0"></i>
+                        <p class="text-2xl font-black text-blue-400">$75,000</p>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1">Pending milestone unlock</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filter bar -->
+        <div id="filter-bar" class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <div class="flex flex-wrap gap-2">
+                <select class="bg-slate-800 border border-slate-700 text-white text-xs font-bold rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500">
+                    <option>All Projects</option>
+                    <option>ORD-9021 · Portland R5</option>
+                    <option>ORD-7702 · Seattle DADU</option>
+                    <option>ORD-6610 · Bend ADU</option>
+                </select>
+                <select class="bg-slate-800 border border-slate-700 text-white text-xs font-bold rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500">
+                    <option>All of 2026</option>
+                    <option>Q1 2026</option>
+                    <option>Q2 2026</option>
+                </select>
+                <select class="bg-slate-800 border border-slate-700 text-white text-xs font-bold rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500">
+                    <option>All Statuses</option>
+                    <option>Paid</option>
+                    <option>Pending</option>
+                    <option>Held</option>
+                </select>
+            </div>
+            <button id="export-btn" onclick="simulateExport()" class="admin-only flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Export CSV</span>
+            </button>
+        </div>
+
+        <!-- Toast notification (hidden by default) -->
+        <div id="export-toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-sm font-bold px-5 py-3 rounded-xl shadow-xl flex items-center space-x-2 z-50">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>yardstake_ledger_2026.csv downloaded</span>
+        </div>
+
+        <!-- Transaction Ledger Table -->
+        <section>
+            <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Transaction Ledger</h2>
+
+            <!-- Desktop table -->
+            <div class="glass-card rounded-2xl overflow-hidden hidden sm:block">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-700/60 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            <th class="text-left px-5 py-3">Date</th>
+                            <th class="text-left px-5 py-3">Order</th>
+                            <th class="text-left px-5 py-3">Milestone</th>
+                            <th class="text-right px-5 py-3">Gross</th>
+                            <th class="text-right px-5 py-3 text-amber-500">Fee (5%)</th>
+                            <th class="text-right px-5 py-3 admin-only">Net</th>
+                            <th class="text-center px-5 py-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-tbody" class="divide-y divide-slate-700/40">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile card list -->
+            <div class="sm:hidden space-y-3" id="ledger-mobile">
+                <!-- Cards injected by JS -->
+            </div>
+        </section>
+
+        <!-- Tax Section -->
+        <section class="admin-only space-y-4">
+            <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">Tax Reporting</h2>
+
+            <!-- 1099-K Alert -->
+            <div class="glass-card rounded-2xl p-5 border-l-4 border-l-emerald-500">
+                <div class="flex items-start space-x-4">
+                    <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="receipt" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+                            <p class="font-black text-white">1099-K Filing Required</p>
+                            <span class="bg-emerald-900/50 text-emerald-400 text-[10px] font-black uppercase px-2 py-1 rounded border border-emerald-500/30">YTD $273,125 &gt; $600 threshold</span>
+                        </div>
+                        <p class="text-sm text-slate-400">Stripe will issue your 1099-K form by January 31, 2027 for tax year 2026. It will reflect all payments processed through your Stripe Connect account. Consult your accountant for estimated quarterly payments.</p>
+                        <a href="#" onclick="return false;" class="mt-3 inline-flex items-center space-x-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors">
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            <span>Open Stripe Express Tax Dashboard ↗</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quarterly estimate nudge -->
+            <div class="glass-card rounded-2xl p-5">
+                <div class="flex items-start space-x-4">
+                    <div class="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="calendar-clock" class="w-5 h-5 text-amber-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-white mb-1">Q2 Estimated Tax Due: <span class="text-amber-400">June 15, 2026</span></p>
+                        <p class="text-xs text-slate-400">Based on YTD net of $273,125, your projected Q2 estimated payment is approximately <span class="font-bold text-white">$20,484</span> (self-employment + federal income at 25% effective rate). Consult your CPA — this is an estimate only.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Access Control Note -->
+        <section class="glass-card rounded-2xl p-5 border border-dashed border-slate-600">
+            <div class="flex items-start space-x-3">
+                <i data-lucide="shield" class="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <p class="text-xs font-black text-white uppercase tracking-widest mb-2">Access Level Reference</p>
+                    <div class="space-y-1.5 text-xs text-slate-400">
+                        <p><span class="text-emerald-400 font-bold">Admin (Mike):</span> Full ledger — YTD gross, net, fees, all transactions, 1099-K section, CSV export.</p>
+                        <p><span class="text-blue-400 font-bold">Office Assistant:</span> In-Progress custodial holds only. Net payout history and tax section are hidden. Export is disabled.</p>
+                    </div>
+                    <p class="text-[10px] text-slate-600 mt-2">Permissions configured in <a href="delegate_inbox.html" class="text-blue-400 hover:underline">Delegate Inbox</a>.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        const transactions = [
+            { date: 'Mar 28, 2026', order: 'ORD-7702', project: 'Seattle DADU', milestone: 'MEP Rough-In', gross: 35000, status: 'paid' },
+            { date: 'Mar 12, 2026', order: 'ORD-7702', project: 'Seattle DADU', milestone: 'Framing Complete', gross: 40000, status: 'paid' },
+            { date: 'Feb 18, 2026', order: 'ORD-6610', project: 'Bend ADU', milestone: 'Final Delivery', gross: 37500, status: 'paid' },
+            { date: 'Feb 3, 2026',  order: 'ORD-6610', project: 'Bend ADU', milestone: 'MEP Rough-In', gross: 35000, status: 'paid' },
+            { date: 'Jan 22, 2026', order: 'ORD-6610', project: 'Bend ADU', milestone: 'Framing Complete', gross: 40000, status: 'paid' },
+            { date: 'Jan 9, 2026',  order: 'ORD-6610', project: 'Bend ADU', milestone: 'Factory Deposit', gross: 25000, status: 'paid' },
+            { date: 'Apr 5, 2026',  order: 'ORD-9021', project: 'Portland R5', milestone: 'Framing Complete', gross: 40000, status: 'pending' },
+            { date: 'TBD',          order: 'ORD-9021', project: 'Portland R5', milestone: 'MEP Rough-In', gross: 35000, status: 'held' },
+            { date: 'TBD',          order: 'ORD-7702', project: 'Seattle DADU', milestone: 'Final Delivery', gross: 35000, status: 'held' },
+            { date: 'TBD',          order: 'ORD-9021', project: 'Portland R5', milestone: 'Final Delivery', gross: 40000, status: 'held' },
+        ];
+
+        const statusConfig = {
+            paid:    { label: 'Paid',    bg: 'bg-emerald-900/40', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+            pending: { label: 'Pending', bg: 'bg-amber-900/30',   text: 'text-amber-400',   border: 'border-amber-500/30' },
+            held:    { label: 'Held',    bg: 'bg-blue-900/30',    text: 'text-blue-400',     border: 'border-blue-500/30' },
+        };
+
+        let isAdmin = true;
+
+        function renderTable() {
+            const tbody = document.getElementById('ledger-tbody');
+            const mobile = document.getElementById('ledger-mobile');
+            tbody.innerHTML = '';
+            mobile.innerHTML = '';
+
+            transactions.forEach(t => {
+                const fee = t.status === 'paid' ? (t.gross * 0.05) : null;
+                const net = fee !== null ? t.gross - fee : null;
+                const cfg = statusConfig[t.status];
+                const fmtCurrency = n => n !== null ? `$${n.toLocaleString()}` : '—';
+
+                // Desktop row
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/40 transition-colors';
+                const netCell = isAdmin
+                    ? `<td class="text-right px-5 py-3.5 font-bold text-emerald-400">${fmtCurrency(net)}</td>`
+                    : `<td class="text-right px-5 py-3.5 text-slate-600 italic text-xs">Hidden</td>`;
+
+                tr.innerHTML = `
+                    <td class="px-5 py-3.5 text-slate-400 font-mono text-xs">${t.date}</td>
+                    <td class="px-5 py-3.5">
+                        <p class="font-bold text-white text-xs">${t.order}</p>
+                        <p class="text-[10px] text-slate-500">${t.project}</p>
+                    </td>
+                    <td class="px-5 py-3.5 text-slate-300 text-xs">${t.milestone}</td>
+                    <td class="text-right px-5 py-3.5 font-bold text-white">${fmtCurrency(t.gross)}</td>
+                    <td class="text-right px-5 py-3.5 text-amber-400">${fee !== null ? `−$${fee.toLocaleString()}` : '—'}</td>
+                    ${netCell}
+                    <td class="text-center px-5 py-3.5">
+                        <span class="text-[10px] font-black uppercase px-2 py-1 rounded border ${cfg.bg} ${cfg.text} ${cfg.border}">${cfg.label}</span>
+                    </td>`;
+                tbody.appendChild(tr);
+
+                // Mobile card
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-2xl p-4 space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-black text-white text-sm">${t.order} <span class="text-slate-500 font-normal text-xs">· ${t.project}</span></p>
+                            <p class="text-xs text-slate-400">${t.milestone}</p>
+                        </div>
+                        <span class="text-[10px] font-black uppercase px-2 py-1 rounded border ${cfg.bg} ${cfg.text} ${cfg.border}">${cfg.label}</span>
+                    </div>
+                    <div class="flex justify-between text-xs pt-2 border-t border-slate-700/50">
+                        <span class="text-slate-500">Gross</span><span class="font-bold text-white">${fmtCurrency(t.gross)}</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">Fee (5%)</span><span class="text-amber-400">${fee !== null ? `−$${fee.toLocaleString()}` : '—'}</span>
+                    </div>
+                    ${isAdmin ? `<div class="flex justify-between text-xs">
+                        <span class="text-slate-500">Net</span><span class="font-bold text-emerald-400">${fmtCurrency(net)}</span>
+                    </div>` : ''}
+                    <p class="text-[10px] text-slate-600 font-mono">${t.date}</p>`;
+                mobile.appendChild(card);
+            });
+        }
+
+        function setView(role) {
+            isAdmin = (role === 'admin');
+
+            // Update toggle buttons
+            document.getElementById('btn-admin').className = `text-[10px] font-bold px-3 py-1 rounded transition-all ${isAdmin ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`;
+            document.getElementById('btn-assistant').className = `text-[10px] font-bold px-3 py-1 rounded transition-all ${!isAdmin ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`;
+
+            // Update access bar
+            const bar = document.getElementById('access-bar');
+            const label = document.getElementById('access-label');
+            if (isAdmin) {
+                bar.className = 'bg-emerald-900/30 border-b border-emerald-500/20 px-6 py-2 flex items-center justify-between';
+                label.textContent = 'Viewing as: Mike (Admin) — Full ledger access';
+            } else {
+                bar.className = 'bg-blue-900/30 border-b border-blue-500/20 px-6 py-2 flex items-center justify-between';
+                label.textContent = 'Viewing as: Office Assistant — Custodial holds visible only. Payout history hidden.';
+            }
+
+            // Show/hide admin-only elements
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = isAdmin ? '' : 'none';
+            });
+
+            renderTable();
+            lucide.createIcons();
+        }
+
+        function simulateExport() {
+            const btn = document.getElementById('export-btn');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Exporting...</span>';
+            btn.disabled = true;
+            lucide.createIcons();
+
+            setTimeout(() => {
+                btn.innerHTML = '<i data-lucide="download" class="w-3.5 h-3.5"></i><span>Export CSV</span>';
+                btn.disabled = false;
+                lucide.createIcons();
+
+                const toast = document.getElementById('export-toast');
+                toast.classList.remove('hidden');
+                toast.classList.add('flex');
+                lucide.createIcons();
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('flex');
+                }, 3000);
+            }, 1000);
+        }
+
+        // Initial render
+        setView('admin');
+    </script>
+</body>
+</html>
