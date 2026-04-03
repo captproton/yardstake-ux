@@ -114,6 +114,26 @@ Because he no longer actively hunts for sales, the UI must provide new psycholog
 
 ---
 
+---
+
+## Built: Buyer Configurator Foundation
+
+### 12. Model Option Tree Editor
+- **Files:** `vendor_model_options.html`, `vendor_catalog.html` (Edit Options entry point added to Studio XL card)
+- **UI:**
+  - **Entry point:** "Edit Options" button at the bottom of the Studio XL card in `vendor_catalog.html` links directly to the option tree editor. Click stops propagation so it doesn't trigger the Edit Model drawer.
+  - **Stats strip:** 4 live-updating KPI tiles — Categories, Total Options, Active Upgrades, and Max Uplift — give Mike an instant sanity check at page top.
+  - **Column legend:** Single-row header labels (Swatch / Option Name / Std / Price Delta / Live) align with each option row for scanability.
+  - **Accordion categories:** 6 sections matching the competitive benchmark — Exterior, Kitchen, Bathroom, Flooring, Interior, Appliances. Exterior, Kitchen, and Flooring open by default; the rest collapsed. Each category has a category-level enable/disable toggle.
+  - **Option rows:** Each row contains: drag handle (cursor:grab) · thumbnail upload zone (48×48, click triggers file input; simulated upload flashes zone then renders inline preview) · name input · Standard checkbox (disables price delta and turns label emerald when checked) · price delta number field · per-option active toggle (hides from buyer without deleting) · remove button.
+  - **Add option:** Appends a blank row to the active category accordion, auto-expands the body, and focuses the name input.
+  - **Add category:** Appends a full new accordion card with editable name input and its own Add option button.
+  - **Sticky footer price bar:** Base Net Price | Standard Config | Max Upgrade (base + sum of all active, non-standard deltas). Updates live on any toggle or price field change.
+  - **Save toast:** "Options saved to Studio XL" confirmation appears 2.5 s after Save button click.
+- **Rationale:** `vendor_catalog.html` (issue #1) gave Mike base pricing control but no way to define buyer choices. Without this editor, Yardstake cannot populate a buyer-facing configurator. The option tree is the prerequisite data layer: Mike defines categories, options, standard inclusion, price deltas, and visual swatches — all of which will drive the buyer-side selection UI in a future issue. The sticky footer max-upgrade sanity check ensures Mike doesn't accidentally publish an option grid that prices his unit out of the market.
+
+---
+
 ## Planned (GitHub Issues)
 
 | # | Feature | Issue |
@@ -122,6 +142,7 @@ Because he no longer actively hunts for sales, the UI must provide new psycholog
 | 2 | Change Order & Supply Chain Exception Flow | [#2](https://github.com/captproton/yardstake-ux/issues/2) — ✅ Done |
 | 3 | Outbound Logistics & Freight Handoff | [#3](https://github.com/captproton/yardstake-ux/issues/3) — ✅ Done |
 | 4 | Financial Ledger & Tax Reporting Dashboard | [#4](https://github.com/captproton/yardstake-ux/issues/4) — ✅ Done |
+| 9 | Model Option Tree Editor (Buyer Configurator Foundation) | [#9](https://github.com/captproton/yardstake-ux/issues/9) — ✅ Done |
 
 ---
 
