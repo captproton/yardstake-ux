@@ -85,13 +85,27 @@ Because he no longer actively hunts for sales, the UI must provide new psycholog
 
 ---
 
+## Built: Outbound Logistics
+
+### 10. Freight Handoff & Chain-of-Custody Flow
+- **Files:** `vendor_freight_handoff.html`, `vendor_dashboard.html` (Begin Handoff trigger), `orchestration-v2/buyer/buyer_dashboard.html` (In Transit banner)
+- **UI:**
+  - A blue "Begin Handoff" CTA button replaces the static info note on the ORD-7702 "Ready for Freight" Kanban card (`vendor_dashboard.html`).
+  - Tapping it opens `vendor_freight_handoff.html` — a 2-state full-page flow:
+    1. **Handoff Checklist:** Two required pre-shipment photo captures (full unit exterior + undercarriage/chassis) using the GPS-flash pattern from `vendor_sms_magic_link.html`. Bill of Lading reference field (pre-filled). Carrier name field (pre-filled by Concierge, editable). Digital acknowledgment checkbox with GPS + timestamp lock on confirm. Submit button activates only when both photos captured and acknowledgment checked.
+    2. **In Transit State:** Chain-of-custody summary (BOL, carrier, photos, timestamp). ETA progress tracker bar with last-known GPS ping. Final $35,000 payout locked pending Site GC on-site delivery confirmation.
+  - `buyer_dashboard.html` shows a persistent "Your ADU is on the move!" banner with live transit progress bar and ETA, inserted between the Move That Bus tracker and the Milestone Approval section.
+- **Rationale:** The "Ready for Freight" column previously had no exit action — it was a dead end. The handoff flow creates a timestamped chain-of-custody record at the moment the unit leaves Mike's dock, resolving the liability ambiguity if the ADU arrives damaged. Buyers get immediate notification and a live progress bar that reduces inbound "where is my ADU?" Concierge support tickets.
+
+---
+
 ## Planned (GitHub Issues)
 
 | # | Feature | Issue |
 |---|---------|-------|
 | 1 | Catalog & Net-Pricing Management | [#1](https://github.com/captproton/yardstake-ux/issues/1) — ✅ Done |
 | 2 | Change Order & Supply Chain Exception Flow | [#2](https://github.com/captproton/yardstake-ux/issues/2) — ✅ Done |
-| 3 | Outbound Logistics & Freight Handoff | [#3](https://github.com/captproton/yardstake-ux/issues/3) |
+| 3 | Outbound Logistics & Freight Handoff | [#3](https://github.com/captproton/yardstake-ux/issues/3) — ✅ Done |
 | 4 | Financial Ledger & Tax Reporting Dashboard | [#4](https://github.com/captproton/yardstake-ux/issues/4) |
 
 ---
