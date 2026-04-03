@@ -153,7 +153,7 @@
                         <span class="font-bold text-slate-300">BOL</span><span id="bol-confirm" class="font-mono">BOL-2026-XPO-44821</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="font-bold text-slate-300">Carrier</span><span>XPO Logistics</span>
+                        <span class="font-bold text-slate-300">Carrier</span><span id="carrier-confirm">XPO Logistics</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="font-bold text-slate-300">Departed</span><span id="transit-timestamp">—</span>
@@ -284,9 +284,11 @@
             btn.disabled = true;
             lucide.createIcons();
 
-            // Set BOL confirm from input
+            // Set BOL and carrier confirm from inputs
             const bol = document.getElementById('bol-input').value || 'BOL-2026-XPO-44821';
             document.getElementById('bol-confirm').textContent = bol;
+            const carrier = document.getElementById('carrier-input').value || 'XPO Logistics';
+            document.getElementById('carrier-confirm').textContent = carrier;
 
             // Set timestamps
             const now = new Date();
