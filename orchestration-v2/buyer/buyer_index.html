@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buyer Mocks — Yardstake Orchestration v2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    .glass-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226,232,240,0.8); }
+    .gradient-text { background: linear-gradient(to right, #2563EB, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .card-link { transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s; }
+    .card-link:hover { box-shadow: 0 8px 24px rgba(37,99,235,0.10); border-color: #93C5FD; transform: translateY(-1px); }
+  </style>
+</head>
+<body class="antialiased min-h-screen">
+
+  <!-- Minimal nav -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+        <span class="text-xl font-bold tracking-tight">Yard<span class="text-cyan-500">stake</span></span>
+        <span class="text-slate-400 font-normal text-sm ml-2">| Buyer Mocks</span>
+      </div>
+      <span class="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full font-medium">Reviewer tool — not production</span>
+    </div>
+  </nav>
+
+  <div class="max-w-3xl mx-auto px-6 py-12">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-slate-900">Buyer Mock Suite — "Anxious Annie"</h1>
+      <p class="text-slate-500 mt-1">Orchestration v2 · Portland, OR homeowner persona · 14 screens across 6 batches</p>
+      <p class="text-sm text-slate-500 mt-3">Click any card to open the mock. All screens link to one another via in-page navigation. Requires internet connection for Tailwind CDN + Lucide CDN.</p>
+    </div>
+
+    <!-- Batch 1: Discovery & Pre-Purchase -->
+    <div class="mb-2 mt-8">
+      <h2 class="text-xs font-bold text-blue-600 uppercase tracking-widest">Batch 1 — Discovery &amp; Pre-Purchase</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="buyer_landing.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="map-pin" class="w-5 h-5 text-blue-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_landing.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Portland city landing page — address check + inline confidence result + $49 report upsell</p>
+        </div>
+        <span class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 1</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_report.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="file-text" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_report.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">$49 feasibility report — setbacks, envelope, permit pathway, financing, matched models CTA</p>
+        </div>
+        <span class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 1</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_models.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="layout-grid" class="w-5 h-5 text-cyan-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_models.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">3 matched manufacturer models — specs, pricing, verified partner badge, GC assignment</p>
+        </div>
+        <span class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 1</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_configurator.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="sliders-horizontal" class="w-5 h-5 text-purple-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_configurator.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Customization studio — option cards by section, live price delta, running total</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">High</span>
+          <span class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 1</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 2: Project Initiation -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-blue-600 uppercase tracking-widest">Batch 2 — Project Initiation</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="buyer_project_agreement.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="clipboard-check" class="w-5 h-5 text-slate-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_project_agreement.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Project agreement — phased deposit schedule, vendor summary, property auth, sign &amp; continue</p>
+        </div>
+        <span class="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 2</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_deposit.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="credit-card" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_deposit.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Initial $5,000 deposit — trust messaging, processing spinner, confetti, Fiona intro</p>
+        </div>
+        <span class="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 2</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 3: Active Build -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-blue-600 uppercase tracking-widest">Batch 3 — Active Build</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="buyer_project_hub.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 text-blue-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_project_hub.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">5-state project command center — "Move That Bus" dual-track progress, milestone approval, ledger</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">High</span>
+          <span class="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 3</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_milestone_detail.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="camera" class="w-5 h-5 text-cyan-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_milestone_detail.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Milestone photo verification — GPS-tagged photos, approve or flag, deposit release gate</p>
+        </div>
+        <span class="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 3</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_messages.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="message-circle" class="w-5 h-5 text-slate-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_messages.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Fiona message thread — milestone updates, questions, SMS-style chat with AI concierge</p>
+        </div>
+        <span class="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 3</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 4: Delivery -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-blue-600 uppercase tracking-widest">Batch 4 — Delivery &amp; Completion</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="buyer_crane_day.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="truck" class="w-5 h-5 text-amber-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_crane_day.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Crane day live drop — in-transit banner, live ETA, photo stream, "Move That Bus" moment</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">High</span>
+          <span class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 4</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_project_complete.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="award" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_project_complete.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Certificate of Occupancy + document vault — final ledger, warranty docs, referral prompt</p>
+        </div>
+        <span class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 4</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 5: Account -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-blue-600 uppercase tracking-widest">Batch 5 — Account &amp; Settings</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="buyer_notifications.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="bell" class="w-5 h-5 text-blue-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_notifications.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Activity feed — milestone alerts, deposit requests, Fiona messages, build photo drops</p>
+        </div>
+        <span class="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 5</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+      <a href="buyer_settings.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="settings" class="w-5 h-5 text-slate-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-blue-700">buyer_settings.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Account preferences — notification channels, SMS opt-in, project document access</p>
+        </div>
+        <span class="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 5</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Notes for reviewers -->
+    <div class="glass-card rounded-xl p-5 mt-4">
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Notes for Review</h2>
+      <ul class="text-sm text-slate-600 space-y-2">
+        <li class="flex gap-2"><span class="text-slate-300">·</span> All screens are standalone HTML — no build step, no server required.</li>
+        <li class="flex gap-2"><span class="text-slate-300">·</span> Light theme throughout — Annie is a homeowner, not a factory worker. No dark mode.</li>
+        <li class="flex gap-2"><span class="text-slate-300">·</span> Fiona is the AI concierge persona — she coordinates all vendor communication behind the scenes.</li>
+        <li class="flex gap-2"><span class="text-slate-300">·</span> <strong>buyer_project_hub.html</strong> (Batch 3) replaces <code class="text-xs bg-slate-100 px-1 rounded">buyer_dashboard.html</code> — that file is superseded and will be deleted when B-5 ships.</li>
+        <li class="flex gap-2"><span class="text-slate-300">·</span> "High" badge = complex JS interaction state (configurator, project hub, crane day).</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
