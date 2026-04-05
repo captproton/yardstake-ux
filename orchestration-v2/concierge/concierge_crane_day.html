@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crane Day Operations | Concierge Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F1F5F9; color: #0F172A; }
+    .console-panel {
+      background: #FFFFFF;
+      border-radius: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      border: 1px solid #E2E8F0;
+      overflow: hidden;
+    }
+    .gradient-bg { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); }
+    .delivery-card { transition: transform 0.15s, box-shadow 0.15s; }
+    .delivery-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .checklist-item { transition: background-color 0.1s; }
+    .checklist-item:hover { background-color: #F8FAFC; }
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 100;
+      transform: translateY(100px); opacity: 0; transition: all 0.3s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    @media (max-width: 1023px) {
+      .sidebar { display: none; }
+      .sidebar.open { display: flex; position: fixed; top: 3.5rem; left: 0; bottom: 0; z-index: 40; width: 16rem; }
+    }
+  </style>
+</head>
+<body class="antialiased h-screen flex flex-col overflow-hidden">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TOP NAV -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <nav class="gradient-bg text-white h-14 flex items-center justify-between px-6 flex-shrink-0 z-50 shadow-md">
+    <div class="flex items-center space-x-4">
+      <button onclick="document.getElementById('sidebar').classList.toggle('open')" class="lg:hidden mr-1">
+        <i data-lucide="menu" class="w-5 h-5 text-slate-300"></i>
+      </button>
+      <i data-lucide="layers" class="text-fuchsia-400 w-5 h-5"></i>
+      <span class="text-sm font-bold tracking-widest uppercase">Orchestration OS</span>
+    </div>
+    <div class="flex items-center space-x-3">
+      <a href="concierge_index.html" class="text-xs text-slate-400 hover:text-fuchsia-300 transition-colors hidden sm:inline">Mock Index</a>
+      <span class="text-xs font-medium text-slate-300">Active Shift: Fixer Fiona</span>
+      <img src="https://i.pravatar.cc/100?img=32" alt="Fiona" class="w-8 h-8 rounded-full border-2 border-fuchsia-500">
+    </div>
+  </nav>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- SIDEBAR -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <aside id="sidebar" class="sidebar w-64 bg-slate-900 border-r border-slate-800 text-slate-400 p-4 flex-col flex-shrink-0 hidden lg:flex">
+      <div class="space-y-1 mt-4">
+        <a href="concierge_dashboard.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          <span>Triage Queue</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">4</span>
+        </a>
+        <a href="concierge_dashboard.html#projects" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+          <span>Active Projects</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">8</span>
+        </a>
+        <a href="concierge_permit_tracker.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="file-check" class="w-5 h-5"></i>
+          <span>Permit SLAs</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">3</span>
+        </a>
+        <a href="concierge_crane_day.html" class="flex items-center space-x-3 bg-fuchsia-600/20 text-fuchsia-400 px-4 py-3 rounded-xl font-bold">
+          <i data-lucide="crane" class="w-5 h-5"></i>
+          <span>Crane Calendar</span>
+        </a>
+        <a href="concierge_messages.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="message-circle" class="w-5 h-5"></i>
+          <span>Messages</span>
+          <span class="ml-auto bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">2</span>
+        </a>
+        <a href="concierge_settings.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span>Settings</span>
+        </a>
+      </div>
+      <div class="mt-auto pt-6 border-t border-slate-800">
+        <div class="flex items-center space-x-2 px-4">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs text-slate-500">On Shift · 6h 23m</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MAIN CONTENT -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <main class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+
+      <!-- Breadcrumb + Header -->
+      <div>
+        <div class="flex items-center text-xs text-slate-400 space-x-2 mb-2">
+          <a href="concierge_dashboard.html" class="hover:text-fuchsia-500 transition-colors">Dashboard</a>
+          <i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <span class="text-slate-600 font-semibold">Crane Calendar</span>
+        </div>
+        <h1 class="text-2xl font-extrabold text-slate-900">Crane Day Operations</h1>
+        <p class="text-sm text-slate-500 mt-1">Upcoming deliveries · Next 30 days</p>
+      </div>
+
+      <!-- ──────────── UPCOMING DELIVERIES ──────────── -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Delivery 1: Annie Morrison — CONFIRMED (expanded below) -->
+        <div class="delivery-card console-panel border-l-4 border-fuchsia-500 p-5 cursor-pointer ring-2 ring-fuchsia-200">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-fuchsia-600 bg-fuchsia-50 px-2 py-0.5 rounded-full">ORD-9021</span>
+            <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1">
+              <i data-lucide="check-circle" class="w-3 h-3"></i> Confirmed
+            </span>
+          </div>
+          <p class="text-sm font-bold text-slate-900">Annie Morrison</p>
+          <p class="text-xs text-slate-500 mt-0.5">742 SE Morrison St, Portland OR 97214</p>
+          <div class="mt-3 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-fuchsia-400"></i>
+            <span class="text-sm font-bold text-slate-800">May 15, 2026</span>
+          </div>
+          <div class="mt-1 flex items-center gap-2">
+            <i data-lucide="crane" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-xs text-slate-500">Rigging Northwest · 70-ton hydraulic</span>
+          </div>
+          <p class="text-[10px] text-fuchsia-500 font-bold mt-3 uppercase tracking-widest">Expanded below</p>
+        </div>
+
+        <!-- Delivery 2: Tom Bradley — PENDING -->
+        <div class="delivery-card console-panel border-l-4 border-amber-500 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">ORD-9044</span>
+            <span class="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-full flex items-center gap-1">
+              <i data-lucide="clock" class="w-3 h-3"></i> Pending
+            </span>
+          </div>
+          <p class="text-sm font-bold text-slate-900">Tom Bradley</p>
+          <p class="text-xs text-slate-500 mt-0.5">1480 Lakeview Dr, Lake Oswego OR 97035</p>
+          <div class="mt-3 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
+            <span class="text-sm font-bold text-slate-800">Jun 8, 2026</span>
+          </div>
+          <div class="mt-1 flex items-center gap-2">
+            <i data-lucide="crane" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-xs text-slate-500">TBD — Awaiting permit approval</span>
+          </div>
+        </div>
+
+        <!-- Delivery 3: Lisa Nguyen — AT RISK -->
+        <div class="delivery-card console-panel border-l-4 border-red-500 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">ORD-9041</span>
+            <span class="text-xs font-bold text-red-700 bg-red-50 px-2 py-1 rounded-full flex items-center gap-1">
+              <i data-lucide="alert-triangle" class="w-3 h-3"></i> At Risk
+            </span>
+          </div>
+          <p class="text-sm font-bold text-slate-900">Lisa Nguyen</p>
+          <p class="text-xs text-slate-500 mt-0.5">322 River Rd, Milwaukie OR 97222</p>
+          <div class="mt-3 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-4 h-4 text-red-400"></i>
+            <span class="text-sm font-bold text-slate-800">Jun 22, 2026</span>
+          </div>
+          <div class="mt-1 flex items-center gap-2">
+            <i data-lucide="crane" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-xs text-slate-500">TBD — Permit SLA approaching</span>
+          </div>
+          <p class="text-[10px] text-red-500 font-bold mt-2">Foundation not yet started — timeline at risk</p>
+        </div>
+
+      </div>
+
+      <!-- ──────────── ANNIE'S DELIVERY DETAIL (EXPANDED) ──────────── -->
+      <div class="console-panel border-l-4 border-fuchsia-500">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <i data-lucide="crane" class="w-5 h-5 text-fuchsia-500"></i>
+              Crane Day Detail — ORD-9021
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Annie Morrison · 742 SE Morrison St · May 15, 2026 · 6:00 AM – 2:00 PM</p>
+          </div>
+          <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">Confirmed</span>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 p-6">
+
+          <!-- Column 1: Pre-Delivery Checklist -->
+          <div class="xl:col-span-1">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Pre-Delivery Checklist</h3>
+            <div class="space-y-2">
+              <label class="checklist-item flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-300" onchange="updateProgress()">
+                <div>
+                  <p class="text-sm font-medium text-slate-800">Site access confirmed</p>
+                  <p class="text-[10px] text-slate-400">Street closure permit filed with PBOT</p>
+                </div>
+              </label>
+              <label class="checklist-item flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-300" onchange="updateProgress()">
+                <div>
+                  <p class="text-sm font-medium text-slate-800">Crane clearance verified</p>
+                  <p class="text-[10px] text-slate-400">No overhead lines within swing radius</p>
+                </div>
+              </label>
+              <label class="checklist-item flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-300" onchange="updateProgress()">
+                <div>
+                  <p class="text-sm font-medium text-slate-800">Utility pre-staging complete</p>
+                  <p class="text-[10px] text-slate-400">Water, sewer, electrical stubs verified</p>
+                </div>
+              </label>
+              <label class="checklist-item flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-300" onchange="updateProgress()">
+                <div>
+                  <p class="text-sm font-medium text-slate-800">Camera shipped to buyer</p>
+                  <p class="text-[10px] text-slate-400">Ring doorbell cam — tracking #1Z9E8...</p>
+                </div>
+              </label>
+              <label class="checklist-item flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer">
+                <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-300" onchange="updateProgress()">
+                <div>
+                  <p class="text-sm font-medium text-slate-800">Spectator link generated</p>
+                  <p class="text-[10px] text-slate-400">See link section below</p>
+                </div>
+              </label>
+              <label class="checklist-item flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl cursor-pointer">
+                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-300" onchange="updateProgress()">
+                <div>
+                  <p class="text-sm font-medium text-amber-800">Weather check (day-of)</p>
+                  <p class="text-[10px] text-amber-500">Check morning of May 15 — wind &lt;25 mph required</p>
+                </div>
+              </label>
+            </div>
+            <!-- Progress bar -->
+            <div class="mt-3">
+              <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                <span>Checklist Progress</span>
+                <span id="progress-text">5 / 6</span>
+              </div>
+              <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-fuchsia-500 rounded-full transition-all" style="width: 83.3%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: Crane Operator + Spectator Link -->
+          <div class="xl:col-span-1 space-y-5">
+
+            <!-- Crane Operator Card -->
+            <div>
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Crane Operator</h3>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center">
+                    <i data-lucide="crane" class="w-5 h-5 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm font-bold text-slate-900">Rigging Northwest</p>
+                    <p class="text-xs text-slate-500">Portland, OR · Licensed & Insured</p>
+                  </div>
+                </div>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Contact</span>
+                    <span class="font-medium text-slate-800">(503) 555-0178</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Crane Type</span>
+                    <span class="font-medium text-slate-800">70-ton hydraulic</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Confirmed ETA</span>
+                    <span class="font-bold text-emerald-600">5:30 AM</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Est. Duration</span>
+                    <span class="font-medium text-slate-800">4–6 hours</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Compliance</span>
+                    <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Tier 1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Spectator Link -->
+            <div>
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Spectator Link</h3>
+              <div class="bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-4">
+                <p class="text-xs text-fuchsia-700 mb-2">Share this link so the buyer can watch the delivery live:</p>
+                <div class="flex items-center gap-2 bg-white rounded-lg border border-fuchsia-100 px-3 py-2">
+                  <input type="text" value="https://live.yardstake.com/crane/ORD-9021-20260515" readonly
+                    class="flex-1 text-xs text-slate-600 font-mono bg-transparent focus:outline-none" id="spectator-url">
+                  <button onclick="copyLink()" class="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-800 flex items-center gap-1 transition-colors">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+                  </button>
+                </div>
+                <div class="flex gap-2 mt-3">
+                  <button onclick="sendToBuyer()" class="flex-1 text-xs font-bold bg-fuchsia-600 hover:bg-fuchsia-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i> Send to Annie
+                  </button>
+                  <button class="text-xs font-bold bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                    <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Share
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Column 3: Weather + Post-Delivery -->
+          <div class="xl:col-span-1 space-y-5">
+
+            <!-- Weather Widget -->
+            <div>
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Weather Forecast — Portland</h3>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <!-- Go/No-Go Badge -->
+                <div class="flex items-center justify-between mb-4">
+                  <span class="text-sm font-bold text-slate-700">Crane Day Conditions</span>
+                  <span id="go-badge" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> GO
+                  </span>
+                </div>
+
+                <!-- 3-Day Forecast -->
+                <div class="grid grid-cols-3 gap-3">
+                  <!-- May 14 -->
+                  <div class="text-center p-3 bg-white rounded-xl border border-slate-100">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">May 14</p>
+                    <i data-lucide="cloud" class="w-7 h-7 text-slate-400 mx-auto my-2"></i>
+                    <p class="text-sm font-bold text-slate-800">62°F</p>
+                    <p class="text-[10px] text-slate-500">Overcast</p>
+                    <div class="flex items-center justify-center gap-1 mt-1">
+                      <i data-lucide="wind" class="w-3 h-3 text-slate-400"></i>
+                      <span class="text-[10px] text-slate-500">8 mph</span>
+                    </div>
+                  </div>
+                  <!-- May 15 (Crane Day) -->
+                  <div class="text-center p-3 bg-fuchsia-50 rounded-xl border-2 border-fuchsia-200">
+                    <p class="text-[10px] text-fuchsia-600 font-bold uppercase">May 15</p>
+                    <p class="text-[8px] text-fuchsia-400 font-bold">CRANE DAY</p>
+                    <i data-lucide="sun" class="w-7 h-7 text-amber-400 mx-auto my-2"></i>
+                    <p class="text-sm font-bold text-slate-800">68°F</p>
+                    <p class="text-[10px] text-slate-500">Partly Sunny</p>
+                    <div class="flex items-center justify-center gap-1 mt-1">
+                      <i data-lucide="wind" class="w-3 h-3 text-emerald-500"></i>
+                      <span class="text-[10px] font-bold text-emerald-600">12 mph</span>
+                    </div>
+                  </div>
+                  <!-- May 16 -->
+                  <div class="text-center p-3 bg-white rounded-xl border border-slate-100">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">May 16</p>
+                    <i data-lucide="cloud-rain" class="w-7 h-7 text-blue-400 mx-auto my-2"></i>
+                    <p class="text-sm font-bold text-slate-800">58°F</p>
+                    <p class="text-[10px] text-slate-500">Rain likely</p>
+                    <div class="flex items-center justify-center gap-1 mt-1">
+                      <i data-lucide="wind" class="w-3 h-3 text-slate-400"></i>
+                      <span class="text-[10px] text-slate-500">15 mph</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Wind threshold -->
+                <div class="mt-3 flex items-center gap-2 text-xs text-slate-500 bg-white rounded-lg border border-slate-100 px-3 py-2">
+                  <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400 flex-shrink-0"></i>
+                  <span>Wind threshold: <strong class="text-slate-700">&lt;25 mph</strong> for safe crane operations. Current forecast: <strong class="text-emerald-600">12 mph (GO)</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Post-Delivery Actions -->
+            <div>
+              <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Post-Delivery</h3>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                <p class="text-xs text-slate-500">After the unit is placed and leveled, confirm set completion to notify the buyer and initiate the close-out sequence.</p>
+                <button onclick="confirmSetComplete()" class="w-full text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                  <i data-lucide="check-circle" class="w-4 h-4"></i> Confirm Set Complete
+                </button>
+                <p class="text-[10px] text-slate-400 text-center">This will notify Annie and trigger the close-out workflow</p>
+              </div>
+            </div>
+
+            <!-- Delivery ETA -->
+            <div class="bg-slate-800 rounded-xl p-4 text-white text-center">
+              <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Delivery Countdown</p>
+              <p class="text-3xl font-extrabold mt-2">40 days</p>
+              <p class="text-xs text-slate-400 mt-1">May 15, 2026</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2">
+    <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-text" class="text-sm font-medium">Link copied!</span>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function updateProgress() {
+      const checks = document.querySelectorAll('.checklist-item input[type="checkbox"]');
+      const checked = Array.from(checks).filter(c => c.checked).length;
+      const total = checks.length;
+      const pct = (checked / total) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('progress-text').textContent = checked + ' / ' + total;
+    }
+
+    function copyLink() {
+      const url = document.getElementById('spectator-url').value;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Spectator link copied!');
+      }).catch(() => {
+        // Fallback: select the input
+        document.getElementById('spectator-url').select();
+        showToast('Link selected — press Ctrl+C to copy');
+      });
+    }
+
+    function sendToBuyer() {
+      showToast('Spectator link sent to Annie Morrison');
+    }
+
+    function confirmSetComplete() {
+      if (confirm('Confirm that ORD-9021 unit placement is complete?\n\nThis will:\n• Notify Annie Morrison\n• Trigger close-out workflow\n• Archive crane day record')) {
+        showToast('Set complete confirmed — close-out initiated');
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = message;
+      toast.classList.add('show');
+      lucide.createIcons();
+      setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    }
+  </script>
+</body>
+</html>
