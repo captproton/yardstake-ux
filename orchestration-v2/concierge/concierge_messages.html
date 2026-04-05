@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages | Concierge Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F1F5F9; color: #0F172A; }
+    .console-panel {
+      background: #FFFFFF;
+      border-radius: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      border: 1px solid #E2E8F0;
+      overflow: hidden;
+    }
+    .gradient-bg { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); }
+
+    /* Thread list */
+    .thread-item { transition: background-color 0.1s; cursor: pointer; }
+    .thread-item:hover { background-color: #F8FAFC; }
+    .thread-item.active { background-color: #FDF4FF; border-left: 3px solid #D946EF; }
+    .thread-item:not(.active) { border-left: 3px solid transparent; }
+
+    /* Messages */
+    .msg-area { flex: 1; overflow-y: auto; scroll-behavior: smooth; }
+    .msg-area::-webkit-scrollbar { width: 4px; }
+    .msg-area::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-new { animation: fadeIn 0.2s ease-out; }
+
+    /* Sidebar responsive */
+    @media (max-width: 1023px) {
+      .sidebar { display: none; }
+      .sidebar.open { display: flex; position: fixed; top: 3.5rem; left: 0; bottom: 0; z-index: 40; width: 16rem; }
+    }
+  </style>
+</head>
+<body class="antialiased h-screen flex flex-col overflow-hidden">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TOP NAV -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <nav class="gradient-bg text-white h-14 flex items-center justify-between px-6 flex-shrink-0 z-50 shadow-md">
+    <div class="flex items-center space-x-4">
+      <button onclick="document.getElementById('sidebar').classList.toggle('open')" class="lg:hidden mr-1">
+        <i data-lucide="menu" class="w-5 h-5 text-slate-300"></i>
+      </button>
+      <i data-lucide="layers" class="text-fuchsia-400 w-5 h-5"></i>
+      <span class="text-sm font-bold tracking-widest uppercase">Orchestration OS</span>
+    </div>
+    <div class="flex items-center space-x-3">
+      <a href="concierge_index.html" class="text-xs text-slate-400 hover:text-fuchsia-300 transition-colors hidden sm:inline">Mock Index</a>
+      <span class="text-xs font-medium text-slate-300">Active Shift: Fixer Fiona</span>
+      <img src="https://i.pravatar.cc/100?img=32" alt="Fiona" class="w-8 h-8 rounded-full border-2 border-fuchsia-500">
+    </div>
+  </nav>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- SIDEBAR -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <aside id="sidebar" class="sidebar w-64 bg-slate-900 border-r border-slate-800 text-slate-400 p-4 flex-col flex-shrink-0 hidden lg:flex">
+      <div class="space-y-1 mt-4">
+        <a href="concierge_dashboard.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          <span>Triage Queue</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">4</span>
+        </a>
+        <a href="concierge_dashboard.html#projects" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+          <span>Active Projects</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">8</span>
+        </a>
+        <a href="concierge_permit_tracker.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="file-check" class="w-5 h-5"></i>
+          <span>Permit SLAs</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">3</span>
+        </a>
+        <a href="concierge_crane_day.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="crane" class="w-5 h-5"></i>
+          <span>Crane Calendar</span>
+        </a>
+        <a href="concierge_messages.html" class="flex items-center space-x-3 bg-fuchsia-600/20 text-fuchsia-400 px-4 py-3 rounded-xl font-bold">
+          <i data-lucide="message-circle" class="w-5 h-5"></i>
+          <span>Messages</span>
+          <span class="ml-auto bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">2</span>
+        </a>
+        <a href="concierge_settings.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span>Settings</span>
+        </a>
+      </div>
+      <div class="mt-auto pt-6 border-t border-slate-800">
+        <div class="flex items-center space-x-2 px-4">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs text-slate-500">On Shift · 6h 23m</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MAIN CONTENT — Thread list + Active thread + Context -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <main class="flex-1 overflow-hidden flex flex-col">
+
+      <!-- Breadcrumb -->
+      <div class="px-6 lg:px-8 pt-5 pb-3 flex-shrink-0">
+        <div class="flex items-center text-xs text-slate-400 space-x-2 mb-2">
+          <a href="concierge_dashboard.html" class="hover:text-fuchsia-500 transition-colors">Dashboard</a>
+          <i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <span class="text-slate-600 font-semibold">Messages</span>
+        </div>
+        <h1 class="text-2xl font-extrabold text-slate-900">Messages</h1>
+        <p class="text-sm text-slate-500 mt-1">Multi-thread inbox · 5 active conversations</p>
+      </div>
+
+      <!-- Three-column layout -->
+      <div class="flex-1 overflow-hidden flex px-6 lg:px-8 pb-6 gap-5">
+
+        <!-- ── COLUMN 1: Thread List ── -->
+        <div class="w-80 flex-shrink-0 console-panel flex flex-col">
+          <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Threads</span>
+            <span class="text-[10px] bg-fuchsia-100 text-fuchsia-700 font-bold px-2 py-0.5 rounded-full">5 Active</span>
+          </div>
+          <div class="flex-1 overflow-y-auto" id="thread-list">
+
+            <!-- Thread 1: Annie Morrison (Buyer) — active by default -->
+            <div class="thread-item active px-4 py-3.5 border-b border-slate-50" onclick="selectThread(0)" data-thread="0">
+              <div class="flex items-center gap-3">
+                <div class="relative flex-shrink-0">
+                  <img src="https://i.pravatar.cc/100?img=47" class="w-10 h-10 rounded-full object-cover" alt="Annie">
+                  <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white"></span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900 truncate">Annie Morrison</span>
+                    <span class="text-[10px] text-slate-400 flex-shrink-0">2m ago</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded">Buyer</span>
+                    <span class="text-[10px] text-slate-400">ORD-9021</span>
+                  </div>
+                  <p class="text-xs text-slate-500 truncate mt-1">The photos look amazing, this is really happening!</p>
+                </div>
+                <span class="bg-fuchsia-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">1</span>
+              </div>
+            </div>
+
+            <!-- Thread 2: Mike Chen — Manufacturer -->
+            <div class="thread-item px-4 py-3.5 border-b border-slate-50" onclick="selectThread(1)" data-thread="1">
+              <div class="flex items-center gap-3">
+                <div class="relative flex-shrink-0">
+                  <img src="https://i.pravatar.cc/100?img=12" class="w-10 h-10 rounded-full object-cover" alt="Mike">
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900 truncate">Mike Chen</span>
+                    <span class="text-[10px] text-slate-400 flex-shrink-0">1h ago</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-[10px] bg-slate-200 text-slate-700 font-bold px-1.5 py-0.5 rounded">Manufacturer</span>
+                    <span class="text-[10px] text-slate-400">ORD-9021</span>
+                  </div>
+                  <p class="text-xs text-slate-500 truncate mt-1">MEP rough-in starts Monday. Any changes to the outlet spec?</p>
+                </div>
+                <span class="bg-fuchsia-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">1</span>
+              </div>
+            </div>
+
+            <!-- Thread 3: Marcus Rivera — Site GC -->
+            <div class="thread-item px-4 py-3.5 border-b border-slate-50" onclick="selectThread(2)" data-thread="2">
+              <div class="flex items-center gap-3">
+                <div class="relative flex-shrink-0">
+                  <img src="https://i.pravatar.cc/100?img=68" class="w-10 h-10 rounded-full object-cover" alt="Marcus">
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900 truncate">Marcus Rivera</span>
+                    <span class="text-[10px] text-slate-400 flex-shrink-0">3h ago</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded">Site GC</span>
+                    <span class="text-[10px] text-slate-400">ORD-9021</span>
+                  </div>
+                  <p class="text-xs text-slate-500 truncate mt-1">Foundation cure looks good. Ready for your inspection sign-off.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thread 4: Sarah Kim — Buyer (different project) -->
+            <div class="thread-item px-4 py-3.5 border-b border-slate-50" onclick="selectThread(3)" data-thread="3">
+              <div class="flex items-center gap-3">
+                <div class="relative flex-shrink-0">
+                  <img src="https://i.pravatar.cc/100?img=44" class="w-10 h-10 rounded-full object-cover" alt="Sarah">
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900 truncate">Sarah Kim</span>
+                    <span class="text-[10px] text-slate-400 flex-shrink-0">Yesterday</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-[10px] bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded">Buyer</span>
+                    <span class="text-[10px] text-slate-400">ORD-9035</span>
+                  </div>
+                  <p class="text-xs text-slate-500 truncate mt-1">Thank you for the permit update!</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thread 5: Jordan Lee — Permit Runner -->
+            <div class="thread-item px-4 py-3.5" onclick="selectThread(4)" data-thread="4">
+              <div class="flex items-center gap-3">
+                <div class="relative flex-shrink-0">
+                  <img src="https://i.pravatar.cc/100?img=59" class="w-10 h-10 rounded-full object-cover" alt="Jordan">
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900 truncate">Jordan Lee</span>
+                    <span class="text-[10px] text-slate-400 flex-shrink-0">Apr 3</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-[10px] bg-violet-100 text-violet-700 font-bold px-1.5 py-0.5 rounded">Permit Runner</span>
+                    <span class="text-[10px] text-slate-400">ORD-9021</span>
+                  </div>
+                  <p class="text-xs text-slate-500 truncate mt-1">BDS queue update: #14 in line, no deficiencies flagged.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── COLUMN 2: Active Conversation ── -->
+        <div class="flex-1 console-panel flex flex-col min-w-0">
+
+          <!-- Thread header -->
+          <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-shrink-0" id="convo-header">
+            <div class="flex items-center gap-3">
+              <img src="https://i.pravatar.cc/100?img=47" class="w-9 h-9 rounded-full object-cover" alt="Annie" id="header-avatar">
+              <div>
+                <p class="text-sm font-bold text-slate-900" id="header-name">Annie Morrison</p>
+                <p class="text-xs text-slate-500" id="header-meta">Buyer · ORD-9021 · Online</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <a href="concierge_project_detail.html" class="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-800 flex items-center gap-1 transition-colors" id="header-link">
+                View Project <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Messages area -->
+          <div class="msg-area px-5 py-4" id="msg-area">
+            <!-- Populated by JS based on active thread -->
+          </div>
+
+          <!-- Compose area -->
+          <div class="border-t border-slate-100 px-5 pt-3 pb-4 flex-shrink-0">
+
+            <!-- Template selector -->
+            <div class="flex items-center gap-2 mb-2">
+              <select id="template-select" onchange="applyTemplate()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 font-medium focus:outline-none focus:ring-2 focus:ring-fuchsia-300">
+                <option value="">Insert template…</option>
+                <option value="milestone">Milestone approaching</option>
+                <option value="permit">Permit update</option>
+                <option value="exception">Exception notification</option>
+                <option value="crane">Crane Day prep</option>
+                <option value="complete">Project complete</option>
+              </select>
+              <!-- Tone indicator -->
+              <span id="tone-badge" class="text-[10px] font-bold px-2 py-1 rounded-full bg-pink-100 text-pink-700 border border-pink-200">Grandparent-friendly</span>
+            </div>
+
+            <!-- Compose row -->
+            <div class="flex items-end gap-2">
+              <label for="photo-input" class="flex-shrink-0 w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition-colors" title="Attach photo">
+                <i data-lucide="image" class="w-4 h-4 text-slate-500"></i>
+              </label>
+              <input type="file" id="photo-input" accept="image/*" multiple class="hidden">
+
+              <div class="flex-1 relative">
+                <textarea
+                  id="compose-input"
+                  class="w-full bg-slate-100 rounded-2xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 focus:bg-white transition-all resize-none"
+                  placeholder="Message Annie…"
+                  rows="1"
+                  oninput="autoResize(this); updateSendBtn();"
+                  onkeydown="handleEnter(event)"
+                ></textarea>
+              </div>
+
+              <button
+                id="send-btn"
+                onclick="sendMessage()"
+                class="flex-shrink-0 w-9 h-9 rounded-xl bg-slate-200 text-slate-400 flex items-center justify-center transition-all pointer-events-none"
+                aria-label="Send"
+              >
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── COLUMN 3: Context Sidebar ── -->
+        <div class="w-72 flex-shrink-0 space-y-4 overflow-y-auto hidden xl:block" id="context-sidebar">
+          <!-- Content swapped by JS: Emotional Anchor for buyers, Compliance for vendors -->
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // THREAD DATA
+    // ═══════════════════════════════════════════════════════════
+
+    const threads = [
+      // 0: Annie Morrison (Buyer)
+      {
+        name: 'Annie Morrison',
+        role: 'Buyer',
+        roleClass: 'bg-blue-100 text-blue-700',
+        project: 'ORD-9021',
+        avatar: 'https://i.pravatar.cc/100?img=47',
+        meta: 'Buyer · ORD-9021 · Online',
+        link: 'concierge_project_detail.html',
+        linkText: 'View Project',
+        type: 'buyer',
+        placeholder: 'Message Annie…',
+        messages: [
+          { type: 'system', text: 'Project agreement signed · Jan 20' },
+          { type: 'fiona', text: 'Hi Annie! I\'m Fiona, your project coordinator. I submitted your permit application to Portland BDS this morning. Reference #2026-04-1822. I\'ll notify you the moment it\'s approved — reply here any time.', time: 'Jan 20, 9:02 AM' },
+          { type: 'system', text: 'Permit approved · Feb 3' },
+          { type: 'fiona', text: 'Great news — your permit came in ahead of schedule! I\'ve requested your foundation deposit so Pacific FW can get started. They have a slot on April 10.', time: 'Feb 3, 10:45 AM' },
+          { type: 'other', text: 'That\'s exciting! When does the factory build start?', time: 'Feb 3, 11:12 AM' },
+          { type: 'fiona', text: 'Once the foundation is verified complete — typically 2 weeks after Pacific FW starts. I\'ll coordinate the handoff. Cascadia is ready to begin.', time: 'Feb 3, 11:28 AM' },
+          { type: 'system', text: 'Foundation verified · Mar 5' },
+          { type: 'system', text: 'Factory framing photos uploaded · Mar 25' },
+          { type: 'fiona', text: 'Framing is done! 3 photos uploaded from the factory floor. Funds released to Cascadia. MEP phase starts Monday.', time: 'Mar 25, 3:05 PM', hasPhoto: true },
+          { type: 'other', text: 'The photos look amazing, this is really happening!', time: 'Mar 25, 4:18 PM' },
+          { type: 'fiona', text: 'It really is! MEP typically takes 2–3 weeks. You\'ll get another update when it\'s complete.', time: 'Mar 25, 4:22 PM' },
+        ]
+      },
+      // 1: Mike Chen (Manufacturer)
+      {
+        name: 'Mike Chen',
+        role: 'Manufacturer',
+        roleClass: 'bg-slate-200 text-slate-700',
+        project: 'ORD-9021',
+        avatar: 'https://i.pravatar.cc/100?img=12',
+        meta: 'Manufacturer · Cascadia Modular · ORD-9021',
+        link: 'concierge_project_detail.html',
+        linkText: 'View Project',
+        type: 'vendor',
+        placeholder: 'Message Mike…',
+        messages: [
+          { type: 'system', text: 'Build order confirmed · Feb 10' },
+          { type: 'fiona', text: 'Mike, foundation verified on ORD-9021. You\'re clear to begin production. Target completion: April 28 per our agreed timeline.', time: 'Mar 5, 11:00 AM' },
+          { type: 'other', text: 'Confirmed. Framing starts Monday. I\'ll upload progress photos at each milestone.', time: 'Mar 5, 2:15 PM' },
+          { type: 'system', text: 'Framing milestone photos uploaded · Mar 25' },
+          { type: 'fiona', text: 'Framing photos verified — excellent work. Draw #2 ($37,500) released to your account. Next milestone: MEP rough-in.', time: 'Mar 25, 4:00 PM' },
+          { type: 'other', text: 'Payment received, thanks. Quick question — MEP rough-in starts Monday. Any changes to the outlet spec? The buyer had mentioned adding a 240V for EV charging.', time: 'Apr 5, 10:30 AM' },
+        ]
+      },
+      // 2: Marcus Rivera (Site GC)
+      {
+        name: 'Marcus Rivera',
+        role: 'Site GC',
+        roleClass: 'bg-amber-100 text-amber-700',
+        project: 'ORD-9021',
+        avatar: 'https://i.pravatar.cc/100?img=68',
+        meta: 'Site GC · Pacific Foundation Works · ORD-9021',
+        link: 'concierge_project_detail.html',
+        linkText: 'View Project',
+        type: 'vendor',
+        placeholder: 'Message Marcus…',
+        messages: [
+          { type: 'system', text: 'Foundation work order issued · Feb 5' },
+          { type: 'fiona', text: 'Marcus, permit approved for ORD-9021. You\'re scheduled to start April 10. Please confirm crew availability.', time: 'Feb 5, 9:00 AM' },
+          { type: 'other', text: 'Confirmed. Crew is booked. We\'ll need the soils report before mobilization.', time: 'Feb 5, 10:30 AM' },
+          { type: 'fiona', text: 'Soils report attached. Bearing capacity is 2,000 PSF — standard footings will work.', time: 'Feb 5, 11:15 AM' },
+          { type: 'system', text: 'Foundation Phase 1 complete · Mar 1' },
+          { type: 'other', text: 'Foundation cure looks good. 4,200 PSI at 28 days. Ready for your inspection sign-off.', time: 'Apr 5, 8:45 AM' },
+        ]
+      },
+      // 3: Sarah Kim (Buyer — different project)
+      {
+        name: 'Sarah Kim',
+        role: 'Buyer',
+        roleClass: 'bg-blue-100 text-blue-700',
+        project: 'ORD-9035',
+        avatar: 'https://i.pravatar.cc/100?img=44',
+        meta: 'Buyer · ORD-9035 · Last seen 2h ago',
+        link: 'concierge_project_detail.html',
+        linkText: 'View Project',
+        type: 'buyer',
+        placeholder: 'Message Sarah…',
+        messages: [
+          { type: 'system', text: 'Project agreement signed · Mar 10' },
+          { type: 'fiona', text: 'Hi Sarah! I\'m Fiona, your project coordinator at Yardstake. Your permit application for the Cascadia Studio 480 has been submitted to Portland BDS. I\'ll keep you updated at every step.', time: 'Mar 10, 10:00 AM' },
+          { type: 'other', text: 'Thank you so much! How long does the permit usually take?', time: 'Mar 10, 11:30 AM' },
+          { type: 'fiona', text: 'Portland BDS is currently averaging 28–35 business days. You\'re in a good queue position. I\'ll message you the moment anything changes.', time: 'Mar 10, 11:45 AM' },
+          { type: 'system', text: 'Permit approved · Apr 3' },
+          { type: 'fiona', text: 'Great news, Sarah — your permit just came through! That was faster than average. I\'m coordinating with your site contractor now to schedule the foundation work.', time: 'Apr 3, 2:00 PM' },
+          { type: 'other', text: 'Thank you for the permit update!', time: 'Apr 3, 3:15 PM' },
+        ]
+      },
+      // 4: Jordan Lee (Permit Runner)
+      {
+        name: 'Jordan Lee',
+        role: 'Permit Runner',
+        roleClass: 'bg-violet-100 text-violet-700',
+        project: 'ORD-9021',
+        avatar: 'https://i.pravatar.cc/100?img=59',
+        meta: 'Permit Runner · ORD-9021',
+        link: '#',
+        linkText: '',
+        type: 'vendor',
+        placeholder: 'Message Jordan…',
+        messages: [
+          { type: 'system', text: 'Permit runner assigned · Jan 18' },
+          { type: 'fiona', text: 'Jordan, please file ORD-9021 permit with Portland BDS. All docs are in the project vault. Expedite if possible — buyer is eager.', time: 'Jan 18, 3:00 PM' },
+          { type: 'other', text: 'Filed today. Reference #2026-04-1822. Current queue position: ~30. I\'ll check back weekly.', time: 'Jan 20, 4:30 PM' },
+          { type: 'system', text: 'Permit approved · Feb 3' },
+          { type: 'other', text: 'BDS queue update: #14 in line, no deficiencies flagged. Should get final approval this week.', time: 'Apr 3, 9:00 AM' },
+        ]
+      }
+    ];
+
+    // Template library
+    const templates = {
+      milestone: 'Hi {{buyer_name}}, great news — your {{milestone}} milestone is approaching! The contractor is on track, and I\'ll have photos and verification details for you within the next few days. No action needed on your end yet.',
+      permit: 'Hi {{buyer_name}}, quick update on your permit: {{permit_status}}. I\'m monitoring the queue daily and will let you know the moment anything changes. You don\'t need to do anything right now.',
+      exception: 'Hi {{buyer_name}}, I want to let you know about a small change to your project: {{exception_detail}}. I\'ve already reviewed this with the team and here\'s what it means for you: {{impact}}. Happy to talk through this if you have questions.',
+      crane: 'Hi {{buyer_name}}, exciting news — your Crane Day is scheduled for {{crane_date}}! This is when your ADU gets placed on the foundation. I\'ll send you a spectator link so you can watch. A few things to know beforehand: {{prep_details}}.',
+      complete: 'Hi {{buyer_name}}, congratulations — your ADU project is officially complete! 🎉 All inspections passed, the Certificate of Occupancy is filed, and your document vault has been updated with all final paperwork. Welcome home!'
+    };
+
+    // Emotional Anchor sidebar content (buyers)
+    const buyerAnchors = {
+      'Annie Morrison': {
+        motivation: 'Housing for aging parents',
+        tone: 'High trust, low complexity. Avoid jargon. Grandparent-friendly templates.',
+        notes: 'Annie\'s parents (70s) will live in the ADU. She values transparency and simple language. Prefers phone calls for big decisions.'
+      },
+      'Sarah Kim': {
+        motivation: 'Rental income for mortgage offset',
+        tone: 'Moderate trust, moderate complexity OK. Financially motivated — include numbers.',
+        notes: 'Sarah is analytical. Appreciates data and timelines. Prefers written communication.'
+      }
+    };
+
+    // Vendor compliance sidebar content
+    const vendorCompliance = {
+      'Mike Chen': {
+        company: 'Cascadia Modular',
+        score: 94,
+        onTime: '12/13',
+        photoRate: '100%',
+        activeProjects: 3,
+        placement: 'Tier 1 — Preferred'
+      },
+      'Marcus Rivera': {
+        company: 'Pacific Foundation Works',
+        score: 88,
+        onTime: '9/11',
+        photoRate: '92%',
+        activeProjects: 2,
+        placement: 'Tier 1 — Preferred'
+      },
+      'Jordan Lee': {
+        company: 'Independent',
+        score: 96,
+        onTime: '15/15',
+        photoRate: 'N/A',
+        activeProjects: 4,
+        placement: 'Tier 1 — Preferred'
+      }
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+
+    let activeThread = 0;
+
+    function selectThread(idx) {
+      activeThread = idx;
+      // Update thread list highlighting
+      document.querySelectorAll('.thread-item').forEach((el, i) => {
+        el.classList.toggle('active', i === idx);
+      });
+      renderConversation(idx);
+      renderContextSidebar(idx);
+      updateComposeArea(idx);
+    }
+
+    function renderConversation(idx) {
+      const t = threads[idx];
+      const area = document.getElementById('msg-area');
+
+      // Update header
+      document.getElementById('header-avatar').src = t.avatar;
+      document.getElementById('header-name').textContent = t.name;
+      document.getElementById('header-meta').textContent = t.meta;
+      const linkEl = document.getElementById('header-link');
+      if (t.linkText) {
+        linkEl.style.display = '';
+        linkEl.href = t.link;
+        linkEl.innerHTML = t.linkText + ' <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>';
+      } else {
+        linkEl.style.display = 'none';
+      }
+
+      // Build messages
+      let html = '';
+      t.messages.forEach(msg => {
+        if (msg.type === 'system') {
+          html += `<div class="flex justify-center my-3">
+            <span class="border border-slate-200 bg-slate-50 text-slate-500 text-xs rounded-full px-3 py-1">${msg.text}</span>
+          </div>`;
+        } else if (msg.type === 'fiona') {
+          html += `<div class="flex items-start gap-3 mb-4">
+            <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" alt="Fiona">
+            <div class="max-w-[78%]">
+              <div class="bg-fuchsia-50 border border-fuchsia-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                <p class="text-sm text-slate-800 leading-relaxed">${msg.text}</p>
+                ${msg.hasPhoto ? `<div class="mt-2 flex gap-1.5">
+                  <div class="w-16 h-16 rounded-lg overflow-hidden"><img src="https://images.unsplash.com/photo-1541888086425-d81bb19240f5?auto=format&fit=crop&w=64&q=60" class="w-full h-full object-cover" alt="Factory photo"></div>
+                  <div class="w-16 h-16 rounded-lg overflow-hidden"><img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=64&q=60" class="w-full h-full object-cover" alt="Framing photo"></div>
+                  <div class="w-16 h-16 rounded-lg overflow-hidden"><img src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&w=64&q=60" class="w-full h-full object-cover" alt="Detail photo"></div>
+                </div>` : ''}
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1 ml-1">${msg.time}</p>
+            </div>
+          </div>`;
+        } else if (msg.type === 'other') {
+          html += `<div class="flex justify-end mb-4">
+            <div class="max-w-[78%]">
+              <div class="bg-slate-700 rounded-2xl rounded-tr-sm px-4 py-2.5">
+                <p class="text-sm text-white leading-relaxed">${msg.text}</p>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1 text-right mr-1">${msg.time}</p>
+            </div>
+          </div>`;
+        }
+      });
+
+      area.innerHTML = html;
+      lucide.createIcons();
+      setTimeout(() => { area.scrollTop = area.scrollHeight; }, 50);
+    }
+
+    function renderContextSidebar(idx) {
+      const t = threads[idx];
+      const sidebar = document.getElementById('context-sidebar');
+
+      if (t.type === 'buyer') {
+        const anchor = buyerAnchors[t.name] || { motivation: 'Not set', tone: 'Standard', notes: '' };
+        sidebar.innerHTML = `
+          <!-- Emotional Anchor -->
+          <div class="console-panel border-l-4 border-fuchsia-500 p-5">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <i data-lucide="heart" class="w-3.5 h-3.5 text-fuchsia-500"></i> Emotional Anchor
+            </h3>
+            <div class="bg-fuchsia-50 text-fuchsia-800 px-4 py-3 rounded-xl text-sm font-medium border border-fuchsia-100">
+              <p class="font-bold">${anchor.motivation}</p>
+              <p class="text-xs text-fuchsia-600 mt-1">${anchor.tone}</p>
+            </div>
+            <p class="text-xs text-slate-500 mt-3 leading-relaxed">${anchor.notes}</p>
+          </div>
+
+          <!-- Buyer Summary -->
+          <div class="console-panel p-5">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Project Summary</h3>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-slate-500">Project</span><span class="font-bold text-slate-800">${t.project}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Model</span><span class="font-bold text-slate-800">Cascadia Studio 480</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Contract</span><span class="font-bold text-slate-800">$172,000</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Paid to Date</span><span class="font-bold text-emerald-600">$38,500</span></div>
+            </div>
+          </div>
+
+          <!-- Communication Preferences -->
+          <div class="console-panel p-5">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Communication Prefs</h3>
+            <div class="space-y-2 text-xs text-slate-600">
+              <div class="flex items-center gap-2"><i data-lucide="message-circle" class="w-3.5 h-3.5 text-fuchsia-400"></i> Prefers in-app messages</div>
+              <div class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5 text-fuchsia-400"></i> Phone for big decisions</div>
+              <div class="flex items-center gap-2"><i data-lucide="clock" class="w-3.5 h-3.5 text-fuchsia-400"></i> Responds within 2 hours</div>
+            </div>
+          </div>
+        `;
+      } else {
+        // Vendor compliance sidebar
+        const comp = vendorCompliance[t.name] || { company: 'Unknown', score: 0, onTime: 'N/A', photoRate: 'N/A', activeProjects: 0, placement: 'Unrated' };
+        const scoreColor = comp.score >= 90 ? 'text-emerald-600' : comp.score >= 80 ? 'text-amber-600' : 'text-red-600';
+        const scoreBg = comp.score >= 90 ? 'bg-emerald-50 border-emerald-200' : comp.score >= 80 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+
+        sidebar.innerHTML = `
+          <!-- Vendor Compliance -->
+          <div class="console-panel border-l-4 border-slate-500 p-5">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-slate-500"></i> Vendor Compliance
+            </h3>
+            <div class="${scoreBg} border px-4 py-3 rounded-xl text-center mb-3">
+              <p class="text-3xl font-extrabold ${scoreColor}">${comp.score}</p>
+              <p class="text-xs text-slate-500 mt-0.5">Compliance Score</p>
+            </div>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-slate-500">Company</span><span class="font-bold text-slate-800">${comp.company}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">On-Time</span><span class="font-bold text-slate-800">${comp.onTime}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Photo Uploads</span><span class="font-bold text-slate-800">${comp.photoRate}</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Active Projects</span><span class="font-bold text-slate-800">${comp.activeProjects}</span></div>
+            </div>
+          </div>
+
+          <!-- Placement Status -->
+          <div class="console-panel p-5">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Placement Status</h3>
+            <div class="bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl text-sm">
+              <p class="font-bold text-emerald-800">${comp.placement}</p>
+              <p class="text-xs text-emerald-600 mt-0.5">Eligible for auto-assignment</p>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="console-panel p-5">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Actions</h3>
+            <div class="space-y-2">
+              <button class="w-full text-left text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-lg transition-colors flex items-center gap-2">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i> View Contract
+              </button>
+              <button class="w-full text-left text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2 rounded-lg transition-colors flex items-center gap-2">
+                <i data-lucide="history" class="w-3.5 h-3.5 text-slate-400"></i> Payment History
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      lucide.createIcons();
+    }
+
+    function updateComposeArea(idx) {
+      const t = threads[idx];
+      const input = document.getElementById('compose-input');
+      input.placeholder = t.placeholder;
+      input.value = '';
+      autoResize(input);
+      updateSendBtn();
+
+      // Update tone badge
+      const badge = document.getElementById('tone-badge');
+      if (t.type === 'buyer') {
+        badge.textContent = 'Grandparent-friendly';
+        badge.className = 'text-[10px] font-bold px-2 py-1 rounded-full bg-pink-100 text-pink-700 border border-pink-200';
+      } else {
+        badge.textContent = 'Standard';
+        badge.className = 'text-[10px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
+      }
+
+      // Reset template
+      document.getElementById('template-select').value = '';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TEMPLATE ENGINE
+    // ═══════════════════════════════════════════════════════════
+
+    function applyTemplate() {
+      const sel = document.getElementById('template-select');
+      const key = sel.value;
+      if (!key || !templates[key]) return;
+
+      const t = threads[activeThread];
+      let text = templates[key];
+      // Replace merge fields
+      text = text.replace('{{buyer_name}}', t.name.split(' ')[0]);
+      text = text.replace('{{milestone}}', 'MEP rough-in');
+      text = text.replace('{{permit_status}}', 'Portland BDS has moved your application to position #14. No deficiencies flagged.');
+      text = text.replace('{{exception_detail}}', 'a minor material substitution (White Oak → Maple for interior trim)');
+      text = text.replace('{{impact}}', 'no change to timeline or cost, and the quality is equivalent');
+      text = text.replace('{{crane_date}}', 'May 15, 2026');
+      text = text.replace('{{prep_details}}', 'the street will be closed 6AM–2PM, and the crane crew will handle everything');
+
+      const input = document.getElementById('compose-input');
+      input.value = text;
+      autoResize(input);
+      updateSendBtn();
+      input.focus();
+      sel.value = '';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // COMPOSE & SEND
+    // ═══════════════════════════════════════════════════════════
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    function updateSendBtn() {
+      const input = document.getElementById('compose-input');
+      const btn = document.getElementById('send-btn');
+      if (input.value.trim().length > 0) {
+        btn.classList.remove('bg-slate-200', 'text-slate-400', 'pointer-events-none');
+        btn.classList.add('bg-fuchsia-600', 'text-white', 'hover:bg-fuchsia-700');
+      } else {
+        btn.classList.add('bg-slate-200', 'text-slate-400', 'pointer-events-none');
+        btn.classList.remove('bg-fuchsia-600', 'text-white', 'hover:bg-fuchsia-700');
+      }
+    }
+
+    function handleEnter(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (document.getElementById('compose-input').value.trim()) sendMessage();
+      }
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('compose-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const area = document.getElementById('msg-area');
+      const bubble = document.createElement('div');
+      bubble.className = 'flex items-start gap-3 mb-4 msg-new';
+      bubble.innerHTML = `
+        <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" alt="Fiona">
+        <div class="max-w-[78%]">
+          <div class="bg-fuchsia-50 border border-fuchsia-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+            <p class="text-sm text-slate-800 leading-relaxed">${escapeHtml(text)}</p>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1 ml-1">Just now</p>
+        </div>
+      `;
+      area.appendChild(bubble);
+
+      // Also add to thread data
+      threads[activeThread].messages.push({ type: 'fiona', text: text, time: 'Just now' });
+
+      input.value = '';
+      input.style.height = 'auto';
+      updateSendBtn();
+      setTimeout(() => { area.scrollTop = area.scrollHeight; }, 50);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+
+    lucide.createIcons();
+    selectThread(0);
+  </script>
+</body>
+</html>
