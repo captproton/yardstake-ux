@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Project — Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    .glass-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226,232,240,0.8); }
+    .gradient-text { background: linear-gradient(to right, #2563EB, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .state { display: none; }
+    .state.active { display: block; }
+    @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .live-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+    .progress-bar { transition: width 1s ease-in-out; }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+  <!-- Authenticated nav -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+        <span class="text-xl font-bold tracking-tight">Yard<span class="text-cyan-500">stake</span></span>
+      </div>
+      <div class="flex items-center space-x-3">
+        <a href="buyer_messages.html" class="flex items-center space-x-2 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-5 h-5 rounded-full object-cover" alt="Fiona">
+          <span class="text-xs font-bold text-blue-700">Message Fiona</span>
+        </a>
+        <button class="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
+          <i data-lucide="bell" class="w-5 h-5 text-slate-500"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">A</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Secondary tab bar -->
+  <div class="bg-white border-b border-slate-200 sticky top-16 z-40">
+    <div class="max-w-7xl mx-auto px-6 flex space-x-8">
+      <a href="buyer_project_hub.html" class="py-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-700 whitespace-nowrap">My Project</a>
+      <a href="buyer_report.html" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">My Report</a>
+      <a href="buyer_messages.html" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">Messages</a>
+    </div>
+  </div>
+
+  <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8 space-y-6">
+
+    <!-- Page header (static) -->
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-extrabold text-slate-900">Project Hub</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Cascadia Studio 480 · 742 SE Morrison St, Portland OR · Permit #2026-04-1822</p>
+      </div>
+      <div id="status-badge"></div>
+    </div>
+
+    <!-- Milestone stepper (shared, updated by JS) -->
+    <div class="glass-card rounded-2xl px-6 py-5 overflow-x-auto">
+      <div id="milestone-stepper" class="flex items-start min-w-max"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         STATE 1: PERMIT
+         ══════════════════════════════════════ -->
+    <div id="state-permit" class="state space-y-6">
+
+      <div class="rounded-2xl bg-blue-50 border border-blue-200 px-6 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-bold text-blue-900">Permit application submitted to Portland BDS</p>
+          <p class="text-xs text-blue-700 mt-0.5">Application #2026-04-1822 · Fiona is tracking this daily. Typical review: 4–6 weeks.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="glass-card rounded-2xl p-6">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="clock" class="w-4 h-4 text-blue-500"></i> What happens next
+          </h2>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">1</div>
+              <div><p class="text-xs font-semibold text-slate-800">BDS reviews application</p><p class="text-[11px] text-slate-500">Fiona monitors the portal daily and will flag any deficiency notices.</p></div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-400 text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">2</div>
+              <div><p class="text-xs font-semibold text-slate-400">Permit issued → Phase 2 deposit released</p><p class="text-[11px] text-slate-400">$20,000 released to Yardstake ops escrow to begin site scheduling.</p></div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-400 text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">3</div>
+              <div><p class="text-xs font-semibold text-slate-400">Pacific Foundation Works scheduled</p><p class="text-[11px] text-slate-400">Site crew mobilizes within 2 weeks of permit issuance.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i data-lucide="message-circle" class="w-4 h-4 text-blue-500"></i> Latest from Fiona
+          </h2>
+          <div class="flex items-start gap-3">
+            <img src="https://i.pravatar.cc/100?img=32" class="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="Fiona">
+            <div class="bg-slate-50 rounded-xl p-3 flex-1">
+              <p class="text-[10px] font-bold text-slate-500 mb-1">Today · 9:14 AM</p>
+              <p class="text-xs text-slate-700">Application submitted and confirmed received by BDS. No deficiencies flagged at intake. I'll ping you as soon as there's any status update — you don't need to do anything right now.</p>
+            </div>
+          </div>
+          <a href="buyer_messages.html" class="mt-3 block text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">View full conversation →</a>
+        </div>
+      </div>
+
+    </div><!-- /state-permit -->
+
+    <!-- ══════════════════════════════════════
+         STATE 2: FOUNDATION
+         ══════════════════════════════════════ -->
+    <div id="state-foundation" class="state space-y-6">
+
+      <div class="rounded-2xl bg-amber-50 border border-amber-200 px-6 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="triangle-alert" class="w-5 h-5 text-amber-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-bold text-amber-900">Action required — foundation milestone ready for review</p>
+          <p class="text-xs text-amber-700 mt-0.5">Pacific Foundation Works has submitted GPS-tagged photos. Review and approve to release their payment.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Milestone approval panel (from buyer_dashboard) -->
+        <div class="glass-card rounded-2xl p-6 border-2 border-amber-200">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i data-lucide="camera" class="w-4 h-4 text-amber-500"></i> Milestone Approval</h2>
+            <span class="text-[10px] font-black uppercase bg-amber-100 text-amber-700 px-2 py-1 rounded-full">Needs Review</span>
+          </div>
+          <p class="text-xs text-slate-600 mb-4">Pacific Foundation Works completed the foundation pour. Review the proof-of-work photos to release Draw #1.</p>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="rounded-xl overflow-hidden aspect-video relative">
+              <img src="https://images.unsplash.com/photo-1541888086425-d81bb19240f5?auto=format&fit=crop&w=400&q=80" class="object-cover w-full h-full" alt="Foundation pour">
+              <div class="absolute bottom-0 inset-x-0 bg-black/60 p-1.5">
+                <p class="text-[9px] text-white font-mono">GPS: 45.5152°N 122.6784°W · Apr 2, 2026</p>
+              </div>
+            </div>
+            <div class="rounded-xl overflow-hidden aspect-video">
+              <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=400&q=80" class="object-cover w-full h-full" alt="Site prep">
+            </div>
+          </div>
+          <div class="bg-slate-50 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+            <div><p class="text-[10px] font-bold text-slate-500 uppercase">Draw amount</p><p class="text-xl font-extrabold text-slate-900">$35,000</p></div>
+            <div class="text-right"><p class="text-[10px] font-bold text-slate-500 uppercase">From escrow</p><p class="text-xs font-semibold text-slate-700">Phase 3 release</p></div>
+          </div>
+          <button class="w-full bg-slate-900 hover:bg-slate-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
+            Approve &amp; Release Funds <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+          <p class="text-[10px] text-slate-400 text-center mt-2">Yardstake manages lien waivers automatically after approval.</p>
+        </div>
+
+        <!-- What's next -->
+        <div class="glass-card rounded-2xl p-6">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i> Foundation phase complete</h2>
+          <div class="space-y-3 mb-6">
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 flex-shrink-0"></i><span class="text-slate-700">Footing excavation complete</span></div>
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 flex-shrink-0"></i><span class="text-slate-700">Rebar and form inspection passed</span></div>
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 flex-shrink-0"></i><span class="text-slate-700">Concrete pour completed · 3,200 PSI mix</span></div>
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="clock" class="w-4 h-4 text-amber-500 flex-shrink-0"></i><span class="text-slate-500">7-day cure period · Hold-down bolts verified</span></div>
+          </div>
+          <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+            <p class="text-[11px] font-bold text-blue-800 mb-0.5">After your approval</p>
+            <p class="text-[11px] text-blue-700">Cascadia Modular's factory build begins simultaneously. Estimated factory delivery to your lot: 8–10 weeks.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /state-foundation -->
+
+    <!-- ══════════════════════════════════════
+         STATE 3: FACTORY
+         ══════════════════════════════════════ -->
+    <div id="state-factory" class="state space-y-6">
+
+      <div class="rounded-2xl bg-blue-50 border border-blue-200 px-6 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="factory" class="w-5 h-5 text-blue-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-bold text-blue-900">Factory build in progress · Cascadia Modular, Hillsboro OR</p>
+          <p class="text-xs text-blue-700 mt-0.5">Framing complete · MEP rough-in underway · Estimated ship date: May 8, 2026</p>
+        </div>
+      </div>
+
+      <!-- Dual-track progress (from buyer_dashboard) -->
+      <div class="glass-card rounded-2xl p-6">
+        <h2 class="text-sm font-bold text-slate-800 mb-5 flex items-center gap-2">
+          <i data-lucide="map" class="w-4 h-4 text-blue-600"></i> Parallel build tracks
+        </h2>
+        <div class="space-y-6">
+          <div>
+            <div class="flex justify-between mb-1.5 text-xs font-bold">
+              <span class="text-slate-700">Track A — Factory Build (Hillsboro, OR)</span>
+              <span class="text-blue-600">MEP Rough-In</span>
+            </div>
+            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex gap-px">
+              <div class="h-full bg-emerald-400 progress-bar rounded-l-full" style="width:25%"></div>
+              <div class="h-full bg-blue-500 progress-bar" style="width:25%"></div>
+              <div class="h-full bg-blue-200 progress-bar animate-pulse" style="width:15%"></div>
+              <div class="flex-1 bg-transparent"></div>
+            </div>
+            <div class="flex justify-between mt-1 text-[10px] text-slate-400">
+              <span>Framing ✓</span><span>MEP ←</span><span>Finishes</span><span>Ship</span>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-1.5 text-xs font-bold">
+              <span class="text-slate-700">Track B — Site Prep (742 SE Morrison St)</span>
+              <span class="text-emerald-600">Complete ✓</span>
+            </div>
+            <div class="h-3 w-full bg-emerald-100 rounded-full overflow-hidden">
+              <div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div>
+            </div>
+            <p class="text-[10px] text-emerald-600 mt-1">Foundation poured &amp; cured · Ready for set day</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Factory photos -->
+      <div class="glass-card rounded-2xl p-6">
+        <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="camera" class="w-4 h-4 text-blue-500"></i> Latest factory photos</h2>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="rounded-xl overflow-hidden aspect-video relative">
+            <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=400&q=80" class="object-cover w-full h-full" alt="Framing">
+            <div class="absolute bottom-0 inset-x-0 bg-black/50 p-1"><p class="text-[9px] text-white">Framing · Apr 10</p></div>
+          </div>
+          <div class="rounded-xl overflow-hidden aspect-video relative">
+            <img src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=400&q=80" class="object-cover w-full h-full" alt="MEP">
+            <div class="absolute bottom-0 inset-x-0 bg-black/50 p-1"><p class="text-[9px] text-white">MEP rough-in · Apr 18</p></div>
+          </div>
+          <div class="rounded-xl overflow-hidden aspect-video relative bg-slate-100 flex items-center justify-center">
+            <i data-lucide="camera-off" class="w-6 h-6 text-slate-300"></i>
+            <div class="absolute bottom-0 inset-x-0 bg-slate-200/80 p-1"><p class="text-[9px] text-slate-500">Next: Finishes</p></div>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-3">GPS-tagged photos uploaded by Cascadia Modular. Fiona verifies each batch before milestone release.</p>
+      </div>
+
+    </div><!-- /state-factory -->
+
+    <!-- ══════════════════════════════════════
+         STATE 4: TRANSIT (from buyer_dashboard)
+         ══════════════════════════════════════ -->
+    <div id="state-transit" class="state space-y-6">
+
+      <!-- LIVE in-transit banner -->
+      <div class="rounded-2xl overflow-hidden border border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0 border border-blue-200">
+              <i data-lucide="truck" class="w-6 h-6 text-blue-600"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="inline-flex items-center gap-1.5 bg-blue-600 text-white text-[10px] font-black uppercase px-2 py-1 rounded-full">
+                  <span class="w-1.5 h-1.5 rounded-full bg-white live-dot"></span> Live
+                </span>
+              </div>
+              <h2 class="text-lg font-extrabold text-slate-900">Your ADU is on the move!</h2>
+              <p class="text-sm text-slate-600 mt-0.5">Cascadia Modular confirmed departure. Crane day: <span class="font-bold text-blue-700">May 12, 2026</span></p>
+            </div>
+          </div>
+          <div class="w-full sm:w-64 flex-shrink-0">
+            <div class="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+              <span class="text-blue-600">Hillsboro, OR</span>
+              <span>742 SE Morrison</span>
+            </div>
+            <div class="h-3 bg-blue-100 rounded-full overflow-hidden border border-blue-200">
+              <div class="h-3 bg-blue-500 rounded-full progress-bar" style="width: 22%"></div>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1.5 text-right">Last ping: I-5 N near Tualatin · 18 mi out</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div class="glass-card rounded-2xl p-6">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="calendar-check" class="w-4 h-4 text-blue-500"></i> Crane Day — May 12, 2026</h2>
+          <div class="space-y-3 text-xs">
+            <div class="flex items-start gap-2"><i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5"></i><span class="text-slate-700"><span class="font-semibold">7:00 AM</span> — Crane arrives at 742 SE Morrison St</span></div>
+            <div class="flex items-start gap-2"><i data-lucide="truck" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5"></i><span class="text-slate-700"><span class="font-semibold">8:00 AM</span> — ADU transport arrives</span></div>
+            <div class="flex items-start gap-2"><i data-lucide="hard-hat" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5"></i><span class="text-slate-700"><span class="font-semibold">9:00 AM</span> — Set on foundation (est. 2 hrs)</span></div>
+            <div class="flex items-start gap-2"><i data-lucide="camera" class="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5"></i><span class="text-slate-700"><span class="font-semibold">11:00 AM</span> — Live photo updates to your phone</span></div>
+          </div>
+          <div class="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-3">
+            <p class="text-[11px] text-blue-700"><span class="font-bold">Street parking notice:</span> Fiona has filed the temporary no-parking permit for SE Morrison for May 12. Your neighbors received notice automatically.</p>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="list-checks" class="w-4 h-4 text-emerald-500"></i> Pre-crane checklist</h2>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 flex-shrink-0"></i><span>Foundation bolt pattern verified by GC</span></div>
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 flex-shrink-0"></i><span>Crane operator briefed on site access</span></div>
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 flex-shrink-0"></i><span>Utility locates completed</span></div>
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="clock" class="w-4 h-4 text-amber-400 flex-shrink-0"></i><span class="text-slate-500">Building inspector confirmed for same-day set inspection</span></div>
+            <div class="flex items-center gap-2 text-xs"><i data-lucide="circle" class="w-4 h-4 text-slate-300 flex-shrink-0"></i><span class="text-slate-400">Post-set bolting &amp; flashing</span></div>
+          </div>
+          <a href="buyer_crane_day.html" class="mt-4 block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-xl transition-colors">
+            View Crane Day Live →
+          </a>
+        </div>
+
+      </div>
+    </div><!-- /state-transit -->
+
+    <!-- ══════════════════════════════════════
+         STATE 5: UTILITY
+         ══════════════════════════════════════ -->
+    <div id="state-utility" class="state space-y-6">
+
+      <div class="rounded-2xl bg-emerald-50 border border-emerald-200 px-6 py-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="zap" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-bold text-emerald-900">Unit set · Utility hookup underway</p>
+          <p class="text-xs text-emerald-700 mt-0.5">Crane day complete · Electric, plumbing, and gas connections in progress · CO expected May 28, 2026</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div class="glass-card rounded-2xl p-6">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-emerald-500"></i> Utility connections</h2>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2"><i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-500"></i><span class="font-semibold">Electrical</span></div>
+              <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">Complete</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2"><i data-lucide="droplets" class="w-3.5 h-3.5 text-blue-500"></i><span class="font-semibold">Plumbing</span></div>
+              <span class="bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full text-[10px]">In Progress</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2"><i data-lucide="flame" class="w-3.5 h-3.5 text-amber-500"></i><span class="font-semibold">Gas</span></div>
+              <span class="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full text-[10px]">Scheduled May 22</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2"><i data-lucide="wifi" class="w-3.5 h-3.5 text-purple-500"></i><span class="font-semibold">Internet conduit</span></div>
+              <span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">Complete</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><i data-lucide="award" class="w-4 h-4 text-blue-500"></i> CO timeline</h2>
+          <div class="space-y-3 text-xs mb-4">
+            <div class="flex items-center justify-between"><span class="text-slate-500">Final inspection scheduled</span><span class="font-semibold text-slate-800">May 26, 2026</span></div>
+            <div class="flex items-center justify-between"><span class="text-slate-500">Certificate of Occupancy</span><span class="font-semibold text-slate-800">~May 28, 2026</span></div>
+            <div class="flex items-center justify-between"><span class="text-slate-500">Final escrow release</span><span class="font-semibold text-slate-800">$10,000 upon CO</span></div>
+          </div>
+          <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+            <p class="text-[11px] text-emerald-700">After CO, your ADU is legally habitable. Fiona will send you the full document vault: CO, permit, lien waivers, and warranty docs.</p>
+          </div>
+          <a href="buyer_project_complete.html" class="mt-3 block text-center border border-emerald-300 text-emerald-700 font-bold text-sm py-2.5 rounded-xl hover:bg-emerald-50 transition-colors">
+            Preview: Project Complete →
+          </a>
+        </div>
+
+      </div>
+    </div><!-- /state-utility -->
+
+    <!-- ══════════════════════════════════════
+         SHARED LEDGER STRIP
+         ══════════════════════════════════════ -->
+    <div class="glass-card rounded-2xl px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-6 text-sm">
+        <div>
+          <p class="text-[10px] text-slate-400 uppercase font-bold">The Box</p>
+          <p class="font-bold text-slate-800">$125,000 <span class="text-[10px] text-emerald-600 font-bold">Fixed</span></p>
+        </div>
+        <div class="text-slate-200 hidden md:block">|</div>
+        <div>
+          <p class="text-[10px] text-slate-400 uppercase font-bold">The Dirt</p>
+          <p class="font-bold text-slate-800">$35,000 <span class="text-[10px] text-amber-600 font-bold">Allowance</span></p>
+        </div>
+        <div class="text-slate-200 hidden md:block">|</div>
+        <div>
+          <p class="text-[10px] text-slate-400 uppercase font-bold">Red Tape</p>
+          <p class="font-bold text-slate-800">$12,000 <span class="text-[10px] text-amber-600 font-bold">Allowance</span></p>
+        </div>
+      </div>
+      <div class="text-right">
+        <p class="text-[10px] text-slate-400">Total in escrow</p>
+        <p class="text-2xl font-extrabold gradient-text">$172,000</p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         DEMO STATE-SWITCHER
+         ══════════════════════════════════════ -->
+    <div class="border-2 border-dashed border-slate-200 rounded-2xl p-5">
+      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Reviewer: Switch project state</p>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="showState('permit')" data-state="permit" class="state-btn text-xs font-bold px-4 py-2 rounded-xl border transition-colors">Permitting</button>
+        <button onclick="showState('foundation')" data-state="foundation" class="state-btn text-xs font-bold px-4 py-2 rounded-xl border transition-colors">Foundation</button>
+        <button onclick="showState('factory')" data-state="factory" class="state-btn text-xs font-bold px-4 py-2 rounded-xl border transition-colors">Factory Build</button>
+        <button onclick="showState('transit')" data-state="transit" class="state-btn text-xs font-bold px-4 py-2 rounded-xl border transition-colors">In Transit</button>
+        <button onclick="showState('utility')" data-state="utility" class="state-btn text-xs font-bold px-4 py-2 rounded-xl border transition-colors">Utility Hookup</button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-8">
+    <div class="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs text-slate-400">
+      <span>Yardstake · Portland, OR · hello@yardstake.com</span>
+      <a href="buyer_index.html" class="hover:text-slate-600">← Mock index</a>
+    </div>
+  </footer>
+
+  <script>
+    const MILESTONES = ['Deposit', 'Permit', 'Foundation', 'Factory', 'Shipped', 'Unit Set', 'CO'];
+
+    // How many milestones are COMPLETE (not counting the active one)
+    const STATE_COMPLETE = { permit: 1, foundation: 2, factory: 3, transit: 4, utility: 5 };
+
+    const STATUS_BADGES = {
+      permit:     { bg: 'bg-blue-100',    text: 'text-blue-700',    label: 'Permitting Underway' },
+      foundation: { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Action Required' },
+      factory:    { bg: 'bg-blue-100',    text: 'text-blue-700',    label: 'Factory Build' },
+      transit:    { bg: 'bg-blue-600',    text: 'text-white',       label: '🔴 Live · In Transit' },
+      utility:    { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Utility Hookup' },
+    };
+
+    function renderStepper(stateId) {
+      const complete = STATE_COMPLETE[stateId];
+      const stepper = document.getElementById('milestone-stepper');
+      let html = '';
+      MILESTONES.forEach((label, i) => {
+        const isDone    = i < complete;
+        const isActive  = i === complete;
+        const dotClass  = isDone   ? 'bg-emerald-500 border-emerald-500'
+                        : isActive ? 'bg-blue-600 border-blue-400 ring-4 ring-blue-100'
+                        :            'bg-slate-200 border-slate-200';
+        const iconHtml  = isDone ? '<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+        const labelClass = isDone ? 'text-emerald-600 font-semibold' : isActive ? 'text-blue-700 font-bold' : 'text-slate-400';
+
+        html += `<div class="flex flex-col items-center" style="min-width:60px">
+          <div class="w-7 h-7 rounded-full border-2 ${dotClass} flex items-center justify-center">${iconHtml}</div>
+          <p class="text-[10px] text-center mt-1 leading-tight ${labelClass}">${label}</p>
+        </div>`;
+
+        if (i < MILESTONES.length - 1) {
+          const lineClass = isDone ? 'bg-emerald-300' : 'bg-slate-200';
+          html += `<div class="flex-1 h-0.5 ${lineClass} min-w-[12px] mt-3.5"></div>`;
+        }
+      });
+      stepper.innerHTML = html;
+    }
+
+    function renderBadge(stateId) {
+      const { bg, text, label } = STATUS_BADGES[stateId];
+      document.getElementById('status-badge').innerHTML =
+        `<span class="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-full ${bg} ${text}">${label}</span>`;
+    }
+
+    function showState(id) {
+      // Hide all states
+      document.querySelectorAll('.state').forEach(el => el.classList.remove('active'));
+      document.getElementById('state-' + id).classList.add('active');
+
+      // Update stepper + badge
+      renderStepper(id);
+      renderBadge(id);
+
+      // Update switcher buttons
+      document.querySelectorAll('.state-btn').forEach(b => {
+        const isActive = b.dataset.state === id;
+        b.className = `state-btn text-xs font-bold px-4 py-2 rounded-xl border transition-colors ${
+          isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+        }`;
+      });
+
+      lucide.createIcons();
+    }
+
+    // Boot into permit state
+    showState('permit');
+  </script>
+</body>
+</html>
