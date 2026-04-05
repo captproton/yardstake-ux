@@ -17,3 +17,37 @@ This document correlates the UI features seen in the `buyer_dashboard.html` mock
 *   **Milestone Photo Approvals**
     *   *UI Feature:* Actionable widget requiring Annie to review GPS/Timestamped photos of site progress to click "Approve & Release Funds."
     *   *Rationale:* Replaces messy email invoicing and contractor chasing. This creates absolute transparency and gives the buyer a feeling of ultimate agency, all while efficiently maintaining the tight milestone-draw schedule required by lenders and our Stripe platform accounts.
+
+---
+
+## Screen 8: `buyer_milestone_detail.html`
+
+**File:** `orchestration-v2/buyer/buyer_milestone_detail.html`
+
+**UI Features:**
+- GPS/timestamp overlay on each factory photo (coordinates + exact time)
+- Full-screen photo lightbox with keyboard navigation (arrow keys, Escape) and prev/next buttons
+- "What Was Verified" checklist with emerald check icons
+- "What Happens Next" card with timeline estimate
+- Funds Released strip showing amount, recipient, and confirmed send date
+- Secondary tab bar ("My Project" active — this is a drill-down from the hub)
+
+**Rationale:** The milestone detail screen is the trust engine of the entire buyer journey. Annie is spending $172K on a unit she cannot visit in the factory — the GPS-tagged photos are her proof of work. By surfacing the exact coordinates and timestamp, Yardstake signals that verification is rigorous and tamper-resistant, not just a checkbox. The lightbox interaction invites Annie to linger on the photos, transforming what could be a dry compliance step into a moment of genuine excitement ("I can SEE my ADU being built"). The funds-released strip closes the loop on the financial transaction, reinforcing that milestone draws are tied directly to verified progress — not just invoices.
+
+---
+
+## Screen 9: `buyer_messages.html`
+
+**File:** `orchestration-v2/buyer/buyer_messages.html`
+
+**UI Features:**
+- Single-thread design: no inbox sidebar — Annie has exactly one contact (Fiona)
+- System event pills (centered, non-interactive, `border border-slate-200 bg-slate-50 text-slate-500 text-xs rounded-full`) injected between messages as timeline anchors
+- Fiona's attachment card links directly to `buyer_milestone_detail.html` (photo thumbnail + title + verified badge)
+- Quick-reply chips ("When is crane day?", "Can I visit the factory?", "Who's my Site GC?") populate textarea on click
+- Auto-resizing textarea (min 1 row, max ~5 rows)
+- Photo attach: file input → inline thumbnail previews → previews embed in sent message bubble
+- Send on button click or Enter (Shift+Enter for newline); button activates only when text or photo is present
+- Full-height layout fills viewport between nav and tab bar — no page scroll, thread scrolls internally
+
+**Rationale:** The single-thread design is a deliberate product decision, not a missing feature. In the managed marketplace model, Annie's complexity is Yardstake's problem — she should never need to decide who to contact. Fiona is the single point of contact, and the UI makes this feel like a premium concierge service rather than a limitation. The system event pills serve as an ambient project timeline: Annie can scroll up and reconstruct the entire journey from within the message thread without navigating away. The quick-reply chips lower the activation energy for common questions — reducing ghosting and improving Annie's sense of being actively engaged with her project.
