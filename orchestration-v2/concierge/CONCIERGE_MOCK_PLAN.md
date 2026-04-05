@@ -245,7 +245,7 @@ Establishes the shared nav, sidebar, KPI pattern, and table styles. All subseque
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
 | F-1 (#37) | Concierge mock index | `concierge_index.html` | Low | Card list of all 8 screens with descriptions and batch badges. Same pattern as `buyer_index.html`. **✅ DONE — PR #47 merged 2026-04-04** |
-| F-2 (#38) | Concierge dashboard (refactor) | `concierge_dashboard.html` | **High** | Refactor existing file. KPI row (4 cards), triage queue table, active projects table, sidebar nav with badge counts. Removes existing inline triage cards (content moves to F-5). |
+| F-2 (#38) | Concierge dashboard (refactor) | `concierge_dashboard.html` | **High** | Refactor existing file. KPI row (4 cards), triage queue table, active projects table, sidebar nav with badge counts. Removes existing inline triage cards (content moves to F-5). **✅ DONE — PR #48 merged 2026-04-04** |
 
 ### Batch 2: Project Lifecycle
 
