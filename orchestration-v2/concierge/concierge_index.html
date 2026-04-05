@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concierge Mocks — Yardstake Orchestration v2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F1F5F9; color: #0F172A; }
+    .glass-card { background: rgba(255,255,255,0.92); backdrop-filter: blur(10px); border: 1px solid rgba(226,232,240,0.8); }
+    .gradient-text { background: linear-gradient(to right, #D946EF, #A855F7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .card-link { transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s; }
+    .card-link:hover { box-shadow: 0 8px 24px rgba(217,70,239,0.10); border-color: #E879F9; transform: translateY(-1px); }
+  </style>
+</head>
+<body class="antialiased min-h-screen">
+
+  <!-- Nav — dark gradient matching concierge chrome -->
+  <nav class="sticky top-0 z-50" style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);">
+    <div class="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="layers" class="w-5 h-5 text-fuchsia-400"></i>
+        <span class="text-xl font-bold tracking-tight text-white">Orchestration <span class="text-fuchsia-400">OS</span></span>
+        <span class="text-slate-400 font-normal text-sm ml-2">| Concierge Mocks</span>
+      </div>
+      <span class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full font-medium border border-slate-700">Reviewer tool — not production</span>
+    </div>
+  </nav>
+
+  <div class="max-w-3xl mx-auto px-6 py-12">
+
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-slate-900">Concierge Mock Suite — <span class="gradient-text">"Fixer Fiona"</span></h1>
+      <p class="text-slate-500 mt-1">Orchestration v2 · Portland, OR project coordinator persona · 9 screens across 5 batches</p>
+      <p class="text-sm text-slate-500 mt-3">Click any card to open the mock. All screens share the dark gradient nav + slate sidebar chrome established in the dashboard. Requires internet connection for Tailwind CDN + Lucide CDN.</p>
+    </div>
+
+    <!-- Batch 1: Core Console -->
+    <div class="mb-2 mt-8">
+      <h2 class="text-xs font-bold text-fuchsia-600 uppercase tracking-widest">Batch 1 — Core Console</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="concierge_dashboard.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-fuchsia-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="layout-dashboard" class="w-5 h-5 text-fuchsia-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_dashboard.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Portfolio overview — KPI row (active/at-risk/approvals/permits), triage queue table, active projects list</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">High</span>
+          <span class="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 border border-fuchsia-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 1</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 2: Project Lifecycle -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-fuchsia-600 uppercase tracking-widest">Batch 2 — Project Lifecycle</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="concierge_project_detail.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="folder-kanban" class="w-5 h-5 text-purple-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_project_detail.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">5-state project lifecycle — Intake → Permit → Active Build → Transit → Close-out. Stakeholder panel, emotional anchor, Track A/B sync</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">High</span>
+          <span class="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 2</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+      <a href="concierge_milestone_review.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="camera" class="w-5 h-5 text-emerald-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_milestone_review.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Photo evidence review + fund release gate — GPS-tagged photos, verification checklist, approve/reject with confirmation modal</p>
+        </div>
+        <span class="text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 2</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 3: Exception Handling -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-fuchsia-600 uppercase tracking-widest">Batch 3 — Exception Handling</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="concierge_triage_detail.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="shield-alert" class="w-5 h-5 text-orange-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_triage_detail.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">2-state exception resolution — vendor material substitution + buyer payment dispute. SLA timer, action pane, force-payout modal</p>
+        </div>
+        <span class="text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 3</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 4: Communication & Tracking -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-fuchsia-600 uppercase tracking-widest">Batch 4 — Communication &amp; Tracking</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="concierge_messages.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-fuchsia-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="message-circle" class="w-5 h-5 text-fuchsia-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_messages.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Multi-thread inbox — thread list + conversation view + emotional anchor sidebar. Template selector with merge fields, tone indicator</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">High</span>
+          <span class="text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 4</span>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+      <a href="concierge_permit_tracker.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="file-check" class="w-5 h-5 text-blue-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_permit_tracker.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Portfolio-wide permit SLA dashboard — color-coded deadlines, proactive notification drafts, deficiency alerts</p>
+        </div>
+        <span class="text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 4</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+      <a href="concierge_crane_day.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="crane" class="w-5 h-5 text-amber-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_crane_day.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Crane Day operations — delivery list, pre-delivery checklist, crane operator card, weather widget, spectator link generation</p>
+        </div>
+        <span class="text-xs font-bold text-cyan-700 bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 4</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Batch 5: Peripheral + Polish -->
+    <div class="mb-2">
+      <h2 class="text-xs font-bold text-fuchsia-600 uppercase tracking-widest">Batch 5 — Peripheral &amp; Polish</h2>
+    </div>
+    <div class="space-y-3 mb-8">
+
+      <a href="concierge_settings.html" class="card-link flex items-center gap-4 glass-card rounded-xl shadow-sm px-5 py-4 group">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="settings" class="w-5 h-5 text-slate-600"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold text-slate-900 group-hover:text-fuchsia-700">concierge_settings.html</p>
+          <p class="text-xs text-slate-500 mt-0.5">Account preferences — shift management, message template library, notification channels, portfolio overview</p>
+        </div>
+        <span class="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full whitespace-nowrap">Batch 5</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-fuchsia-400"></i>
+      </a>
+
+    </div>
+
+    <!-- Notes for reviewers -->
+    <div class="glass-card rounded-xl p-5 mt-4">
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Notes for Review</h2>
+      <ul class="text-sm text-slate-600 space-y-2">
+        <li class="flex gap-2"><span class="text-slate-300">&middot;</span> All screens are standalone HTML — no build step, no server required.</li>
+        <li class="flex gap-2"><span class="text-slate-300">&middot;</span> Dark gradient nav + light content area — Fiona is an ops coordinator on a desktop, not a homeowner on a phone.</li>
+        <li class="flex gap-2"><span class="text-slate-300">&middot;</span> Fuchsia accent throughout — <code class="text-xs bg-slate-100 px-1 rounded">#D946EF</code> for primary actions, amber for warnings, emerald for approvals.</li>
+        <li class="flex gap-2"><span class="text-slate-300">&middot;</span> <strong>Emotional Anchor</strong> pattern appears on all project-scoped screens — buyer motivation + communication tone guidance in a fuchsia-bordered card.</li>
+        <li class="flex gap-2"><span class="text-slate-300">&middot;</span> <strong>"High" badge</strong> = complex JS interaction state (dashboard, project detail, messages).</li>
+        <li class="flex gap-2"><span class="text-slate-300">&middot;</span> <strong>concierge_dashboard.html</strong> establishes all shared chrome — nav, sidebar, KPI pattern, table styles. Other screens inherit this layout.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
