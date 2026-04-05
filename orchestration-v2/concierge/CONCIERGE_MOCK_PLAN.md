@@ -253,7 +253,7 @@ The two screens Fiona lives in daily — project detail and milestone review.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| F-3 (#39) | Project detail (5-state lifecycle) | `concierge_project_detail.html` | **High** | 5 states: Intake → Permit → Active Build → Transit → Close-out. Stakeholder panel, Track A/B sync, emotional anchor card, coordinator notes. State-switcher demo panel. |
+| F-3 (#39) | Project detail (5-state lifecycle) | `concierge_project_detail.html` | **High** | 5 states: Intake → Permit → Active Build → Transit → Close-out. Stakeholder panel, Track A/B sync, emotional anchor card, coordinator notes. State-switcher demo panel. **✅ DONE — PR #49 merged 2026-04-05** |
 | F-4 (#40) | Milestone review + fund release | `concierge_milestone_review.html` | Medium | Photo evidence grid (GPS-tagged), verification checklist, approve/reject/escalate with confirmation modal. Emotional anchor card. |
 
 ### Batch 3: Exception Handling
