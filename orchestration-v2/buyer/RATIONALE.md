@@ -77,4 +77,21 @@ This document correlates the UI features seen in the `buyer_dashboard.html` mock
 - Fiona wrap-up note
 - "Back to My Project" + "Share Your Photo" CTAs
 
-**Rationale:** Crane Day is the emotional peak of the entire buyer journey — the "Move That Bus" moment. The countdown timer makes the event feel imminent and concrete; Annie can share it with family the way you'd share a flight tracker. The confetti + "Your ADU is home!" heading on set-complete mirrors the deposit screen's celebration, creating a bookend: Annie felt this same delight when she put down her first $5K, and she feels it again when the unit lands. The spectator mode nav stripping is a deliberate trust signal — public viewers see nothing about Annie's financials, project details, or account. The emotional energy is preserved; the privacy boundary is absolute. Full rationale for States 2 and 2b (live chat, GPS tracker, spectator content) added in PR #31.
+**State 2 — Live:**
+- Full-width hero crane photo (Unsplash) with absolute-positioned overlays
+- Pulsing red "● LIVE" badge (top-left) using `@keyframes pulse-dot`
+- "👁 14 watching" viewer count (top-right, frosted pill)
+- GPS progress bar: gradient track with truck marker at ~85% (unit confirmed on site)
+- Live chat panel: messages auto-append every 3s via `setInterval`, looping 4 family messages with fade-in animation; cosmetic "Join the conversation" input
+- Chat timer starts on Live/Spectator entry, clears when switching away
+- "Preview shared link →" button calls `showState('spectator')`
+
+**State 2b — Spectator:**
+- Shares hero image, LIVE badge, viewer count, GPS tracker, and chat panel with State 2
+- Same chat message stream (both panels receive each new message simultaneously)
+- Blue-to-cyan gradient banner: "Annie's ADU — Crane Day! 🏗 · April 14, 2026"
+- "Back to My View →" button calls `showState('live')`
+- "Powered by Yardstake" footer
+- Nav stripping handled by `showState()`: authenticated controls + tab bar hidden; logo only remains
+
+**Rationale:** Crane Day is the emotional peak of the entire buyer journey — the "Move That Bus" moment. The countdown timer makes the event feel imminent and concrete; Annie can share it with family the way you'd share a flight tracker. The confetti + "Your ADU is home!" heading on set-complete mirrors the deposit screen's celebration, creating a bookend: Annie felt this same delight when she put down her first $5K, and she feels it again when the unit lands. The live chat simulation is deliberately looped and cosmetic — it conveys the social energy of a shared live event without requiring real infrastructure. The GPS tracker bar at ~85% positions the unit as "nearly home," building tension before the set-complete reveal. The spectator mode nav stripping is a deliberate trust signal — public viewers see the shared celebration but nothing about Annie's financials, project details, or account. The emotional energy is preserved; the privacy boundary is absolute.

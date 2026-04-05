@@ -60,6 +60,20 @@
     @keyframes ring-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 50% { box-shadow: 0 0 0 16px rgba(16,185,129,0); } }
     .checkmark-ring { animation: ring-pulse 2s ease-in-out infinite; }
 
+    /* LIVE badge pulse */
+    @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    .live-dot { animation: pulse-dot 1s ease-in-out infinite; }
+
+    /* GPS tracker bar */
+    .gps-track { height: 4px; background: linear-gradient(to right, #2563EB, #06B6D4); border-radius: 2px; }
+
+    /* Chat panel */
+    .chat-messages { height: 220px; overflow-y: auto; scroll-behavior: smooth; }
+    .chat-messages::-webkit-scrollbar { width: 3px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
+    @keyframes msg-in { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+    .msg-new { animation: msg-in 0.25s ease-out; }
+
     /* Live states placeholder notice */
     .placeholder-state { border: 2px dashed #CBD5E1; border-radius: 16px; padding: 48px 24px; text-align: center; color: #94A3B8; }
   </style>
@@ -219,28 +233,152 @@
 
 
     <!-- ══════════════════════════════════════
-         STATE 2: LIVE (placeholder — filled in #31)
+         STATE 2: LIVE
          ══════════════════════════════════════ -->
-    <div id="state-live" class="state">
-      <div class="placeholder-state">
-        <i data-lucide="construction" class="w-8 h-8 mx-auto mb-3 text-slate-300"></i>
-        <p class="text-sm font-semibold">Live — Crane Day</p>
-        <p class="text-xs mt-1">Pulsing LIVE badge · GPS tracker · Family chat · Built in PR #31</p>
+    <div id="state-live" class="state space-y-5">
+
+      <!-- Page header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-900">It's Crane Day! 🏗</h1>
+          <p class="text-sm text-slate-500 mt-0.5">742 SE Morrison St, Portland, OR · April 14, 2026</p>
+        </div>
+        <button onclick="showState('spectator')" class="text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5">
+          <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+          Preview shared link
+        </button>
       </div>
-    </div>
+
+      <!-- Hero image + LIVE overlays -->
+      <div class="relative rounded-2xl overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80"
+          alt="Crane setting modular unit"
+          class="w-full object-cover"
+          style="height:360px;"
+        >
+        <!-- LIVE badge top-left -->
+        <div class="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+          <span class="live-dot w-2 h-2 bg-white rounded-full flex-shrink-0"></span>
+          LIVE
+        </div>
+        <!-- Viewer count top-right -->
+        <div class="absolute top-3 right-3 bg-black/50 text-white text-xs font-semibold px-2.5 py-1.5 rounded-full backdrop-blur-sm">
+          👁 14 watching
+        </div>
+      </div>
+
+      <!-- GPS tracker -->
+      <div class="glass-card rounded-2xl px-5 py-4 space-y-3">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-600">
+          <span class="flex items-center gap-1.5"><i data-lucide="factory" class="w-3.5 h-3.5 text-slate-400"></i> Mike's Factory</span>
+          <span class="flex items-center gap-1.5">Your Backyard <i data-lucide="home" class="w-3.5 h-3.5 text-blue-500"></i></span>
+        </div>
+        <div class="relative">
+          <div class="gps-track w-full"></div>
+          <!-- Truck marker at ~85% progress -->
+          <div class="absolute top-1/2 -translate-y-1/2" style="left:83%;">
+            <div class="w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+              <i data-lucide="truck" class="w-2.5 h-2.5 text-white"></i>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 text-center">Unit confirmed on site · April 14, 8:23 AM</p>
+      </div>
+
+      <!-- Live chat + input -->
+      <div class="glass-card rounded-2xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+          <p class="text-sm font-bold text-slate-800">Family &amp; Friends</p>
+          <span class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+            <span class="live-dot w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Live
+          </span>
+        </div>
+        <div class="chat-messages px-4 py-3 space-y-2" id="chat-live"></div>
+        <div class="px-4 pb-4 pt-2 border-t border-slate-100">
+          <div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2">
+            <input type="text" placeholder="Join the conversation…" class="flex-1 bg-transparent text-sm text-slate-500 focus:outline-none" readonly>
+            <i data-lucide="send" class="w-4 h-4 text-slate-400"></i>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end state-live -->
 
 
     <!-- ══════════════════════════════════════
-         STATE 2b: SPECTATOR (placeholder — filled in #31)
+         STATE 2b: SPECTATOR MODE
+         (nav stripped to logo-only by showState JS)
          ══════════════════════════════════════ -->
-    <div id="state-spectator" class="state">
-      <div class="placeholder-state">
-        <i data-lucide="eye" class="w-8 h-8 mx-auto mb-3 text-slate-300"></i>
-        <p class="text-sm font-semibold">Spectator Mode</p>
-        <p class="text-xs mt-1">Stripped nav · Public viewer · Built in PR #31</p>
-        <button onclick="showState('live')" class="mt-4 text-xs font-semibold text-blue-600 hover:underline">← Back to My View</button>
+    <div id="state-spectator" class="state space-y-5">
+
+      <!-- Spectator banner -->
+      <div class="bg-gradient-to-r from-blue-600 to-cyan-500 rounded-2xl px-6 py-5 text-white text-center space-y-1">
+        <p class="text-lg font-extrabold">Annie's ADU — Crane Day! 🏗</p>
+        <p class="text-sm opacity-90">April 14, 2026 · 742 SE Morrison St, Portland, OR</p>
       </div>
-    </div>
+
+      <!-- Hero image + LIVE overlays (same as State 2) -->
+      <div class="relative rounded-2xl overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80"
+          alt="Crane setting modular unit"
+          class="w-full object-cover"
+          style="height:360px;"
+        >
+        <div class="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+          <span class="live-dot w-2 h-2 bg-white rounded-full flex-shrink-0"></span>
+          LIVE
+        </div>
+        <div class="absolute top-3 right-3 bg-black/50 text-white text-xs font-semibold px-2.5 py-1.5 rounded-full backdrop-blur-sm">
+          👁 14 watching
+        </div>
+      </div>
+
+      <!-- GPS tracker (same as State 2) -->
+      <div class="glass-card rounded-2xl px-5 py-4 space-y-3">
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-600">
+          <span class="flex items-center gap-1.5"><i data-lucide="factory" class="w-3.5 h-3.5 text-slate-400"></i> Mike's Factory</span>
+          <span class="flex items-center gap-1.5">Your Backyard <i data-lucide="home" class="w-3.5 h-3.5 text-blue-500"></i></span>
+        </div>
+        <div class="relative">
+          <div class="gps-track w-full"></div>
+          <div class="absolute top-1/2 -translate-y-1/2" style="left:83%;">
+            <div class="w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+              <i data-lucide="truck" class="w-2.5 h-2.5 text-white"></i>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 text-center">Unit confirmed on site · April 14, 8:23 AM</p>
+      </div>
+
+      <!-- Live chat (shared stream) -->
+      <div class="glass-card rounded-2xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+          <p class="text-sm font-bold text-slate-800">Family &amp; Friends</p>
+          <span class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+            <span class="live-dot w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Live
+          </span>
+        </div>
+        <div class="chat-messages px-4 py-3 space-y-2" id="chat-spectator"></div>
+        <div class="px-4 pb-4 pt-2 border-t border-slate-100">
+          <div class="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2">
+            <input type="text" placeholder="Join the conversation…" class="flex-1 bg-transparent text-sm text-slate-500 focus:outline-none" readonly>
+            <i data-lucide="send" class="w-4 h-4 text-slate-400"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Back to My View -->
+      <button onclick="showState('live')" class="w-full text-center border border-slate-200 hover:border-blue-300 text-slate-600 hover:text-blue-600 font-semibold py-3 rounded-2xl transition-colors text-sm flex items-center justify-center gap-2">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        Back to My View
+      </button>
+
+      <!-- Spectator footer -->
+      <p class="text-center text-xs text-slate-400 pb-2">Powered by <span class="font-semibold text-slate-500">Yardstake</span> · yardstake.com</p>
+
+    </div><!-- end state-spectator -->
 
 
     <!-- ══════════════════════════════════════
@@ -386,6 +524,53 @@
       }
     }
 
+    // ── Live chat ─────────────────────────────────────
+    const CHAT_MESSAGES = [
+      { text: 'This is SO cool!! 🏗', name: 'Sarah K.' },
+      { text: 'How long does the crane part take?', name: 'Mom' },
+      { text: "Can't believe this is actually happening!", name: 'David K.' },
+      { text: 'Go Annie!! 🎉', name: 'Neighbor Jen' },
+    ];
+
+    let chatMsgIndex = 0;
+    let chatTimer = null;
+
+    function appendChatMessage(panelId) {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+      const msg = CHAT_MESSAGES[chatMsgIndex % CHAT_MESSAGES.length];
+      chatMsgIndex++;
+      const el = document.createElement('div');
+      el.className = 'msg-new flex items-start gap-2';
+      el.innerHTML = `
+        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span class="text-white text-[9px] font-bold">${msg.name[0]}</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 max-w-[85%]">
+          <p class="text-[11px] font-bold text-slate-500 mb-0.5">${msg.name}</p>
+          <p class="text-sm text-slate-800">${msg.text}</p>
+        </div>
+      `;
+      panel.appendChild(el);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function startChat() {
+      // Seed with first two messages immediately
+      appendChatMessage('chat-live');
+      appendChatMessage('chat-spectator');
+      appendChatMessage('chat-live');
+      appendChatMessage('chat-spectator');
+      chatTimer = setInterval(() => {
+        appendChatMessage('chat-live');
+        appendChatMessage('chat-spectator');
+      }, 3000);
+    }
+
+    function stopChat() {
+      if (chatTimer) { clearInterval(chatTimer); chatTimer = null; }
+    }
+
     // ── State machine ─────────────────────────────────
     const SWITCHER_BTNS = ['countdown','live','spectator','set-complete'];
 
@@ -420,6 +605,11 @@
         tabBar.style.display = '';
         navAuth.style.display = '';
       }
+
+      // Chat timer: run for live + spectator, stop otherwise
+      if (id === 'live' && !chatTimer) startChat();
+      else if (id === 'spectator' && !chatTimer) startChat();
+      else if (id !== 'live' && id !== 'spectator') stopChat();
 
       // Confetti on set-complete entry
       if (id === 'set-complete') spawnConfetti();
