@@ -51,3 +51,30 @@ This document correlates the UI features seen in the `buyer_dashboard.html` mock
 - Full-height layout fills viewport between nav and tab bar — no page scroll, thread scrolls internally
 
 **Rationale:** The single-thread design is a deliberate product decision, not a missing feature. In the managed marketplace model, Annie's complexity is Yardstake's problem — she should never need to decide who to contact. Fiona is the single point of contact, and the UI makes this feel like a premium concierge service rather than a limitation. The system event pills serve as an ambient project timeline: Annie can scroll up and reconstruct the entire journey from within the message thread without navigating away. The quick-reply chips lower the activation energy for common questions — reducing ghosting and improving Annie's sense of being actively engaged with her project.
+
+---
+
+## Screen 10: `buyer_crane_day.html`
+
+**File:** `orchestration-v2/buyer/buyer_crane_day.html`
+
+**UI Features (States 1 and 3 — PR #30; States 2 and 2b added in PR #31):**
+- 4-state machine: `countdown` → `live` → `spectator` → `set-complete`
+- Demo state-switcher panel (same dashed-border pattern as other buyer mocks)
+- Nav swap: authenticated nav + tab bar hidden in spectator state (logo only)
+
+**State 1 — Countdown:**
+- Live `setInterval` countdown to April 14, 2026 8:00 AM PST with 4 gradient-text digit units
+- Delivery details card (date, location, unit, crane operator, what to expect)
+- Fiona note card
+- Share button reveals inline card with fake spectator URL + "Copy Link" (clipboard API + toast)
+
+**State 3 — Set Complete:**
+- CSS confetti burst (same `spawnConfetti()` pattern as `buyer_deposit.html`) fires on state entry
+- Animated emerald pulse ring around checkmark icon
+- Hero photo: ADU on foundation (Unsplash)
+- Stats row: arrival time, set time, duration, zero incidents
+- Fiona wrap-up note
+- "Back to My Project" + "Share Your Photo" CTAs
+
+**Rationale:** Crane Day is the emotional peak of the entire buyer journey — the "Move That Bus" moment. The countdown timer makes the event feel imminent and concrete; Annie can share it with family the way you'd share a flight tracker. The confetti + "Your ADU is home!" heading on set-complete mirrors the deposit screen's celebration, creating a bookend: Annie felt this same delight when she put down her first $5K, and she feels it again when the unit lands. The spectator mode nav stripping is a deliberate trust signal — public viewers see nothing about Annie's financials, project details, or account. The emotional energy is preserved; the privacy boundary is absolute. Full rationale for States 2 and 2b (live chat, GPS tracker, spectator content) added in PR #31.
