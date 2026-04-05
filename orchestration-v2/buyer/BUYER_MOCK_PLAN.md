@@ -202,7 +202,7 @@ These screens are pre-authentication — Annie is browsing, not yet a customer. 
 |---|---|---|---|---|
 | B-1 ✅ | Buyer index + landing page | `buyer_index.html`, `buyer_landing.html` | Medium | **Shipped — PR #21 merged 2026-04-04.** |
 | B-2 ✅ | Buyer feasibility report | `buyer_report.html` | Medium | **Shipped — PR #22 merged 2026-04-04.** |
-| B-3a (#23) | Matched models page | `buyer_models.html` | Low | Split from #13. 3 model cards, Cascadia primary with active CTAs, others dimmed. OPTIMIZED workflow. |
+| B-3a (#23) ✅ | Matched models page | `buyer_models.html` | Low | **Shipped — PR #25 merged 2026-04-05.** |
 | B-3b (#24) | Buyer configurator | `buyer_configurator.html` | **High** | Split from #13. 13 categories, collapsed-by-default, 3 interaction types, live running total. STANDARD workflow. |
 
 ### Batch 2: Project Initiation (Screens 5–6)
@@ -259,8 +259,8 @@ Issues **across** batches have cross-link dependencies (later screens reference 
 # Batch 1 — ✅ B-1 merged (PR #21). B-2 open (PR #22).
 # /new-pr-auto 11   ✅ DONE — PR #21 merged 2026-04-04
 # /new-pr-auto 12   ✅ DONE — PR #22 merged 2026-04-04
-/new-pr-auto 23   # buyer_models (B-3a) — ready to run
-/new-pr-auto 24   # buyer_configurator (B-3b) — after #23 merges
+# /new-pr-auto 23   ✅ DONE — PR #25 merged 2026-04-05
+/new-pr-auto 24   # buyer_configurator (B-3b) — ready to run
 
 # Batch 2 — single issue, after Batch 1 merges
 /new-pr-auto 14   # buyer_project_agreement + buyer_deposit
