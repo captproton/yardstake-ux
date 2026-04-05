@@ -244,7 +244,7 @@ Supporting screens that follow established patterns from the vendor mocks.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| B-10 | RATIONALE.md + cross-link audit | None (documentation) | Low | Overwrite buyer RATIONALE.md with all 14 screen entries. Verify all cross-links between screens work. Update `buyer_index.html` if any filenames changed. |
+| B-10 ✅ | RATIONALE.md + cross-link audit | None (documentation) | Low | **Shipped — PR #36 merged 2026-04-04.** Rewrote RATIONALE.md intro, added 7 missing entries (Screens 1–7), verified Screens 8–13. All 13 screens documented. Cross-link audit: 14 targets, 0 broken links. buyer_index.html stale note fixed. |
 
 **Total: 11 issues across 6 batches. 14 screens.** _(#13 split into #23 + #24)_
 
@@ -280,7 +280,7 @@ Issues **across** batches have cross-link dependencies (later screens reference 
 # /new-pr-auto 19   ✅ DONE — PR #35 merged 2026-04-04 — buyer_notifications + buyer_settings
 
 # Batch 6 — after everything merges
-/new-pr-auto 20   # RATIONALE.md + cross-link audit
+# /new-pr-auto 20   ✅ DONE — PR #36 merged 2026-04-04 — RATIONALE.md + cross-link audit
 ```
 
 ### RATIONALE.md Conflict Avoidance
