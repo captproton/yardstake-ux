@@ -262,7 +262,7 @@ Single screen absorbing both vendor exceptions and buyer disputes from the exist
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| F-5 (#41) | Triage detail (exception + dispute) | `concierge_triage_detail.html` | Medium | 2-state: vendor exception (material sub) + buyer dispute (payment delay). Context pane → action pane layout. SLA timer. Confirmation modal on force-payout. |
+| F-5 (#41) | Triage detail (exception + dispute) | `concierge_triage_detail.html` | Medium | 2-state: vendor exception (material sub) + buyer dispute (payment delay). Context pane → action pane layout. SLA timer. Confirmation modal on force-payout. **✅ DONE — PR #51 merged 2026-04-05** |
 
 ### Batch 4: Communication & Tracking
 
