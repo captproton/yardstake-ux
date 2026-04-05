@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages — Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    .glass-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226,232,240,0.8); }
+    .gradient-text { background: linear-gradient(to right, #2563EB, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* Message thread layout — fills available height */
+    .thread-outer { display: flex; flex-direction: column; height: calc(100vh - 122px); /* 64px nav + 44px tabbar + 14px margin */ }
+    .thread-messages { flex: 1; overflow-y: auto; padding: 16px 0; scroll-behavior: smooth; }
+    .thread-messages::-webkit-scrollbar { width: 4px; }
+    .thread-messages::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+    .thread-input { flex-shrink: 0; }
+
+    /* Auto-resize textarea */
+    #reply-input { resize: none; overflow-hidden; min-height: 40px; max-height: 120px; line-height: 1.5; }
+
+    /* Photo preview strip */
+    .photo-preview { display: none; }
+    .photo-preview.visible { display: flex; }
+
+    /* Chip animation */
+    .quick-chip { transition: background 0.12s, transform 0.1s; }
+    .quick-chip:active { transform: scale(0.97); }
+
+    /* Scroll to bottom on load */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-new { animation: fadeIn 0.2s ease-out; }
+  </style>
+</head>
+<body class="antialiased flex flex-col overflow-hidden" style="height:100vh;">
+
+  <!-- Authenticated nav -->
+  <nav class="bg-white border-b border-slate-200 z-50 flex-shrink-0">
+    <div class="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+        <span class="text-xl font-bold tracking-tight">Yard<span class="text-cyan-500">stake</span></span>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button class="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
+          <i data-lucide="bell" class="w-5 h-5 text-slate-500"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">A</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Secondary tab bar — Messages active -->
+  <div class="bg-white border-b border-slate-200 z-40 flex-shrink-0">
+    <div class="max-w-3xl mx-auto px-6 flex space-x-8">
+      <a href="buyer_project_hub.html" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">My Project</a>
+      <a href="buyer_report.html" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">My Report</a>
+      <a href="buyer_messages.html" class="py-3 text-sm font-semibold border-b-2 border-blue-600 text-blue-700 whitespace-nowrap">Messages</a>
+    </div>
+  </div>
+
+  <!-- Thread container — fills remaining height -->
+  <div class="flex-1 overflow-hidden max-w-3xl mx-auto w-full px-0 sm:px-4">
+    <div class="thread-outer bg-white sm:rounded-t-2xl sm:mt-4 shadow-sm border border-slate-100 sm:border-t">
+
+      <!-- Thread header -->
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <img src="https://i.pravatar.cc/100?img=32" class="w-10 h-10 rounded-full object-cover" alt="Fiona">
+            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white"></span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-slate-900">Fiona</p>
+            <p class="text-xs text-slate-500">Project Coordinator · Yardstake</p>
+          </div>
+        </div>
+        <a href="buyer_project_hub.html" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors">
+          View Project <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </a>
+      </div>
+
+      <!-- Scrollable message thread -->
+      <div class="thread-messages px-5" id="thread">
+
+        <!-- System pill -->
+        <div class="flex justify-center my-3">
+          <span class="border border-slate-200 bg-slate-50 text-slate-500 text-xs rounded-full px-3 py-1">Project agreement signed · Jan 20</span>
+        </div>
+
+        <!-- Fiona message -->
+        <div class="flex items-start gap-3 mb-4">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" alt="Fiona">
+          <div class="max-w-[78%]">
+            <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+              <p class="text-sm text-slate-800 leading-relaxed">Hi Annie! I'm Fiona, your project coordinator. I submitted your permit application to Portland this morning. Reference #2026-04-1822-PENDING. I'll notify you the moment it's approved. Reply here any time.</p>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 ml-1">Jan 20, 9:02 AM</p>
+          </div>
+        </div>
+
+        <!-- System pill -->
+        <div class="flex justify-center my-3">
+          <span class="border border-slate-200 bg-slate-50 text-slate-500 text-xs rounded-full px-3 py-1">Permit approved · Feb 3</span>
+        </div>
+
+        <!-- Fiona message -->
+        <div class="flex items-start gap-3 mb-4">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" alt="Fiona">
+          <div class="max-w-[78%]">
+            <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+              <p class="text-sm text-slate-800 leading-relaxed">Great news — permit came in ahead of schedule! I've requested your foundation deposit so Pacific FW can get started. They have a slot April 10.</p>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 ml-1">Feb 3, 10:45 AM</p>
+          </div>
+        </div>
+
+        <!-- Annie message -->
+        <div class="flex justify-end mb-4">
+          <div class="max-w-[78%]">
+            <div class="bg-blue-600 rounded-2xl rounded-tr-sm px-4 py-2.5">
+              <p class="text-sm text-white leading-relaxed">That's exciting! When does the factory build start?</p>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 text-right mr-1">Feb 3, 11:12 AM</p>
+          </div>
+        </div>
+
+        <!-- Fiona message -->
+        <div class="flex items-start gap-3 mb-4">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" alt="Fiona">
+          <div class="max-w-[78%]">
+            <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+              <p class="text-sm text-slate-800 leading-relaxed">Once foundation is verified complete — typically 2 weeks after Pacific FW starts. I'll coordinate the handoff. Cascadia is ready to begin.</p>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 ml-1">Feb 3, 11:28 AM</p>
+          </div>
+        </div>
+
+        <!-- System pill -->
+        <div class="flex justify-center my-3">
+          <span class="border border-slate-200 bg-slate-50 text-slate-500 text-xs rounded-full px-3 py-1">Foundation verified · Mar 5</span>
+        </div>
+
+        <!-- System pill -->
+        <div class="flex justify-center my-3">
+          <span class="border border-slate-200 bg-slate-50 text-slate-500 text-xs rounded-full px-3 py-1">Factory framing photos uploaded · Mar 25</span>
+        </div>
+
+        <!-- Fiona message with attachment indicator -->
+        <div class="flex items-start gap-3 mb-4">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" alt="Fiona">
+          <div class="max-w-[78%]">
+            <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+              <p class="text-sm text-slate-800 leading-relaxed">Framing is done! 3 photos uploaded from the factory floor. Funds released to Cascadia. MEP phase starts Monday.</p>
+              <a href="buyer_milestone_detail.html" class="mt-2 flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 hover:bg-blue-50 hover:border-blue-200 transition-colors">
+                <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
+                  <img src="https://images.unsplash.com/photo-1541888086425-d81bb19240f5?auto=format&fit=crop&w=64&q=60" class="w-full h-full object-cover" alt="Framing photo">
+                </div>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-slate-800 truncate">Factory Build — Framing Complete</p>
+                  <p class="text-[11px] text-slate-500">3 photos · Verified by Yardstake</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 flex-shrink-0 ml-auto"></i>
+              </a>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 ml-1">Mar 25, 3:05 PM</p>
+          </div>
+        </div>
+
+        <!-- Annie message -->
+        <div class="flex justify-end mb-4">
+          <div class="max-w-[78%]">
+            <div class="bg-blue-600 rounded-2xl rounded-tr-sm px-4 py-2.5">
+              <p class="text-sm text-white leading-relaxed">The photos look amazing, this is really happening!</p>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 text-right mr-1">Mar 25, 4:18 PM</p>
+          </div>
+        </div>
+
+        <!-- Fiona message -->
+        <div class="flex items-start gap-3 mb-4">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" alt="Fiona">
+          <div class="max-w-[78%]">
+            <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+              <p class="text-sm text-slate-800 leading-relaxed">It really is! 🏗 MEP typically takes 2–3 weeks. You'll get another update when it's complete.</p>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1 ml-1">Mar 25, 4:22 PM</p>
+          </div>
+        </div>
+
+      </div><!-- end #thread -->
+
+      <!-- Input area -->
+      <div class="thread-input border-t border-slate-100 px-5 pt-3 pb-4 flex-shrink-0">
+
+        <!-- Photo preview strip (hidden until file chosen) -->
+        <div id="photo-preview-strip" class="photo-preview items-center gap-2 mb-2 flex-wrap">
+          <!-- Previews injected here -->
+        </div>
+
+        <!-- Quick-reply chips -->
+        <div class="flex flex-wrap gap-2 mb-3" id="quick-chips">
+          <button onclick="fillChip('When is crane day?')" class="quick-chip text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full font-medium">When is crane day?</button>
+          <button onclick="fillChip('Can I visit the factory?')" class="quick-chip text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full font-medium">Can I visit the factory?</button>
+          <button onclick="fillChip('Who\'s my Site GC?')" class="quick-chip text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full font-medium">Who's my Site GC?</button>
+        </div>
+
+        <!-- Compose row -->
+        <div class="flex items-end gap-2">
+          <!-- Attach button -->
+          <label for="photo-input" class="flex-shrink-0 w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center cursor-pointer transition-colors" title="Attach photo">
+            <i data-lucide="image" class="w-4 h-4 text-slate-500"></i>
+          </label>
+          <input type="file" id="photo-input" accept="image/*" multiple class="hidden" onchange="handlePhotoAttach(event)">
+
+          <!-- Textarea -->
+          <div class="flex-1 relative">
+            <textarea
+              id="reply-input"
+              class="w-full bg-slate-100 rounded-2xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:bg-white transition-all"
+              placeholder="Message Fiona…"
+              rows="1"
+              oninput="autoResize(this); updateSendBtn();"
+              onkeydown="handleEnter(event)"
+            ></textarea>
+          </div>
+
+          <!-- Send button -->
+          <button
+            id="send-btn"
+            onclick="sendMessage()"
+            class="flex-shrink-0 w-9 h-9 rounded-xl bg-slate-200 text-slate-400 flex items-center justify-center transition-all pointer-events-none"
+            aria-label="Send"
+          >
+            <i data-lucide="send" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const thread = document.getElementById('thread');
+    const replyInput = document.getElementById('reply-input');
+    const sendBtn = document.getElementById('send-btn');
+    let pendingPhotos = [];
+
+    // Scroll to bottom on load
+    thread.scrollTop = thread.scrollHeight;
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    function updateSendBtn() {
+      const hasText = replyInput.value.trim().length > 0;
+      const hasPhotos = pendingPhotos.length > 0;
+      if (hasText || hasPhotos) {
+        sendBtn.classList.remove('bg-slate-200', 'text-slate-400', 'pointer-events-none');
+        sendBtn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+      } else {
+        sendBtn.classList.add('bg-slate-200', 'text-slate-400', 'pointer-events-none');
+        sendBtn.classList.remove('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+      }
+    }
+
+    function handleEnter(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (replyInput.value.trim() || pendingPhotos.length > 0) sendMessage();
+      }
+    }
+
+    function fillChip(text) {
+      replyInput.value = text;
+      autoResize(replyInput);
+      updateSendBtn();
+      replyInput.focus();
+    }
+
+    function handlePhotoAttach(e) {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+      const strip = document.getElementById('photo-preview-strip');
+      strip.classList.add('visible');
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0';
+          wrapper.innerHTML = `
+            <img src="${ev.target.result}" class="w-full h-full object-cover" alt="attachment">
+            <button onclick="removePreview(this)" class="absolute top-0.5 right-0.5 w-4 h-4 bg-slate-800/70 rounded-full flex items-center justify-center text-white text-[9px]">✕</button>
+          `;
+          strip.appendChild(wrapper);
+          pendingPhotos.push({ dataUrl: ev.target.result, el: wrapper });
+          updateSendBtn();
+        };
+        reader.readAsDataURL(file);
+      });
+      e.target.value = '';
+    }
+
+    function removePreview(btn) {
+      const wrapper = btn.parentElement;
+      const idx = pendingPhotos.findIndex(p => p.el === wrapper);
+      if (idx !== -1) pendingPhotos.splice(idx, 1);
+      wrapper.remove();
+      if (pendingPhotos.length === 0) {
+        document.getElementById('photo-preview-strip').classList.remove('visible');
+      }
+      updateSendBtn();
+    }
+
+    function sendMessage() {
+      const text = replyInput.value.trim();
+      if (!text && pendingPhotos.length === 0) return;
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex justify-end mb-4 msg-new';
+
+      let content = '';
+      if (text) {
+        content += `<div class="bg-blue-600 rounded-2xl rounded-tr-sm px-4 py-2.5 mb-1"><p class="text-sm text-white leading-relaxed">${escapeHtml(text)}</p></div>`;
+      }
+      if (pendingPhotos.length > 0) {
+        content += `<div class="flex gap-1 justify-end mb-1">`;
+        pendingPhotos.forEach(p => {
+          content += `<div class="w-16 h-16 rounded-xl overflow-hidden"><img src="${p.dataUrl}" class="w-full h-full object-cover"></div>`;
+        });
+        content += `</div>`;
+      }
+      content += `<p class="text-[11px] text-slate-400 text-right mr-1">Just now</p>`;
+
+      wrapper.innerHTML = `<div class="max-w-[78%]">${content}</div>`;
+      thread.appendChild(wrapper);
+
+      // Clear state
+      replyInput.value = '';
+      replyInput.style.height = 'auto';
+      pendingPhotos = [];
+      document.getElementById('photo-preview-strip').innerHTML = '';
+      document.getElementById('photo-preview-strip').classList.remove('visible');
+      updateSendBtn();
+      lucide.createIcons(); // re-init any new icons
+
+      // Scroll to new message
+      setTimeout(() => { thread.scrollTop = thread.scrollHeight; }, 50);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Initial scroll
+    setTimeout(() => { thread.scrollTop = thread.scrollHeight; }, 100);
+  </script>
+</body>
+</html>
