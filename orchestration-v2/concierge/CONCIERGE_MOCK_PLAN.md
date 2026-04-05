@@ -244,8 +244,8 @@ Establishes the shared nav, sidebar, KPI pattern, and table styles. All subseque
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| F-1 | Concierge mock index | `concierge_index.html` | Low | Card list of all 8 screens with descriptions and batch badges. Same pattern as `buyer_index.html`. |
-| F-2 | Concierge dashboard (refactor) | `concierge_dashboard.html` | **High** | Refactor existing file. KPI row (4 cards), triage queue table, active projects table, sidebar nav with badge counts. Removes existing inline triage cards (content moves to F-5). |
+| F-1 (#37) | Concierge mock index | `concierge_index.html` | Low | Card list of all 8 screens with descriptions and batch badges. Same pattern as `buyer_index.html`. |
+| F-2 (#38) | Concierge dashboard (refactor) | `concierge_dashboard.html` | **High** | Refactor existing file. KPI row (4 cards), triage queue table, active projects table, sidebar nav with badge counts. Removes existing inline triage cards (content moves to F-5). |
 
 ### Batch 2: Project Lifecycle
 
@@ -253,8 +253,8 @@ The two screens Fiona lives in daily — project detail and milestone review.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| F-3 | Project detail (5-state lifecycle) | `concierge_project_detail.html` | **High** | 5 states: Intake → Permit → Active Build → Transit → Close-out. Stakeholder panel, Track A/B sync, emotional anchor card, coordinator notes. State-switcher demo panel. |
-| F-4 | Milestone review + fund release | `concierge_milestone_review.html` | Medium | Photo evidence grid (GPS-tagged), verification checklist, approve/reject/escalate with confirmation modal. Emotional anchor card. |
+| F-3 (#39) | Project detail (5-state lifecycle) | `concierge_project_detail.html` | **High** | 5 states: Intake → Permit → Active Build → Transit → Close-out. Stakeholder panel, Track A/B sync, emotional anchor card, coordinator notes. State-switcher demo panel. |
+| F-4 (#40) | Milestone review + fund release | `concierge_milestone_review.html` | Medium | Photo evidence grid (GPS-tagged), verification checklist, approve/reject/escalate with confirmation modal. Emotional anchor card. |
 
 ### Batch 3: Exception Handling
 
@@ -262,7 +262,7 @@ Single screen absorbing both vendor exceptions and buyer disputes from the exist
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| F-5 | Triage detail (exception + dispute) | `concierge_triage_detail.html` | Medium | 2-state: vendor exception (material sub) + buyer dispute (payment delay). Context pane → action pane layout. SLA timer. Confirmation modal on force-payout. |
+| F-5 (#41) | Triage detail (exception + dispute) | `concierge_triage_detail.html` | Medium | 2-state: vendor exception (material sub) + buyer dispute (payment delay). Context pane → action pane layout. SLA timer. Confirmation modal on force-payout. |
 
 ### Batch 4: Communication & Tracking
 
@@ -270,9 +270,9 @@ Fiona's information and coordination screens.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| F-6 | Messages (multi-thread inbox) | `concierge_messages.html` | **High** | Thread list (left) + conversation (right) + emotional anchor sidebar. Template selector with merge fields. Tone indicator badge. System event pills. |
-| F-7 | Permit SLA tracker | `concierge_permit_tracker.html` | Medium | Portfolio-wide permit table with SLA color-coding. Proactive notification drafts. Deficiency alert cards. |
-| F-8 | Crane Day operations | `concierge_crane_day.html` | Medium | Upcoming deliveries list. Pre-delivery checklist. Crane operator assignment. Weather widget. Spectator link generation. |
+| F-6 (#42) | Messages (multi-thread inbox) | `concierge_messages.html` | **High** | Thread list (left) + conversation (right) + emotional anchor sidebar. Template selector with merge fields. Tone indicator badge. System event pills. |
+| F-7 (#43) | Permit SLA tracker | `concierge_permit_tracker.html` | Medium | Portfolio-wide permit table with SLA color-coding. Proactive notification drafts. Deficiency alert cards. |
+| F-8 (#44) | Crane Day operations | `concierge_crane_day.html` | Medium | Upcoming deliveries list. Pre-delivery checklist. Crane operator assignment. Weather widget. Spectator link generation. |
 
 ### Batch 5: Peripheral + Polish
 
@@ -280,8 +280,8 @@ Settings screen and documentation audit.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| F-9 | Concierge settings | `concierge_settings.html` | Low | Shift management, message template library, notification preferences, portfolio overview. |
-| F-10 | RATIONALE.md + cross-link audit | None (documentation) | Low | Overwrite RATIONALE.md with all 9 screen entries. Verify cross-links. Update `concierge_index.html` if filenames changed. |
+| F-9 (#45) | Concierge settings | `concierge_settings.html` | Low | Shift management, message template library, notification preferences, portfolio overview. |
+| F-10 (#46) | RATIONALE.md + cross-link audit | None (documentation) | Low | Overwrite RATIONALE.md with all 9 screen entries. Verify cross-links. Update `concierge_index.html` if filenames changed. |
 
 **Total: 10 issues across 5 batches. 9 screens.**
 
@@ -295,24 +295,24 @@ Issues **across** batches have dependency on the shared chrome established in Ba
 
 ```
 # Batch 1 — Core Console (must merge before Batch 2)
-/new-pr-auto <F-1>   # concierge_index
-/new-pr-auto <F-2>   # concierge_dashboard (refactor)
+/new-pr-auto 37   # F-1: concierge_index
+/new-pr-auto 38   # F-2: concierge_dashboard (refactor)
 
 # Batch 2 — Project Lifecycle
-/new-pr-auto <F-3>   # concierge_project_detail (5-state)
-/new-pr-auto <F-4>   # concierge_milestone_review
+/new-pr-auto 39   # F-3: concierge_project_detail (5-state)
+/new-pr-auto 40   # F-4: concierge_milestone_review
 
 # Batch 3 — Exception Handling
-/new-pr-auto <F-5>   # concierge_triage_detail (2-state)
+/new-pr-auto 41   # F-5: concierge_triage_detail (2-state)
 
 # Batch 4 — Communication & Tracking
-/new-pr-auto <F-6>   # concierge_messages
-/new-pr-auto <F-7>   # concierge_permit_tracker
-/new-pr-auto <F-8>   # concierge_crane_day
+/new-pr-auto 42   # F-6: concierge_messages
+/new-pr-auto 43   # F-7: concierge_permit_tracker
+/new-pr-auto 44   # F-8: concierge_crane_day
 
 # Batch 5 — Peripheral + Polish
-/new-pr-auto <F-9>   # concierge_settings
-/new-pr-auto <F-10>  # RATIONALE.md + cross-link audit
+/new-pr-auto 45   # F-9: concierge_settings
+/new-pr-auto 46   # F-10: RATIONALE.md + cross-link audit
 ```
 
 ### RATIONALE.md Strategy
