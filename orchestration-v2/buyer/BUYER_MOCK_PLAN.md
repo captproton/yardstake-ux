@@ -211,7 +211,7 @@ Annie commits. Phased deposits, Fiona introduction, confetti.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| B-4 | Project agreement + initial deposit | `buyer_project_agreement.html`, `buyer_deposit.html` | Medium | Agreement: phased deposit table, Regrid owner check, 2 checkboxes. Deposit: single CTA → spinner → confetti → Fiona intro. |
+| B-4 ✅ | Project agreement + initial deposit | `buyer_project_agreement.html`, `buyer_deposit.html` | Medium | **Shipped — PR #27 merged 2026-04-05.** |
 
 ### Batch 3: Active Project (Screens 7–9)
 
@@ -262,11 +262,11 @@ Issues **across** batches have cross-link dependencies (later screens reference 
 # /new-pr-auto 23   ✅ DONE — PR #25 merged 2026-04-05
 # /new-pr-auto 24   ✅ DONE — PR #26 merged 2026-04-05
 
-# Batch 2 — Batch 1 complete, ready to run
-/new-pr-auto 14   # buyer_project_agreement + buyer_deposit
+# Batch 2 — ✅ DONE — PR #27 merged 2026-04-05
+# /new-pr-auto 14   ✅ DONE — buyer_project_agreement + buyer_deposit
 
-# Batch 3 — run both in parallel, after Batch 2 merges
-/new-pr-auto 15   # buyer_project_hub (5-state)
+# Batch 3 — Batch 2 complete, ready to run
+/new-pr-auto 15   # buyer_project_hub (5-state) — HIGH complexity
 /new-pr-auto 16   # buyer_milestone_detail + buyer_messages
 
 # Batch 4 — run both in parallel, after Batch 3 merges
