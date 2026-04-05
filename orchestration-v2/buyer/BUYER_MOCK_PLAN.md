@@ -230,7 +230,7 @@ The emotional peak and project wrap-up.
 |---|---|---|---|---|
 | B-7a ✅ | Crane day — scaffold + countdown + set complete | `buyer_crane_day.html` | Low | **Shipped — PR #32 merged 2026-04-04.** Countdown timer, share link, confetti, nav-swap wired. |
 | B-7b ✅ | Crane day — live + spectator states | `buyer_crane_day.html` | **High** | **Shipped — PR #33 merged 2026-04-04.** LIVE badge, GPS tracker, chat loop, spectator content. |
-| B-8 | Project complete + document vault | `buyer_project_complete.html` | Medium | All-green progress bar, CO download, photo archive, review CTA, share story CTA. |
+| B-8 ✅ | Project complete + document vault | `buyer_project_complete.html` | Medium | **Shipped — PR #34 merged 2026-04-04.** |
 
 ### Batch 5: Peripheral Screens (Screens 12–14)
 
@@ -274,7 +274,7 @@ Issues **across** batches have cross-link dependencies (later screens reference 
 # /new-pr-auto 17   → SPLIT into #30 (B-7a) and #31 (B-7b)
 # /new-pr-auto 30   ✅ DONE — PR #32 merged 2026-04-04 — scaffold + countdown + set-complete
 # /new-pr-auto 31   ✅ DONE — PR #33 merged 2026-04-04 — live + spectator states complete
-/new-pr-auto 18   # buyer_project_complete
+# /new-pr-auto 18   ✅ DONE — PR #34 merged 2026-04-04 — buyer_project_complete
 
 # Batch 5 — single issue, after Batch 4 merges
 /new-pr-auto 19   # buyer_notifications + buyer_settings
