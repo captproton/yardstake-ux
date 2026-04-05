@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Agreement — Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    .glass-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226,232,240,0.8); }
+    .gradient-text { background: linear-gradient(to right, #2563EB, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .gradient-bg { background: linear-gradient(135deg, #EFF6FF 0%, #ECFEFF 100%); }
+    main { padding-bottom: 88px; }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+  <!-- Authenticated nav -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+        <span class="text-xl font-bold tracking-tight">Yard<span class="text-cyan-500">stake</span></span>
+      </div>
+      <div class="flex items-center space-x-3">
+        <a href="buyer_messages.html" class="flex items-center space-x-2 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-5 h-5 rounded-full object-cover" alt="Fiona">
+          <span class="text-xs font-bold text-blue-700">Message Fiona</span>
+        </a>
+        <button class="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
+          <i data-lucide="bell" class="w-5 h-5 text-slate-500"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">A</div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-grow">
+
+    <!-- Page header -->
+    <section class="gradient-bg border-b border-slate-200">
+      <div class="max-w-2xl mx-auto px-6 py-10">
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-3">
+          <a href="buyer_configurator.html" class="hover:text-blue-600 transition-colors">Customize</a>
+          <i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <span class="text-slate-800 font-medium">Project Agreement</span>
+        </div>
+        <h1 class="text-2xl font-extrabold text-slate-900 mb-1">Review your project agreement</h1>
+        <p class="text-slate-500 text-sm">Cascadia Studio 480 · 742 SE Morrison St, Portland OR · $172,000 all-in</p>
+      </div>
+    </section>
+
+    <div class="max-w-2xl mx-auto px-6 py-8 space-y-6">
+
+      <!-- Parcel owner verification -->
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-slate-800 mb-0.5">Parcel owner verified</p>
+            <p class="text-xs text-slate-500">Regrid data confirms <span class="font-semibold text-slate-700">Annie K.</span> is the recorded owner of <span class="font-semibold text-slate-700">742 SE Morrison St</span> (Parcel ID: 1N1E36CB-09100). Yardstake has verified this matches your account.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project summary card -->
+      <div class="glass-card rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100">
+          <h2 class="text-sm font-bold text-slate-800">Project Summary</h2>
+        </div>
+        <div class="divide-y divide-slate-50">
+          <div class="px-6 py-3 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Model</span>
+            <span class="text-xs font-semibold text-slate-800">Cascadia Studio 480 · Cascadia Modular, Hillsboro OR</span>
+          </div>
+          <div class="px-6 py-3 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Property</span>
+            <span class="text-xs font-semibold text-slate-800">742 SE Morrison St, Portland OR 97214 · Zone R5</span>
+          </div>
+          <div class="px-6 py-3 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Site GC</span>
+            <span class="text-xs font-semibold text-slate-800">Pacific Foundation Works (Portland/HIL)</span>
+          </div>
+          <div class="px-6 py-3 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Project coordinator</span>
+            <span class="text-xs font-semibold text-slate-800">Fiona (Yardstake)</span>
+          </div>
+          <div class="px-6 py-3 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Estimated timeline</span>
+            <span class="text-xs font-semibold text-slate-800">~6 months permit-to-CO</span>
+          </div>
+          <div class="px-6 py-3 flex items-center justify-between">
+            <span class="text-xs text-slate-500">Platform fee</span>
+            <span class="text-xs font-semibold text-slate-800">5% all-inclusive (included in total)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phased deposit table -->
+      <div class="glass-card rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 class="text-sm font-bold text-slate-800">Phased deposit schedule</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Yardstake holds all funds in escrow. Releases are triggered by verified milestone completion — never in advance.</p>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-6 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wide">Phase</th>
+                <th class="px-6 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wide">Milestone trigger</th>
+                <th class="px-6 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wide">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr class="bg-blue-50/40">
+                <td class="px-6 py-3 font-bold text-blue-700">Today</td>
+                <td class="px-6 py-3 text-slate-600">Initial deposit to start permitting</td>
+                <td class="px-6 py-3 text-right font-bold text-blue-700">$12,000</td>
+              </tr>
+              <tr>
+                <td class="px-6 py-3 font-semibold text-slate-700">Phase 2</td>
+                <td class="px-6 py-3 text-slate-600">Permit issued by City of Portland</td>
+                <td class="px-6 py-3 text-right font-semibold text-slate-700">$20,000</td>
+              </tr>
+              <tr>
+                <td class="px-6 py-3 font-semibold text-slate-700">Phase 3</td>
+                <td class="px-6 py-3 text-slate-600">Foundation pour complete &amp; inspected</td>
+                <td class="px-6 py-3 text-right font-semibold text-slate-700">$35,000</td>
+              </tr>
+              <tr>
+                <td class="px-6 py-3 font-semibold text-slate-700">Phase 4</td>
+                <td class="px-6 py-3 text-slate-600">Factory framing complete (GPS photos)</td>
+                <td class="px-6 py-3 text-right font-semibold text-slate-700">$40,000</td>
+              </tr>
+              <tr>
+                <td class="px-6 py-3 font-semibold text-slate-700">Phase 5</td>
+                <td class="px-6 py-3 text-slate-600">Factory MEP complete &amp; unit ships</td>
+                <td class="px-6 py-3 text-right font-semibold text-slate-700">$30,000</td>
+              </tr>
+              <tr>
+                <td class="px-6 py-3 font-semibold text-slate-700">Phase 6</td>
+                <td class="px-6 py-3 text-slate-600">Unit set on foundation (crane day)</td>
+                <td class="px-6 py-3 text-right font-semibold text-slate-700">$25,000</td>
+              </tr>
+              <tr>
+                <td class="px-6 py-3 font-semibold text-slate-700">Phase 7</td>
+                <td class="px-6 py-3 text-slate-600">Certificate of Occupancy issued</td>
+                <td class="px-6 py-3 text-right font-semibold text-slate-700">$10,000</td>
+              </tr>
+              <tr class="bg-slate-50">
+                <td class="px-6 py-3 font-extrabold text-slate-900" colspan="2">Total project cost</td>
+                <td class="px-6 py-3 text-right font-extrabold text-slate-900">$172,000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-6 py-3 bg-slate-50 border-t border-slate-100">
+          <p class="text-[11px] text-slate-400">Each release requires photo documentation and Fiona's verification sign-off. You'll be notified before any funds move.</p>
+        </div>
+      </div>
+
+      <!-- Key terms -->
+      <div class="glass-card rounded-2xl p-5 space-y-3">
+        <h2 class="text-sm font-bold text-slate-800">Key terms</h2>
+        <div class="space-y-2 text-xs text-slate-600">
+          <div class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>Yardstake holds all funds in a dedicated escrow account and releases payment only upon verified milestone completion.</span></div>
+          <div class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>If a vendor fails to complete a milestone, Yardstake replaces them at no additional cost to you.</span></div>
+          <div class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>Your $49 report fee is credited toward Phase 1 deposit today.</span></div>
+          <div class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>Full cancellation rights before permit issuance (Phase 2). After permit, project costs incurred to date are non-refundable.</span></div>
+          <div class="flex items-start gap-2"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>Yardstake's 5% platform fee covers project coordination, vendor management, escrow, and milestone verification.</span></div>
+        </div>
+      </div>
+
+      <!-- Acknowledgement checkboxes -->
+      <div class="glass-card rounded-2xl p-6 space-y-4">
+        <h2 class="text-sm font-bold text-slate-800 mb-1">Before you continue</h2>
+
+        <label class="flex items-start gap-3 cursor-pointer group">
+          <input type="checkbox" id="check-owner" onchange="checkReady()" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0">
+          <span class="text-xs text-slate-600 group-hover:text-slate-800 transition-colors">I confirm I am the legal owner of 742 SE Morrison St, Portland OR 97214, and I have the authority to authorize construction on this property.</span>
+        </label>
+
+        <label class="flex items-start gap-3 cursor-pointer group">
+          <input type="checkbox" id="check-terms" onchange="checkReady()" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0">
+          <span class="text-xs text-slate-600 group-hover:text-slate-800 transition-colors">I have read and agree to the phased deposit schedule above. I understand that Yardstake holds funds in escrow and releases payment only upon verified milestone completion.</span>
+        </label>
+
+        <div id="cta-note" class="text-[11px] text-slate-400 pt-1">Check both boxes above to continue.</div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Sticky footer CTA -->
+  <div class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-lg">
+    <div class="max-w-2xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold text-slate-800">Initial deposit due today</p>
+        <p class="text-xl font-extrabold gradient-text">$12,000</p>
+      </div>
+      <a id="proceed-btn" href="buyer_deposit.html"
+        class="flex items-center gap-2 bg-slate-300 text-white font-bold text-sm px-6 py-3 rounded-xl transition-colors pointer-events-none"
+        aria-disabled="true"
+      >
+        Proceed to Deposit
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function checkReady() {
+      const ownerChecked = document.getElementById('check-owner').checked;
+      const termsChecked = document.getElementById('check-terms').checked;
+      const btn = document.getElementById('proceed-btn');
+      const note = document.getElementById('cta-note');
+
+      if (ownerChecked && termsChecked) {
+        btn.classList.remove('bg-slate-300', 'pointer-events-none');
+        btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        btn.removeAttribute('aria-disabled');
+        note.textContent = "You're all set — proceed when ready.";
+        note.classList.remove('text-slate-400');
+        note.classList.add('text-emerald-600', 'font-semibold');
+      } else {
+        btn.classList.add('bg-slate-300', 'pointer-events-none');
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        btn.setAttribute('aria-disabled', 'true');
+        note.textContent = 'Check both boxes above to continue.';
+        note.classList.add('text-slate-400');
+        note.classList.remove('text-emerald-600', 'font-semibold');
+      }
+    }
+  </script>
+</body>
+</html>
