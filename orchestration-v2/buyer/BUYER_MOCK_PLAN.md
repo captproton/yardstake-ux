@@ -219,7 +219,7 @@ The core long-duration experience. This is where Annie lives for 6–12 months.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| B-5 | Project hub (5-state command center) | `buyer_project_hub.html` | **High** | 5 states (permit → foundation → factory → transit → utility). Absorbs content from existing `buyer_dashboard.html`. Delete `buyer_dashboard.html` after build. Add secondary tab bar. State-switcher demo panel. |
+| B-5 ✅ | Project hub (5-state command center) | `buyer_project_hub.html` | **High** | **Shipped — PR #28 merged 2026-04-04.** `buyer_dashboard.html` deleted. |
 | B-6 | Milestone detail + messages | `buyer_milestone_detail.html`, `buyer_messages.html` | Medium | Milestone: photo gallery + verification checklist. Messages: single Fiona thread + system event pills + quick-reply chips. |
 
 ### Batch 4: Delivery & Completion (Screens 10–11)
@@ -266,7 +266,7 @@ Issues **across** batches have cross-link dependencies (later screens reference 
 # /new-pr-auto 14   ✅ DONE — buyer_project_agreement + buyer_deposit
 
 # Batch 3 — Batch 2 complete, ready to run
-/new-pr-auto 15   # buyer_project_hub (5-state) — HIGH complexity
+# /new-pr-auto 15   ✅ DONE — PR #28 merged 2026-04-04 — buyer_project_hub (5-state), buyer_dashboard deleted
 /new-pr-auto 16   # buyer_milestone_detail + buyer_messages
 
 # Batch 4 — run both in parallel, after Batch 3 merges
