@@ -1,22 +1,138 @@
 # Rationale: Buyer UX under the Orchestration Model
 
 **Location:** `user_experience/orchestration-v2/buyer/`
+**Persona:** "Anxious Annie" — Portland homeowner, 742 SE Morrison St, Zone R5
+**Suite:** 13 production-quality HTML mocks across 6 batches (`buyer_dashboard.html` superseded by PR #28)
 
-This document correlates the UI features seen in the `buyer_dashboard.html` mock to the core business logic of the Yardstake Phase 2 Orchestration Model. Under this newer model, the buyer (Annie) is no longer purchasing lead information—she is experiencing a seamless, frictionless e-commerce project run entirely by Yardstake as a "wedding planner."
+This document records the design rationale for each screen in the buyer mock suite. It explains how each UI feature connects to the core business logic of the Yardstake Phase 2 Orchestration Model, where the buyer experiences a fully managed "wedding planner" service — not a marketplace. Each entry documents key UI features and the specific product reasoning behind design choices that might otherwise appear arbitrary.
 
-### Key UI Features & Rationale
+**Design System Summary:**
+- Background: `#F8FAFC` (light warm) — Annie is a homeowner on a laptop, not a factory worker
+- Cards: `rgba(255,255,255,0.9)` glass with blur — airy, trustworthy
+- Accent: blue-to-cyan gradient (`#2563EB → #06B6D4`) — calm, forward motion
+- Typography: Plus Jakarta Sans · Icons: Lucide · No dark mode
 
-*   **The "Three-Bucket" Ledger**
-    *   *UI Feature:* Separate, transparent cost breakdowns for "The Box" (Fixed Cost), "The Dirt" (Variable Allowance), and "The Red Tape" (Variable Allowance).
-    *   *Rationale:* A key reason ADU buyers abandon deals is sticker shock and contractor miscommunication. By splitting the fixed factory cost from the variable site-prep costs, Annie knows exactly what is guaranteed. This aligns with the Orchestration model's need to capture a single $150K+ project funding pool using clean, transparent accounting.
-    
-*   **The "Move That Bus" Project Tracker**
-    *   *UI Feature:* Two parallel visual progress bars for "Track A: Factory Build" and "Track B: Site Preparation".
-    *   *Rationale:* This solves the primary anxiety of ADU builds: coordinating the factory timeline with the groundwork timeline. Yardstake actually manages this complex coordination behind the scenes, but by visualizing it beautifully, the user feels actively informed and in control without lifting a finger.
-    
-*   **Milestone Photo Approvals**
-    *   *UI Feature:* Actionable widget requiring Annie to review GPS/Timestamped photos of site progress to click "Approve & Release Funds."
-    *   *Rationale:* Replaces messy email invoicing and contractor chasing. This creates absolute transparency and gives the buyer a feeling of ultimate agency, all while efficiently maintaining the tight milestone-draw schedule required by lenders and our Stripe platform accounts.
+---
+
+## Screen 1: `buyer_landing.html`
+
+**File:** `orchestration-v2/buyer/buyer_landing.html`
+
+**UI Features:**
+- Pre-auth minimal nav (logo + "Sign in" link only — no project chrome)
+- City stats bar: 847 qualifying Portland parcels, 6-month avg build, from $150K
+- Address autocomplete input with "Check My Address — Free" CTA
+- `runCheck()` triggers 1.5s simulated fetch → result card slides up inline (no page change)
+- Confidence tier badge ("Likely Qualifies", emerald) + zone, buildable sq ft, permit type stats
+- $49 report upsell card with bullet list and CTA — appears only after positive result
+- "Free check — no account required" microcopy beneath input
+
+**Rationale:** The landing page must perform a single job in under 5 seconds: turn "Can I even do this?" into "Oh wow, I might actually be able to do this." The inline result — no redirect, no form, no account — collapses the time between curiosity and confidence. The confidence tier badge uses "Likely Qualifies" rather than "Approved" because ADU eligibility is multi-factor; but "likely" rather than "possible" is intentional — Annie needs optimism, not legal hedging. The $49 upsell appears only after the validating moment, not before: it earns its place by immediately following the positive result rather than demanding money upfront.
+
+---
+
+## Screen 2: `buyer_report.html`
+
+**File:** `orchestration-v2/buyer/buyer_report.html`
+
+**UI Features:**
+- Post-purchase authenticated nav (Fiona chip, bell, "A" avatar) — report implies purchase
+- "Your Portland ADU Feasibility Report" hero heading with address + purchase date
+- "Download PDF" button with toast confirmation
+- 4-stat parcel grid (Zone, Buildable Area, Permit Type, Est. Timeline)
+- Buildable envelope section with setback calculations, 800 sq ft result
+- Three-bucket cost breakdown: The Box ($125K fixed), The Dirt ($35K variable allowance), The Red Tape ($12K variable)
+- Portland-specific permit pathway (administrative review, no discretionary hearing required)
+- Oregon financing guide (HELOC, OHCS, FHA 203k) with estimated monthly payment
+- Matched model preview cards → "View Details" / "Start My Project →" dual CTAs
+
+**Rationale:** The feasibility report is the pivot point of the funnel — Annie paid $49 and is looking for justification. The three-bucket breakdown is the central trust mechanic: separating the fixed factory cost from the variable site costs reframes the all-in number from "scary $172K" to "I know exactly what I'm signing up for." The financing section is actionable, not marketing copy — specific loan products available to a Portland homeowner in 2026. The matched model cards at the bottom are a deliberate conversion mechanism: the report ends with Annie already seeing her options, momentum intact.
+
+---
+
+## Screen 3: `buyer_models.html`
+
+**File:** `orchestration-v2/buyer/buyer_models.html`
+
+**UI Features:**
+- "3 models match your lot" heading with parcel spec breadcrumb (zone, buildable sq ft, address)
+- "Best Match for Your Lot" ribbon on Cascadia Studio 480 (primary model)
+- Each card: hero photo, model specs (1BR/1BA/480sqft/modular), unit price in gradient text, all-in total with three-bucket sub-breakdown, verified partner badge
+- Site GC assignment callout per model (Pacific Foundation Works named + rationale)
+- Dual CTAs per card: "View Details" → configurator, "Start My Project →" → agreement
+- "Ask Fiona" chip in page-level footer banner
+
+**Rationale:** Three options is intentional — enough to feel like real choice, not so many that Annie spends an hour comparing. The "Best Match" ribbon eliminates the blank-slate problem by giving Annie a recommended starting point she can deviate from. The Site GC callout is a detail no competitor shows: it tells Annie that Cascadia Modular and Pacific Foundation Works have already worked together on her unit type, removing the hidden anxiety that "the site crew won't know what to do with a factory-built unit."
+
+---
+
+## Screen 4: `buyer_configurator.html`
+
+**File:** `orchestration-v2/buyer/buyer_configurator.html`
+
+**UI Features:**
+- Sticky header: model name, base price, live upgrade delta, running total (gradient text)
+- 5 collapsible sections: Exterior (expanded by default), Kitchen, Bathroom, Flooring & Interior, Add-ons
+- Collapsed sections show "Standard included · (customize)" — no cognitive load until opened
+- Pick-one categories: radio-card pattern — selecting one auto-deselects previous; selected card gets blue ring, others dim to 60%
+- Add-on categories: checkbox cards — independent selection, each shows +$N delta
+- Color categories: large CSS swatch cards (color IS the visual — no photo needed)
+- "Included" emerald badge on default/standard options
+- "Confirm Selections & Continue →" sticky footer with running total — always visible
+
+**Rationale:** The configurator is the "I'm designing MY home" emotional transition. The single-expand-by-default design paces Annie: Exterior is where she'll spend the most time, and opening everything at once creates an overwhelming wall of options. The running total in the sticky header is continuously visible to prevent checkout sticker shock — Annie sees her $1,200 board-and-batten upgrade added immediately. The "Included" badge on defaults communicates that the base model is already high-quality, not a stripped compromise requiring upgrades to be livable.
+
+---
+
+## Screen 5: `buyer_project_agreement.html`
+
+**File:** `orchestration-v2/buyer/buyer_project_agreement.html`
+
+**UI Features:**
+- Parcel owner verification strip (Regrid cross-check result displayed inline — "Regrid confirms Annie K. is the recorded owner")
+- Project summary table: manufacturer, property address, Site GC, Fiona, timeline, platform fee
+- Phased deposit schedule table: Permit ($5K) → Foundation ($25K) → Factory ($100K) → Delivery (remaining), each with trigger condition
+- "How This Works" explainer: 4-bullet managed model overview
+- Two required checkboxes (property authorization + agreement to terms); "Continue →" activates only when both checked
+- Breadcrumb: Models → Customize → Agreement (current)
+
+**Rationale:** The agreement page's job is to make Annie feel informed and protected, not pressured. The Regrid property verification strip surfaces a data cross-check Yardstake runs invisibly — telling Annie that the platform did its homework before asking for money. The phased deposit schedule is the anxiety killer: showing the full payment structure upfront with exact trigger conditions tells Annie that no money moves without something happening first. The two-checkbox gate forces Annie to read and acknowledge both authorization and terms, reducing buyer's remorse and dispute risk.
+
+---
+
+## Screen 6: `buyer_deposit.html`
+
+**File:** `orchestration-v2/buyer/buyer_deposit.html`
+
+**UI Features:**
+- Two-state machine: `idle` (deposit form) and `confirmed` (success)
+- Idle: order summary (report credit deducted, phase 1 deposit, due-today total), trust copy ("Funds held in Yardstake escrow — released only when permitting begins"), "Authorize Deposit →" CTA
+- Processing: 1.5s spinner with "Securing your funds…" copy
+- Confirmed: CSS confetti burst (40 pieces, varied colors/rotation) via `spawnConfetti()`
+- Fiona introduction card: avatar + "I'm Fiona, your project coordinator" + phone/SMS note
+- Next-steps timeline: 3 bullets (Fiona contacts within 24h, permit filed within 1 week, GC scheduled after permit)
+- "Go to Project Hub →" primary CTA
+
+**Rationale:** The deposit screen is the moment Annie stops researching and becomes a customer. The trust copy appears directly adjacent to the payment amount — answering the anxiety at its peak rather than burying it in terms. The 1.5s spinner is intentional: an instant transition feels fake; a brief pause signals something real is happening. The confetti + Fiona introduction is the emotional payoff — confetti says "congratulations, you did it," and Fiona immediately answers "what happens next?" The report credit deduction ($49 shown as already paid) makes Annie feel her earlier purchase was meaningful, reinforcing commitment rather than treating it as a separate transaction.
+
+---
+
+## Screen 7: `buyer_project_hub.html`
+
+**File:** `orchestration-v2/buyer/buyer_project_hub.html`
+
+**UI Features:**
+- 5-state machine: `permit` → `foundation` → `factory` → `transit` → `utility`
+- State switcher panel (dashed-border demo tool) with named buttons per phase
+- All states share: authenticated nav, secondary tab bar (My Project active), permit number subheading
+- **State 1 — Permit:** BDS filing status card, what-happens-next timeline, Fiona quote card
+- **State 2 — Foundation:** $25K deposit request action card (with trigger explained), Pacific Foundation Works update photo, funds summary tiles
+- **State 3 — Factory:** Dual-track "Move That Bus" progress bars (Factory Build % + Site Preparation % in parallel), milestone photo approval widget, three-bucket ledger
+- **State 4 — Transit:** In-transit banner with GPS progress bar (truck marker ~72%), crane day countdown, Fiona note
+- **State 5 — Utility:** Utility hookup status card, inspection scheduling, all-green summary, link to project complete
+- Each state renders a different milestone stepper (1–5 of 5 nodes lit)
+
+**Rationale:** The project hub is where Annie lives for 6–12 months — it's the screen she opens first thing in the morning when she's anxious. The 5-state architecture ensures she always sees exactly what's happening today, what triggered the current state, and what happens next. The "Move That Bus" dual-track progress in State 3 is the central tension-relief mechanism: Annie was told factory build and site prep happen in parallel, and seeing both tracks advance simultaneously proves that Yardstake is actually managing the coordination. The milestone photo approval gives Annie a moment of genuine agency — clicking "Approve & Release" on photographic evidence makes fund release feel earned rather than automatic.
 
 ---
 
