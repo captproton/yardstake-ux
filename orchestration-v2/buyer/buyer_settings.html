@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Yardstake</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    .glass-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border: 1px solid rgba(226,232,240,0.8); }
+    .gradient-text { background: linear-gradient(to right, #2563EB, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    /* Toggle switch */
+    .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background: #CBD5E1; border-radius: 24px; transition: 0.2s;
+    }
+    .slider:before {
+      position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    input:checked + .slider { background: #2563EB; }
+    input:checked + .slider:before { transform: translateX(20px); }
+    /* Section nav */
+    .section-link { transition: all 0.15s ease; }
+    .section-link.active { background: #EFF6FF; color: #1D4ED8; font-weight: 600; }
+    .section-link:not(.active):hover { background: #F8FAFC; }
+    #toast { transition: opacity 0.3s ease, transform 0.3s ease; }
+    /* Input focus */
+    input[type="text"], input[type="email"], input[type="tel"] {
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type="text"]:focus, input[type="email"]:focus, input[type="tel"]:focus {
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-xl z-[100] opacity-0 pointer-events-none translate-y-2">
+    Settings saved ✓
+  </div>
+
+  <!-- Authenticated nav -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+        <span class="text-xl font-bold tracking-tight">Yard<span class="text-cyan-500">stake</span></span>
+      </div>
+      <div class="flex items-center space-x-3">
+        <a href="buyer_messages.html" class="flex items-center space-x-2 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors">
+          <img src="https://i.pravatar.cc/100?img=32" class="w-5 h-5 rounded-full object-cover" alt="Fiona">
+          <span class="text-xs font-bold text-blue-700">Message Fiona</span>
+        </a>
+        <button class="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
+          <i data-lucide="bell" class="w-5 h-5 text-slate-500"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+        </button>
+        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">A</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Secondary tab bar -->
+  <div class="bg-white border-b border-slate-200 sticky top-16 z-40">
+    <div class="max-w-7xl mx-auto px-6 flex space-x-8">
+      <a href="buyer_project_hub.html" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">My Project</a>
+      <a href="buyer_report.html" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">My Report</a>
+      <a href="buyer_messages.html" class="py-3 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors whitespace-nowrap">Messages</a>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
+
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-slate-900">Settings</h1>
+      <p class="text-sm text-slate-500 mt-0.5">Manage your account, notifications, and security preferences</p>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-6">
+
+      <!-- Sidebar nav -->
+      <nav class="md:w-52 flex-shrink-0">
+        <ul class="space-y-1">
+          <li>
+            <button onclick="showSection('profile')" id="nav-profile" class="section-link active w-full text-left flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm">
+              <i data-lucide="user" class="w-4 h-4"></i>
+              <span>Profile</span>
+            </button>
+          </li>
+          <li>
+            <button onclick="showSection('payment')" id="nav-payment" class="section-link w-full text-left flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm text-slate-600">
+              <i data-lucide="credit-card" class="w-4 h-4"></i>
+              <span>Payment Methods</span>
+            </button>
+          </li>
+          <li>
+            <button onclick="showSection('notifprefs')" id="nav-notifprefs" class="section-link w-full text-left flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm text-slate-600">
+              <i data-lucide="bell" class="w-4 h-4"></i>
+              <span>Notifications</span>
+            </button>
+          </li>
+          <li>
+            <button onclick="showSection('security')" id="nav-security" class="section-link w-full text-left flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm text-slate-600">
+              <i data-lucide="shield" class="w-4 h-4"></i>
+              <span>Security</span>
+            </button>
+          </li>
+          <li>
+            <button onclick="showSection('documents')" id="nav-documents" class="section-link w-full text-left flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm text-slate-600">
+              <i data-lucide="folder" class="w-4 h-4"></i>
+              <span>Documents</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Content area -->
+      <div class="flex-1">
+
+        <!-- Profile section -->
+        <section id="section-profile" class="glass-card rounded-2xl p-6">
+          <div class="flex items-center space-x-4 mb-6">
+            <div class="relative">
+              <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-2xl font-bold">A</div>
+              <button class="absolute -bottom-1 -right-1 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-sm hover:bg-slate-50">
+                <i data-lucide="camera" class="w-3 h-3 text-slate-600"></i>
+              </button>
+            </div>
+            <div>
+              <p class="font-bold text-slate-900">Annie Morrison</p>
+              <p class="text-sm text-slate-500">742 SE Morrison St · Portland, OR</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">First name</label>
+                <input type="text" value="Annie" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 bg-white">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Last name</label>
+                <input type="text" value="Morrison" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 bg-white">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Email address</label>
+              <input type="email" value="annie.morrison@example.com" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Phone number</label>
+              <input type="tel" value="(503) 555-0142" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Property address</label>
+              <input type="text" value="742 SE Morrison St, Portland, OR 97214" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 bg-slate-50" readonly>
+              <p class="text-xs text-slate-400 mt-1">Contact support to update your project address.</p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">
+              Save changes
+            </button>
+          </div>
+        </section>
+
+        <!-- Payment Methods section -->
+        <section id="section-payment" class="hidden glass-card rounded-2xl p-6">
+          <h2 class="text-base font-bold text-slate-900 mb-5">Payment Methods</h2>
+
+          <div class="space-y-3 mb-5">
+            <!-- Primary card -->
+            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-7 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-md flex items-center justify-center">
+                  <span class="text-white text-xs font-bold">VISA</span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Visa ending in 4242</p>
+                  <p class="text-xs text-slate-500">Expires 09/2028</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">Primary</span>
+                <button class="text-xs text-slate-400 hover:text-slate-600 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100">Remove</button>
+              </div>
+            </div>
+
+            <!-- Secondary card -->
+            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-7 bg-gradient-to-br from-slate-600 to-slate-800 rounded-md flex items-center justify-center">
+                  <span class="text-white text-xs font-bold">MC</span>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Mastercard ending in 8731</p>
+                  <p class="text-xs text-slate-500">Expires 03/2027</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button class="text-xs text-slate-500 hover:text-blue-600 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100">Set primary</button>
+                <button class="text-xs text-slate-400 hover:text-slate-600 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="saveSettings()" class="flex items-center space-x-2 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors border border-blue-200 hover:border-blue-400 px-4 py-2.5 rounded-xl">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add payment method</span>
+          </button>
+
+          <p class="text-xs text-slate-400 mt-4">Payments are processed securely. Yardstake never stores your full card number.</p>
+        </section>
+
+        <!-- Notification Preferences section -->
+        <section id="section-notifprefs" class="hidden glass-card rounded-2xl p-6">
+          <h2 class="text-base font-bold text-slate-900 mb-1">Notification Preferences</h2>
+          <p class="text-sm text-slate-500 mb-5">Choose how and when you hear from us about your project.</p>
+
+          <div class="space-y-5">
+            <!-- Category: Milestones -->
+            <div>
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Milestones</p>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Milestone verified</p>
+                    <p class="text-xs text-slate-500">When Fiona confirms a build phase is complete</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">Email</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">SMS</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between py-2 border-t border-slate-100">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Upcoming milestone reminder</p>
+                    <p class="text-xs text-slate-500">48-hour heads-up before a scheduled milestone</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">Email</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">SMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Category: Payments -->
+            <div>
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Payments</p>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Payment released</p>
+                    <p class="text-xs text-slate-500">When escrow releases funds to a contractor</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">Email</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">SMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Category: Messages -->
+            <div>
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">Messages</p>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">New message from Fiona</p>
+                    <p class="text-xs text-slate-500">When your advisor sends you a message</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">Email</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">SMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Category: Marketing -->
+            <div>
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">General</p>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between py-2">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Project updates digest</p>
+                    <p class="text-xs text-slate-500">Weekly summary of project activity</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">Email</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                      <label class="toggle"><input type="checkbox"><span class="slider"></span></label>
+                      <span class="text-xs text-slate-500">SMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">
+              Save preferences
+            </button>
+          </div>
+        </section>
+
+        <!-- Security section -->
+        <section id="section-security" class="hidden glass-card rounded-2xl p-6">
+          <h2 class="text-base font-bold text-slate-900 mb-5">Security</h2>
+
+          <div class="space-y-4">
+            <!-- Password -->
+            <div class="p-4 border border-slate-200 rounded-xl bg-white">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+                    <i data-lucide="lock" class="w-4 h-4 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Password</p>
+                    <p class="text-xs text-slate-500">Last changed 6 months ago</p>
+                  </div>
+                </div>
+                <button onclick="saveSettings()" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">Change</button>
+              </div>
+            </div>
+
+            <!-- 2FA -->
+            <div class="p-4 border border-slate-200 rounded-xl bg-white">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <i data-lucide="smartphone" class="w-4 h-4 text-emerald-600"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">Two-factor authentication</p>
+                    <p class="text-xs text-emerald-600 font-semibold">Enabled via SMS to (503) ···-0142</p>
+                  </div>
+                </div>
+                <button onclick="saveSettings()" class="text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">Manage</button>
+              </div>
+            </div>
+
+            <!-- Active sessions -->
+            <div class="p-4 border border-slate-200 rounded-xl bg-white">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+                    <i data-lucide="monitor" class="w-4 h-4 text-slate-600"></i>
+                  </div>
+                  <p class="text-sm font-semibold text-slate-800">Active sessions</p>
+                </div>
+                <button onclick="saveSettings()" class="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors">Sign out all</button>
+              </div>
+              <div class="space-y-2 pl-11">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-700 font-medium">MacBook Pro · Portland, OR</span>
+                  <span class="text-emerald-600 font-semibold">Current</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-500">iPhone 15 · Portland, OR</span>
+                  <span class="text-slate-400">2 days ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Documents section -->
+        <section id="section-documents" class="hidden glass-card rounded-2xl p-6">
+          <h2 class="text-base font-bold text-slate-900 mb-1">Documents</h2>
+          <p class="text-sm text-slate-500 mb-5">Your project's legal and compliance documents.</p>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 transition-colors cursor-pointer" onclick="saveSettings()">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Project Agreement</p>
+                  <p class="text-xs text-slate-500">Signed Jan 18, 2026 · PDF</p>
+                </div>
+              </div>
+              <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+            </div>
+
+            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 transition-colors cursor-pointer" onclick="saveSettings()">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center">
+                  <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Escrow Instructions</p>
+                  <p class="text-xs text-slate-500">Signed Jan 20, 2026 · PDF</p>
+                </div>
+              </div>
+              <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+            </div>
+
+            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 transition-colors cursor-pointer" onclick="saveSettings()">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-violet-50 rounded-lg flex items-center justify-center">
+                  <i data-lucide="clipboard-list" class="w-5 h-5 text-violet-600"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Feasibility Report</p>
+                  <p class="text-xs text-slate-500">Generated Jan 15, 2026 · PDF</p>
+                </div>
+              </div>
+              <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+            </div>
+
+            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 transition-colors cursor-pointer" onclick="saveSettings()">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-orange-50 rounded-lg flex items-center justify-center">
+                  <i data-lucide="home" class="w-5 h-5 text-orange-600"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Building Permit #2026-04-1822</p>
+                  <p class="text-xs text-slate-500">Issued Jan 22, 2026 · PDF</p>
+                </div>
+              </div>
+              <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-400 mt-5">For project completion documents including Certificate of Occupancy, visit <a href="buyer_project_complete.html" class="text-blue-500 hover:underline">My Project → Project Complete</a>.</p>
+        </section>
+
+      </div><!-- /content area -->
+    </div><!-- /flex -->
+  </main>
+
+  <script>
+    const SECTIONS = ['profile', 'payment', 'notifprefs', 'security', 'documents'];
+
+    function showSection(id) {
+      SECTIONS.forEach(s => {
+        document.getElementById(`section-${s}`).classList.toggle('hidden', s !== id);
+        const nav = document.getElementById(`nav-${s}`);
+        if (s === id) {
+          nav.classList.add('active');
+          nav.classList.remove('text-slate-600');
+        } else {
+          nav.classList.remove('active');
+          nav.classList.add('text-slate-600');
+        }
+      });
+      lucide.createIcons();
+    }
+
+    function saveSettings() {
+      const toast = document.getElementById('toast');
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2500);
+    }
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
