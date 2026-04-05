@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join as a Builder | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+        .state { display: none; }
+        .state.active { display: block; }
+        @keyframes count-up { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        .stat-animate { animation: count-up 0.5s ease-out forwards; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col bg-[url('https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center bg-fixed bg-no-repeat bg-blend-overlay" style="background-color: rgba(15, 23, 42, 0.92);">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="../public/index.html" class="flex items-center space-x-2 group">
+                <i data-lucide="home" class="w-5 h-5 text-blue-500"></i>
+                <span class="text-xl font-bold tracking-tight text-white">Yard<span class="text-cyan-400">stake</span></span>
+            </a>
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:block text-xs font-bold text-slate-500 uppercase tracking-widest">Builder Program</span>
+                <a href="activation_wizard.html" class="text-xs font-bold text-slate-400 hover:text-white transition-colors">Already approved? Sign in</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- STATE 1: Value Pitch + Application Form -->
+    <div id="state-apply" class="state active">
+
+        <!-- Hero -->
+        <section class="max-w-5xl mx-auto px-6 pt-16 pb-12 text-center">
+            <div class="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-1.5 text-xs font-bold text-emerald-400 mb-6">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Oregon Beta — Accepting builders for Portland Q3 2026</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight max-w-3xl mx-auto">
+                Stop chasing leads.<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">Start building.</span>
+            </h1>
+            <p class="mt-5 text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                Yardstake handles sales, buyer financing, and project coordination. You focus on what you do best — manufacturing quality ADUs. Get paid via milestone draws, not invoices.
+            </p>
+        </section>
+
+        <!-- Stats Strip -->
+        <section class="max-w-4xl mx-auto px-6 pb-12">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass-card rounded-2xl p-5 text-center stat-animate" style="animation-delay: 0s">
+                    <p class="text-3xl font-black text-white">847</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Qualifying Parcels</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Portland R5 alone</p>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center stat-animate" style="animation-delay: 0.1s">
+                    <p class="text-3xl font-black text-emerald-400">5%</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Platform Fee</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Flat, transparent</p>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center stat-animate" style="animation-delay: 0.2s">
+                    <p class="text-3xl font-black text-blue-400">&lt;4hr</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Payout Speed</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">Photo verified draws</p>
+                </div>
+                <div class="glass-card rounded-2xl p-5 text-center stat-animate" style="animation-delay: 0.3s">
+                    <p class="text-3xl font-black text-amber-400">0</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Sales Calls</p>
+                    <p class="text-[10px] text-slate-500 mt-0.5">We handle everything</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Strip -->
+        <section class="max-w-4xl mx-auto px-6 pb-12">
+            <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest text-center mb-6">How the Builder Program Works</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="w-10 h-10 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="clipboard-check" class="w-5 h-5 text-blue-400"></i>
+                    </div>
+                    <h3 class="font-bold text-white text-sm mb-1">1. Apply & Get Vetted</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Submit your company details below. Our team reviews production capacity, quality standards, and service coverage within 3 business days.</p>
+                </div>
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="settings" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <h3 class="font-bold text-white text-sm mb-1">2. Activate & Set Pricing</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Once approved, complete the Activation Wizard — accept terms, connect Stripe, set your net pricing, and refer a preferred site GC.</p>
+                </div>
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center mb-4">
+                        <i data-lucide="banknote" class="w-5 h-5 text-amber-400"></i>
+                    </div>
+                    <h3 class="font-bold text-white text-sm mb-1">3. Build & Get Paid</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Orders route to your Kanban. Snap GPS-tagged milestone photos, unlock draws instantly via Stripe Connect. No invoices, no chasing.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Application Form -->
+        <section class="max-w-2xl mx-auto px-6 pb-20">
+            <div class="glass-card rounded-[2rem] overflow-hidden shadow-2xl">
+
+                <div class="bg-slate-900/80 p-8 border-b border-slate-700/50 text-center">
+                    <h2 class="text-2xl font-black text-white">Apply to the Builder Program</h2>
+                    <p class="text-sm text-slate-400 mt-2">Takes about 3 minutes. We'll review and respond within 3 business days.</p>
+                </div>
+
+                <form id="apply-form" class="p-8 space-y-6 bg-slate-800/50">
+
+                    <!-- Company Info -->
+                    <div>
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
+                            <i data-lucide="building-2" class="w-3.5 h-3.5 mr-2 text-blue-400"></i> Company Information
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Company Name *</label>
+                                <input type="text" placeholder="e.g. Cascade ADU Works" required
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Contact Name *</label>
+                                    <input type="text" placeholder="Mike Johnson" required
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Title / Role *</label>
+                                    <input type="text" placeholder="Owner, President, etc."
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Email *</label>
+                                    <input type="email" placeholder="mike@cascadeadu.com" required
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Phone *</label>
+                                    <input type="tel" placeholder="(555) 123-4567" required
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Production Details -->
+                    <div class="pt-4 border-t border-slate-700/50">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
+                            <i data-lucide="factory" class="w-3.5 h-3.5 mr-2 text-emerald-400"></i> Production Details
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Factory Location *</label>
+                                <input type="text" placeholder="e.g. 1234 Industrial Way, Salem, OR 97301" required
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Construction Type *</label>
+                                    <select required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none">
+                                        <option value="" class="text-slate-600">Select type...</option>
+                                        <option>Modular (Volumetric)</option>
+                                        <option>Panelized</option>
+                                        <option>Hybrid (Modular + Site-Built)</option>
+                                        <option>Manufactured (HUD Code)</option>
+                                        <option>Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Monthly Capacity *</label>
+                                    <select required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none">
+                                        <option value="" class="text-slate-600">Select range...</option>
+                                        <option>1–2 units / month</option>
+                                        <option>3–5 units / month</option>
+                                        <option>6–10 units / month</option>
+                                        <option>10+ units / month</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Unit Types & Size Range *</label>
+                                <textarea rows="2" placeholder="e.g. Studio (400-500 sqft), 1BD (500-700 sqft), 2BD (700-1000 sqft)"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600 resize-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Service Coverage -->
+                    <div class="pt-4 border-t border-slate-700/50">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-2 text-amber-400"></i> Service Coverage
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Delivery Radius *</label>
+                                <select required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors appearance-none">
+                                    <option value="" class="text-slate-600">Select radius...</option>
+                                    <option>Under 50 miles</option>
+                                    <option>50–150 miles</option>
+                                    <option>150–300 miles</option>
+                                    <option>300+ miles (statewide / regional)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Target Metro Areas <span class="text-slate-600 font-normal normal-case">(check all that apply)</span></label>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="checkbox" checked class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800">
+                                        <span class="text-sm text-slate-300 group-hover:text-white transition-colors">Portland</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800">
+                                        <span class="text-sm text-slate-300 group-hover:text-white transition-colors">Eugene</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800">
+                                        <span class="text-sm text-slate-300 group-hover:text-white transition-colors">Bend</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800">
+                                        <span class="text-sm text-slate-300 group-hover:text-white transition-colors">Salem</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800">
+                                        <span class="text-sm text-slate-300 group-hover:text-white transition-colors">Corvallis</span>
+                                    </label>
+                                    <label class="flex items-center space-x-2 cursor-pointer group">
+                                        <input type="checkbox" class="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800">
+                                        <span class="text-sm text-slate-300 group-hover:text-white transition-colors">Medford</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Existing Relationships -->
+                    <div class="pt-4 border-t border-slate-700/50">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
+                            <i data-lucide="users" class="w-3.5 h-3.5 mr-2 text-purple-400"></i> Existing Partnerships <span class="text-slate-600 font-normal normal-case ml-2">(optional)</span>
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Do you have a preferred Site GC?</label>
+                                <input type="text" placeholder="e.g. Backyard Bill Excavations LLC — we'll fast-track their activation"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Website or Portfolio Link</label>
+                                <input type="url" placeholder="https://cascadeadu.com"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Anything else we should know?</label>
+                                <textarea rows="3" placeholder="Current lead pipeline, certifications, past ADU projects..."
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors placeholder-slate-600 resize-none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="pt-6">
+                        <button type="button" onclick="submitApplication()" id="submit-btn"
+                            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center text-base">
+                            <i data-lucide="send" class="w-5 h-5 mr-2"></i> Submit Application
+                        </button>
+                        <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-4">
+                            No commitment. No fees until your first order ships.
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+
+    <!-- STATE 2: Application Under Review -->
+    <div id="state-review" class="state">
+        <div class="max-w-xl mx-auto px-6 py-24 text-center">
+
+            <div class="glass-card rounded-[2rem] p-12 shadow-2xl">
+
+                <div class="w-20 h-20 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="clock" class="w-10 h-10 text-blue-400"></i>
+                </div>
+
+                <h1 class="text-3xl font-black text-white mb-3">Application Received</h1>
+                <p class="text-slate-400 leading-relaxed max-w-sm mx-auto">
+                    Our partner team will review your application and reach out within <strong class="text-white">3 business days</strong>.
+                </p>
+
+                <!-- Submitted Summary -->
+                <div class="mt-8 bg-slate-900 border border-slate-700 rounded-2xl p-6 text-left space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Company</span>
+                        <span class="text-sm font-bold text-white" id="summary-company">Cascade ADU Works</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Contact</span>
+                        <span class="text-sm text-slate-300" id="summary-contact">mike@cascadeadu.com</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Status</span>
+                        <span class="bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase px-2 py-1 rounded border border-amber-500/20 flex items-center space-x-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            <span>Under Review</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- What Happens Next -->
+                <div class="mt-8 text-left">
+                    <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 text-center">What Happens Next</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-900 border border-blue-500/30 flex items-center justify-center flex-shrink-0 text-blue-400 font-bold text-xs">1</div>
+                            <div>
+                                <p class="text-sm font-bold text-white">Team Review</p>
+                                <p class="text-xs text-slate-400">Our partner team reviews your capacity, coverage area, and construction type against current demand.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-slate-500 font-bold text-xs">2</div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-300">Intro Call</p>
+                                <p class="text-xs text-slate-400">A 15-minute call to walk through the orchestration model, pricing transparency, and your first order flow.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 text-slate-500 font-bold text-xs">3</div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-300">Activation Wizard</p>
+                                <p class="text-xs text-slate-400">Once approved, you'll receive a link to the Activation Wizard — accept terms, connect Stripe, set pricing, and go live.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 pt-6 border-t border-slate-700/50 flex flex-col items-center space-y-3">
+                    <p class="text-xs text-slate-500">Confirmation email sent to <span class="text-slate-300 font-bold" id="summary-email-footer">mike@cascadeadu.com</span></p>
+                    <a href="../public/index.html" class="text-xs font-bold text-slate-400 hover:text-white transition-colors flex items-center space-x-1">
+                        <i data-lucide="arrow-left" class="w-3 h-3"></i>
+                        <span>Back to Yardstake.com</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Demo: Simulate Approval -->
+            <div class="mt-8 glass-card rounded-2xl p-5">
+                <p class="text-[10px] text-slate-600 uppercase tracking-widest font-bold text-center mb-3">Demo: Simulate Vetting Outcome</p>
+                <div class="flex space-x-3">
+                    <button onclick="simulateOutcome('approved')" class="flex-1 bg-emerald-900/40 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-400 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                        Approve
+                    </button>
+                    <button onclick="simulateOutcome('waitlist')" class="flex-1 bg-amber-900/30 hover:bg-amber-900/50 border border-amber-500/20 text-amber-400 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                        Waitlist
+                    </button>
+                    <button onclick="simulateOutcome('declined')" class="flex-1 bg-red-900/30 hover:bg-red-900/50 border border-red-500/20 text-red-400 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                        Decline
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATE 3: Outcome (Approved / Waitlist / Declined) -->
+    <div id="state-outcome" class="state">
+        <div class="max-w-xl mx-auto px-6 py-24 text-center">
+            <div class="glass-card rounded-[2rem] p-12 shadow-2xl">
+
+                <div id="outcome-icon-wrapper" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="check-circle" class="w-10 h-10" id="outcome-icon"></i>
+                </div>
+
+                <h1 class="text-3xl font-black text-white mb-3" id="outcome-title"></h1>
+                <p class="text-slate-400 leading-relaxed max-w-sm mx-auto" id="outcome-body"></p>
+
+                <div id="outcome-card" class="mt-8 rounded-2xl p-5 border-l-4 text-left">
+                    <p class="text-[10px] font-bold uppercase tracking-widest mb-1" id="outcome-label"></p>
+                    <p class="text-sm text-white font-medium" id="outcome-message"></p>
+                </div>
+
+                <div class="mt-8">
+                    <a id="outcome-cta" href="activation_wizard.html" class="inline-flex items-center space-x-2 font-bold py-3 px-8 rounded-xl transition-colors shadow-lg">
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        <span id="outcome-cta-text">Begin Activation</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function showState(id) {
+            document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0, 0);
+            lucide.createIcons();
+        }
+
+        function submitApplication() {
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 mr-2 animate-spin"></i> Submitting...';
+            btn.classList.add('pointer-events-none');
+            lucide.createIcons();
+
+            setTimeout(() => {
+                showState('state-review');
+            }, 1400);
+        }
+
+        function simulateOutcome(type) {
+            const configs = {
+                approved: {
+                    iconWrapper: 'bg-emerald-500/10 border border-emerald-500/20',
+                    icon: 'check-circle', iconColor: 'text-emerald-400',
+                    title: 'You\'re Approved!',
+                    body: 'Welcome to the Yardstake Builder Program. Complete the Activation Wizard to go live and start receiving orders.',
+                    cardClass: 'glass-card border-l-emerald-500',
+                    label: 'text-emerald-400',
+                    labelText: 'Approved — Ready for Activation',
+                    message: 'Your production capacity and service coverage match current buyer demand in Portland. You\'ve been assigned a Partner Success Manager who will be in touch within 24 hours.',
+                    ctaClass: 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20',
+                    ctaText: 'Begin Activation Wizard',
+                    ctaHref: 'activation_wizard.html'
+                },
+                waitlist: {
+                    iconWrapper: 'bg-amber-500/10 border border-amber-500/20',
+                    icon: 'clock', iconColor: 'text-amber-400',
+                    title: 'You\'re on the Waitlist',
+                    body: 'We don\'t have enough buyer demand in your coverage area yet, but we\'re expanding. We\'ll notify you as soon as we open your market.',
+                    cardClass: 'glass-card border-l-amber-500',
+                    label: 'text-amber-400',
+                    labelText: 'Waitlisted — Your Market Is Coming',
+                    message: 'Your application scored well on production quality and capacity. The Portland metro currently has full builder coverage, but Eugene and Bend are opening in Q4 2026. You\'ll be first in line.',
+                    ctaClass: 'bg-slate-700 hover:bg-slate-600 text-white shadow-slate-500/10',
+                    ctaText: 'Back to Yardstake.com',
+                    ctaHref: '../public/index.html'
+                },
+                declined: {
+                    iconWrapper: 'bg-red-500/10 border border-red-500/20',
+                    icon: 'x-circle', iconColor: 'text-red-400',
+                    title: 'Not a Fit Right Now',
+                    body: 'Based on our review, we\'re unable to onboard your company at this time. This is usually due to construction type or capacity constraints.',
+                    cardClass: 'glass-card border-l-red-500',
+                    label: 'text-red-400',
+                    labelText: 'Application Declined',
+                    message: 'The most common reasons: HUD-code manufactured homes (we currently support modular/panelized only), production capacity under 1 unit/month, or no ability to deliver to Oregon metros. You may reapply after 90 days if circumstances change.',
+                    ctaClass: 'bg-slate-700 hover:bg-slate-600 text-white shadow-slate-500/10',
+                    ctaText: 'Back to Yardstake.com',
+                    ctaHref: '../public/index.html'
+                }
+            };
+
+            const c = configs[type];
+            document.getElementById('outcome-icon-wrapper').className = `w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${c.iconWrapper}`;
+            document.getElementById('outcome-icon').setAttribute('data-lucide', c.icon);
+            document.getElementById('outcome-icon').className = `w-10 h-10 ${c.iconColor}`;
+            document.getElementById('outcome-title').textContent = c.title;
+            document.getElementById('outcome-body').textContent = c.body;
+            document.getElementById('outcome-card').className = `mt-8 rounded-2xl p-5 border-l-4 text-left ${c.cardClass}`;
+            document.getElementById('outcome-label').className = `text-[10px] font-bold uppercase tracking-widest mb-1 ${c.label}`;
+            document.getElementById('outcome-label').textContent = c.labelText;
+            document.getElementById('outcome-message').textContent = c.message;
+            document.getElementById('outcome-cta').className = `inline-flex items-center space-x-2 font-bold py-3 px-8 rounded-xl transition-colors shadow-lg ${c.ctaClass}`;
+            document.getElementById('outcome-cta').href = c.ctaHref;
+            document.getElementById('outcome-cta-text').textContent = c.ctaText;
+
+            lucide.createIcons();
+            showState('state-outcome');
+        }
+    </script>
+</body>
+</html>

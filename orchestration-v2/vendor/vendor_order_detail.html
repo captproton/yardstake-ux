@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Detail — ORD-1147 | Yardstake Vendor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+        .state { display: none; }
+        .state.active { display: block; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900 border-b border-slate-800 z-50 sticky top-0">
+        <div class="px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="vendor_dashboard.html" class="flex items-center text-slate-400 hover:text-white text-sm font-bold transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kanban
+                </a>
+                <span class="text-slate-700">|</span>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="file-text" class="w-4 h-4 text-blue-400"></i>
+                    <span class="text-white font-bold">Order Detail</span>
+                    <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded ml-1">ORD-1147</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span id="order-status-badge" class="bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase px-2.5 py-1 rounded border border-blue-500/20 flex items-center space-x-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                    <span>New — Awaiting Acceptance</span>
+                </span>
+                <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">M</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- STATE 1: Order Detail -->
+    <div id="state-detail" class="state active">
+        <main class="flex-grow px-4 sm:px-6 py-8 max-w-5xl mx-auto w-full space-y-6">
+
+            <!-- Order Header -->
+            <div class="glass-card rounded-2xl p-6 border-l-4 border-l-blue-500 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-900/50 px-2 py-1 rounded">ORD-1147</span>
+                        <span class="bg-blue-500 text-white text-[9px] font-black uppercase px-2 py-1 rounded shadow">New Order</span>
+                    </div>
+                    <h1 class="text-2xl font-black text-white">Studio XL — Coastal White</h1>
+                    <p class="text-sm text-slate-400 mt-1">742 SE Morrison St, Portland, OR 97214 · R5 Zoning</p>
+                </div>
+                <div class="flex flex-col items-end">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Project Value</p>
+                    <p class="text-3xl font-black text-white">$144,500</p>
+                    <p class="text-[10px] text-slate-500">Net after 5% platform fee</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Left Column: Specs -->
+                <div class="lg:col-span-2 space-y-6">
+
+                    <!-- Project Specs -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-5 flex items-center">
+                            <i data-lucide="ruler" class="w-3.5 h-3.5 mr-2 text-blue-400"></i> Project Specifications
+                        </h2>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Model</p>
+                                <p class="text-sm font-bold text-white">Studio XL</p>
+                            </div>
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Square Footage</p>
+                                <p class="text-sm font-bold text-white">450 sq ft</p>
+                            </div>
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Bed / Bath</p>
+                                <p class="text-sm font-bold text-white">Studio / 1 BA</p>
+                            </div>
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Exterior Finish</p>
+                                <p class="text-sm font-bold text-white">Coastal White</p>
+                            </div>
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Foundation</p>
+                                <p class="text-sm font-bold text-white">Pier & Beam</p>
+                            </div>
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Roof Type</p>
+                                <p class="text-sm font-bold text-white">Shed (2:12 pitch)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buyer Option Selections -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-5 flex items-center">
+                            <i data-lucide="palette" class="w-3.5 h-3.5 mr-2 text-emerald-400"></i> Buyer Option Selections
+                        </h2>
+                        <div class="overflow-hidden rounded-xl border border-slate-700/50">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="bg-slate-900/50 text-slate-500 font-bold uppercase tracking-widest">
+                                        <th class="text-left px-4 py-3">Category</th>
+                                        <th class="text-left px-4 py-3">Selection</th>
+                                        <th class="text-right px-4 py-3">Delta</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-700/30">
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-400">Exterior Siding</td>
+                                        <td class="px-4 py-3 text-white font-bold">LP SmartSide — Arctic White</td>
+                                        <td class="px-4 py-3 text-right"><span class="text-emerald-400 font-bold">STD</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-400">Flooring</td>
+                                        <td class="px-4 py-3 text-white font-bold">White Oak LVP</td>
+                                        <td class="px-4 py-3 text-right"><span class="text-amber-400 font-bold">+$1,200</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-400">Kitchen Counter</td>
+                                        <td class="px-4 py-3 text-white font-bold">Quartz — Calacatta</td>
+                                        <td class="px-4 py-3 text-right"><span class="text-amber-400 font-bold">+$2,800</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-400">Bathroom Tile</td>
+                                        <td class="px-4 py-3 text-white font-bold">Subway White</td>
+                                        <td class="px-4 py-3 text-right"><span class="text-emerald-400 font-bold">STD</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-400">Appliance Package</td>
+                                        <td class="px-4 py-3 text-white font-bold">Bosch Compact Series</td>
+                                        <td class="px-4 py-3 text-right"><span class="text-amber-400 font-bold">+$3,500</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-slate-400">Washer / Dryer</td>
+                                        <td class="px-4 py-3 text-white font-bold">Ventless Combo Unit</td>
+                                        <td class="px-4 py-3 text-right"><span class="text-emerald-400 font-bold">STD</span></td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-slate-900/50 font-bold">
+                                        <td class="px-4 py-3 text-slate-400" colspan="2">Total Buyer Upgrades</td>
+                                        <td class="px-4 py-3 text-right text-amber-400">+$7,500</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Drawings & Documents -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h2 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-5 flex items-center">
+                            <i data-lucide="folder-open" class="w-3.5 h-3.5 mr-2 text-purple-400"></i> Drawings & Documents
+                        </h2>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between bg-slate-900/50 rounded-xl px-4 py-3 hover:bg-slate-900/70 transition-colors cursor-pointer group">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="file-image" class="w-4 h-4 text-purple-400"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-white">Studio_XL_Floor_Plan.pdf</p>
+                                        <p class="text-[10px] text-slate-500">Floor plan with dimensions · 2.4 MB</p>
+                                    </div>
+                                </div>
+                                <i data-lucide="download" class="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors"></i>
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-900/50 rounded-xl px-4 py-3 hover:bg-slate-900/70 transition-colors cursor-pointer group">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="file-image" class="w-4 h-4 text-purple-400"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-white">Elevations_CoastalWhite.pdf</p>
+                                        <p class="text-[10px] text-slate-500">4 elevation views · 3.1 MB</p>
+                                    </div>
+                                </div>
+                                <i data-lucide="download" class="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors"></i>
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-900/50 rounded-xl px-4 py-3 hover:bg-slate-900/70 transition-colors cursor-pointer group">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="file-text" class="w-4 h-4 text-purple-400"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-white">MEP_Rough_In_Specs.pdf</p>
+                                        <p class="text-[10px] text-slate-500">Electrical, plumbing, HVAC layout · 1.8 MB</p>
+                                    </div>
+                                </div>
+                                <i data-lucide="download" class="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors"></i>
+                            </div>
+                            <div class="flex items-center justify-between bg-slate-900/50 rounded-xl px-4 py-3 hover:bg-slate-900/70 transition-colors cursor-pointer group">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="file-check" class="w-4 h-4 text-purple-400"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-white">Structural_Engineering_Report.pdf</p>
+                                        <p class="text-[10px] text-slate-500">PE-stamped structural calcs · 4.2 MB</p>
+                                    </div>
+                                </div>
+                                <i data-lucide="download" class="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition-colors"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Sidebar -->
+                <div class="space-y-6">
+
+                    <!-- Accept / Decline Action Card -->
+                    <div id="accept-card" class="glass-card rounded-2xl p-6 border-2 border-blue-500/30 bg-blue-500/5">
+                        <h3 class="text-xs font-black text-blue-400 uppercase tracking-widest mb-3">Action Required</h3>
+                        <p class="text-sm text-slate-300 mb-5">Review the spec and accept this order to add it to your production queue.</p>
+                        <button onclick="acceptOrder()" id="accept-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-black py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center transition-colors">
+                            <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> Accept Order
+                        </button>
+                        <p class="text-center text-[10px] text-slate-500 mt-3 font-bold uppercase tracking-widest">Adds to Queue / Pre-Prod</p>
+
+                        <!-- Decline toggle -->
+                        <div class="mt-4 pt-4 border-t border-slate-700/50">
+                            <button onclick="toggleDecline()" id="decline-toggle" class="w-full text-center text-xs text-red-400/50 hover:text-red-400 font-bold py-1 transition-colors">
+                                Can't take this order?
+                            </button>
+                            <div id="decline-panel" class="hidden mt-4 space-y-3">
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Reason (helps us route better)</p>
+                                <div class="space-y-2" id="decline-reasons">
+                                    <button onclick="selectReason(this)" class="reason-btn w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:border-red-500/40 transition-colors flex items-center">
+                                        <i data-lucide="clock" class="w-3.5 h-3.5 mr-2 text-slate-500 flex-shrink-0"></i> At capacity — no production slots
+                                    </button>
+                                    <button onclick="selectReason(this)" class="reason-btn w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:border-red-500/40 transition-colors flex items-center">
+                                        <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-2 text-slate-500 flex-shrink-0"></i> Delivery distance too far
+                                    </button>
+                                    <button onclick="selectReason(this)" class="reason-btn w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:border-red-500/40 transition-colors flex items-center">
+                                        <i data-lucide="calendar-x" class="w-3.5 h-3.5 mr-2 text-slate-500 flex-shrink-0"></i> Timeline doesn't work
+                                    </button>
+                                    <button onclick="selectReason(this)" class="reason-btn w-full bg-slate-900/50 border border-slate-700 rounded-lg px-3 py-2.5 text-left text-xs font-bold text-slate-300 hover:border-red-500/40 transition-colors flex items-center">
+                                        <i data-lucide="help-circle" class="w-3.5 h-3.5 mr-2 text-slate-500 flex-shrink-0"></i> Other reason
+                                    </button>
+                                </div>
+                                <button onclick="confirmDecline()" id="decline-confirm-btn" class="w-full bg-red-500/20 border border-red-500/30 text-red-400 font-bold py-2.5 rounded-xl flex items-center justify-center transition-colors opacity-50 cursor-not-allowed text-xs" disabled>
+                                    <i data-lucide="x-circle" class="w-3.5 h-3.5 mr-2"></i> Confirm Decline
+                                </button>
+                                <p class="text-[10px] text-slate-600 text-center">No impact to your Placement Score.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Milestone Draw Schedule -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
+                            <i data-lucide="banknote" class="w-3.5 h-3.5 mr-2 text-emerald-400"></i> Draw Schedule
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500">1</div>
+                                    <span class="text-sm text-slate-300">Framing Complete</span>
+                                </div>
+                                <span class="text-sm font-black text-white">$40,000</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500">2</div>
+                                    <span class="text-sm text-slate-300">MEP Rough-In</span>
+                                </div>
+                                <span class="text-sm font-black text-white">$30,000</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500">3</div>
+                                    <span class="text-sm text-slate-300">Finishes</span>
+                                </div>
+                                <span class="text-sm font-black text-white">$25,000</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[9px] font-bold text-slate-500">4</div>
+                                    <span class="text-sm text-slate-300">Delivery Confirmed</span>
+                                </div>
+                                <span class="text-sm font-black text-white">$35,000</span>
+                            </div>
+                            <div class="pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400">Total Net Payout</span>
+                                <span class="text-lg font-black text-emerald-400">$144,500</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery & Site GC -->
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center">
+                            <i data-lucide="truck" class="w-3.5 h-3.5 mr-2 text-amber-400"></i> Delivery & Site
+                        </h3>
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <p class="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-0.5">Delivery Address</p>
+                                <p class="text-white font-bold">742 SE Morrison St</p>
+                                <p class="text-slate-400">Portland, OR 97214</p>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500 font-bold">Distance</span>
+                                <span class="text-white">47 mi from factory</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500 font-bold">Target Delivery</span>
+                                <span class="text-white font-bold">Jun 15, 2026</span>
+                            </div>
+                            <div class="pt-3 border-t border-slate-700/50">
+                                <p class="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1.5">Site General Contractor</p>
+                                <p class="text-white font-bold">Backyard Bill Excavations</p>
+                                <p class="text-blue-400">(503) 555-0142</p>
+                                <p class="text-slate-400 mt-1">Foundation pour: May 20 · Crane: coordinated by Concierge</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Concierge Note -->
+                    <div class="glass-card rounded-2xl p-6 border-l-4 border-l-blue-500">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <div class="w-6 h-6 bg-fuchsia-500/20 rounded-full flex items-center justify-center">
+                                <i data-lucide="headphones" class="w-3 h-3 text-fuchsia-400"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-300">Note from Concierge (Fiona)</span>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">Buyer is flexible on delivery date (+/- 2 weeks) but firm on the Quartz counter selection. Site GC has confirmed foundation pour for May 20. Please prioritize — buyer has a tenant move-in date.</p>
+                        <a href="vendor_messages.html" class="mt-3 flex items-center text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors">
+                            <i data-lucide="message-circle" class="w-3 h-3 mr-1"></i> Reply to Concierge
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- STATE 2: Accepted Confirmation -->
+    <div id="state-accepted" class="state">
+        <div class="max-w-lg mx-auto px-6 py-24 text-center">
+            <div class="glass-card rounded-[2rem] p-12 shadow-2xl">
+                <div class="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="check-circle" class="w-10 h-10 text-emerald-400"></i>
+                </div>
+                <h1 class="text-3xl font-black text-white mb-3">Order Accepted</h1>
+                <p class="text-slate-400 mb-8">ORD-1147 has been added to your Queue / Pre-Prod column. The buyer and Site GC have been notified that production is confirmed.</p>
+
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 text-left space-y-2 text-xs mb-8">
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">Order</span><span class="text-white font-bold">ORD-1147</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">Model</span><span class="text-white">Studio XL — Coastal White</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">Station</span><span class="text-emerald-400 font-bold">Queue / Pre-Prod</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">First Draw</span><span class="text-white font-bold">$40,000 at Framing</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">Target Delivery</span><span class="text-white">Jun 15, 2026</span></div>
+                </div>
+
+                <a href="vendor_dashboard.html" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i> Open Kanban Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATE 3: Declined Confirmation -->
+    <div id="state-declined" class="state">
+        <div class="max-w-lg mx-auto px-6 py-24 text-center">
+            <div class="glass-card rounded-[2rem] p-12 shadow-2xl">
+                <div class="w-20 h-20 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="check" class="w-10 h-10 text-slate-400"></i>
+                </div>
+                <h1 class="text-3xl font-black text-white mb-3">Order Declined</h1>
+                <p class="text-slate-400 mb-8">ORD-1147 has been returned to the Concierge for re-routing to another builder. Your Placement Score is not affected.</p>
+
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 text-left space-y-2 text-xs mb-8">
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">Order</span><span class="text-white">ORD-1147</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">Status</span><span class="text-slate-400">Re-routing to another builder</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500 font-bold">Score Impact</span><span class="text-emerald-400 font-bold">None</span></div>
+                </div>
+
+                <a href="vendor_dashboard.html" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-xl flex items-center justify-center transition-colors">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4 mr-2"></i> Back to Kanban Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function showState(id) {
+            document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0, 0);
+            lucide.createIcons();
+        }
+
+        function acceptOrder() {
+            const btn = document.getElementById('accept-btn');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 mr-2 animate-spin"></i> Accepting...';
+            btn.classList.add('pointer-events-none');
+            lucide.createIcons();
+            setTimeout(() => showState('state-accepted'), 1200);
+        }
+
+        function toggleDecline() {
+            const panel = document.getElementById('decline-panel');
+            const toggle = document.getElementById('decline-toggle');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                toggle.textContent = 'Cancel decline';
+                toggle.classList.remove('text-red-400/50');
+                toggle.classList.add('text-slate-400');
+            } else {
+                panel.classList.add('hidden');
+                toggle.textContent = "Can't take this order?";
+                toggle.classList.add('text-red-400/50');
+                toggle.classList.remove('text-slate-400');
+            }
+        }
+
+        function selectReason(el) {
+            document.querySelectorAll('.reason-btn').forEach(b => {
+                b.classList.remove('border-red-500/50', 'bg-red-500/5');
+                b.classList.add('border-slate-700');
+            });
+            el.classList.remove('border-slate-700');
+            el.classList.add('border-red-500/50', 'bg-red-500/5');
+
+            const btn = document.getElementById('decline-confirm-btn');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.classList.add('hover:bg-red-500/30');
+        }
+
+        function confirmDecline() {
+            const btn = document.getElementById('decline-confirm-btn');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 mr-2 animate-spin"></i> Declining...';
+            btn.classList.add('pointer-events-none');
+            lucide.createIcons();
+            setTimeout(() => showState('state-declined'), 1200);
+        }
+    </script>
+</body>
+</html>

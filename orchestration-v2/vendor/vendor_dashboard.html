@@ -10,9 +10,51 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
-        /* Hide scrollbar for a cleaner mobile snap view */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+
+        /* Photo slot */
+        .photo-slot { border: 2px dashed rgba(51,65,85,0.8); border-radius: 12px; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+        .photo-slot.filled { border: 2px solid #22c55e; background: rgba(34,197,94,0.1); }
+        .photo-slot:hover:not(.filled) { border-color: #3b82f6; background: rgba(59,130,246,0.05); }
+
+        /* Flash animation */
+        @keyframes flash { 0%,100% { opacity: 1; } 50% { opacity: 0.1; } }
+        .flash { animation: flash 0.25s ease; }
+
+        /* List view */
+        .list-row { border-bottom: 1px solid rgba(51,65,85,0.4); transition: background 0.15s; }
+        .list-row:last-child { border-bottom: none; }
+        .list-row:hover { background: rgba(51,65,85,0.25); }
+        .sla-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .view-btn { padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; transition: all 0.15s; cursor: pointer; border: 1px solid transparent; }
+        .view-btn.active { background: rgba(59,130,246,0.15); color: white; border-color: rgba(59,130,246,0.3); }
+        .view-btn:not(.active) { color: #64748b; }
+        .view-btn:not(.active):hover { color: #94a3b8; }
+        .batch-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(30,41,59,0.97); border: 1px solid rgba(59,130,246,0.4); border-radius: 14px; padding: 12px 20px; display: flex; align-items: center; gap: 12px; z-index: 100; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); backdrop-filter: blur(12px); white-space: nowrap; }
+        .batch-bar.show { transform: translateX(-50%) translateY(0); }
+
+        /* Card pop-in */
+        @keyframes pop-in { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .pop-in { animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        /* Celebrate pulse */
+        @keyframes celebrate { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.8); } 70% { box-shadow: 0 0 0 16px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+        .celebrate { animation: celebrate 0.6s ease; }
+
+        /* Modal state */
+        .modal-state { display: none; }
+        .modal-state.active { display: block; }
+
+        /* Draw strip */
+        .draw-strip { display: flex; gap: 4px; }
+        .draw-pip { flex: 1; height: 4px; border-radius: 2px; background: rgba(51,65,85,0.6); }
+        .draw-pip.done { background: #22c55e; }
+        .draw-pip.active { background: #3b82f6; }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col overflow-hidden">
@@ -25,7 +67,6 @@
                 <span class="text-xl font-bold tracking-tight text-white hidden sm:block">Yardstake <span class="text-slate-500 font-medium text-sm ml-2">| Factory Kanban</span></span>
             </div>
             <div class="flex items-center space-x-3 sm:space-x-6">
-                <!-- Platform Placement (Compact for Mobile) -->
                 <div class="flex flex-col items-end">
                     <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest leading-none mb-1">Rank #1</span>
                     <div class="flex items-center space-x-1">
@@ -33,19 +74,22 @@
                         <span class="text-xs font-bold text-white">98/100</span>
                     </div>
                 </div>
-                
                 <a href="vendor_catalog.html" class="hidden sm:flex bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 py-1.5 px-3 rounded-lg items-center transition-colors border border-slate-700">
                     <i data-lucide="package-2" class="w-3 h-3 mr-2"></i> Catalog
                 </a>
                 <a href="delegate_inbox.html" class="hidden sm:flex bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 py-1.5 px-3 rounded-lg items-center transition-colors border border-slate-700">
                     <i data-lucide="users" class="w-3 h-3 mr-2"></i> Route Inbox
                 </a>
-                <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm shadow-md">M</div>
+                <a href="vendor_notifications.html" class="relative w-8 h-8 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center justify-center transition-colors">
+                    <i data-lucide="bell" class="w-4 h-4 text-slate-300"></i>
+                    <span class="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-[9px] font-black rounded-full flex items-center justify-center leading-none">2</span>
+                </a>
+                <a href="vendor_settings.html" class="w-8 h-8 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center justify-center font-bold text-sm shadow-md transition-colors" title="Settings">M</a>
             </div>
         </div>
     </nav>
 
-    <!-- Mobile Hint (Translates Kanban concept) -->
+    <!-- Mobile Hint -->
     <div class="sm:hidden px-4 pt-4 pb-2 z-10 bg-slate-900">
         <div class="flex justify-between items-center bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
             <div class="flex items-center text-blue-400 text-xs font-bold">
@@ -54,63 +98,112 @@
         </div>
     </div>
 
-    <!-- Kanban Board Container (Horizontal Scroll/Snap on layout) -->
-    <!-- On mobile: full width snapping. On desktop: standard columns -->
-    <main class="flex-grow flex w-full overflow-x-auto no-scrollbar snap-x snap-mandatory px-4 sm:px-6 py-4 pb-12 space-x-4 sm:space-x-6 relative bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
-        
-        <!-- COLUMN 1: Deposit Secured (Queue) -->
-        <section class="min-w-[85vw] sm:min-w-[320px] w-full max-w-[350px] flex-shrink-0 snap-center flex flex-col h-full relative">
+    <!-- Toolbar: Stats strip + View toggle -->
+    <div class="bg-slate-900/80 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center space-x-3 text-[11px] font-bold overflow-x-auto no-scrollbar">
+            <span class="text-slate-500 whitespace-nowrap hidden sm:block">Floor status:</span>
+            <span class="text-slate-400 whitespace-nowrap">1 Queue</span>
+            <span class="text-slate-700">·</span>
+            <span class="text-emerald-500 whitespace-nowrap">1 Framing</span>
+            <span class="text-slate-700">·</span>
+            <span id="stat-mep" class="text-slate-400 whitespace-nowrap">0 MEP</span>
+            <span class="text-slate-700">·</span>
+            <span class="text-blue-400 whitespace-nowrap">1 Freight</span>
+            <span class="text-slate-700">·</span>
+            <span class="text-emerald-700 whitespace-nowrap">1 Delivered</span>
+        </div>
+        <div class="flex items-center space-x-1 ml-3 flex-shrink-0">
+            <button id="btn-kanban" onclick="switchView('kanban')" class="view-btn active">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Kanban</span>
+            </button>
+            <button id="btn-list" onclick="switchView('list')" class="view-btn">
+                <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">List</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <main id="kanban-board" class="flex-grow flex w-full overflow-x-auto no-scrollbar snap-x snap-mandatory px-4 sm:px-6 py-4 pb-12 space-x-4 sm:space-x-6 relative bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
+
+        <!-- COLUMN 1: Queue / Pre-Prod -->
+        <section id="col-queue" class="min-w-[85vw] sm:min-w-[320px] w-full max-w-[350px] flex-shrink-0 snap-center flex flex-col h-full relative">
             <div class="flex justify-between items-center mb-4 px-2">
                 <h2 class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center">
                     <div class="w-2 h-2 rounded-full bg-slate-500 mr-2"></div> Queue / Pre-Prod
                 </h2>
-                <span class="bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full">1</span>
+                <span id="count-queue" class="bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full">1</span>
             </div>
-            
-            <div class="space-y-4 overflow-y-auto pr-2 pb-20">
-                <!-- Order Card -->
-                <div class="glass-card rounded-2xl p-4 cursor-pointer hover:bg-slate-800 transition-colors border-l-4 border-l-slate-500 group">
-                    <div class="flex justify-between items-start mb-3">
+            <div id="cards-queue" class="space-y-4 overflow-y-auto pr-2 pb-20">
+                <!-- ORD-8814 Queue Card -->
+                <div id="card-8814" class="glass-card rounded-2xl p-4 border-l-4 border-l-slate-500">
+                    <!-- Draw schedule strip: 4 milestones, none done -->
+                    <div class="draw-strip mb-3">
+                        <div class="draw-pip active" title="Deposit $12k"></div>
+                        <div class="draw-pip" title="Framing $40k"></div>
+                        <div class="draw-pip" title="MEP $30k"></div>
+                        <div class="draw-pip" title="Freight $35k"></div>
+                    </div>
+                    <div class="flex justify-between items-start mb-2">
                         <span class="text-[10px] font-mono text-slate-400 bg-slate-900/50 px-2 py-1 rounded">ORD-8814</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Deposit Escrowed</span>
                     </div>
                     <h4 class="font-bold text-white text-base">Bend Lot — John D.</h4>
                     <p class="text-xs text-slate-400 mt-1">Family Loft <span class="mx-1">•</span> Standard</p>
-                    <div class="mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase">Deposit Escrowed</span>
-                        <span class="text-sm font-black text-slate-400">$12,000</span>
+                    <!-- Draw labels -->
+                    <div class="mt-3 grid grid-cols-4 gap-1 text-center">
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$12k</span><span class="text-[8px] text-slate-500">Deposit</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$40k</span><span class="text-[8px] text-slate-600">Framing</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$30k</span><span class="text-[8px] text-slate-600">MEP</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$35k</span><span class="text-[8px] text-slate-600">Freight</span></div>
                     </div>
+                    <!-- Begin Production CTA -->
+                    <button onclick="openModal('8814', 'framing', 'Begin Production', '$40k Framing Draw')" class="mt-4 w-full flex items-center justify-center space-x-2 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl py-2.5 transition-colors shadow shadow-emerald-500/20">
+                        <i data-lucide="play-circle" class="w-4 h-4"></i>
+                        <span>Begin Production</span>
+                    </button>
                 </div>
             </div>
         </section>
 
-        <!-- COLUMN 2: Station 1 - Framing (Active Work) -->
-        <section class="min-w-[85vw] sm:min-w-[320px] w-full max-w-[350px] flex-shrink-0 snap-center flex flex-col h-full relative">
+        <!-- COLUMN 2: Framing Station -->
+        <section id="col-framing" class="min-w-[85vw] sm:min-w-[320px] w-full max-w-[350px] flex-shrink-0 snap-center flex flex-col h-full relative">
             <div class="flex justify-between items-center mb-4 px-2">
                 <h2 class="text-sm font-black text-emerald-400 uppercase tracking-widest flex items-center">
                     <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-2"></div> Framing Station
                 </h2>
-                <span class="bg-emerald-900 text-emerald-400 text-xs font-bold px-2 py-0.5 rounded-full ring-1 ring-emerald-500/50">1</span>
+                <span id="count-framing" class="bg-emerald-900 text-emerald-400 text-xs font-bold px-2 py-0.5 rounded-full ring-1 ring-emerald-500/50">1</span>
             </div>
-            
-            <div class="space-y-4 overflow-y-auto pr-2 pb-20">
-                <!-- Actionable Order Card -->
-                <div class="bg-slate-800 rounded-2xl p-4 ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/10 cursor-pointer overflow-hidden relative">
+            <div id="cards-framing" class="space-y-4 overflow-y-auto pr-2 pb-20">
+                <!-- ORD-9021 Framing Card -->
+                <div id="card-9021" class="bg-slate-800 rounded-2xl p-4 ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/10 overflow-hidden relative">
                     <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/10 blur-xl rounded-full"></div>
-                    
+                    <!-- Draw strip: deposit done, framing active -->
+                    <div class="draw-strip mb-3 relative z-10">
+                        <div class="draw-pip done" title="Deposit $12k ✓"></div>
+                        <div class="draw-pip active" title="Framing $40k — in progress"></div>
+                        <div class="draw-pip" title="MEP $30k"></div>
+                        <div class="draw-pip" title="Freight $35k"></div>
+                    </div>
                     <div class="flex justify-between items-start mb-3 relative z-10">
                         <span class="text-[10px] font-mono text-slate-300 bg-slate-900/80 px-2 py-1 rounded border border-slate-700">ORD-9021</span>
                         <span class="bg-emerald-500 text-white text-[9px] font-black uppercase px-2 py-1 rounded shadow text-center">Action<br>Required</span>
                     </div>
-                    
                     <h4 class="font-bold text-white text-lg relative z-10">Portland R5</h4>
                     <p class="text-xs text-slate-300 mt-1 relative z-10">Studio XL <span class="mx-1">•</span> Coastal White</p>
-                    
-                    <div class="mt-4 p-3 bg-emerald-900/30 border border-emerald-500/30 rounded-xl relative z-10 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-emerald-900/50 transition-colors group">
-                        <i data-lucide="camera" class="w-6 h-6 text-emerald-400 mb-1 group-hover:scale-110 transition-transform"></i>
-                        <span class="text-[10px] font-bold text-emerald-300 uppercase tracking-widest mb-1">Upload Required</span>
-                        <span class="text-lg font-black text-white glow-text">Unlock $40k</span>
+                    <!-- Draw labels -->
+                    <div class="mt-3 grid grid-cols-4 gap-1 text-center relative z-10">
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$12k</span><span class="text-[8px] text-emerald-600">✓ Done</span></div>
+                        <div><span class="text-[9px] font-bold text-blue-400 block">$40k</span><span class="text-[8px] text-blue-500">← Now</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$30k</span><span class="text-[8px] text-slate-600">MEP</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$35k</span><span class="text-[8px] text-slate-600">Freight</span></div>
                     </div>
-
+                    <!-- Complete Station CTA -->
+                    <button onclick="openModal('9021', 'mep', 'Complete Framing', '$40k Framing Draw')" class="mt-4 w-full relative z-10 flex items-center justify-center space-x-2 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl py-2.5 transition-colors shadow shadow-emerald-500/20">
+                        <i data-lucide="camera" class="w-4 h-4"></i>
+                        <span>Complete Station · Unlock $40k</span>
+                    </button>
                     <a href="vendor_change_order.html" class="mt-3 relative z-10 flex items-center justify-center space-x-1.5 text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-2 transition-colors">
                         <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
                         <span>Raise Exception</span>
@@ -119,58 +212,593 @@
             </div>
         </section>
 
-        <!-- COLUMN 3: Station 2 - MEP Rough In -->
-        <section class="min-w-[85vw] sm:min-w-[320px] w-full max-w-[350px] flex-shrink-0 snap-center flex flex-col h-full relative">
+        <!-- COLUMN 3: MEP Station -->
+        <section id="col-mep" class="min-w-[85vw] sm:min-w-[320px] w-full max-w-[350px] flex-shrink-0 snap-center flex flex-col h-full relative">
             <div class="flex justify-between items-center mb-4 px-2">
-                <h2 class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center">
-                    <div class="w-2 h-2 rounded-full bg-slate-500 mr-2"></div> MEP Station
+                <h2 id="mep-header" class="text-sm font-black text-slate-300 uppercase tracking-widest flex items-center">
+                    <div id="mep-dot" class="w-2 h-2 rounded-full bg-slate-500 mr-2"></div> MEP Station
                 </h2>
-                <span class="bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                <span id="count-mep" class="bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
             </div>
-            
-            <div class="rounded-2xl border-2 border-dashed border-slate-700/50 h-32 flex items-center justify-center text-center px-4 mt-2">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Station Empty</span>
+            <div id="cards-mep" class="space-y-4 overflow-y-auto pr-2 pb-20">
+                <!-- Empty placeholder — cards injected here when advancing from Framing -->
+                <div id="mep-empty" class="rounded-2xl border-2 border-dashed border-slate-700/50 h-32 flex items-center justify-center text-center px-4 mt-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Station Empty</span>
+                </div>
             </div>
         </section>
 
-        <!-- COLUMN 4: Ready for Delivery -->
-        <section class="min-w-[85vw] sm:min-w-[320px] w-full max-w-[350px] flex-shrink-0 snap-center flex flex-col h-full relative">
+        <!-- COLUMN 4: Ready for Freight -->
+        <section id="col-freight" class="min-w-[85vw] sm:min-w-[340px] w-full max-w-[360px] flex-shrink-0 snap-center flex flex-col h-full relative">
             <div class="flex justify-between items-center mb-4 px-2">
                 <h2 class="text-sm font-black text-blue-400 uppercase tracking-widest flex items-center">
                     <div class="w-2 h-2 rounded-full bg-blue-500 mr-2"></div> Ready for Freight
                 </h2>
-                <span class="bg-blue-900 text-blue-400 text-xs font-bold px-2 py-0.5 rounded-full ring-1 ring-blue-500/50">1</span>
+                <span id="count-freight" class="bg-blue-900 text-blue-400 text-xs font-bold px-2 py-0.5 rounded-full ring-1 ring-blue-500/50">1</span>
             </div>
-            
-            <div class="space-y-4 overflow-y-auto pr-2 pb-20">
-                <!-- Order Card -->
-                <div class="glass-card rounded-2xl p-4 border-l-4 border-l-blue-500">
+            <div id="cards-freight" class="space-y-4 overflow-y-auto pr-2 pb-20">
+                <!-- ORD-7702 existing card -->
+                <div id="card-7702" class="glass-card rounded-2xl p-4 border-l-4 border-l-blue-500">
+                    <div class="draw-strip mb-3">
+                        <div class="draw-pip done"></div>
+                        <div class="draw-pip done"></div>
+                        <div class="draw-pip done"></div>
+                        <div class="draw-pip active"></div>
+                    </div>
                     <div class="flex justify-between items-start mb-3">
                         <span class="text-[10px] font-mono text-slate-400 bg-slate-900/50 px-2 py-1 rounded">ORD-7702</span>
                         <span class="text-[9px] font-bold text-blue-400 uppercase bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 flex items-center"><i data-lucide="truck" class="w-3 h-3 mr-0.5"></i> Ready</span>
                     </div>
                     <h4 class="font-bold text-white text-base">Seattle DADU</h4>
                     <p class="text-xs text-slate-400 mt-1">Studio L <span class="mx-1">•</span> Cedar Planks</p>
-                    <a href="vendor_freight_handoff.html" class="mt-3 flex items-center justify-center space-x-1.5 text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl py-2.5 transition-colors shadow shadow-blue-500/20">
+                    <div class="mt-3 grid grid-cols-4 gap-1 text-center">
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$12k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$40k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$30k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-blue-400 block">$35k</span><span class="text-[8px] text-blue-500">← Now</span></div>
+                    </div>
+                    <a href="vendor_freight_handoff.html" class="mt-4 flex items-center justify-center space-x-1.5 text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl py-2.5 transition-colors shadow shadow-blue-500/20">
                         <i data-lucide="truck" class="w-3.5 h-3.5"></i>
-                        <span>Begin Handoff</span>
+                        <span>Begin Handoff · Unlock $35k</span>
                     </a>
-                    <div class="mt-2 text-blue-300 text-[10px] p-2 rounded border border-blue-500/20 font-medium text-center">
-                        $35,000 unlocks after Site GC delivery confirmation.
+                </div>
+            </div>
+        </section>
+
+        <!-- COLUMN 5: Delivered · Archive -->
+        <section id="col-archive" class="min-w-[85vw] sm:min-w-[300px] w-full max-w-[320px] flex-shrink-0 snap-center flex flex-col h-full relative">
+            <div class="flex justify-between items-center mb-4 px-2">
+                <h2 class="text-sm font-black text-emerald-600 uppercase tracking-widest flex items-center">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600 mr-2"></i> Delivered · Archive
+                </h2>
+                <span class="bg-emerald-950 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">1</span>
+            </div>
+            <div id="cards-archive" class="space-y-3 overflow-y-auto pr-2 pb-20">
+
+                <!-- ORD-6610 — Completed earlier order (compact card) -->
+                <div class="rounded-2xl p-4 border border-slate-800 bg-slate-900/60 opacity-80">
+                    <!-- All-green draw strip -->
+                    <div class="flex gap-1 mb-3">
+                        <div class="flex-1 h-1 rounded-full bg-emerald-700"></div>
+                        <div class="flex-1 h-1 rounded-full bg-emerald-700"></div>
+                        <div class="flex-1 h-1 rounded-full bg-emerald-700"></div>
+                        <div class="flex-1 h-1 rounded-full bg-emerald-700"></div>
+                    </div>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] font-mono text-slate-500 bg-slate-900/50 px-2 py-0.5 rounded">ORD-6610</span>
+                        <span class="text-[9px] font-bold text-emerald-700 uppercase">Delivered</span>
+                    </div>
+                    <h4 class="font-bold text-slate-400 text-sm">Eugene Backyard</h4>
+                    <p class="text-[10px] text-slate-600 mt-0.5">Studio S · Natural Wood</p>
+                    <div class="mt-2.5 flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] text-slate-600 block">Mar 12, 2026</span>
+                            <span class="text-xs font-bold text-emerald-700">$94,050 net paid</span>
+                        </div>
+                        <a href="vendor_order_complete.html" class="text-[10px] font-bold text-slate-500 hover:text-emerald-500 transition-colors flex items-center">
+                            Summary <i data-lucide="arrow-right" class="w-3 h-3 ml-0.5"></i>
+                        </a>
                     </div>
                 </div>
+
+                <!-- Separator note -->
+                <div class="text-center py-2">
+                    <p class="text-[9px] font-bold text-slate-700 uppercase tracking-widest">Completed orders archive here</p>
+                </div>
+
             </div>
         </section>
 
     </main>
 
-    <!-- Post-it Note Hint for Developer/User Review -->
-    <div class="fixed bottom-6 right-6 max-w-sm bg-yellow-100 text-yellow-900 p-4 rounded-xl shadow-2xl transform rotate-1 hidden lg:block z-50 pointer-events-none">
-        <h4 class="font-bold text-sm mb-1 uppercase tracking-widest border-b border-yellow-300 pb-1">UX Note:</h4>
-        <p class="text-xs leading-relaxed font-medium">This Kanban exactly matches physical factory floor workflow. Manufacturers just move the ticket when they physically move the box.</p>
+    <!-- ===== LIST VIEW (hidden by default) ===== -->
+    <div id="list-view" class="hidden flex-grow overflow-y-auto px-4 sm:px-6 py-5" style="background:#0b1323;">
+        <div class="max-w-5xl mx-auto">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">All Orders · 4 total</p>
+            <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+                <!-- Header row -->
+                <div class="grid gap-0 px-4 py-2.5 border-b border-slate-800" style="grid-template-columns:32px 1fr 150px 80px 100px 120px;">
+                    <div></div>
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Order / Model</div>
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Station</div>
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Days</div>
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Next Draw</div>
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Status</div>
+                </div>
+                <!-- ORD-9021 -->
+                <div class="list-row grid gap-0 px-4 py-3.5 items-center bg-emerald-500/5 cursor-pointer" style="grid-template-columns:32px 1fr 150px 80px 100px 120px;" onclick="window.location='vendor_order_detail.html'">
+                    <input type="checkbox" class="batch-check w-4 h-4 rounded accent-blue-500" onclick="event.stopPropagation();updateBatch()">
+                    <div>
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">ORD-9021</span>
+                        <p class="text-sm font-bold text-white mt-0.5">Portland R5</p>
+                        <p class="text-xs text-slate-500">Studio XL · Coastal White</p>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span class="text-xs font-bold text-emerald-400">Framing</span>
+                    </div>
+                    <div class="text-sm font-bold text-white text-right">12</div>
+                    <div class="text-sm font-black text-emerald-400 text-right">$40k</div>
+                    <div class="text-right"><span class="inline-flex items-center gap-1 text-[10px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded-full"><i data-lucide="alert-circle" class="w-3 h-3"></i>SLA</span></div>
+                </div>
+                <!-- ORD-8814 -->
+                <div class="list-row grid gap-0 px-4 py-3.5 items-center cursor-pointer" style="grid-template-columns:32px 1fr 150px 80px 100px 120px;" onclick="window.location='vendor_order_detail.html'">
+                    <input type="checkbox" class="batch-check w-4 h-4 rounded accent-blue-500" onclick="event.stopPropagation();updateBatch()">
+                    <div>
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">ORD-8814</span>
+                        <p class="text-sm font-bold text-white mt-0.5">Bend Lot — John D.</p>
+                        <p class="text-xs text-slate-500">Family Loft · Standard</p>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+                        <span class="text-xs font-bold text-slate-400">Queue</span>
+                    </div>
+                    <div class="text-sm font-bold text-white text-right">2</div>
+                    <div class="text-sm font-black text-slate-400 text-right">$40k</div>
+                    <div class="text-right"><span class="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">✓ OK</span></div>
+                </div>
+                <!-- ORD-7702 -->
+                <div class="list-row grid gap-0 px-4 py-3.5 items-center cursor-pointer" style="grid-template-columns:32px 1fr 150px 80px 100px 120px;" onclick="window.location='vendor_freight_handoff.html'">
+                    <input type="checkbox" class="batch-check w-4 h-4 rounded accent-blue-500" onclick="event.stopPropagation();updateBatch()">
+                    <div>
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">ORD-7702</span>
+                        <p class="text-sm font-bold text-white mt-0.5">Seattle DADU</p>
+                        <p class="text-xs text-slate-500">Studio L · Cedar Planks</p>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                        <span class="text-xs font-bold text-blue-400">Ready for Freight</span>
+                    </div>
+                    <div class="text-sm font-bold text-white text-right">5</div>
+                    <div class="text-sm font-black text-blue-400 text-right">$35k</div>
+                    <div class="text-right"><span class="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">✓ OK</span></div>
+                </div>
+                <!-- ORD-6610 -->
+                <div class="list-row grid gap-0 px-4 py-3.5 items-center cursor-pointer opacity-50" style="grid-template-columns:32px 1fr 150px 80px 100px 120px;" onclick="window.location='vendor_order_complete.html'">
+                    <input type="checkbox" class="w-4 h-4 rounded" onclick="event.stopPropagation()" disabled>
+                    <div>
+                        <span class="text-[10px] font-mono text-slate-500 bg-slate-800/50 px-1.5 py-0.5 rounded">ORD-6610</span>
+                        <p class="text-sm font-bold text-slate-400 mt-0.5">Eugene Backyard</p>
+                        <p class="text-xs text-slate-600">Studio S · Natural Wood</p>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-700"></i>
+                        <span class="text-xs font-bold text-emerald-700">Delivered</span>
+                    </div>
+                    <div class="text-sm font-bold text-slate-600 text-right">—</div>
+                    <div class="text-sm font-bold text-slate-600 text-right">—</div>
+                    <div class="text-right"><span class="text-[10px] font-bold text-slate-600 bg-slate-800 px-2 py-0.5 rounded-full">Complete</span></div>
+                </div>
+            </div>
+            <p class="text-[10px] text-slate-600 text-center mt-4 font-medium">Check orders at the same station to batch-upload milestone photos</p>
+        </div>
     </div>
 
+    <!-- Batch action bar -->
+    <div id="batch-bar" class="batch-bar">
+        <div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <i data-lucide="camera" class="w-4 h-4 text-blue-400"></i>
+        </div>
+        <div>
+            <p class="text-sm font-bold text-white"><span id="batch-bar-count">0</span> orders selected</p>
+            <p class="text-[10px] text-slate-400">Batch milestone upload</p>
+        </div>
+        <button onclick="openModal('9021','mep','Batch Upload','Station Draw')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition-colors">
+            Upload Photos
+        </button>
+        <button onclick="clearBatch()" class="text-slate-500 hover:text-slate-300 transition-colors text-sm px-2">✕</button>
+    </div>
+
+    <!-- UX Post-it -->
+    <div class="fixed bottom-6 right-6 max-w-sm bg-yellow-100 text-yellow-900 p-4 rounded-xl shadow-2xl transform rotate-1 hidden lg:block z-50 pointer-events-none">
+        <h4 class="font-bold text-sm mb-1 uppercase tracking-widest border-b border-yellow-300 pb-1">UX Note:</h4>
+        <p class="text-xs leading-relaxed font-medium">List view scales for vendors with 10+ orders. Batch upload lets Mike submit milestone photos for an entire station at once.</p>
+    </div>
+
+    <!-- ===== PHOTO UPLOAD MODAL ===== -->
+    <div id="photo-modal" class="modal-overlay" onclick="handleModalOutsideClick(event)">
+        <div id="modal-inner" class="w-full max-w-md mx-4 bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl">
+
+            <!-- STATE: Upload Photos -->
+            <div id="modal-upload" class="modal-state active">
+                <div class="flex items-center justify-between mb-1">
+                    <h3 id="modal-title" class="text-lg font-black text-white">Complete Framing</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-white">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p id="modal-draw-label" class="text-sm text-emerald-400 font-bold mb-5">$40k Framing Draw</p>
+
+                <p class="text-xs text-slate-400 mb-4 font-medium">Upload 3 GPS-tagged photos to verify station completion and trigger your draw payment.</p>
+
+                <!-- Photo slots -->
+                <div class="grid grid-cols-3 gap-3 mb-5">
+                    <div id="slot-0" class="photo-slot" onclick="capturePhoto(0)">
+                        <i data-lucide="camera" class="w-5 h-5 text-slate-500 mb-1"></i>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Photo 1</span>
+                    </div>
+                    <div id="slot-1" class="photo-slot" onclick="capturePhoto(1)">
+                        <i data-lucide="camera" class="w-5 h-5 text-slate-500 mb-1"></i>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Photo 2</span>
+                    </div>
+                    <div id="slot-2" class="photo-slot" onclick="capturePhoto(2)">
+                        <i data-lucide="camera" class="w-5 h-5 text-slate-500 mb-1"></i>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Photo 3</span>
+                    </div>
+                </div>
+
+                <!-- GPS indicator -->
+                <div class="flex items-center space-x-2 text-xs text-slate-400 bg-slate-800 rounded-xl px-3 py-2 mb-5">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span>GPS tag auto-attached · <span class="text-emerald-400 font-bold">Location verified</span></span>
+                </div>
+
+                <!-- Submit (disabled until 3 photos) -->
+                <button id="submit-btn" onclick="submitPhotos()" disabled class="w-full flex items-center justify-center space-x-2 text-sm font-bold text-white bg-emerald-600 rounded-2xl py-3 transition-all opacity-40 cursor-not-allowed">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Submit & Unlock Draw</span>
+                </button>
+                <p class="text-center text-[10px] text-slate-500 mt-3"><span id="photos-needed">3 photos</span> required to unlock</p>
+            </div>
+
+            <!-- STATE: Processing -->
+            <div id="modal-processing" class="modal-state">
+                <div class="text-center py-6">
+                    <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="loader-2" class="w-8 h-8 text-blue-400 animate-spin"></i>
+                    </div>
+                    <h3 class="text-lg font-black text-white mb-2">Processing Draw</h3>
+                    <p class="text-sm text-slate-400">Verifying photos · Submitting for payout…</p>
+                    <!-- Progress bar -->
+                    <div class="mt-5 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div id="progress-bar" class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATE: Success / Payout Initiated -->
+            <div id="modal-success" class="modal-state">
+                <div class="text-center py-6">
+                    <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 celebrate">
+                        <i data-lucide="check-circle-2" class="w-8 h-8 text-emerald-400"></i>
+                    </div>
+                    <h3 id="success-title" class="text-lg font-black text-white mb-1">Framing Complete!</h3>
+                    <p id="success-draw" class="text-2xl font-black text-emerald-400 mb-2">$40,000</p>
+                    <p class="text-xs text-slate-400 mb-1">Draw initiated · <span class="text-emerald-400 font-bold">ETA &lt;4 hours</span></p>
+                    <p id="success-next" class="text-xs text-blue-400 font-bold mb-6">Card advancing to MEP Station…</p>
+                    <button onclick="advanceCard()" class="w-full flex items-center justify-center space-x-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-2xl py-3 transition-colors">
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        <span id="advance-btn-label">Advance to MEP Station</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Flash overlay (simulates camera shutter) -->
+    <div id="camera-flash" class="fixed inset-0 bg-white z-[200] pointer-events-none opacity-0 transition-opacity duration-150"></div>
+
     <script>
+        // ——— State ———
+        let currentOrder = null;   // '8814', '9021', etc.
+        let currentTarget = null;  // 'framing', 'mep', 'freight'
+        let photosUploaded = 0;
+
+        // Card metadata for dynamic content
+        const orderMeta = {
+            '8814': { label: 'Bend Lot — John D.', sub: 'Family Loft · Standard',  drawDone: 1, drawTotal: 4 },
+            '9021': { label: 'Portland R5',        sub: 'Studio XL · Coastal White', drawDone: 1, drawTotal: 4 },
+        };
+
+        const stationMeta = {
+            framing: { title: 'Begin Production',    draw: '$40k Framing Draw',   amount: '$40,000', nextLabel: 'Advance to Framing Station', nextStation: 'framing', successTitle: 'Production Started!',   nextText: 'Card advancing to Framing Station…' },
+            mep:     { title: 'Complete Framing',    draw: '$40k Framing Draw',   amount: '$40,000', nextLabel: 'Advance to MEP Station',     nextStation: 'mep',     successTitle: 'Framing Complete!',      nextText: 'Card advancing to MEP Station…' },
+            freight: { title: 'Complete MEP',        draw: '$30k MEP Draw',       amount: '$30,000', nextLabel: 'Advance to Ready for Freight', nextStation: 'freight', successTitle: 'MEP Complete!',         nextText: 'Card advancing to Ready for Freight…' },
+        };
+
+        function openModal(orderId, targetStation, titleOverride, drawOverride) {
+            currentOrder = orderId;
+            currentTarget = targetStation;
+            photosUploaded = 0;
+
+            // Reset slots
+            for (let i = 0; i < 3; i++) resetSlot(i);
+
+            const meta = stationMeta[targetStation];
+            document.getElementById('modal-title').textContent = titleOverride || meta.title;
+            document.getElementById('modal-draw-label').textContent = drawOverride || meta.draw;
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('submit-btn').classList.add('opacity-40', 'cursor-not-allowed');
+            document.getElementById('photos-needed').textContent = '3 photos';
+
+            showModalState('modal-upload');
+            document.getElementById('photo-modal').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            document.getElementById('photo-modal').classList.remove('active');
+        }
+
+        function handleModalOutsideClick(e) {
+            if (e.target === document.getElementById('photo-modal')) closeModal();
+        }
+
+        function showModalState(id) {
+            document.querySelectorAll('.modal-state').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function resetSlot(i) {
+            const slot = document.getElementById('slot-' + i);
+            slot.classList.remove('filled');
+            slot.innerHTML = `<i data-lucide="camera" class="w-5 h-5 text-slate-500 mb-1"></i><span class="text-[9px] font-bold text-slate-500 uppercase">Photo ${i + 1}</span>`;
+        }
+
+        function capturePhoto(i) {
+            if (document.getElementById('slot-' + i).classList.contains('filled')) return;
+
+            // Camera flash
+            const flash = document.getElementById('camera-flash');
+            flash.style.opacity = '1';
+            setTimeout(() => { flash.style.opacity = '0'; }, 150);
+
+            // Simulate upload progress in slot
+            const slot = document.getElementById('slot-' + i);
+            slot.innerHTML = `<div class="w-full px-3"><div class="h-1.5 bg-slate-700 rounded-full overflow-hidden"><div id="prog-${i}" class="h-full bg-emerald-500 rounded-full transition-all duration-700" style="width:0%"></div></div><span class="text-[9px] font-bold text-slate-400 mt-1 block text-center">Uploading…</span></div>`;
+
+            setTimeout(() => { document.getElementById('prog-' + i).style.width = '100%'; }, 50);
+            setTimeout(() => {
+                slot.classList.add('filled');
+                slot.innerHTML = `<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 mb-1"></i><span class="text-[9px] font-bold text-emerald-400 uppercase">GPS ✓</span>`;
+                lucide.createIcons();
+                photosUploaded++;
+                updatePhotoCounter();
+            }, 900);
+        }
+
+        function updatePhotoCounter() {
+            const remaining = 3 - photosUploaded;
+            const btn = document.getElementById('submit-btn');
+            const label = document.getElementById('photos-needed');
+            if (remaining <= 0) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                label.textContent = 'Ready to submit!';
+                label.classList.add('text-emerald-400');
+            } else {
+                label.textContent = `${remaining} more photo${remaining > 1 ? 's' : ''} needed`;
+            }
+        }
+
+        function submitPhotos() {
+            showModalState('modal-processing');
+            lucide.createIcons();
+
+            // Animate progress bar
+            const bar = document.getElementById('progress-bar');
+            let width = 0;
+            const tick = setInterval(() => {
+                width += 20;
+                bar.style.width = width + '%';
+                if (width >= 100) {
+                    clearInterval(tick);
+                    setTimeout(showSuccess, 400);
+                }
+            }, 300);
+        }
+
+        function showSuccess() {
+            const meta = stationMeta[currentTarget];
+            document.getElementById('success-title').textContent = meta.successTitle;
+            document.getElementById('success-draw').textContent = meta.amount;
+            document.getElementById('success-next').textContent = meta.nextText;
+            document.getElementById('advance-btn-label').textContent = meta.nextLabel;
+            showModalState('modal-success');
+            lucide.createIcons();
+        }
+
+        function advanceCard() {
+            closeModal();
+            const orderId = currentOrder;
+            const target = currentTarget;
+
+            // Build the card HTML for the destination column
+            const meta = orderMeta[orderId];
+
+            // Which column is the card coming FROM?
+            const fromColMap = { framing: 'queue', mep: 'framing', freight: 'mep' };
+            const fromCol = fromColMap[target];
+            const toCol = target;
+
+            // Remove card from source column
+            const sourceCard = document.getElementById('card-' + orderId);
+            if (sourceCard) sourceCard.remove();
+
+            // Decrement source count
+            updateCount(fromCol, -1);
+
+            // Build destination card
+            const destCard = buildCard(orderId, target, meta);
+
+            // Inject into destination
+            const destContainer = document.getElementById('cards-' + toCol);
+            const emptyPlaceholder = document.getElementById(toCol + '-empty');
+            if (emptyPlaceholder) emptyPlaceholder.remove();
+
+            destCard.classList.add('pop-in');
+            destContainer.prepend(destCard);
+            lucide.createIcons();
+
+            // Update destination column count and header
+            updateCount(toCol, +1);
+            activateColumnHeader(toCol);
+        }
+
+        function buildCard(orderId, station, meta) {
+            const div = document.createElement('div');
+            div.id = 'card-' + orderId;
+
+            const pipsDone = { framing: 1, mep: 2, freight: 3 }[station];
+
+            if (station === 'framing') {
+                // Moving into Framing — active station styling
+                div.className = 'bg-slate-800 rounded-2xl p-4 ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/10 overflow-hidden relative';
+                div.innerHTML = `
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/10 blur-xl rounded-full"></div>
+                    <div class="draw-strip mb-3 relative z-10">${pipsHTML(pipsDone, 4)}</div>
+                    <div class="flex justify-between items-start mb-3 relative z-10">
+                        <span class="text-[10px] font-mono text-slate-300 bg-slate-900/80 px-2 py-1 rounded border border-slate-700">ORD-${orderId}</span>
+                        <span class="bg-emerald-500 text-white text-[9px] font-black uppercase px-2 py-1 rounded shadow text-center">Action<br>Required</span>
+                    </div>
+                    <h4 class="font-bold text-white text-lg relative z-10">${meta.label}</h4>
+                    <p class="text-xs text-slate-300 mt-1 relative z-10">${meta.sub}</p>
+                    <div class="mt-3 grid grid-cols-4 gap-1 text-center relative z-10">
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$12k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-blue-400 block">$40k</span><span class="text-[8px] text-blue-500">← Now</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$30k</span><span class="text-[8px] text-slate-600">MEP</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$35k</span><span class="text-[8px] text-slate-600">Freight</span></div>
+                    </div>
+                    <button onclick="openModal('${orderId}', 'mep', 'Complete Framing', '$40k Framing Draw')" class="mt-4 w-full relative z-10 flex items-center justify-center space-x-2 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl py-2.5 transition-colors shadow shadow-emerald-500/20">
+                        <i data-lucide="camera" class="w-4 h-4"></i><span>Complete Station · Unlock $40k</span>
+                    </button>
+                    <a href="vendor_change_order.html" class="mt-3 relative z-10 flex items-center justify-center space-x-1.5 text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-2 transition-colors">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span>Raise Exception</span>
+                    </a>`;
+
+            } else if (station === 'mep') {
+                div.className = 'bg-slate-800 rounded-2xl p-4 ring-2 ring-purple-500 shadow-lg shadow-purple-500/10 overflow-hidden relative';
+                div.innerHTML = `
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-purple-500/10 blur-xl rounded-full"></div>
+                    <div class="draw-strip mb-3 relative z-10">${pipsHTML(pipsDone, 4)}</div>
+                    <div class="flex justify-between items-start mb-3 relative z-10">
+                        <span class="text-[10px] font-mono text-slate-300 bg-slate-900/80 px-2 py-1 rounded border border-slate-700">ORD-${orderId}</span>
+                        <span class="bg-purple-500 text-white text-[9px] font-black uppercase px-2 py-1 rounded shadow text-center">Action<br>Required</span>
+                    </div>
+                    <h4 class="font-bold text-white text-lg relative z-10">${meta.label}</h4>
+                    <p class="text-xs text-slate-300 mt-1 relative z-10">${meta.sub}</p>
+                    <div class="mt-3 grid grid-cols-4 gap-1 text-center relative z-10">
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$12k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$40k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-blue-400 block">$30k</span><span class="text-[8px] text-blue-500">← Now</span></div>
+                        <div><span class="text-[9px] font-bold text-slate-400 block">$35k</span><span class="text-[8px] text-slate-600">Freight</span></div>
+                    </div>
+                    <button onclick="openModal('${orderId}', 'freight', 'Complete MEP', '$30k MEP Draw')" class="mt-4 w-full relative z-10 flex items-center justify-center space-x-2 text-[11px] font-bold text-white bg-purple-600 hover:bg-purple-500 rounded-xl py-2.5 transition-colors shadow shadow-purple-500/20">
+                        <i data-lucide="camera" class="w-4 h-4"></i><span>Complete Station · Unlock $30k</span>
+                    </button>
+                    <a href="vendor_change_order.html" class="mt-3 relative z-10 flex items-center justify-center space-x-1.5 text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-2 transition-colors">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span>Raise Exception</span>
+                    </a>`;
+
+            } else if (station === 'freight') {
+                div.className = 'glass-card rounded-2xl p-4 border-l-4 border-l-blue-500';
+                div.innerHTML = `
+                    <div class="draw-strip mb-3">${pipsHTML(pipsDone, 4)}</div>
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-900/50 px-2 py-1 rounded">ORD-${orderId}</span>
+                        <span class="text-[9px] font-bold text-blue-400 uppercase bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 flex items-center"><i data-lucide="truck" class="w-3 h-3 mr-0.5"></i> Ready</span>
+                    </div>
+                    <h4 class="font-bold text-white text-base">${meta.label}</h4>
+                    <p class="text-xs text-slate-400 mt-1">${meta.sub}</p>
+                    <div class="mt-3 grid grid-cols-4 gap-1 text-center">
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$12k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$40k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$30k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-blue-400 block">$35k</span><span class="text-[8px] text-blue-500">← Now</span></div>
+                    </div>
+                    <a href="vendor_freight_handoff.html" class="mt-4 flex items-center justify-center space-x-1.5 text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl py-2.5 transition-colors shadow shadow-blue-500/20">
+                        <i data-lucide="truck" class="w-3.5 h-3.5"></i><span>Begin Handoff · Unlock $35k</span>
+                    </a>`;
+            }
+
+            return div;
+        }
+
+        function pipsHTML(done, total) {
+            let html = '';
+            for (let i = 0; i < total; i++) {
+                if (i < done) html += '<div class="draw-pip done"></div>';
+                else if (i === done) html += '<div class="draw-pip active"></div>';
+                else html += '<div class="draw-pip"></div>';
+            }
+            return html;
+        }
+
+        function updateCount(col, delta) {
+            const el = document.getElementById('count-' + col);
+            if (!el) return;
+            const current = parseInt(el.textContent) || 0;
+            el.textContent = Math.max(0, current + delta);
+        }
+
+        function activateColumnHeader(col) {
+            if (col === 'mep') {
+                const header = document.getElementById('mep-header');
+                const dot = document.getElementById('mep-dot');
+                const count = document.getElementById('count-mep');
+                header.classList.remove('text-slate-300');
+                header.classList.add('text-purple-400');
+                dot.classList.remove('bg-slate-500');
+                dot.classList.add('bg-purple-400', 'animate-pulse');
+                count.classList.remove('bg-slate-800', 'text-slate-400');
+                count.classList.add('bg-purple-900', 'text-purple-400', 'ring-1', 'ring-purple-500/50');
+            }
+        }
+
+        // ─── View toggle ───
+        function switchView(view) {
+            const kanban = document.getElementById('kanban-board');
+            const listV  = document.getElementById('list-view');
+            const btnK   = document.getElementById('btn-kanban');
+            const btnL   = document.getElementById('btn-list');
+            if (view === 'kanban') {
+                kanban.classList.remove('hidden'); kanban.classList.add('flex');
+                listV.classList.add('hidden');
+                btnK.classList.add('active'); btnL.classList.remove('active');
+            } else {
+                kanban.classList.add('hidden'); kanban.classList.remove('flex');
+                listV.classList.remove('hidden');
+                btnK.classList.remove('active'); btnL.classList.add('active');
+                clearBatch();
+            }
+            lucide.createIcons();
+        }
+
+        // ─── Batch selection ───
+        function updateBatch() {
+            const checked = [...document.querySelectorAll('.batch-check:checked')];
+            const bar = document.getElementById('batch-bar');
+            document.getElementById('batch-bar-count').textContent = checked.length;
+            if (checked.length > 0) bar.classList.add('show');
+            else bar.classList.remove('show');
+        }
+
+        function clearBatch() {
+            document.querySelectorAll('.batch-check').forEach(c => c.checked = false);
+            document.getElementById('batch-bar').classList.remove('show');
+        }
+
         lucide.createIcons();
     </script>
 </body>

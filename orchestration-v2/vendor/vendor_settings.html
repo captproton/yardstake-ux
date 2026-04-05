@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+
+        /* Section visibility */
+        .settings-section { display: none; }
+        .settings-section.active { display: block; }
+
+        /* Sidebar nav item */
+        .side-item { display: flex; align-items: center; padding: 10px 16px; border-radius: 10px; cursor: pointer; transition: all 0.15s; font-size: 13px; font-weight: 600; color: #94a3b8; gap: 10px; }
+        .side-item:hover { background: rgba(51,65,85,0.4); color: #e2e8f0; }
+        .side-item.active { background: rgba(59,130,246,0.15); color: white; }
+        .side-item.active svg { color: #60a5fa; }
+
+        /* Toggle switch */
+        .toggle { width: 40px; height: 22px; background: #374151; border-radius: 11px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+        .toggle.on { background: #3b82f6; }
+        .toggle::after { content: ''; width: 16px; height: 16px; background: white; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .toggle.on::after { transform: translateX(18px); }
+
+        /* Form input */
+        .form-input { width: 100%; background: rgba(15,23,42,0.8); border: 1px solid rgba(51,65,85,0.8); border-radius: 12px; padding: 10px 14px; color: white; font-size: 14px; font-family: 'Plus Jakarta Sans', sans-serif; transition: border-color 0.15s; outline: none; }
+        .form-input:focus { border-color: #3b82f6; }
+        .form-input::placeholder { color: #475569; }
+
+        /* Toast */
+        #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: rgba(30,41,59,0.95); border: 1px solid rgba(34,197,94,0.4); color: white; padding: 12px 20px; border-radius: 14px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px; z-index: 200; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); backdrop-filter: blur(12px); white-space: nowrap; }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* Section tabs (mobile) */
+        .mob-tab { padding: 10px 14px; font-size: 11px; font-weight: 700; color: #64748b; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; transition: all 0.15s; }
+        .mob-tab.active { color: white; border-bottom-color: #3b82f6; }
+
+        /* Service area card */
+        .area-card { border-radius: 14px; padding: 14px; border: 1px solid rgba(51,65,85,0.7); transition: border-color 0.2s; }
+        .area-card.active-area { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.05); }
+        .area-card.waitlist { border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.03); }
+
+        /* Scrollbar hide */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* QR placeholder */
+        .qr-box { width: 120px; height: 120px; background: white; border-radius: 8px; display: flex; items-center: center; justify-content: center; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="vendor_dashboard.html" class="flex items-center text-slate-400 hover:text-white text-sm font-bold transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kanban
+                </a>
+                <span class="text-slate-700">|</span>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+                    <span class="text-white font-bold">Settings</span>
+                </div>
+            </div>
+            <a href="vendor_dashboard.html" class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">M</a>
+        </div>
+    </nav>
+
+    <!-- Mobile section tabs -->
+    <div class="sm:hidden bg-slate-900 border-b border-slate-800 sticky top-16 z-40 flex overflow-x-auto no-scrollbar">
+        <button class="mob-tab active" onclick="showSection('profile', this)">Profile</button>
+        <button class="mob-tab" onclick="showSection('stripe', this)">Stripe</button>
+        <button class="mob-tab" onclick="showSection('areas', this)">Service Areas</button>
+        <button class="mob-tab" onclick="showSection('notifications', this)">Alerts</button>
+        <button class="mob-tab" onclick="showSection('security', this)">Security</button>
+        <button class="mob-tab" onclick="showSection('activation', this)">Activation</button>
+    </div>
+
+    <!-- Body: sidebar + content -->
+    <div class="flex flex-1 min-h-0">
+
+        <!-- Desktop Sidebar -->
+        <aside class="hidden sm:flex flex-col w-56 bg-slate-900/60 border-r border-slate-800 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto flex-shrink-0">
+            <div class="p-3 space-y-1 pt-5">
+                <button class="side-item active w-full text-left" onclick="showSection('profile', this)" id="side-profile">
+                    <i data-lucide="building-2" class="w-4 h-4"></i> Company Profile
+                </button>
+                <button class="side-item w-full text-left" onclick="showSection('stripe', this)" id="side-stripe">
+                    <i data-lucide="credit-card" class="w-4 h-4"></i> Stripe & Payouts
+                </button>
+                <button class="side-item w-full text-left" onclick="showSection('areas', this)" id="side-areas">
+                    <i data-lucide="map-pin" class="w-4 h-4"></i> Service Areas
+                </button>
+                <button class="side-item w-full text-left" onclick="showSection('notifications', this)" id="side-notifications">
+                    <i data-lucide="bell" class="w-4 h-4"></i> Notifications
+                </button>
+                <button class="side-item w-full text-left" onclick="showSection('security', this)" id="side-security">
+                    <i data-lucide="shield" class="w-4 h-4"></i> Security
+                </button>
+                <div class="border-t border-slate-800 my-2"></div>
+                <button class="side-item w-full text-left" onclick="showSection('activation', this)" id="side-activation">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i> Activation Recap
+                </button>
+            </div>
+
+            <!-- Sidebar bottom: account info -->
+            <div class="mt-auto p-4 border-t border-slate-800">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0">M</div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-white truncate">Mike Modular</p>
+                        <p class="text-[10px] text-slate-500 truncate">mike@nwmodular.com</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-2xl mx-auto px-4 sm:px-8 py-8 space-y-0">
+
+                <!-- ═══════════ SECTION: Company Profile ═══════════ -->
+                <div id="section-profile" class="settings-section active space-y-6">
+                    <div>
+                        <h2 class="text-xl font-black text-white">Company Profile</h2>
+                        <p class="text-sm text-slate-400 mt-1">This information appears on your buyer-facing catalog and order communications.</p>
+                    </div>
+
+                    <!-- Logo upload -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Company Logo</label>
+                        <div class="flex items-center space-x-4">
+                            <div id="logo-zone" onclick="simulateLogoUpload()" class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-2xl cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0 overflow-hidden">
+                                <span id="logo-initials">NW</span>
+                            </div>
+                            <div>
+                                <button onclick="simulateLogoUpload()" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1.5 mb-1">
+                                    <i data-lucide="upload" class="w-3.5 h-3.5"></i><span>Upload new logo</span>
+                                </button>
+                                <p class="text-[10px] text-slate-600">PNG or JPG, min 200×200px. Shown in catalog and order spec PDFs.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fields -->
+                    <div class="glass-card rounded-2xl p-5 space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Company Name</label>
+                            <input type="text" class="form-input" value="Northwest Modular Builders">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Catalog Tagline <span class="text-slate-600 font-normal normal-case">(buyer-facing)</span></label>
+                            <input type="text" class="form-input" value="Premium prefab ADUs built for the Pacific Northwest">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">City</label>
+                                <input type="text" class="form-input" value="Portland">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">State</label>
+                                <input type="text" class="form-input" value="OR">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Contact Phone <span class="text-slate-600 font-normal normal-case">(used for SLA SMS alerts)</span></label>
+                            <input type="tel" class="form-input" value="+1 (503) 555-0148">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Email</label>
+                            <input type="email" class="form-input" value="mike@nwmodular.com">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Website <span class="text-slate-600 font-normal normal-case">(optional)</span></label>
+                            <input type="url" class="form-input" placeholder="https://nwmodularbuilders.com">
+                        </div>
+                    </div>
+
+                    <button onclick="showToast('Profile saved')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center space-x-2">
+                        <i data-lucide="save" class="w-4 h-4"></i><span>Save Changes</span>
+                    </button>
+                </div>
+
+                <!-- ═══════════ SECTION: Stripe & Payouts ═══════════ -->
+                <div id="section-stripe" class="settings-section space-y-6">
+                    <div>
+                        <h2 class="text-xl font-black text-white">Stripe & Payouts</h2>
+                        <p class="text-sm text-slate-400 mt-1">Manage your Stripe Connect account and payout preferences.</p>
+                    </div>
+
+                    <!-- KYC Status -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-0.5">KYC Verified</p>
+                                    <p class="text-sm font-bold text-white">Identity & business verified</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Verified Jan 20, 2026 · Stripe Express</p>
+                                </div>
+                            </div>
+                            <span class="bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase px-2.5 py-1 rounded-full flex-shrink-0">Active</span>
+                        </div>
+                    </div>
+
+                    <!-- Bank account -->
+                    <div class="glass-card rounded-2xl p-5 space-y-4">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Payout Account</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="landmark" class="w-5 h-5 text-slate-300"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-white">Chase Checking</p>
+                                    <p class="text-xs text-slate-500 font-mono">••••  ••••  ••••  4821</p>
+                                </div>
+                            </div>
+                            <button onclick="showToast('Redirecting to Stripe Express…')" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors">
+                                Update →
+                            </button>
+                        </div>
+
+                        <div class="border-t border-slate-700/50 pt-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-white">Instant Payouts</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Transfers arrive within 4 hours of milestone verification (vs. standard 2-day ACH)</p>
+                                </div>
+                                <div class="toggle on ml-4" onclick="toggleSwitch(this)"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tax -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">1099-K Tax Reporting</p>
+                                <p class="text-sm font-bold text-white">2026 YTD: $111,150 received</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Threshold: $600 — filing required. Q2 estimated tax due Jun 17.</p>
+                            </div>
+                            <button onclick="showToast('Opening Stripe Tax Dashboard…')" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0 ml-4">
+                                View →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ SECTION: Service Areas ═══════════ -->
+                <div id="section-areas" class="settings-section space-y-6">
+                    <div>
+                        <h2 class="text-xl font-black text-white">Service Areas</h2>
+                        <p class="text-sm text-slate-400 mt-1">Control which markets Yardstake routes orders to you from. Waitlisted markets open when demand exceeds current supply.</p>
+                    </div>
+
+                    <div class="space-y-3">
+
+                        <!-- Portland — active -->
+                        <div class="area-card active-area">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                                    <p class="text-sm font-black text-white">Portland Metro</p>
+                                    <span class="text-[9px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Live</span>
+                                </div>
+                                <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-3 pl-4">847 qualifying parcels · 3 active orders · Rank #1</p>
+                            <div class="pl-4">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Delivery Radius</label>
+                                <div class="flex items-center space-x-3">
+                                    <input type="range" min="25" max="150" value="75" class="flex-1 accent-emerald-500">
+                                    <span class="text-xs font-bold text-emerald-400 w-14 text-right">75 miles</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bend — waitlisted -->
+                        <div class="area-card waitlist">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                                    <p class="text-sm font-bold text-white">Bend / Central Oregon</p>
+                                    <span class="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Waitlisted</span>
+                                </div>
+                                <div class="toggle" onclick="showToast('Market opens when demand exceeds current supply')"></div>
+                            </div>
+                            <p class="text-xs text-slate-500 pl-4">183 qualifying parcels · Market opens Q3 2026</p>
+                        </div>
+
+                        <!-- Eugene — waitlisted -->
+                        <div class="area-card waitlist">
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-2 h-2 rounded-full bg-amber-400"></div>
+                                    <p class="text-sm font-bold text-white">Eugene / Lane County</p>
+                                    <span class="text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-widest">Waitlisted</span>
+                                </div>
+                                <div class="toggle" onclick="showToast('Market opens when demand exceeds current supply')"></div>
+                            </div>
+                            <p class="text-xs text-slate-500 pl-4">241 qualifying parcels · Market opens Q4 2026</p>
+                        </div>
+
+                        <!-- Salem — coming soon -->
+                        <div class="area-card" style="opacity: 0.5;">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                                    <p class="text-sm font-bold text-slate-400">Salem / Willamette Valley</p>
+                                    <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Coming soon</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Medford — coming soon -->
+                        <div class="area-card" style="opacity: 0.5;">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2.5">
+                                    <div class="w-2 h-2 rounded-full bg-slate-600"></div>
+                                    <p class="text-sm font-bold text-slate-400">Medford / Southern Oregon</p>
+                                    <span class="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Coming soon</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 text-xs text-slate-400 leading-relaxed">
+                        <span class="font-bold text-blue-400">Want to unlock a new market faster?</span> Refer another qualified builder to Yardstake. Each verified referral moves you up the waitlist.
+                        <a href="delegate_inbox.html" class="text-blue-400 font-bold ml-1 hover:text-blue-300">Invite a builder →</a>
+                    </div>
+                </div>
+
+                <!-- ═══════════ SECTION: Notifications ═══════════ -->
+                <div id="section-notifications" class="settings-section space-y-6">
+                    <div>
+                        <h2 class="text-xl font-black text-white">Notification Preferences</h2>
+                        <p class="text-sm text-slate-400 mt-1">Control how and when Yardstake contacts you. SLA alerts always include SMS regardless of settings.</p>
+                    </div>
+
+                    <div class="glass-card rounded-2xl divide-y divide-slate-700/50">
+
+                        <!-- Row helper macro via repetition -->
+                        <div class="px-5 py-4">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">New Order Routed</p>
+                            <div class="space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">SMS</span>
+                                    <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">Email</span>
+                                    <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">Push notification</span>
+                                    <div class="toggle" onclick="toggleSwitch(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="px-5 py-4">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Payout Confirmed</p>
+                            <div class="space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">SMS</span>
+                                    <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">Email</span>
+                                    <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="px-5 py-4">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Concierge Message</p>
+                            <div class="space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">SMS <span class="text-[10px] text-red-400 font-bold ml-1">Required for SLA</span></span>
+                                    <div class="toggle on opacity-60 cursor-not-allowed" title="Required for SLA compliance"></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">Email</span>
+                                    <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="px-5 py-4">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Exception Updates</p>
+                            <div class="space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">SMS</span>
+                                    <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-slate-300">Email</span>
+                                    <div class="toggle" onclick="toggleSwitch(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="px-5 py-4">
+                            <div class="flex items-center justify-between mb-1">
+                                <div>
+                                    <p class="text-sm font-bold text-white">Weekly digest email</p>
+                                    <p class="text-xs text-slate-500 mt-0.5">Sundays at 8 AM — order summary, upcoming milestones, score update</p>
+                                </div>
+                                <div class="toggle on ml-4" onclick="toggleSwitch(this)"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Quiet hours -->
+                    <div class="glass-card rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-bold text-white">Quiet Hours</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Suppress non-urgent notifications during these hours</p>
+                            </div>
+                            <div class="toggle on" onclick="toggleSwitch(this)"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">From</label>
+                                <select class="form-input">
+                                    <option>10:00 PM</option><option>9:00 PM</option><option>11:00 PM</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Until</label>
+                                <select class="form-input">
+                                    <option>6:00 AM</option><option>5:00 AM</option><option>7:00 AM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-amber-400/80">SLA alerts always bypass quiet hours.</p>
+                    </div>
+
+                    <button onclick="showToast('Notification preferences saved')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center space-x-2">
+                        <i data-lucide="save" class="w-4 h-4"></i><span>Save Preferences</span>
+                    </button>
+                </div>
+
+                <!-- ═══════════ SECTION: Security ═══════════ -->
+                <div id="section-security" class="settings-section space-y-6">
+                    <div>
+                        <h2 class="text-xl font-black text-white">Security</h2>
+                        <p class="text-sm text-slate-400 mt-1">Manage your password, two-factor authentication, and active sessions.</p>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="glass-card rounded-2xl p-5 space-y-4">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Password</p>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-2">Current password</label>
+                            <input type="password" class="form-input" placeholder="••••••••••••">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-2">New password</label>
+                            <input type="password" class="form-input" placeholder="Min 12 characters">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-2">Confirm new password</label>
+                            <input type="password" class="form-input" placeholder="Re-enter new password">
+                        </div>
+                        <button onclick="showToast('Password updated successfully')" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">
+                            Update Password
+                        </button>
+                    </div>
+
+                    <!-- 2FA -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <p class="text-sm font-bold text-white">Two-Factor Authentication</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Protects your payout account from unauthorized access</p>
+                            </div>
+                            <span class="text-[10px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-full uppercase">Not enabled</span>
+                        </div>
+
+                        <!-- 2FA setup flow (toggle-able) -->
+                        <div id="tfa-prompt">
+                            <button onclick="show2FA()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors flex items-center justify-center space-x-2">
+                                <i data-lucide="smartphone" class="w-4 h-4"></i><span>Enable 2FA via Authenticator App</span>
+                            </button>
+                        </div>
+
+                        <div id="tfa-setup" class="hidden space-y-4 mt-1">
+                            <p class="text-xs text-slate-400">Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password).</p>
+                            <div class="flex justify-center">
+                                <!-- QR code placeholder -->
+                                <div class="w-32 h-32 bg-white rounded-xl p-2 flex items-center justify-center">
+                                    <svg viewBox="0 0 100 100" class="w-full h-full" fill="black">
+                                        <!-- Simplified QR pattern -->
+                                        <rect x="5" y="5" width="30" height="30" rx="2" fill="black"/>
+                                        <rect x="10" y="10" width="20" height="20" rx="1" fill="white"/>
+                                        <rect x="14" y="14" width="12" height="12" rx="0.5" fill="black"/>
+                                        <rect x="65" y="5" width="30" height="30" rx="2" fill="black"/>
+                                        <rect x="70" y="10" width="20" height="20" rx="1" fill="white"/>
+                                        <rect x="74" y="14" width="12" height="12" rx="0.5" fill="black"/>
+                                        <rect x="5" y="65" width="30" height="30" rx="2" fill="black"/>
+                                        <rect x="10" y="70" width="20" height="20" rx="1" fill="white"/>
+                                        <rect x="14" y="74" width="12" height="12" rx="0.5" fill="black"/>
+                                        <rect x="45" y="5" width="6" height="6" fill="black"/>
+                                        <rect x="53" y="5" width="6" height="6" fill="black"/>
+                                        <rect x="45" y="13" width="6" height="6" fill="black"/>
+                                        <rect x="45" y="45" width="6" height="6" fill="black"/>
+                                        <rect x="53" y="53" width="6" height="6" fill="black"/>
+                                        <rect x="61" y="45" width="6" height="6" fill="black"/>
+                                        <rect x="69" y="45" width="6" height="6" fill="black"/>
+                                        <rect x="77" y="53" width="6" height="6" fill="black"/>
+                                        <rect x="45" y="61" width="6" height="6" fill="black"/>
+                                        <rect x="53" y="69" width="6" height="6" fill="black"/>
+                                        <rect x="61" y="77" width="6" height="6" fill="black"/>
+                                        <rect x="77" y="61" width="6" height="6" fill="black"/>
+                                        <rect x="85" y="69" width="6" height="6" fill="black"/>
+                                        <rect x="85" y="77" width="6" height="6" fill="black"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-center text-slate-600 font-mono">Manual key: JBSWY3DPEHPK3PXP</p>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Enter 6-digit verification code</label>
+                                <div class="flex space-x-2">
+                                    <input id="tfa-input" type="text" maxlength="6" class="form-input text-center text-xl font-mono tracking-widest" placeholder="000000">
+                                    <button onclick="verify2FA()" class="px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm transition-colors flex-shrink-0">Verify</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active sessions -->
+                    <div class="glass-card rounded-2xl p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Sessions</p>
+                            <button onclick="showToast('Other sessions signed out')" class="text-xs font-bold text-red-400 hover:text-red-300 transition-colors">Sign out others</button>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2.5">
+                                    <i data-lucide="smartphone" class="w-4 h-4 text-blue-400"></i>
+                                    <div>
+                                        <p class="text-sm font-bold text-white">iPhone 16 · Portland, OR</p>
+                                        <p class="text-[10px] text-slate-500">Current session · Active now</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Current</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2.5">
+                                    <i data-lucide="monitor" class="w-4 h-4 text-slate-400"></i>
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-300">MacBook Pro · Portland, OR</p>
+                                        <p class="text-[10px] text-slate-500">Last active Apr 3, 2026 · 11:22 AM</p>
+                                    </div>
+                                </div>
+                                <button onclick="this.closest('.flex').remove(); showToast('Session signed out')" class="text-[10px] font-bold text-slate-500 hover:text-red-400 transition-colors">Sign out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ SECTION: Activation Recap ═══════════ -->
+                <div id="section-activation" class="settings-section space-y-6">
+                    <div>
+                        <h2 class="text-xl font-black text-white">Activation Recap</h2>
+                        <p class="text-sm text-slate-400 mt-1">Read-only summary of your onboarding steps. Use the edit links to update any section.</p>
+                    </div>
+
+                    <div class="glass-card rounded-2xl divide-y divide-slate-700/50">
+
+                        <!-- Step 1 -->
+                        <div class="flex items-start px-5 py-4 space-x-4">
+                            <div class="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-sm font-bold text-white">Orchestration Agreement</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Platform terms accepted · 5% fee · Photo-verified draws</p>
+                                <p class="text-[10px] text-emerald-600 mt-1">Signed Jan 20, 2026</p>
+                            </div>
+                            <button onclick="showToast('Opening agreement PDF…')" class="text-xs font-bold text-slate-500 hover:text-blue-400 transition-colors flex-shrink-0">View →</button>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="flex items-start px-5 py-4 space-x-4">
+                            <div class="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="credit-card" class="w-4 h-4 text-emerald-400"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-sm font-bold text-white">Stripe Connect</p>
+                                <p class="text-xs text-slate-500 mt-0.5">KYC verified · Chase Checking ••••4821</p>
+                                <p class="text-[10px] text-emerald-600 mt-1">Verified Jan 20, 2026</p>
+                            </div>
+                            <button onclick="showSection('stripe', null)" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0">Manage →</button>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="flex items-start px-5 py-4 space-x-4">
+                            <div class="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="package-2" class="w-4 h-4 text-emerald-400"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-sm font-bold text-white">Catalog Initialization</p>
+                                <p class="text-xs text-slate-500 mt-0.5">3 models active · Studio S, Studio XL, Family Loft</p>
+                                <p class="text-[10px] text-emerald-600 mt-1">Completed Jan 21, 2026</p>
+                            </div>
+                            <a href="vendor_catalog.html" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0">Edit →</a>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="flex items-start px-5 py-4 space-x-4">
+                            <div class="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i data-lucide="hard-hat" class="w-4 h-4 text-emerald-400"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <p class="text-sm font-bold text-white">Preferred GC</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Backyard Bill's Site Prep · bill@backyardbill.com</p>
+                                <p class="text-[10px] text-emerald-600 mt-1">Referred Jan 21, 2026</p>
+                            </div>
+                            <button onclick="showToast('Updating GC referral…')" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0">Update →</button>
+                        </div>
+
+                    </div>
+
+                    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-xs text-slate-400">
+                        To add a team member or delegate inbox access, visit <a href="delegate_inbox.html" class="text-blue-400 font-bold hover:text-blue-300">Delegate Access →</a>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toast-msg">Saved</span>
+    </div>
+
+    <!-- UX Post-it -->
+    <div class="fixed bottom-6 right-6 max-w-xs bg-yellow-100 text-yellow-900 p-4 rounded-xl shadow-2xl transform rotate-1 hidden lg:block pointer-events-none z-50">
+        <h4 class="font-bold text-sm mb-1 uppercase tracking-widest border-b border-yellow-300 pb-1">UX Note:</h4>
+        <p class="text-xs leading-relaxed font-medium">Service areas, Stripe, and the GC referral are the three most likely reasons Mike would open Settings. Those are above the fold on desktop sidebar.</p>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // ─── Section switching ───
+        let currentSection = 'profile';
+
+        function showSection(id, triggerEl) {
+            // Hide all sections
+            document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('section-' + id).classList.add('active');
+            currentSection = id;
+
+            // Update desktop sidebar
+            document.querySelectorAll('.side-item').forEach(s => s.classList.remove('active'));
+            const sideEl = document.getElementById('side-' + id);
+            if (sideEl) sideEl.classList.add('active');
+
+            // Update mobile tabs
+            if (triggerEl && triggerEl.classList.contains('mob-tab')) {
+                document.querySelectorAll('.mob-tab').forEach(t => t.classList.remove('active'));
+                triggerEl.classList.add('active');
+            }
+
+            // Scroll to top of main
+            document.querySelector('main').scrollTop = 0;
+        }
+
+        // ─── Toggle switches ───
+        function toggleSwitch(el) {
+            el.classList.toggle('on');
+        }
+
+        // ─── Logo upload simulation ───
+        function simulateLogoUpload() {
+            const zone = document.getElementById('logo-zone');
+            const initials = document.getElementById('logo-initials');
+            zone.classList.add('opacity-50');
+            setTimeout(() => {
+                zone.classList.remove('opacity-50');
+                initials.textContent = '✓';
+                showToast('Logo uploaded');
+                setTimeout(() => { initials.textContent = 'NW'; }, 1500);
+            }, 700);
+        }
+
+        // ─── 2FA setup ───
+        function show2FA() {
+            document.getElementById('tfa-prompt').classList.add('hidden');
+            document.getElementById('tfa-setup').classList.remove('hidden');
+        }
+
+        function verify2FA() {
+            const input = document.getElementById('tfa-input').value;
+            if (input.length === 6) {
+                document.getElementById('tfa-setup').innerHTML = `
+                    <div class="flex items-center space-x-3 py-2">
+                        <div class="w-8 h-8 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-emerald-400">2FA Enabled</p>
+                            <p class="text-xs text-slate-500">Authenticator app connected · Protected since Apr 4, 2026</p>
+                        </div>
+                    </div>`;
+                lucide.createIcons();
+                showToast('Two-factor authentication enabled');
+            } else {
+                showToast('Enter a 6-digit code');
+            }
+        }
+
+        // ─── Toast ───
+        let toastTimer;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

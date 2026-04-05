@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+
+        /* Notification rows */
+        .notif-row { border-bottom: 1px solid rgba(51,65,85,0.4); transition: background 0.15s; }
+        .notif-row:last-child { border-bottom: none; }
+        .notif-row:hover { background: rgba(51,65,85,0.2); }
+        .notif-row.unread { background: rgba(59,130,246,0.05); }
+        .notif-row.unread:hover { background: rgba(59,130,246,0.08); }
+
+        /* Filter tab */
+        .filter-tab { border-bottom: 2px solid transparent; transition: all 0.15s; cursor: pointer; }
+        .filter-tab.active { border-bottom-color: #3b82f6; color: white; }
+        .filter-tab:not(.active):hover { color: #cbd5e1; }
+
+        /* Unread dot */
+        .unread-dot { width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; flex-shrink: 0; }
+
+        /* Read receipt fade */
+        .read-fade { opacity: 0.55; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="vendor_dashboard.html" class="flex items-center text-slate-400 hover:text-white text-sm font-bold transition-colors">
+                    <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kanban
+                </a>
+                <span class="text-slate-700">|</span>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="bell" class="w-4 h-4 text-blue-400"></i>
+                    <span class="text-white font-bold">Notifications</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="mark-all-btn" onclick="markAllRead()" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors hidden sm:block">
+                    Mark all read
+                </button>
+                <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">M</div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Filter tabs -->
+    <div class="bg-slate-900 border-b border-slate-800 sticky top-16 z-40">
+        <div class="px-4 sm:px-6 flex items-center space-x-1 overflow-x-auto no-scrollbar">
+            <button onclick="filterBy('all')" id="tab-all" class="filter-tab active text-white text-xs font-bold px-4 py-3.5 whitespace-nowrap flex items-center space-x-1.5">
+                <span>All</span>
+                <span id="count-all" class="bg-blue-500/20 text-blue-400 text-[10px] font-black px-1.5 py-0.5 rounded-full">11</span>
+            </button>
+            <button onclick="filterBy('payout')" id="tab-payout" class="filter-tab text-slate-400 text-xs font-bold px-4 py-3.5 whitespace-nowrap flex items-center space-x-1.5">
+                <span>Payouts</span>
+                <span class="bg-slate-800 text-slate-500 text-[10px] font-black px-1.5 py-0.5 rounded-full">3</span>
+            </button>
+            <button onclick="filterBy('message')" id="tab-message" class="filter-tab text-slate-400 text-xs font-bold px-4 py-3.5 whitespace-nowrap flex items-center space-x-1.5">
+                <span>Messages</span>
+                <span class="bg-blue-500/20 text-blue-400 text-[10px] font-black px-1.5 py-0.5 rounded-full">2</span>
+            </button>
+            <button onclick="filterBy('order')" id="tab-order" class="filter-tab text-slate-400 text-xs font-bold px-4 py-3.5 whitespace-nowrap flex items-center space-x-1.5">
+                <span>Orders</span>
+                <span class="bg-slate-800 text-slate-500 text-[10px] font-black px-1.5 py-0.5 rounded-full">3</span>
+            </button>
+            <button onclick="filterBy('exception')" id="tab-exception" class="filter-tab text-slate-400 text-xs font-bold px-4 py-3.5 whitespace-nowrap flex items-center space-x-1.5">
+                <span>Exceptions</span>
+                <span class="bg-slate-800 text-slate-500 text-[10px] font-black px-1.5 py-0.5 rounded-full">2</span>
+            </button>
+        </div>
+    </div>
+
+    <main class="flex-grow max-w-2xl w-full mx-auto pb-12">
+
+        <!-- ─── DATE GROUP: Today ─── -->
+        <div class="date-group" data-group="today">
+            <div class="px-5 pt-5 pb-2">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Today · Apr 4, 2026</span>
+            </div>
+
+            <!-- 1. Final draw transferred -->
+            <a href="vendor_order_complete.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="payout" data-read="true">
+                <div class="w-9 h-9 bg-emerald-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="banknote" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">$35,000 transferred to your bank</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">Final draw released · ORD-7702 · Seattle DADU</p>
+                    <p class="text-[10px] text-slate-600 mt-1">2:17 PM</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+
+            <!-- 2. Delivery confirmed -->
+            <a href="vendor_order_complete.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="order" data-read="true">
+                <div class="w-9 h-9 bg-emerald-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">ORD-7702 Delivered!</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">Site GC confirmed on-site delivery · Seattle, WA</p>
+                    <p class="text-[10px] text-slate-600 mt-1">2:15 PM</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+
+            <!-- 3. Unread message -->
+            <a href="vendor_messages.html" class="notif-row unread flex items-start px-5 py-4 space-x-4" data-type="message" data-read="false">
+                <div class="w-9 h-9 bg-blue-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="message-circle" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white">Fiona · ORD-9021</p>
+                    <p class="text-xs text-slate-400 mt-0.5 truncate">"Can you confirm the MEP rough-in is on schedule for Apr 1?"</p>
+                    <p class="text-[10px] text-slate-600 mt-1">10:03 AM</p>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0 mt-1">
+                    <div class="unread-dot" id="dot-3"></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+                </div>
+            </a>
+
+            <!-- 4. SLA warning -->
+            <a href="vendor_messages.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="exception" data-read="true">
+                <div class="w-9 h-9 bg-red-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-red-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">SLA Alert · ORD-9021</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">Concierge message response due in 47 minutes</p>
+                    <p class="text-[10px] text-slate-600 mt-1">9:47 AM · <span class="text-slate-500 font-medium">Resolved — you replied</span></p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+        </div>
+
+        <!-- ─── DATE GROUP: Yesterday ─── -->
+        <div class="date-group" data-group="yesterday">
+            <div class="px-5 pt-5 pb-2">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Yesterday · Apr 3, 2026</span>
+            </div>
+
+            <!-- 5. MEP draw -->
+            <a href="vendor_ledger.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="payout" data-read="true">
+                <div class="w-9 h-9 bg-emerald-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="banknote" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">$30,000 transferred to your bank</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">MEP milestone draw · ORD-9021 · Portland R5</p>
+                    <p class="text-[10px] text-slate-600 mt-1">4:22 PM</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+
+            <!-- 6. In transit -->
+            <a href="vendor_freight_handoff.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="order" data-read="true">
+                <div class="w-9 h-9 bg-blue-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="truck" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">ORD-7702 picked up by carrier</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">XPO Logistics confirmed unit pickup · BOL-2026-XPO-44821</p>
+                    <p class="text-[10px] text-slate-600 mt-1">11:30 AM</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+
+            <!-- 7. Unread message -->
+            <a href="vendor_messages.html" class="notif-row unread flex items-start px-5 py-4 space-x-4" data-type="message" data-read="false">
+                <div class="w-9 h-9 bg-blue-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="message-circle" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white">Fiona · ORD-7702</p>
+                    <p class="text-xs text-slate-400 mt-0.5 truncate">"Freight pickup confirmed for tomorrow morning. BOL attached."</p>
+                    <p class="text-[10px] text-slate-600 mt-1">9:02 AM</p>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0 mt-1">
+                    <div class="unread-dot" id="dot-7"></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600"></i>
+                </div>
+            </a>
+        </div>
+
+        <!-- ─── DATE GROUP: Mar 31 ─── -->
+        <div class="date-group" data-group="mar31">
+            <div class="px-5 pt-5 pb-2">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mar 31, 2026</span>
+            </div>
+
+            <!-- 8. Exception resolved -->
+            <a href="vendor_change_order.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="exception" data-read="true">
+                <div class="w-9 h-9 bg-amber-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-amber-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">Exception resolved · ORD-6610</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">SIP Panel 5.5" substitution approved by Concierge</p>
+                    <p class="text-[10px] text-slate-600 mt-1">2:05 PM</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+
+            <!-- 9. Framing draw -->
+            <a href="vendor_ledger.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="payout" data-read="true">
+                <div class="w-9 h-9 bg-emerald-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="banknote" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">$40,000 transferred to your bank</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">Framing milestone draw · ORD-9021 · Portland R5</p>
+                    <p class="text-[10px] text-slate-600 mt-1">8:44 AM</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+        </div>
+
+        <!-- ─── DATE GROUP: Mar 22 ─── -->
+        <div class="date-group" data-group="mar22">
+            <div class="px-5 pt-5 pb-2">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mar 22, 2026</span>
+            </div>
+
+            <!-- 10. New order routed -->
+            <a href="vendor_order_received.html" class="notif-row flex items-start px-5 py-4 space-x-4" data-type="order" data-read="true">
+                <div class="w-9 h-9 bg-blue-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="package" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">New order routed · ORD-8814</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">Bend Lot — John D. · Family Loft · Standard · $130k project</p>
+                    <p class="text-[10px] text-slate-600 mt-1">9:15 AM</p>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-600 flex-shrink-0 mt-1"></i>
+            </a>
+
+            <!-- 11. Placement score -->
+            <div class="notif-row flex items-start px-5 py-4 space-x-4" data-type="system" data-read="true">
+                <div class="w-9 h-9 bg-amber-500/15 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white read-fade">Placement Score updated · 98/100</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate">+2 pts · On-time milestone submission · Rank #1 in Portland</p>
+                    <p class="text-[10px] text-slate-600 mt-1">9:00 AM</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── EMPTY STATE (shown when filter has no results) ─── -->
+        <div id="empty-state" class="hidden px-5 py-16 text-center">
+            <div class="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="bell-off" class="w-6 h-6 text-slate-600"></i>
+            </div>
+            <p class="text-sm font-bold text-slate-500">No notifications in this category</p>
+        </div>
+
+    </main>
+
+    <!-- Mobile mark-all button (fixed bottom) -->
+    <div class="sm:hidden fixed bottom-0 inset-x-0 bg-slate-900/95 border-t border-slate-800 px-5 py-4">
+        <button onclick="markAllRead()" id="mark-all-mobile" class="w-full text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors">
+            Mark all read
+        </button>
+    </div>
+
+    <!-- UX Post-it -->
+    <div class="fixed bottom-6 right-6 max-w-xs bg-yellow-100 text-yellow-900 p-4 rounded-xl shadow-2xl transform rotate-1 hidden lg:block pointer-events-none">
+        <h4 class="font-bold text-sm mb-1 uppercase tracking-widest border-b border-yellow-300 pb-1">UX Note:</h4>
+        <p class="text-xs leading-relaxed font-medium">This is Mike's "what happened while I was on the floor" view. Replaces the need to check Kanban + Messages + Ledger separately. Each row is a deep link into the right screen.</p>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let currentFilter = 'all';
+
+        function filterBy(type) {
+            currentFilter = type;
+
+            // Update tab styles
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active', 'text-white'));
+            const activeTab = document.getElementById('tab-' + type);
+            if (activeTab) {
+                activeTab.classList.add('active', 'text-white');
+            }
+
+            const rows = document.querySelectorAll('.notif-row');
+            let anyVisible = false;
+
+            rows.forEach(row => {
+                const rowType = row.dataset.type;
+                const show = type === 'all' || rowType === type;
+                row.style.display = show ? '' : 'none';
+                if (show) anyVisible = true;
+            });
+
+            // Hide/show date group headers if all their items are hidden
+            document.querySelectorAll('.date-group').forEach(group => {
+                const visibleRows = [...group.querySelectorAll('.notif-row')].filter(r => r.style.display !== 'none');
+                group.style.display = visibleRows.length > 0 ? '' : 'none';
+            });
+
+            document.getElementById('empty-state').classList.toggle('hidden', anyVisible);
+        }
+
+        function markAllRead() {
+            // Remove unread styling from all rows
+            document.querySelectorAll('.notif-row.unread').forEach(row => {
+                row.classList.remove('unread');
+                row.dataset.read = 'true';
+                // Fade the title to match read style
+                const title = row.querySelector('p.font-bold');
+                if (title) title.classList.add('read-fade');
+            });
+            // Hide all unread dots
+            document.querySelectorAll('.unread-dot').forEach(dot => dot.remove());
+
+            // Hide "mark all read" buttons
+            document.getElementById('mark-all-btn').classList.add('invisible');
+            const mobile = document.getElementById('mark-all-mobile');
+            if (mobile) mobile.classList.add('invisible');
+
+            // Update count badge on "Messages" tab to 0
+            document.querySelector('#tab-message span.bg-blue-500\\/20')?.classList.replace('bg-blue-500/20', 'bg-slate-800');
+            document.querySelector('#tab-message span.text-blue-400')?.classList.replace('text-blue-400', 'text-slate-500');
+        }
+
+        // Mark a single row as read on click (rows that ARE links handle this natively)
+        document.querySelectorAll('.notif-row[data-read="false"]').forEach(row => {
+            row.addEventListener('click', () => {
+                row.classList.remove('unread');
+                row.dataset.read = 'true';
+                const dot = row.querySelector('.unread-dot');
+                if (dot) dot.remove();
+            });
+        });
+    </script>
+</body>
+</html>

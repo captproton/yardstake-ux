@@ -9,75 +9,67 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0F172A; }
-    .glass-card {
-      background: rgba(30,41,59,0.7);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(51,65,85,0.8);
-    }
-    .option-row {
-      background: rgba(15,23,42,0.5);
-      border: 1px solid rgba(51,65,85,0.5);
-    }
-    .thumb-zone {
-      width: 48px;
-      height: 48px;
-      border: 1.5px dashed rgba(100,116,139,0.5);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      overflow: hidden;
-      flex-shrink: 0;
-      position: relative;
-    }
+    .glass-card { background: rgba(30,41,59,0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51,65,85,0.8); }
+    .option-row { background: rgba(15,23,42,0.5); border: 1px solid rgba(51,65,85,0.5); }
+
+    /* Thumbnail upload zone */
+    .thumb-zone { width: 52px; height: 52px; border: 1.5px dashed rgba(100,116,139,0.5); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; overflow: hidden; flex-shrink: 0; position: relative; }
     .thumb-zone:hover { border-color: rgba(59,130,246,0.7); background: rgba(59,130,246,0.05); }
     .thumb-zone.uploaded { border-style: solid; border-color: rgba(16,185,129,0.5); }
     .thumb-zone img { width: 100%; height: 100%; object-fit: cover; }
-    .toggle-pill {
-      width: 36px;
-      height: 20px;
-      border-radius: 9999px;
-      position: relative;
-      cursor: pointer;
-      transition: background 0.2s;
-      flex-shrink: 0;
-    }
+
+    /* Color swatch (replaces thumb-zone in color categories) */
+    .color-swatch { width: 52px; height: 52px; border-radius: 8px; border: 2px solid rgba(51,65,85,0.8); cursor: pointer; flex-shrink: 0; transition: border-color 0.2s, transform 0.15s; position: relative; }
+    .color-swatch:hover { border-color: rgba(255,255,255,0.3); transform: scale(1.08); }
+    .color-swatch input[type="color"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+    /* Toggle pill */
+    .toggle-pill { width: 36px; height: 20px; border-radius: 9999px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
     .toggle-pill.on  { background: #10B981; }
     .toggle-pill.off { background: #475569; }
-    .toggle-knob {
-      position: absolute;
-      top: 2px;
-      width: 16px;
-      height: 16px;
-      background: white;
-      border-radius: 9999px;
-      transition: left 0.2s;
-    }
+    .toggle-knob { position: absolute; top: 2px; width: 16px; height: 16px; background: white; border-radius: 9999px; transition: left 0.2s; }
     .toggle-pill.on  .toggle-knob { left: 18px; }
     .toggle-pill.off .toggle-knob { left: 2px; }
-    .accordion-body {
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-    }
+
+    /* Radio selector (pick-one) */
+    .radio-sel { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #475569; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; flex-shrink: 0; }
+    .radio-sel:hover { border-color: #a78bfa; }
+    .radio-sel.selected { border-color: #a78bfa; background: rgba(139,92,246,0.15); }
+    .radio-dot { width: 9px; height: 9px; border-radius: 50%; background: #a78bfa; opacity: 0; transition: opacity 0.15s; }
+    .radio-sel.selected .radio-dot { opacity: 1; }
+
+    /* Selection type badge */
+    .type-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 9999px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s; user-select: none; flex-shrink: 0; white-space: nowrap; }
+    .type-badge.pick-one   { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+    .type-badge.add-on     { background: rgba(16,185,129,0.15);  color: #34d399;  border: 1px solid rgba(16,185,129,0.3); }
+    .type-badge.color-pick { background: rgba(251,191,36,0.15);  color: #fbbf24;  border: 1px solid rgba(251,191,36,0.3); }
+    .type-badge:hover { opacity: 0.8; }
+
+    /* Section divider */
+    .section-div { display: flex; align-items: center; gap: 12px; padding: 22px 4px 10px; }
+    .section-div-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; white-space: nowrap; }
+    .section-div-line { flex: 1; height: 1px; background: rgba(51,65,85,0.5); }
+
+    /* Accordion */
+    .accordion-body { overflow: hidden; transition: max-height 0.3s ease; }
     .accordion-body.collapsed { max-height: 0 !important; }
+
+    /* Conditional note */
+    .cond-note { font-size: 10px; color: #f59e0b; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; margin: 0 16px 12px; }
+
+    /* Price delta */
     .price-delta:disabled { color: #475569; }
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
-    @keyframes flash { 0%,100% { opacity:1 } 50% { opacity:0.3 } }
+    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    /* Flash animation */
+    @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.3} }
     .upload-flash { animation: flash 0.3s ease; }
-    .sticky-footer {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(15,23,42,0.95);
-      backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(51,65,85,0.8);
-      z-index: 100;
-    }
+
+    /* Sticky footer */
+    .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(51,65,85,0.8); z-index: 100; }
   </style>
 </head>
-<body class="min-h-screen text-white pb-28">
+<body class="min-h-screen text-white pb-32">
 
   <!-- NAV -->
   <nav class="sticky top-0 z-50 glass-card border-b border-slate-800">
@@ -93,8 +85,7 @@
       <div class="flex items-center gap-2">
         <span class="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-900/40 px-2 py-1 rounded">Active Model</span>
         <button onclick="saveOptions()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-          <i data-lucide="save" class="w-3.5 h-3.5"></i>
-          Save Options
+          <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Options
         </button>
       </div>
     </div>
@@ -103,679 +94,905 @@
   <div class="max-w-4xl mx-auto px-4 pt-6 pb-4">
 
     <!-- Page header -->
-    <div class="mb-6">
+    <div class="mb-5">
       <h1 class="text-2xl font-black text-white">Configure Buyer Options</h1>
-      <p class="text-slate-400 text-sm mt-1">Define what buyers can customize on the <strong class="text-white">Studio XL</strong>. Standard items are included in base price. Upgrade items show a price delta to the buyer in the configurator.</p>
+      <p class="text-slate-400 text-sm mt-1">Define what buyers can customize on the <strong class="text-white">Studio XL</strong>. Categories are organized by area. <span class="text-violet-400 font-bold">⊙ Pick one</span> = buyer selects exactly one option. <span class="text-emerald-400 font-bold">☑ Add-on</span> = buyer adds any combination. <span class="text-amber-400 font-bold">⬤ Color</span> = buyer picks a color.</p>
     </div>
 
     <!-- Stats strip -->
-    <div class="grid grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-4 gap-3 mb-5">
       <div class="glass-card rounded-xl p-3">
         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Categories</span>
-        <span id="stat-cats" class="text-xl font-black text-white">6</span>
+        <span id="stat-cats" class="text-xl font-black text-white">13</span>
       </div>
       <div class="glass-card rounded-xl p-3">
         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Total Options</span>
-        <span id="stat-options" class="text-xl font-black text-white">21</span>
+        <span id="stat-options" class="text-xl font-black text-white">47</span>
       </div>
       <div class="glass-card rounded-xl p-3">
         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Active Upgrades</span>
-        <span id="stat-upgrades" class="text-xl font-black text-blue-400">9</span>
+        <span id="stat-upgrades" class="text-xl font-black text-blue-400">34</span>
       </div>
       <div class="glass-card rounded-xl p-3">
         <span class="text-[10px] text-slate-500 uppercase tracking-widest block mb-1">Max Uplift</span>
-        <span id="stat-uplift" class="text-xl font-black text-emerald-400">$8,150</span>
+        <span id="stat-uplift" class="text-xl font-black text-emerald-400">$25,100</span>
       </div>
     </div>
 
     <!-- Column legend -->
     <div class="flex items-center gap-3 mb-3 px-1">
       <div class="w-4 flex-shrink-0"></div>
-      <div class="w-12 flex-shrink-0 text-[9px] font-black text-slate-600 uppercase tracking-wider text-center">Swatch</div>
+      <div class="w-[52px] flex-shrink-0 text-[9px] font-black text-slate-600 uppercase tracking-wider text-center">Image / Color</div>
       <div class="flex-1 text-[9px] font-black text-slate-600 uppercase tracking-wider">Option Name</div>
-      <div class="w-12 text-[9px] font-black text-slate-600 uppercase tracking-wider text-center flex-shrink-0">Std</div>
+      <div class="w-14 text-[9px] font-black text-slate-600 uppercase tracking-wider text-center flex-shrink-0">Default</div>
       <div class="w-24 text-[9px] font-black text-slate-600 uppercase tracking-wider text-center flex-shrink-0">Price Delta</div>
       <div class="w-9 text-[9px] font-black text-slate-600 uppercase tracking-wider text-center flex-shrink-0">Live</div>
       <div class="w-4 flex-shrink-0"></div>
     </div>
 
-    <!-- CATEGORY LIST -->
+    <!-- ══════════════════════════════════════ -->
+    <!-- CATEGORY LIST                          -->
+    <!-- ══════════════════════════════════════ -->
     <div id="category-list" class="space-y-3">
 
-      <!-- ── EXTERIOR ── -->
-      <div class="glass-card rounded-2xl overflow-hidden" data-category="exterior">
+
+      <!-- ▸▸▸ SECTION: EXTERIOR ◂◂◂ -->
+      <div class="section-div">
+        <span class="section-div-label">Exterior</span>
+        <div class="section-div-line"></div>
+      </div>
+
+      <!-- ── Exterior Siding [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="siding">
         <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
           <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
-          <div class="flex-1 flex items-center gap-2">
-            <span class="text-base font-black text-white">Exterior</span>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Exterior Siding</span>
             <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">4 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
           </div>
-          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on" title="Enable/disable category">
-            <div class="toggle-knob"></div>
-          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
           <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform rotate-180"></i>
         </div>
         <div class="accordion-body border-t border-slate-700/50" style="max-height:9999px">
           <div class="p-4 space-y-2 option-list">
 
+            <!-- Hardiplank (default) -->
             <div class="option-row rounded-xl p-3 flex items-center gap-3">
               <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
+              <div class="thumb-zone uploaded" onclick="triggerUpload(this)">
+                <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=104&q=70" alt="Hardiplank">
                 <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
               </div>
-              <input type="text" value="Hardiplank Siding" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
+              <input type="text" value="Hardiplank Fiber Cement" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)">
+                <div class="radio-sel selected"><div class="radio-dot"></div></div>
+              </div>
               <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
                 <span class="delta-sign text-slate-500 text-xs">+$</span>
                 <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
               </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)" title="Visible to buyer">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
             </div>
 
+            <!-- Cedar Lap -->
             <div class="option-row rounded-xl p-3 flex items-center gap-3">
               <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone uploaded" onclick="triggerUpload(this)" title="Upload swatch image">
-                <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=96&q=60" alt="Cedar siding">
+              <div class="thumb-zone uploaded" onclick="triggerUpload(this)">
+                <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=104&q=70" alt="Cedar">
                 <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
               </div>
-              <input type="text" value="Cedar Lap Siding" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
+              <input type="text" value="Cedar Lap Siding" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)">
+                <div class="radio-sel"><div class="radio-dot"></div></div>
+              </div>
               <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
                 <span class="delta-sign text-slate-400 text-xs">+$</span>
                 <input type="number" value="1200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
               </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
             </div>
 
+            <!-- Board & Batten -->
             <div class="option-row rounded-xl p-3 flex items-center gap-3">
               <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
+              <div class="thumb-zone" onclick="triggerUpload(this)">
                 <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
                 <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
               </div>
-              <input type="text" value="Metal Roof (Standard)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
+              <input type="text" value="Board & Batten" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)">
+                <div class="radio-sel"><div class="radio-dot"></div></div>
               </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Standing Seam Metal (Premium)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="4800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill off flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-          </div>
-          <div class="px-4 pb-4">
-            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              Add option
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── KITCHEN ── -->
-      <div class="glass-card rounded-2xl overflow-hidden" data-category="kitchen">
-        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
-          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
-          <div class="flex-1 flex items-center gap-2">
-            <span class="text-base font-black text-white">Kitchen</span>
-            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">4 options</span>
-          </div>
-          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on">
-            <div class="toggle-knob"></div>
-          </div>
-          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform rotate-180"></i>
-        </div>
-        <div class="accordion-body border-t border-slate-700/50" style="max-height:9999px">
-          <div class="p-4 space-y-2 option-list">
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone uploaded" onclick="triggerUpload(this)" title="Upload swatch image">
-                <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=96&q=60" alt="White shaker cabinets">
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Shaker White Cabinets" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Espresso Cabinets" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone uploaded" onclick="triggerUpload(this)" title="Upload swatch image">
-                <img src="https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=96&q=60" alt="Quartz countertop">
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Quartz Countertop" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Marble Countertop" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="1400" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-          </div>
-          <div class="px-4 pb-4">
-            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              Add option
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── BATHROOM ── -->
-      <div class="glass-card rounded-2xl overflow-hidden" data-category="bathroom">
-        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
-          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
-          <div class="flex-1 flex items-center gap-2">
-            <span class="text-base font-black text-white">Bathroom</span>
-            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
-          </div>
-          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on">
-            <div class="toggle-knob"></div>
-          </div>
-          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
-        </div>
-        <div class="accordion-body collapsed border-t border-slate-700/50">
-          <div class="p-4 space-y-2 option-list">
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Walk-In Shower" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Soaking Tub" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="950" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Subway Tile (Gloss White)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-          </div>
-          <div class="px-4 pb-4">
-            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              Add option
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── FLOORING ── -->
-      <div class="glass-card rounded-2xl overflow-hidden" data-category="flooring">
-        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
-          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
-          <div class="flex-1 flex items-center gap-2">
-            <span class="text-base font-black text-white">Flooring</span>
-            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">4 options</span>
-          </div>
-          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on">
-            <div class="toggle-knob"></div>
-          </div>
-          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform rotate-180"></i>
-        </div>
-        <div class="accordion-body border-t border-slate-700/50" style="max-height:9999px">
-          <div class="p-4 space-y-2 option-list">
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone uploaded" onclick="triggerUpload(this)" title="Upload swatch image">
-                <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=96&q=60" alt="LVP flooring">
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Luxury Vinyl Plank (LVP)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Engineered Hardwood" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
               <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
                 <span class="delta-sign text-slate-400 text-xs">+$</span>
                 <input type="number" value="1800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
               </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
             </div>
 
+            <!-- Vertical Shiplap -->
             <div class="option-row rounded-xl p-3 flex items-center gap-3">
               <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
+              <div class="thumb-zone" onclick="triggerUpload(this)">
                 <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
                 <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
               </div>
-              <input type="text" value="Porcelain Tile (Kitchen/Bath)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
+              <input type="text" value="Vertical Cedar Shiplap" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)">
+                <div class="radio-sel"><div class="radio-dot"></div></div>
               </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Carpet — Bedroom" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="300" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-          </div>
-          <div class="px-4 pb-4">
-            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              Add option
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── INTERIOR ── -->
-      <div class="glass-card rounded-2xl overflow-hidden" data-category="interior">
-        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
-          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
-          <div class="flex-1 flex items-center gap-2">
-            <span class="text-base font-black text-white">Interior</span>
-            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
-          </div>
-          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on">
-            <div class="toggle-knob"></div>
-          </div>
-          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
-        </div>
-        <div class="accordion-body collapsed border-t border-slate-700/50">
-          <div class="p-4 space-y-2 option-list">
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="9-ft Ceiling (Standard)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Vaulted Ceiling" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="3200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Recessed Lighting Package" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="1200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-          </div>
-          <div class="px-4 pb-4">
-            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              Add option
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── APPLIANCES ── -->
-      <div class="glass-card rounded-2xl overflow-hidden" data-category="appliances">
-        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
-          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
-          <div class="flex-1 flex items-center gap-2">
-            <span class="text-base font-black text-white">Appliances</span>
-            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
-          </div>
-          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on">
-            <div class="toggle-knob"></div>
-          </div>
-          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
-        </div>
-        <div class="accordion-body collapsed border-t border-slate-700/50">
-          <div class="p-4 space-y-2 option-list">
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Standard Package" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" checked onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-emerald-400 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-500 text-xs">+$</span>
-                <input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Premium Stainless Package" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
               <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
                 <span class="delta-sign text-slate-400 text-xs">+$</span>
                 <input type="number" value="2200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
               </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-
-            <div class="option-row rounded-xl p-3 flex items-center gap-3">
-              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-              <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-              </div>
-              <input type="text" value="Electric-Only (No Gas)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Option name">
-              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-              </label>
-              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-                <span class="delta-sign text-slate-400 text-xs">+$</span>
-                <input type="number" value="500" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-              </div>
-              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-                <div class="toggle-knob"></div>
-              </div>
-              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
             </div>
 
           </div>
           <div class="px-4 pb-4">
             <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-              Add option
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add siding option
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Exterior Color [color-pick] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="ext-color">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Exterior Color</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">6 options</span>
+            <span class="type-badge color-pick" onclick="cycleType(this);event.stopPropagation()">⬤ Color</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform rotate-180"></i>
+        </div>
+        <div class="accordion-body border-t border-slate-700/50" style="max-height:9999px">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#C4956A" title="Click to change color"><input type="color" value="#C4956A" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Natural Cedar" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#F0EBE3" title="Click to change color"><input type="color" value="#F0EBE3" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Coastal White" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#6B7A8D" title="Click to change color"><input type="color" value="#6B7A8D" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Slate Gray" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#2D3748" title="Click to change color"><input type="color" value="#2D3748" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Charcoal" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#3D6B50" title="Click to change color"><input type="color" value="#3D6B50" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Forest Green" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="400" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#1E3A5F" title="Click to change color"><input type="color" value="#1E3A5F" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Deep Navy" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="400" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addColorOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-amber-700/40 hover:border-amber-500/60 text-amber-700 hover:text-amber-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add color
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Roofing [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="roofing">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Roofing</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone uploaded" onclick="triggerUpload(this)">
+                <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=104&q=70" alt="Shingles">
+                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
+              </div>
+              <input type="text" value="Architectural Shingles" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)">
+                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
+                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
+              </div>
+              <input type="text" value="Metal Panel" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="2400" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)">
+                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
+                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
+              </div>
+              <input type="text" value="Standing Seam Metal (Premium)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="4800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add roofing option
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Shingle Style [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="shingle-style">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Shingle Style</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">4 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="cond-note">
+            <i data-lucide="info" class="w-3.5 h-3.5 flex-shrink-0"></i>
+            <span>Applies when <strong>Architectural Shingles</strong> is the selected Roofing option. Use color swatches or photos of actual shingle samples.</span>
+          </div>
+          <div class="p-4 pt-0 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#8B7355" title="Click to change color"><input type="color" value="#8B7355" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Weatherwood" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#3A3A3A" title="Click to change color"><input type="color" value="#3A3A3A" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Charcoal Blend" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#9E9485" title="Click to change color"><input type="color" value="#9E9485" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Driftwood" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="300" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#6B4F3A" title="Click to change color"><input type="color" value="#6B4F3A" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Barkwood" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="300" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addColorOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-amber-700/40 hover:border-amber-500/60 text-amber-700 hover:text-amber-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add shingle style
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ▸▸▸ SECTION: KITCHEN ◂◂◂ -->
+      <div class="section-div">
+        <span class="section-div-label">Kitchen</span>
+        <div class="section-div-line"></div>
+      </div>
+
+      <!-- ── Kitchen Appliances [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="appliances">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Appliances</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone uploaded" onclick="triggerUpload(this)">
+                <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=104&q=70" alt="White appliances">
+                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
+              </div>
+              <input type="text" value="Standard White" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)">
+                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
+                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
+              </div>
+              <input type="text" value="Stainless Steel Pack" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1400" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)">
+                <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
+                <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
+              </div>
+              <input type="text" value="Black Stainless" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1900" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add appliance option
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Countertops [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="countertops">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Countertops</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Laminate (White)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone uploaded" onclick="triggerUpload(this)"><img src="https://images.unsplash.com/photo-1556909212-d5b604d0c90d?auto=format&fit=crop&w=104&q=70" alt="Quartz"><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Quartz" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="2200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Butcher Block" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1600" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add countertop option
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Cabinets [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="cabinets">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Cabinets</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone uploaded" onclick="triggerUpload(this)"><img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=104&q=70" alt="White shaker"><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Shaker White" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Espresso Dark" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Natural Wood" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add cabinet option
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ▸▸▸ SECTION: BATHROOM ◂◂◂ -->
+      <div class="section-div">
+        <span class="section-div-label">Bathroom</span>
+        <div class="section-div-line"></div>
+      </div>
+
+      <!-- ── Sink Style [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="sink">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Sink Style</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">2 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Oval Drop-in" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Rectangular Undermount" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add sink option
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Shower Tile [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="shower-tile">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Shower Tile</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Standard Ceramic" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Subway Tile" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="600" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Large Format Porcelain" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add tile option
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ▸▸▸ SECTION: FLOORING & INTERIOR ◂◂◂ -->
+      <div class="section-div">
+        <span class="section-div-label">Flooring &amp; Interior</span>
+        <div class="section-div-line"></div>
+      </div>
+
+      <!-- ── Flooring [pick-one] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="flooring">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Flooring</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="LVP (Standard)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Wide-Plank Hardwood" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="3200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Porcelain Tile" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add flooring option
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Interior Paint [color-pick] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="int-paint">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Interior Paint</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">4 options</span>
+            <span class="type-badge color-pick" onclick="cycleType(this);event.stopPropagation()">⬤ Color</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#F5F0E8" title="Click to change color"><input type="color" value="#F5F0E8" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Warm White" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel selected"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-500 text-xs">+$</span><input type="number" value="0" disabled class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-slate-600 focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#C5B9AC" title="Click to change color"><input type="color" value="#C5B9AC" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Soft Greige" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#8FAF8A" title="Click to change color"><input type="color" value="#8FAF8A" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Sage Green" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="color-swatch" style="background:#4A4F5A" title="Click to change color"><input type="color" value="#4A4F5A" onchange="updateSwatch(this)"></div>
+              <input type="text" value="Warm Charcoal" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addColorOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-amber-700/40 hover:border-amber-500/60 text-amber-700 hover:text-amber-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add paint color
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ▸▸▸ SECTION: ADD-ONS ◂◂◂ -->
+      <div class="section-div">
+        <span class="section-div-label">Add-Ons &amp; Upgrades</span>
+        <div class="section-div-line"></div>
+      </div>
+
+      <!-- ── Outdoor Upgrades [add-on] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="outdoor">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Outdoor Upgrades</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge add-on" onclick="cycleType(this);event.stopPropagation()">☑ Add-on</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Covered Deck (6×8)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-14 justify-center">
+                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
+                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
+              </label>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="4200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Open Deck (6×8)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-14 justify-center">
+                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
+                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
+              </label>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Gravel Perimeter" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-14 justify-center">
+                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
+                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
+              </label>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="800" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add outdoor upgrade
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Utility & Tech [add-on] ── -->
+      <div class="glass-card rounded-2xl overflow-hidden" data-category="utility">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <span class="text-base font-black text-white">Utility &amp; Tech</span>
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">3 options</span>
+            <span class="type-badge add-on" onclick="cycleType(this);event.stopPropagation()">☑ Add-on</span>
+          </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform"></i>
+        </div>
+        <div class="accordion-body collapsed border-t border-slate-700/50">
+          <div class="p-4 space-y-2 option-list">
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Solar Prep Package" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-14 justify-center">
+                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
+                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
+              </label>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="1200" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="EV Charger Outlet (NEMA 14-50)" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-14 justify-center">
+                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
+                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
+              </label>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="600" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="option-row rounded-xl p-3 flex items-center gap-3">
+              <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+              <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+              <input type="text" value="Generator Hookup" class="flex-1 min-w-0 bg-transparent border-b border-slate-700 text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors">
+              <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-14 justify-center">
+                <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
+                <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
+              </label>
+              <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="900" class="price-delta w-16 bg-slate-800/50 border border-slate-700 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none transition-colors" onchange="updatePriceSummary()" min="0"></div>
+              <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+              <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+          </div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add utility option
             </button>
           </div>
         </div>
@@ -786,14 +1003,13 @@
     <!-- Add category -->
     <div class="mt-4">
       <button onclick="addCategory()" class="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-2xl text-sm font-bold transition-all">
-        <i data-lucide="folder-plus" class="w-4 h-4"></i>
-        Add category
+        <i data-lucide="folder-plus" class="w-4 h-4"></i> Add category
       </button>
     </div>
 
   </div><!-- /main container -->
 
-  <!-- STICKY FOOTER — Price Summary -->
+  <!-- STICKY FOOTER -->
   <div class="sticky-footer">
     <div class="max-w-4xl mx-auto px-4 py-3">
       <div class="flex items-center gap-4">
@@ -809,12 +1025,12 @@
           </div>
           <div class="text-center">
             <span class="text-[9px] text-slate-500 uppercase tracking-widest block leading-tight">Max Upgrade</span>
-            <span id="footer-max-upgrade" class="text-sm font-black text-emerald-400">$135,150</span>
+            <span id="footer-max-upgrade" class="text-sm font-black text-emerald-400">$152,100</span>
           </div>
         </div>
         <div class="flex-shrink-0 text-right hidden sm:block">
           <span class="text-[9px] text-slate-600 uppercase tracking-widest block">Upgrades</span>
-          <span id="footer-upgrade-count" class="text-sm font-black text-blue-400">9</span>
+          <span id="footer-upgrade-count" class="text-sm font-black text-blue-400">34</span>
         </div>
       </div>
     </div>
@@ -823,8 +1039,7 @@
   <!-- SAVE TOAST -->
   <div id="save-toast" class="fixed top-20 right-4 z-50 hidden pointer-events-none">
     <div class="bg-emerald-600 text-white text-sm font-bold px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2">
-      <i data-lucide="check-circle" class="w-4 h-4"></i>
-      Options saved to Studio XL
+      <i data-lucide="check-circle" class="w-4 h-4"></i> Options saved to Studio XL
     </div>
   </div>
 
@@ -835,20 +1050,17 @@
       const chevron = header.querySelector('.chevron');
       const isOpen = !body.classList.contains('collapsed');
       if (isOpen) {
-        body.classList.add('collapsed');
-        body.style.maxHeight = '';
+        body.classList.add('collapsed'); body.style.maxHeight = '';
         chevron.classList.remove('rotate-180');
       } else {
-        body.classList.remove('collapsed');
-        body.style.maxHeight = body.scrollHeight + 'px';
+        body.classList.remove('collapsed'); body.style.maxHeight = body.scrollHeight + 'px';
         chevron.classList.add('rotate-180');
       }
     }
 
     // ── Category enable/disable ──
     function toggleCategory(pill) {
-      pill.classList.toggle('on');
-      pill.classList.toggle('off');
+      pill.classList.toggle('on'); pill.classList.toggle('off');
       const card = pill.closest('[data-category]');
       const isOn = pill.classList.contains('on');
       card.querySelectorAll('.option-row').forEach(row => {
@@ -858,38 +1070,78 @@
       updatePriceSummary();
     }
 
-    // ── Option active toggle ──
+    // ── Option live toggle ──
     function toggleOption(pill) {
-      pill.classList.toggle('on');
-      pill.classList.toggle('off');
+      pill.classList.toggle('on'); pill.classList.toggle('off');
       updatePriceSummary();
     }
 
-    // ── Standard checkbox ──
+    // ── Standard checkbox (add-on rows) ──
     function onStandardChange(cb) {
       const row = cb.closest('.option-row');
       const label = row.querySelector('.std-label');
       const priceInput = row.querySelector('.price-delta');
       const sign = row.querySelector('.delta-sign');
       if (cb.checked) {
-        priceInput.value = 0;
-        priceInput.disabled = true;
-        priceInput.className = priceInput.className.replace('text-white', 'text-slate-600');
-        sign.className = sign.className.replace('text-slate-400', 'text-slate-500');
-        label.className = label.className.replace('text-slate-500', 'text-emerald-400');
+        priceInput.value = 0; priceInput.disabled = true;
+        priceInput.classList.replace('text-white','text-slate-600');
+        sign.classList.replace('text-slate-400','text-slate-500');
+        label.classList.replace('text-slate-500','text-emerald-400');
       } else {
         priceInput.disabled = false;
-        priceInput.className = priceInput.className.replace('text-slate-600', 'text-white');
-        sign.className = sign.className.replace('text-slate-500', 'text-slate-400');
-        label.className = label.className.replace('text-emerald-400', 'text-slate-500');
+        priceInput.classList.replace('text-slate-600','text-white');
+        sign.classList.replace('text-slate-500','text-slate-400');
+        label.classList.replace('text-emerald-400','text-slate-500');
       }
       updatePriceSummary();
     }
 
-    // ── Thumbnail upload ──
-    function triggerUpload(zone) {
-      zone.querySelector('input[type="file"]').click();
+    // ── Radio selector (pick-one / color rows) ──
+    function selectDefault(container) {
+      const cat = container.closest('[data-category]');
+      // Deselect all radios in category
+      cat.querySelectorAll('.radio-sel').forEach(r => r.classList.remove('selected'));
+      // Select clicked one
+      const radio = container.querySelector('.radio-sel');
+      radio.classList.add('selected');
+      // Update price delta disabled state for all rows in this category
+      cat.querySelectorAll('.option-row').forEach(row => {
+        const rowRadio = row.querySelector('.radio-sel');
+        const priceInput = row.querySelector('.price-delta');
+        const sign = row.querySelector('.delta-sign');
+        if (!priceInput || !sign) return;
+        const isDefault = rowRadio && rowRadio.classList.contains('selected');
+        if (isDefault) {
+          priceInput.value = 0; priceInput.disabled = true;
+          priceInput.classList.replace('text-white','text-slate-600');
+          if (sign) sign.classList.replace('text-slate-400','text-slate-500');
+        } else {
+          priceInput.disabled = false;
+          priceInput.classList.replace('text-slate-600','text-white');
+          if (sign) sign.classList.replace('text-slate-500','text-slate-400');
+        }
+      });
+      updatePriceSummary();
     }
+
+    // ── Color swatch update ──
+    function updateSwatch(input) {
+      input.closest('.color-swatch').style.background = input.value;
+    }
+
+    // ── Cycle selection type badge ──
+    function cycleType(badge) {
+      const types = ['pick-one','add-on','color-pick'];
+      const labels = ['⊙ Pick one','☑ Add-on','⬤ Color'];
+      const curr = types.findIndex(t => badge.classList.contains(t));
+      const next = (curr + 1) % types.length;
+      types.forEach(t => badge.classList.remove(t));
+      badge.classList.add(types[next]);
+      badge.textContent = labels[next];
+    }
+
+    // ── Thumbnail upload ──
+    function triggerUpload(zone) { zone.querySelector('input[type="file"]').click(); }
 
     function handleUpload(input) {
       const zone = input.closest('.thumb-zone');
@@ -904,58 +1156,68 @@
           const existing = zone.querySelector('img');
           if (existing) existing.remove();
           const img = document.createElement('img');
-          img.src = e.target.result;
-          img.alt = 'Swatch';
+          img.src = e.target.result; img.alt = 'Swatch';
           zone.insertBefore(img, input);
-          zone.classList.add('uploaded');
-          zone.classList.remove('upload-flash');
+          zone.classList.add('uploaded'); zone.classList.remove('upload-flash');
         }, 300);
       };
       reader.readAsDataURL(file);
     }
 
-    // ── Add option ──
+    // ── Add standard image option ──
     function addOption(btn) {
       const list = btn.closest('.accordion-body').querySelector('.option-list');
+      const cat = btn.closest('[data-category]');
+      const isPickOne = cat.querySelector('.type-badge.pick-one') !== null;
+      const isColor   = cat.querySelector('.type-badge.color-pick') !== null;
+      if (isColor) { addColorOption(btn); return; }
+      const radioOrCheck = isPickOne
+        ? `<div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>`
+        : `<label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-14 justify-center"><input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)"><span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span></label>`;
       const div = document.createElement('div');
-      div.innerHTML = `
-        <div class="option-row rounded-xl p-3 flex items-center gap-3">
-          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
-          <div class="thumb-zone" onclick="triggerUpload(this)" title="Upload swatch image">
-            <i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i>
-            <input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)">
-          </div>
-          <input type="text" class="flex-1 min-w-0 bg-transparent border-b border-blue-500 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none transition-colors" placeholder="New option name">
-          <label class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer w-12 justify-center">
-            <input type="checkbox" class="standard-cb w-3.5 h-3.5 accent-emerald-500" onchange="onStandardChange(this)">
-            <span class="std-label text-[10px] font-black text-slate-500 uppercase tracking-wider">Std</span>
-          </label>
-          <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end">
-            <span class="delta-sign text-slate-400 text-xs">+$</span>
-            <input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-blue-500/50 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0">
-          </div>
-          <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)">
-            <div class="toggle-knob"></div>
-          </div>
-          <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>`.trim();
+      div.innerHTML = `<div class="option-row rounded-xl p-3 flex items-center gap-3">
+        <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+        <div class="thumb-zone" onclick="triggerUpload(this)"><i data-lucide="image-plus" class="w-5 h-5 text-slate-600 pointer-events-none"></i><input type="file" accept="image/*" class="hidden" onchange="handleUpload(this)"></div>
+        <input type="text" class="flex-1 min-w-0 bg-transparent border-b border-blue-500 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none transition-colors" placeholder="Option name">
+        ${radioOrCheck}
+        <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-blue-500/50 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-blue-500 transition-colors" onchange="updatePriceSummary()" min="0"></div>
+        <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+        <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      </div>`.trim();
       const row = div.firstChild;
       list.appendChild(row);
       lucide.createIcons({ nameAttr: 'data-lucide', nodes: [row] });
       const body = list.closest('.accordion-body');
       body.style.maxHeight = (parseInt(body.style.maxHeight) || body.scrollHeight) + 300 + 'px';
       row.querySelector('input[type="text"]').focus();
-      updateOptionCounts();
-      updatePriceSummary();
+      updateOptionCounts(); updatePriceSummary();
+    }
+
+    // ── Add color option ──
+    function addColorOption(btn) {
+      const list = btn.closest('.accordion-body').querySelector('.option-list');
+      const div = document.createElement('div');
+      div.innerHTML = `<div class="option-row rounded-xl p-3 flex items-center gap-3">
+        <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-700 cursor-grab flex-shrink-0"></i>
+        <div class="color-swatch" style="background:#94a3b8" title="Click to change color"><input type="color" value="#94a3b8" onchange="updateSwatch(this)"></div>
+        <input type="text" class="flex-1 min-w-0 bg-transparent border-b border-amber-500 text-sm font-semibold text-white placeholder-slate-600 focus:outline-none transition-colors" placeholder="Color name">
+        <div class="flex items-center justify-center w-14 flex-shrink-0" onclick="selectDefault(this)"><div class="radio-sel"><div class="radio-dot"></div></div></div>
+        <div class="flex items-center gap-1 flex-shrink-0 w-24 justify-end"><span class="delta-sign text-slate-400 text-xs">+$</span><input type="number" value="0" class="price-delta w-16 bg-slate-800/50 border border-amber-500/40 rounded-lg px-2 py-1 text-sm font-bold text-center text-white focus:outline-none focus:border-amber-500 transition-colors" onchange="updatePriceSummary()" min="0"></div>
+        <div class="toggle-pill on flex-shrink-0" onclick="toggleOption(this)"><div class="toggle-knob"></div></div>
+        <button onclick="removeOption(this)" class="text-slate-700 hover:text-red-400 transition-colors flex-shrink-0"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      </div>`.trim();
+      const row = div.firstChild;
+      list.appendChild(row);
+      const body = list.closest('.accordion-body');
+      body.style.maxHeight = (parseInt(body.style.maxHeight) || body.scrollHeight) + 300 + 'px';
+      row.querySelector('input[type="text"]').focus();
+      updateOptionCounts(); updatePriceSummary();
     }
 
     // ── Remove option ──
     function removeOption(btn) {
       const row = btn.closest('.option-row');
-      row.style.transition = 'opacity 0.2s';
-      row.style.opacity = '0';
+      row.style.transition = 'opacity 0.2s'; row.style.opacity = '0';
       setTimeout(() => { row.remove(); updateOptionCounts(); updatePriceSummary(); }, 200);
     }
 
@@ -964,29 +1226,26 @@
       const list = document.getElementById('category-list');
       const slug = 'cat-' + Date.now();
       const div = document.createElement('div');
-      div.innerHTML = `
-        <div class="glass-card rounded-2xl overflow-hidden" data-category="${slug}">
-          <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
-            <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
-            <div class="flex-1 flex items-center gap-2">
-              <input type="text" class="bg-transparent text-base font-black text-white placeholder-slate-600 focus:outline-none border-b border-blue-500 w-48" placeholder="Category name" onclick="event.stopPropagation()">
-              <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">0 options</span>
-            </div>
-            <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on">
-              <div class="toggle-knob"></div>
-            </div>
-            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform rotate-180"></i>
+      div.innerHTML = `<div class="glass-card rounded-2xl overflow-hidden" data-category="${slug}">
+        <div class="flex items-center gap-3 p-4 cursor-pointer select-none" onclick="toggleAccordion(this)">
+          <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-600 cursor-grab flex-shrink-0"></i>
+          <div class="flex-1 flex items-center gap-2 flex-wrap">
+            <input type="text" class="bg-transparent text-base font-black text-white placeholder-slate-600 focus:outline-none border-b border-blue-500 w-40" placeholder="Category name" onclick="event.stopPropagation()">
+            <span class="option-count text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">0 options</span>
+            <span class="type-badge pick-one" onclick="cycleType(this);event.stopPropagation()">⊙ Pick one</span>
           </div>
-          <div class="accordion-body border-t border-slate-700/50" style="max-height:9999px">
-            <div class="p-4 space-y-2 option-list"></div>
-            <div class="px-4 pb-4">
-              <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                Add option
-              </button>
-            </div>
+          <div onclick="event.stopPropagation(); toggleCategory(this)" class="toggle-pill on"><div class="toggle-knob"></div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 chevron transition-transform rotate-180"></i>
+        </div>
+        <div class="accordion-body border-t border-slate-700/50" style="max-height:9999px">
+          <div class="p-4 space-y-2 option-list"></div>
+          <div class="px-4 pb-4">
+            <button onclick="addOption(this)" class="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-700 hover:border-blue-500/60 text-slate-500 hover:text-blue-400 rounded-xl text-xs font-bold transition-all">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add option
+            </button>
           </div>
-        </div>`.trim();
+        </div>
+      </div>`.trim();
       const card = div.firstChild;
       list.appendChild(card);
       lucide.createIcons({ nameAttr: 'data-lucide', nodes: [card] });
@@ -994,7 +1253,7 @@
       updateOptionCounts();
     }
 
-    // ── Update counts ──
+    // ── Update option counts ──
     function updateOptionCounts() {
       document.querySelectorAll('[data-category]').forEach(cat => {
         const count = cat.querySelectorAll('.option-row').length;
@@ -1015,12 +1274,12 @@
         const catOn = cat.querySelector('.toggle-pill.on') !== null;
         if (!catOn) return;
         cat.querySelectorAll('.option-row').forEach(row => {
-          const isOn = row.querySelector('.toggle-pill.on') !== null;
-          const isStandard = row.querySelector('.standard-cb').checked;
-          const delta = parseInt(row.querySelector('.price-delta').value) || 0;
-          if (isOn && !isStandard && delta > 0) {
-            maxUpgrade += delta;
-            upgradeCount++;
+          const liveOn = row.querySelector('.toggle-pill.on') !== null;
+          if (!liveOn) return;
+          const isDefault = (row.querySelector('.radio-sel.selected') || row.querySelector('.standard-cb:checked'));
+          if (!isDefault) {
+            const delta = parseFloat(row.querySelector('.price-delta')?.value) || 0;
+            if (delta > 0) { maxUpgrade += delta; upgradeCount++; }
           }
         });
       });
@@ -1030,18 +1289,15 @@
       document.getElementById('stat-uplift').textContent = '$' + maxUpgrade.toLocaleString();
     }
 
-    // ── Save ──
+    // ── Save options ──
     function saveOptions() {
       const toast = document.getElementById('save-toast');
       toast.classList.remove('hidden');
+      lucide.createIcons({ nameAttr: 'data-lucide', nodes: [toast] });
       setTimeout(() => toast.classList.add('hidden'), 2500);
     }
 
-    // ── Init ──
-    document.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
-      updatePriceSummary();
-    });
+    lucide.createIcons();
   </script>
 </body>
 </html>

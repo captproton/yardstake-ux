@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages | Yardstake Vendor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F8FAFC; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.8); }
+
+        /* Full-height layout */
+        .messages-layout { height: calc(100vh - 64px); }
+        .thread-pane { height: 100%; display: flex; flex-direction: column; }
+        .message-list { flex: 1; overflow-y: auto; }
+
+        /* Scrollbar styling */
+        .message-list::-webkit-scrollbar { width: 4px; }
+        .message-list::-webkit-scrollbar-track { background: transparent; }
+        .message-list::-webkit-scrollbar-thumb { background: rgba(51,65,85,0.6); border-radius: 4px; }
+
+        /* SLA bar animation */
+        @keyframes sla-tick { from { width: 68%; } to { width: 0%; } }
+        .sla-animate { animation: sla-tick 240s linear forwards; }
+
+        /* Unread pulse */
+        @keyframes unread-pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+        .unread-dot { animation: unread-pulse 2s ease-in-out infinite; }
+
+        /* Message bubble fade-in */
+        @keyframes msg-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+        .msg-new { animation: msg-in 0.25s ease-out forwards; }
+
+        /* Conversation item active */
+        .conv-item.active { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.3); }
+
+        /* Mobile: hide sidebar when thread open */
+        @media (max-width: 767px) {
+            .sidebar-pane { display: none; }
+            .sidebar-pane.mobile-show { display: flex; }
+            .main-pane { display: flex; }
+            .main-pane.mobile-hide { display: none; }
+        }
+    </style>
+</head>
+<body class="antialiased overflow-hidden">
+
+    <!-- Nav -->
+    <nav class="bg-slate-900 border-b border-slate-800 z-50 h-16 flex items-center px-6 justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="vendor_dashboard.html" class="flex items-center text-slate-400 hover:text-white text-sm font-bold transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kanban
+            </a>
+            <span class="text-slate-700">|</span>
+            <div class="flex items-center space-x-2">
+                <i data-lucide="message-circle" class="w-4 h-4 text-blue-400"></i>
+                <span class="text-white font-bold">Concierge Messages</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <!-- Unread count badge -->
+            <div class="flex items-center space-x-1.5 bg-red-500/10 border border-red-500/20 rounded-lg px-2.5 py-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-400 unread-dot"></span>
+                <span class="text-[10px] font-black text-red-400 uppercase tracking-widest">2 Unread</span>
+            </div>
+            <!-- Placement Score -->
+            <div class="hidden sm:flex flex-col items-end">
+                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest leading-none mb-0.5">Rank #1</span>
+                <div class="flex items-center space-x-1">
+                    <i data-lucide="award" class="w-3 h-3 text-amber-400"></i>
+                    <span class="text-xs font-bold text-white">98/100</span>
+                </div>
+            </div>
+            <div class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">M</div>
+        </div>
+    </nav>
+
+    <!-- Messages Layout -->
+    <div class="messages-layout flex">
+
+        <!-- LEFT: Conversation List -->
+        <div id="sidebar-pane" class="sidebar-pane mobile-show w-full md:w-72 lg:w-80 flex-shrink-0 border-r border-slate-800 flex flex-col bg-slate-900/50">
+
+            <!-- Search -->
+            <div class="px-4 py-3 border-b border-slate-800">
+                <div class="relative">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" placeholder="Search conversations…"
+                        class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+            </div>
+
+            <!-- Conversation list -->
+            <div class="flex-1 overflow-y-auto divide-y divide-slate-800/50">
+
+                <!-- ORD-9021 — 1 unread, SLA urgent -->
+                <div id="conv-9021" onclick="openConversation('9021')"
+                    class="conv-item active px-4 py-4 cursor-pointer hover:bg-slate-800/50 transition-colors border border-transparent">
+                    <div class="flex items-start justify-between mb-1.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">ORD-9021</span>
+                            <span class="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">1</span>
+                        </div>
+                        <span class="text-[10px] text-red-400 font-bold">1h 12m left</span>
+                    </div>
+                    <p class="text-xs font-bold text-white truncate">Portland R5 — Studio XL</p>
+                    <p class="text-[11px] text-slate-400 truncate mt-0.5">Fiona: Can you confirm the foundation bolt pattern before…</p>
+                    <!-- SLA mini bar -->
+                    <div class="mt-2 w-full bg-slate-800 rounded-full h-1">
+                        <div class="bg-red-500 h-1 rounded-full" style="width: 23%"></div>
+                    </div>
+                    <p class="text-[9px] text-red-400 font-bold mt-1 uppercase tracking-widest">SLA expires in 1h 12m</p>
+                </div>
+
+                <!-- ORD-7702 — 1 unread -->
+                <div id="conv-7702" onclick="openConversation('7702')"
+                    class="conv-item px-4 py-4 cursor-pointer hover:bg-slate-800/50 transition-colors border border-transparent">
+                    <div class="flex items-start justify-between mb-1.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">ORD-7702</span>
+                            <span class="bg-blue-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">1</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500">3h ago</span>
+                    </div>
+                    <p class="text-xs font-bold text-white truncate">Seattle DADU — Studio L</p>
+                    <p class="text-[11px] text-slate-400 truncate mt-0.5">Fiona: XPO confirmed pickup for Thursday Apr 7 at 7am.</p>
+                </div>
+
+                <!-- ORD-8814 — read -->
+                <div id="conv-8814" onclick="openConversation('8814')"
+                    class="conv-item px-4 py-4 cursor-pointer hover:bg-slate-800/50 transition-colors border border-transparent">
+                    <div class="flex items-start justify-between mb-1.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">ORD-8814</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500">Yesterday</span>
+                    </div>
+                    <p class="text-xs font-bold text-white truncate">Bend Lot — Family Loft</p>
+                    <p class="text-[11px] text-slate-500 truncate mt-0.5">You: Got it, will adjust the framing schedule.</p>
+                </div>
+
+                <!-- ORD-6610 — read, resolved exception -->
+                <div id="conv-6610" onclick="openConversation('6610')"
+                    class="conv-item px-4 py-4 cursor-pointer hover:bg-slate-800/50 transition-colors border border-transparent">
+                    <div class="flex items-start justify-between mb-1.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">ORD-6610</span>
+                            <span class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">Resolved</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500">Apr 1</span>
+                    </div>
+                    <p class="text-xs font-bold text-white truncate">Bend Lot — Studio L</p>
+                    <p class="text-[11px] text-slate-500 truncate mt-0.5">Fiona: Material sub approved. Maple confirmed.</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT: Thread Pane -->
+        <div id="main-pane" class="main-pane hidden md:flex flex-1 flex-col bg-[#0B1221]">
+
+            <!-- Thread header (updates per conversation) -->
+            <div id="thread-header" class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60 flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <!-- Mobile back -->
+                    <button onclick="closeMobileThread()" class="md:hidden flex items-center text-slate-400 text-xs font-bold mr-2">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    </button>
+                    <div class="w-8 h-8 bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="headphones" class="w-4 h-4 text-fuchsia-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-white" id="thread-title">Portland R5 — Studio XL</p>
+                        <p class="text-[10px] text-slate-500" id="thread-sub">ORD-9021 · Fiona (Concierge)</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <a id="thread-order-link" href="vendor_order_detail.html" class="hidden sm:flex items-center space-x-1.5 text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 border border-blue-500/20 px-2.5 py-1.5 rounded-lg">
+                        <i data-lucide="file-text" class="w-3 h-3"></i>
+                        <span>View Order Spec</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Active SLA Warning (shown for unread messages) -->
+            <div id="sla-banner" class="px-6 py-2.5 bg-red-500/10 border-b border-red-500/20 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="zap" class="w-3.5 h-3.5 text-red-400 flex-shrink-0"></i>
+                    <p class="text-xs text-red-300 font-bold">Response required · Placement Score SLA active</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span id="sla-countdown" class="text-xs font-black text-red-400">1:12:08 remaining</span>
+                    <div class="w-24 bg-slate-800 rounded-full h-1.5">
+                        <div id="sla-bar" class="bg-red-500 h-1.5 rounded-full sla-animate" style="width:23%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="message-list px-6 py-4 space-y-4" id="message-list">
+
+                <!-- System event -->
+                <div class="flex justify-center">
+                    <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full">Apr 3, 2026 · Order routed to Mike</span>
+                </div>
+
+                <!-- Concierge message 1 -->
+                <div class="flex items-end space-x-2">
+                    <div class="w-6 h-6 bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="headphones" class="w-3 h-3 text-fuchsia-400"></i>
+                    </div>
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 ml-1">Fiona · Apr 3 at 9:14am</p>
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">Hi Mike — buyer has confirmed Studio XL in Coastal White. All deposits secured. Production start confirmed for today. One note: the buyer specifically requested White Oak LVP flooring, which is an upgrade. Just double-checking you have stock before we lock the spec.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mike reply -->
+                <div class="flex items-end justify-end space-x-2">
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 mr-1 text-right">You · Apr 3 at 10:02am</p>
+                        <div class="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">Yes, we have White Oak in stock. No issue there. Good to go on the spec.</p>
+                        </div>
+                        <p class="text-[9px] text-slate-600 text-right mt-1 flex items-center justify-end space-x-1">
+                            <i data-lucide="check-check" class="w-3 h-3 text-blue-400"></i>
+                            <span>Read by Fiona</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- System event -->
+                <div class="flex justify-center">
+                    <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full">Apr 4, 2026</span>
+                </div>
+
+                <!-- Concierge message 2 — UNREAD, SLA active -->
+                <div class="flex items-end space-x-2" id="unread-msg">
+                    <div class="w-6 h-6 bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="headphones" class="w-3 h-3 text-fuchsia-400"></i>
+                    </div>
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 ml-1">Fiona · Today at 10:48am</p>
+                        <div class="bg-slate-800 border border-red-500/30 rounded-2xl rounded-bl-sm px-4 py-3 relative">
+                            <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full unread-dot"></div>
+                            <p class="text-sm text-white leading-relaxed">Quick one before framing starts — the engineering drawings show 5/8" anchor bolts on 6ft centers for the foundation holdowns. Can you confirm your team is using that spec? Site GC (Bill) is pouring the slab Monday and needs to know the bolt pattern today.</p>
+                        </div>
+                        <p class="text-[9px] text-red-400 font-bold mt-1 ml-1 flex items-center space-x-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i>
+                            <span>Needs reply · SLA: 1h 12m</span>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Reply Bar -->
+            <div class="flex-shrink-0 border-t border-slate-800 bg-slate-900/80 px-4 py-3">
+
+                <!-- Photo preview (hidden by default) -->
+                <div id="photo-preview" class="hidden mb-2 flex items-center space-x-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2">
+                    <i data-lucide="image" class="w-4 h-4 text-blue-400 flex-shrink-0"></i>
+                    <span class="text-xs text-slate-300 font-bold flex-1">bolt_pattern_drawing.jpg attached</span>
+                    <button onclick="removePhoto()" class="text-slate-500 hover:text-red-400 transition-colors">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-end space-x-2">
+                    <!-- Photo attach -->
+                    <button onclick="attachPhoto()" id="attach-btn" class="flex-shrink-0 w-9 h-9 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center hover:border-blue-500 transition-colors group">
+                        <i data-lucide="paperclip" class="w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors"></i>
+                    </button>
+
+                    <!-- Text input -->
+                    <div class="flex-1 relative">
+                        <textarea id="reply-input" rows="1" placeholder="Reply to Fiona…"
+                            oninput="autoResize(this); checkReply()"
+                            onkeydown="handleKey(event)"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none leading-relaxed"></textarea>
+                    </div>
+
+                    <!-- Send -->
+                    <button onclick="sendReply()" id="send-btn"
+                        class="flex-shrink-0 w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center opacity-40 cursor-not-allowed transition-all"
+                        disabled>
+                        <i data-lucide="send" class="w-4 h-4 text-white"></i>
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-600 mt-1.5 text-center">Replies are shared with the Concierge only · <span class="text-slate-500">Enter to send</span></p>
+            </div>
+        </div>
+
+        <!-- Empty state (no conversation selected) — desktop only -->
+        <div id="empty-state" class="hidden md:flex flex-1 items-center justify-center bg-[#0B1221]">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="message-circle" class="w-8 h-8 text-slate-600"></i>
+                </div>
+                <p class="text-sm font-bold text-slate-500">Select a conversation</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Conversation data
+        const convData = {
+            '9021': {
+                title: 'Portland R5 — Studio XL',
+                sub: 'ORD-9021 · Fiona (Concierge)',
+                sla: true,
+                unread: true
+            },
+            '7702': {
+                title: 'Seattle DADU — Studio L',
+                sub: 'ORD-7702 · Fiona (Concierge)',
+                sla: false,
+                unread: true
+            },
+            '8814': {
+                title: 'Bend Lot — Family Loft',
+                sub: 'ORD-8814 · Fiona (Concierge)',
+                sla: false,
+                unread: false
+            },
+            '6610': {
+                title: 'Bend Lot — Studio L',
+                sub: 'ORD-6610 · Fiona (Concierge) · Exception Resolved',
+                sla: false,
+                unread: false
+            }
+        };
+
+        // Thread content per conversation
+        const threadContent = {
+            '7702': `
+                <div class="flex justify-center">
+                    <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full">Apr 2, 2026 · Unit completed — Ready for Freight</span>
+                </div>
+                <div class="flex items-end space-x-2">
+                    <div class="w-6 h-6 bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-full flex items-center justify-center flex-shrink-0"><i data-lucide="headphones" class="w-3 h-3 text-fuchsia-400"></i></div>
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 ml-1">Fiona · Apr 2 at 2:30pm</p>
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">Great work on the Seattle unit! I've coordinated with XPO Logistics for freight. They'll be at your facility Thursday Apr 7 at 7am. Please have the unit staged at your loading dock by 6:45am. BOL will be sent to you Wednesday evening.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-end justify-end space-x-2">
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 mr-1 text-right">You · Apr 2 at 3:14pm</p>
+                        <div class="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">Perfect. Unit will be staged and wrapped. We'll do our photo walkthrough Wednesday afternoon so everything is documented before handoff.</p>
+                        </div>
+                        <p class="text-[9px] text-slate-600 text-right mt-1 flex items-center justify-end space-x-1"><i data-lucide="check-check" class="w-3 h-3 text-blue-400"></i><span>Read by Fiona</span></p>
+                    </div>
+                </div>
+                <div class="flex justify-center">
+                    <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full">Today</span>
+                </div>
+                <div class="flex items-end space-x-2" id="unread-msg">
+                    <div class="w-6 h-6 bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-full flex items-center justify-center flex-shrink-0"><i data-lucide="headphones" class="w-3 h-3 text-fuchsia-400"></i></div>
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 ml-1">Fiona · Today at 8:10am</p>
+                        <div class="bg-slate-800 border border-blue-500/30 rounded-2xl rounded-bl-sm px-4 py-3 relative">
+                            <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
+                            <p class="text-sm text-white leading-relaxed">XPO confirmed pickup for Thursday Apr 7 at 7am. BOL number is XPO-2026-44821. Buyer has been notified and is excited — they have the crane crew scheduled for Saturday. Let me know if anything changes on your end.</p>
+                        </div>
+                    </div>
+                </div>
+            `,
+            '8814': `
+                <div class="flex justify-center">
+                    <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full">Mar 30, 2026</span>
+                </div>
+                <div class="flex items-end space-x-2">
+                    <div class="w-6 h-6 bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-full flex items-center justify-center flex-shrink-0"><i data-lucide="headphones" class="w-3 h-3 text-fuchsia-400"></i></div>
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 ml-1">Fiona · Mar 30 at 11:00am</p>
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">Hi Mike — quick heads up on ORD-8814 (Bend, Family Loft). Buyer requested a schedule check-in. What's your current ETA on framing completion?</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-end justify-end space-x-2">
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 mr-1 text-right">You · Mar 30 at 11:43am</p>
+                        <div class="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">We're about 60% through framing. Should be photo-ready for the draw by end of next week — Apr 7 at the latest. Got it, will adjust the framing schedule if the buyer needs it sooner.</p>
+                        </div>
+                        <p class="text-[9px] text-slate-600 text-right mt-1 flex items-center justify-end space-x-1"><i data-lucide="check-check" class="w-3 h-3 text-blue-400"></i><span>Read by Fiona</span></p>
+                    </div>
+                </div>
+            `,
+            '6610': `
+                <div class="flex justify-center">
+                    <span class="text-[10px] text-slate-600 font-bold uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full">Apr 1, 2026 · Exception raised</span>
+                </div>
+                <div class="flex items-end space-x-2">
+                    <div class="w-6 h-6 bg-fuchsia-500/20 border border-fuchsia-500/30 rounded-full flex items-center justify-center flex-shrink-0"><i data-lucide="headphones" class="w-3 h-3 text-fuchsia-400"></i></div>
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 ml-1">Fiona · Apr 1 at 9:05am</p>
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl rounded-bl-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">Received your material substitution request for ORD-6610 — White Oak backordered, proposing Maple. Reviewed with the buyer. They confirmed Maple is acceptable given the same Coastal White stain finish. Approved. Proceed with Maple.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-end justify-end space-x-2">
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 mr-1 text-right">You · Apr 1 at 9:32am</p>
+                        <div class="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
+                            <p class="text-sm text-white leading-relaxed">Thanks Fiona. Ordering Maple today. Shouldn't affect the timeline.</p>
+                        </div>
+                        <p class="text-[9px] text-slate-600 text-right mt-1 flex items-center justify-end space-x-1"><i data-lucide="check-check" class="w-3 h-3 text-blue-400"></i><span>Read by Fiona</span></p>
+                    </div>
+                </div>
+                <div class="flex justify-center mt-2">
+                    <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">Exception resolved — no score impact</span>
+                </div>
+            `
+        };
+
+        let activeConv = '9021';
+        let hasPhoto = false;
+
+        function openConversation(ordId) {
+            activeConv = ordId;
+            const data = convData[ordId];
+
+            // Update active state in sidebar
+            document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('conv-' + ordId).classList.add('active');
+
+            // Remove unread badge from selected
+            const badge = document.querySelector('#conv-' + ordId + ' .bg-red-500, #conv-' + ordId + ' .bg-blue-500');
+            if (badge) badge.remove();
+
+            // Update header
+            document.getElementById('thread-title').textContent = data.title;
+            document.getElementById('thread-sub').textContent = data.sub;
+
+            // Show/hide SLA banner
+            const slaBanner = document.getElementById('sla-banner');
+            slaBanner.style.display = data.sla ? 'flex' : 'none';
+
+            // Load thread content
+            const msgList = document.getElementById('message-list');
+            if (ordId === '9021') {
+                // Default content already in DOM — just scroll to bottom
+            } else if (threadContent[ordId]) {
+                msgList.innerHTML = threadContent[ordId];
+            }
+
+            // Show thread pane
+            document.getElementById('main-pane').classList.remove('hidden');
+            document.getElementById('main-pane').classList.add('flex');
+            document.getElementById('empty-state').classList.add('hidden');
+
+            // Mobile: hide sidebar
+            document.getElementById('sidebar-pane').classList.remove('mobile-show');
+
+            // Scroll to bottom
+            setTimeout(() => {
+                msgList.scrollTop = msgList.scrollHeight;
+                lucide.createIcons();
+            }, 50);
+
+            // Update unread count
+            updateUnreadCount();
+        }
+
+        function closeMobileThread() {
+            document.getElementById('sidebar-pane').classList.add('mobile-show');
+            document.getElementById('main-pane').classList.add('hidden');
+            document.getElementById('main-pane').classList.remove('flex');
+        }
+
+        function updateUnreadCount() {
+            const remaining = document.querySelectorAll('.conv-item .bg-red-500, .conv-item .bg-blue-500').length;
+            const badge = document.querySelector('nav .bg-red-500\\/10');
+            if (remaining === 0) {
+                badge.innerHTML = '<span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">All read</span>';
+                badge.classList.remove('bg-red-500/10', 'border-red-500/20');
+                badge.classList.add('bg-slate-800', 'border-slate-700');
+            } else {
+                badge.querySelector('span:last-child').textContent = remaining + ' Unread';
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        function checkReply() {
+            const input = document.getElementById('reply-input');
+            const btn = document.getElementById('send-btn');
+            const hasText = input.value.trim().length > 0;
+            if (hasText || hasPhoto) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                btn.classList.add('hover:bg-blue-500');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-40', 'cursor-not-allowed');
+                btn.classList.remove('hover:bg-blue-500');
+            }
+        }
+
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendReply();
+            }
+        }
+
+        function attachPhoto() {
+            hasPhoto = true;
+            document.getElementById('photo-preview').classList.remove('hidden');
+            document.getElementById('photo-preview').classList.add('flex');
+            const btn = document.getElementById('attach-btn');
+            btn.classList.add('border-blue-500', 'bg-blue-500/10');
+            checkReply();
+        }
+
+        function removePhoto() {
+            hasPhoto = false;
+            document.getElementById('photo-preview').classList.add('hidden');
+            document.getElementById('photo-preview').classList.remove('flex');
+            document.getElementById('attach-btn').classList.remove('border-blue-500', 'bg-blue-500/10');
+            checkReply();
+        }
+
+        function sendReply() {
+            const input = document.getElementById('reply-input');
+            const text = input.value.trim();
+            if (!text && !hasPhoto) return;
+
+            const msgList = document.getElementById('message-list');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+            let msgHtml = `
+                <div class="flex items-end justify-end space-x-2 msg-new">
+                    <div class="max-w-xs lg:max-w-md">
+                        <p class="text-[10px] text-slate-500 mb-1 mr-1 text-right">You · Today at ${timeStr}</p>
+                        <div class="bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">`;
+
+            if (hasPhoto) {
+                msgHtml += `<div class="flex items-center space-x-2 mb-2 bg-blue-700/50 rounded-lg px-2 py-1.5">
+                    <i data-lucide="image" class="w-3.5 h-3.5 text-blue-300"></i>
+                    <span class="text-xs text-blue-200 font-bold">bolt_pattern_drawing.jpg</span>
+                </div>`;
+            }
+
+            if (text) {
+                msgHtml += `<p class="text-sm text-white leading-relaxed">${text}</p>`;
+            }
+
+            msgHtml += `</div>
+                        <p class="text-[9px] text-slate-600 text-right mt-1 flex items-center justify-end space-x-1">
+                            <i data-lucide="check" class="w-3 h-3 text-slate-500"></i>
+                            <span>Sent</span>
+                        </p>
+                    </div>
+                </div>`;
+
+            msgList.insertAdjacentHTML('beforeend', msgHtml);
+
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            removePhoto();
+            checkReply();
+
+            // Hide SLA banner after reply
+            if (activeConv === '9021') {
+                document.getElementById('sla-banner').style.display = 'none';
+                // Remove unread indicator
+                const unread = document.getElementById('unread-msg');
+                if (unread) unread.querySelector('.unread-dot')?.remove();
+            }
+
+            // Scroll to bottom
+            setTimeout(() => {
+                msgList.scrollTop = msgList.scrollHeight;
+                lucide.createIcons();
+            }, 50);
+        }
+
+        // SLA countdown timer
+        let slaSeconds = 72 * 60 + 8; // 1h 12m 8s
+        function tickSLA() {
+            if (slaSeconds <= 0) return;
+            slaSeconds--;
+            const h = Math.floor(slaSeconds / 3600);
+            const m = Math.floor((slaSeconds % 3600) / 60);
+            const s = slaSeconds % 60;
+            const el = document.getElementById('sla-countdown');
+            if (el) el.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} remaining`;
+        }
+        setInterval(tickSLA, 1000);
+
+        // Initial open ORD-9021
+        openConversation('9021');
+    </script>
+</body>
+</html>

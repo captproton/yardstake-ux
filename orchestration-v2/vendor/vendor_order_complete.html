@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Complete | ORD-7702 | Yardstake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: linear-gradient(135deg, #0F172A 0%, #1a2744 50%, #0F172A 100%); min-height: 100vh; }
+
+        /* Phone frame */
+        .phone-frame {
+            width: 390px;
+            height: 844px;
+            background: #0f172a;
+            border-radius: 40px;
+            border: 10px solid #1e293b;
+            box-shadow: 0 0 0 1px rgba(51,65,85,0.6), 0 40px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.04);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Status bar */
+        .status-bar {
+            height: 44px;
+            background: #0a1628;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+
+        /* Notch */
+        .notch {
+            width: 120px;
+            height: 28px;
+            background: #0a1628;
+            border-radius: 0 0 20px 20px;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Scroll content */
+        .phone-content {
+            flex: 1;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .phone-content::-webkit-scrollbar { display: none; }
+
+        /* States */
+        .pstate { display: none; }
+        .pstate.active { display: block; }
+
+        /* Milestone row */
+        .milestone-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(51,65,85,0.5); }
+        .milestone-row:last-child { border-bottom: none; }
+
+        /* Draw pip (for complete view — all green) */
+        .draw-pip-sm { width: 100%; height: 3px; border-radius: 2px; background: #22c55e; }
+
+        /* Confetti bounce */
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+        .pop { animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        /* Payout pulse */
+        @keyframes payPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); } 50% { box-shadow: 0 0 0 12px rgba(34,197,94,0); } }
+        .pay-pulse { animation: payPulse 2s ease infinite; }
+
+        /* Mobile: show phone centered on screen */
+        @media (max-width: 420px) {
+            .phone-frame { width: 100vw; height: 100dvh; border-radius: 0; border: none; }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="phone-frame">
+        <!-- Notch -->
+        <div class="notch"></div>
+
+        <!-- Status bar -->
+        <div class="status-bar">
+            <span class="text-white text-xs font-bold" style="font-variant-numeric: tabular-nums;">9:41</span>
+            <div class="flex items-center space-x-1.5">
+                <svg width="16" height="10" viewBox="0 0 16 10" fill="none"><rect x="0" y="3" width="3" height="7" rx="0.5" fill="white" opacity="0.4"/><rect x="4.5" y="2" width="3" height="8" rx="0.5" fill="white" opacity="0.6"/><rect x="9" y="0.5" width="3" height="9.5" rx="0.5" fill="white" opacity="0.8"/><rect x="13.5" y="0" width="2.5" height="10" rx="0.5" fill="white"/></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="white"><path d="M8 2.4C5.2 2.4 2.8 3.6 1.2 5.6L0 4.4C1.9 2 4.8 0.4 8 0.4s6.1 1.6 8 4L14.8 5.6C13.2 3.6 10.8 2.4 8 2.4zM8 5.6c-1.8 0-3.4 0.8-4.6 2L2.2 6.4C3.7 4.9 5.7 4 8 4s4.3.9 5.8 2.4L12.6 7.6C11.4 6.4 9.8 5.6 8 5.6zM8 8.8c-1 0-1.9.4-2.6 1.1L4 8.5C5 7.3 6.4 6.8 8 6.8s3 .5 4 1.7l-1.4 1.4C9.9 9.2 9 8.8 8 8.8z"/></svg>
+                <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="white" stroke-opacity="0.35"/><rect x="1.5" y="1.5" width="17" height="9" rx="2.5" fill="white"/><path d="M23 4v4a2 2 0 000-4z" fill="white" opacity="0.4"/></svg>
+            </div>
+        </div>
+
+        <!-- Yardstake app header -->
+        <div class="bg-slate-900 border-b border-slate-800 px-5 py-3 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="factory" class="w-4 h-4 text-blue-400"></i>
+                <span class="text-white font-black text-sm">Yardstake</span>
+            </div>
+            <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">M</div>
+        </div>
+
+        <!-- Scrollable content -->
+        <div class="phone-content">
+
+            <!-- ===== STATE 1: Delivery Alert ===== -->
+            <div id="state-alert" class="pstate active px-5 py-6 space-y-5">
+
+                <!-- Celebration header -->
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-emerald-500/20 border-2 border-emerald-500/40 rounded-full flex items-center justify-center mx-auto mb-4 pop pay-pulse">
+                        <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-400"></i>
+                    </div>
+                    <div class="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full mb-3">
+                        <i data-lucide="truck" class="w-3 h-3"></i>
+                        <span>Delivered!</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-white leading-tight">Project Complete</h2>
+                    <p class="text-sm text-slate-400 mt-1">Seattle DADU · ORD-7702</p>
+                </div>
+
+                <!-- Delivery confirmation -->
+                <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-0.5">Site GC Confirmed</p>
+                            <p class="text-sm font-bold text-white">Backyard Bill tapped "Confirm Delivery"</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Apr 4, 2026 · 2:17 PM · GPS: 47.6062°N 122.3321°W</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payout card -->
+                <div class="bg-emerald-900/30 border border-emerald-500/40 rounded-2xl p-5 text-center">
+                    <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Final Draw Released</p>
+                    <p class="text-4xl font-black text-emerald-400 mb-1">$35,000</p>
+                    <p class="text-xs text-slate-300 font-medium mb-3">Transferred to your bank via Stripe Connect</p>
+                    <div class="flex items-center justify-center space-x-2 text-[10px] text-slate-400">
+                        <i data-lucide="clock" class="w-3 h-3 text-emerald-400"></i>
+                        <span>ETA <span class="text-emerald-400 font-bold">same business day</span> · Routing: ••••4821</span>
+                    </div>
+                </div>
+
+                <!-- Draw strip — all 4 complete -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All Milestones Complete</span>
+                        <span class="text-[10px] font-bold text-emerald-400">4 / 4</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <div class="draw-pip-sm"></div>
+                        <div class="draw-pip-sm"></div>
+                        <div class="draw-pip-sm"></div>
+                        <div class="draw-pip-sm"></div>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1 mt-1.5 text-center">
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$12k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$40k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$30k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                        <div><span class="text-[9px] font-bold text-emerald-400 block">$35k</span><span class="text-[8px] text-emerald-600">✓</span></div>
+                    </div>
+                </div>
+
+                <!-- CTA -->
+                <button onclick="showState('state-summary')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-sm transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                    <span>View Project Summary</span>
+                </button>
+                <a href="vendor_dashboard.html" class="block text-center text-xs font-bold text-slate-400 hover:text-slate-200 transition-colors py-1">
+                    Back to Kanban →
+                </a>
+
+            </div>
+
+            <!-- ===== STATE 2: Project Summary ===== -->
+            <div id="state-summary" class="pstate px-5 py-5 space-y-5">
+
+                <!-- Back nav + badge -->
+                <div class="flex items-center justify-between">
+                    <button onclick="showState('state-alert')" class="flex items-center text-xs font-bold text-slate-400 hover:text-white transition-colors">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Delivery Alert
+                    </button>
+                    <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full uppercase tracking-widest">Project Complete</span>
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <h2 class="text-xl font-black text-white">Seattle DADU</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Studio L · Cedar Planks · ORD-7702</p>
+                </div>
+
+                <!-- Financial summary -->
+                <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 space-y-2.5">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Project Financials</p>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Total Gross Draws</span>
+                        <span class="font-bold text-white">$117,000</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-400">Yardstake Fee (5%)</span>
+                        <span class="font-bold text-red-400">−$5,850</span>
+                    </div>
+                    <div class="border-t border-slate-700 pt-2.5 flex justify-between items-center">
+                        <span class="text-sm font-bold text-white">Net Paid to You</span>
+                        <span class="text-lg font-black text-emerald-400">$111,150</span>
+                    </div>
+                </div>
+
+                <!-- Stats grid -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-800/60 rounded-xl p-3 text-center border border-slate-700">
+                        <span class="text-lg font-black text-white block">72</span>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Days</span>
+                    </div>
+                    <div class="bg-slate-800/60 rounded-xl p-3 text-center border border-slate-700">
+                        <span class="text-lg font-black text-white block">4/4</span>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Milestones</span>
+                    </div>
+                    <div class="bg-slate-800/60 rounded-xl p-3 text-center border border-slate-700">
+                        <span class="text-lg font-black text-white block">10</span>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Photos</span>
+                    </div>
+                </div>
+
+                <!-- Milestone timeline -->
+                <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Milestone Timeline</p>
+
+                    <div class="milestone-row">
+                        <div class="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="text-xs font-bold text-white">Deposit Secured</p>
+                            <p class="text-[10px] text-slate-500">Jan 22, 2026</p>
+                        </div>
+                        <span class="text-sm font-black text-emerald-400">$12,000</span>
+                    </div>
+
+                    <div class="milestone-row">
+                        <div class="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="text-xs font-bold text-white">Framing Complete</p>
+                            <p class="text-[10px] text-slate-500">Feb 10, 2026</p>
+                        </div>
+                        <span class="text-sm font-black text-emerald-400">$40,000</span>
+                    </div>
+
+                    <div class="milestone-row">
+                        <div class="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="text-xs font-bold text-white">MEP Complete</p>
+                            <p class="text-[10px] text-slate-500">Mar 3, 2026</p>
+                        </div>
+                        <span class="text-sm font-black text-emerald-400">$30,000</span>
+                    </div>
+
+                    <div class="milestone-row">
+                        <div class="w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                            <i data-lucide="check" class="w-3 h-3 text-emerald-400"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="text-xs font-bold text-white">Site Delivery</p>
+                            <p class="text-[10px] text-slate-500">Apr 4, 2026</p>
+                        </div>
+                        <span class="text-sm font-black text-emerald-400">$35,000</span>
+                    </div>
+                </div>
+
+                <!-- Placement score impact -->
+                <div class="bg-amber-900/20 border border-amber-500/30 rounded-2xl p-4 flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-0.5">Placement Score Impact</p>
+                        <p class="text-xs text-slate-300 font-medium">On-time delivery added <span class="text-amber-400 font-bold">+3 pts</span>. No exceptions filed. Score: <span class="text-white font-black">98/100</span></p>
+                    </div>
+                </div>
+
+                <!-- CTAs -->
+                <a href="vendor_ledger.html" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-sm transition-colors flex items-center justify-center space-x-2 border border-slate-700">
+                    <i data-lucide="receipt" class="w-4 h-4 text-slate-400"></i>
+                    <span>View in Ledger</span>
+                </a>
+                <a href="vendor_dashboard.html" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3 rounded-xl text-sm transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Back to Kanban</span>
+                </a>
+                <div class="pb-4"></div>
+            </div>
+
+        </div><!-- /phone-content -->
+    </div><!-- /phone-frame -->
+
+    <!-- Desktop label below phone -->
+    <div class="fixed bottom-6 right-6 max-w-xs bg-yellow-100 text-yellow-900 p-4 rounded-xl shadow-2xl transform rotate-1 hidden lg:block pointer-events-none">
+        <h4 class="font-bold text-sm mb-1 uppercase tracking-widest border-b border-yellow-300 pb-1">UX Note:</h4>
+        <p class="text-xs leading-relaxed font-medium">Triggered by Site GC tapping "Confirm Delivery" — arrives as SMS magic link. No login. Mike sees $35k payout instantly, then can drill into the full project wrap-up.</p>
+    </div>
+
+    <script>
+        function showState(id) {
+            document.querySelectorAll('.pstate').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            lucide.createIcons();
+            // Scroll to top of phone content
+            document.querySelector('.phone-content').scrollTop = 0;
+        }
+        lucide.createIcons();
+    </script>
+</body>
+</html>
