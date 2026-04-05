@@ -1,213 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Concierge Console | Yardstake Orchestration</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #E2E8F0; color: #0F172A; }
-        .console-panel { background: #FFFFFF; border-radius: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #E2E8F0; overflow: hidden; }
-        .gradient-bg { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concierge Console | Yardstake Orchestration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F1F5F9; color: #0F172A; }
+    .console-panel {
+      background: #FFFFFF;
+      border-radius: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      border: 1px solid #E2E8F0;
+      overflow: hidden;
+    }
+    .gradient-bg { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); }
+    .kpi-card { transition: transform 0.15s, box-shadow 0.15s; }
+    .kpi-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .triage-row { transition: background-color 0.1s; }
+    .triage-row:hover { background-color: #F8FAFC; }
+    .project-row { transition: background-color 0.1s; }
+    .project-row:hover { background-color: #F8FAFC; }
+    @media (max-width: 1023px) {
+      .sidebar { display: none; }
+      .sidebar.open { display: flex; position: fixed; top: 3.5rem; left: 0; bottom: 0; z-index: 40; width: 16rem; }
+    }
+  </style>
 </head>
 <body class="antialiased h-screen flex flex-col overflow-hidden">
 
-    <!-- Concierge Top Nav -->
-    <nav class="gradient-bg text-white h-14 flex items-center justify-between px-6 flex-shrink-0 z-50 shadow-md">
-        <div class="flex items-center space-x-4">
-            <i data-lucide="layers" class="text-fuchsia-400 w-5 h-5"></i>
-            <span class="text-sm font-bold tracking-widest uppercase">Orchestration OS</span>
-        </div>
-        <div class="flex items-center space-x-3">
-            <span class="text-xs font-medium text-slate-300">Active Shift: Fixer Fiona</span>
-            <img src="https://i.pravatar.cc/100?img=32" alt="Fiona" class="w-8 h-8 rounded-full border-2 border-fuchsia-500">
-        </div>
-    </nav>
-
-    <div class="flex flex-1 overflow-hidden">
-        <!-- Sidebar -->
-        <aside class="w-64 bg-slate-900 border-r border-slate-800 text-slate-400 p-4 flex flex-col flex-shrink-0">
-            <div class="space-y-1 mt-4">
-                <a href="#" class="flex items-center space-x-3 bg-fuchsia-600/20 text-fuchsia-400 px-4 py-3 rounded-xl font-bold">
-                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-                    <span>Triage Queue</span>
-                    <span class="ml-auto bg-fuchsia-600 text-white text-[10px] px-2 py-0.5 rounded-full">4</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
-                    <i data-lucide="gavel" class="w-5 h-5"></i>
-                    <span>Dispute Mediation</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
-                    <i data-lucide="clock" class="w-5 h-5"></i>
-                    <span>Permit SLAs</span>
-                </a>
-                <a href="#" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
-                    <i data-lucide="truck" class="w-5 h-5"></i>
-                    <span>Crane Day Logistics</span>
-                </a>
-            </div>
-        </aside>
-
-        <!-- Main Workspace -->
-        <main class="flex-1 overflow-y-auto p-8 bg-slate-50 space-y-6">
-            
-            <header class="mb-4">
-                <h1 class="text-2xl font-extrabold text-slate-900">Project Triage required</h1>
-                <p class="text-sm text-slate-500 mt-1">Reviewing blockers to maintain the "No Surprises" guarantee for buyers.</p>
-            </header>
-
-            <!-- ⚠ NEW: Material Exception from Modular Mike — ORD-9021 -->
-            <div class="console-panel p-0 border-l-4 border-l-amber-500">
-                <div class="p-6 bg-white flex justify-between items-center border-b border-slate-100">
-                    <div>
-                        <div class="flex items-center space-x-2 mb-1">
-                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded">ORD-9021</span>
-                            <span class="text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-700 uppercase tracking-widest flex items-center"><i data-lucide="layers" class="w-3 h-3 mr-1"></i> Material Exception Pending</span>
-                            <span class="flex items-center space-x-1 text-[10px] text-amber-500 font-bold">
-                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse inline-block"></span>
-                                <span>3h 47m SLA</span>
-                            </span>
-                        </div>
-                        <h2 class="text-xl font-bold text-slate-900">Portland R5 — Modular Mike <span class="text-slate-400 font-normal text-base">→ Material Substitution Request</span></h2>
-                    </div>
-                </div>
-
-                <div class="p-6 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Context Pane -->
-                    <div class="space-y-5">
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Exception Submitted By</h4>
-                            <div class="bg-white border border-slate-200 rounded-xl p-3 flex items-center space-x-3">
-                                <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-sm flex-shrink-0">M</div>
-                                <div>
-                                    <p class="text-sm font-bold text-slate-800">Modular Mike</p>
-                                    <p class="text-xs text-slate-500">Framing Station · ORD-9021 · Portland R5</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Exception Details</h4>
-                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 leading-relaxed">
-                                <p class="font-bold mb-1">Material Sub: White Oak Flooring → Maple</p>
-                                <p class="text-xs text-amber-800">White Oak flooring (spec'd on drawing D-04) is backordered 8 weeks from our supplier. Proposing substitution with Maple — similar grain, same Coastal White stain per the palette.</p>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Impact If Denied</h4>
-                            <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-700">Build delayed 8 weeks. Buyer's Crane Day rescheduled. Mike's Placement Score at risk.</div>
-                        </div>
-                    </div>
-
-                    <!-- Action Pane -->
-                    <div class="space-y-4">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Concierge Actions</h4>
-                        <div class="space-y-3">
-                            <button class="w-full text-left bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 p-4 rounded-xl flex items-center justify-between transition-colors group">
-                                <div>
-                                    <p class="font-bold text-sm text-emerald-800">1. Approve Substitution</p>
-                                    <p class="text-xs text-emerald-600 mt-0.5">Aesthetic match confirmed — no buyer sign-off required.</p>
-                                </div>
-                                <i data-lucide="check-circle" class="text-emerald-500"></i>
-                            </button>
-                            <button class="w-full text-left bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between transition-colors group">
-                                <div>
-                                    <p class="font-bold text-sm text-slate-800">2. Route to Buyer for Approval</p>
-                                    <p class="text-xs text-slate-500 mt-0.5">Buyer selected White Oak as primary aesthetic. Requires their sign-off.</p>
-                                </div>
-                                <i data-lucide="arrow-right" class="text-slate-400 group-hover:text-blue-500 transform group-hover:translate-x-1 transition-all"></i>
-                            </button>
-                            <button class="w-full text-left bg-red-50 hover:bg-red-100 border border-red-100 p-4 rounded-xl flex items-center justify-between transition-colors">
-                                <div>
-                                    <p class="font-bold text-sm text-red-700">3. Deny — Hold Original Spec</p>
-                                    <p class="text-xs text-red-500 mt-0.5">Mike must source an alternate White Oak supplier. Issue 2-week extension.</p>
-                                </div>
-                                <i data-lucide="x-circle" class="text-red-400"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="console-panel p-0 border-l-4 border-l-orange-500 animate-[pulse_3s_ease-in-out_infinite]">
-                <div class="p-6 bg-white flex justify-between items-center border-b border-slate-100">
-                    <div>
-                        <div class="flex items-center space-x-2 mb-1">
-                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded">ORD-9021</span>
-                            <span class="text-[10px] font-bold px-2 py-1 rounded bg-orange-100 text-orange-700 uppercase tracking-widest flex items-center"><i data-lucide="gavel" class="w-3 h-3 mr-1"></i> Mediation Required</span>
-                        </div>
-                        <h2 class="text-xl font-bold text-slate-900">Portland R5 — Annie Smith</h2>
-                    </div>
-                </div>
-
-                <div class="p-6 bg-slate-50 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Context Pane -->
-                    <div class="space-y-6">
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Buyer Emotional Anchor</h4>
-                            <div class="bg-fuchsia-50 text-fuchsia-800 px-4 py-3 rounded-xl text-sm font-medium border border-fuchsia-100 flex items-start">
-                                <i data-lucide="heart" class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0"></i>
-                                Priority: Housing for aging parents. Maintain high trust & low complexity phrasing. Avoid technical jargon.
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Track A & Track B Sync</h4>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-200">
-                                    <span class="text-sm font-bold text-slate-700"><i data-lucide="factory" class="inline w-4 h-4 text-blue-500 mr-1"></i> Modular Mike</span>
-                                    <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">On Schedule (Framing)</span>
-                                </div>
-                                <div class="flex justify-between items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm ring-1 ring-orange-500">
-                                    <span class="text-sm font-bold text-slate-700"><i data-lucide="shovel" class="inline w-4 h-4 text-orange-500 mr-1"></i> Site GC (Bill)</span>
-                                    <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded">Blocked (Foundation Draw)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Pane -->
-                    <div class="space-y-4">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Conflict Description</h4>
-                        <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-sm text-slate-600 leading-relaxed mb-4">
-                            <strong>System Flag:</strong> Buyer (Annie) has delayed clicking "Approve & Pay" for the foundation Phase draw ($25,000) for 48 hours. The Site GC cannot proceed to the trenching phase until the platform releases funds.
-                        </div>
-
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 mt-4">Concierge Actions</h4>
-                        <div class="space-y-3">
-                            <button class="w-full text-left bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between transition-colors group">
-                                <div>
-                                    <p class="font-bold text-sm text-slate-800">1. Draft Message to Annie</p>
-                                    <p class="text-xs text-slate-500 mt-0.5">Use "Grandparent-friendly" template to explain photo proofs.</p>
-                                </div>
-                                <i data-lucide="arrow-right" class="text-slate-400 group-hover:text-blue-500 transform group-hover:translate-x-1 transition-all"></i>
-                            </button>
-                            <button class="w-full text-left bg-white hover:bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center justify-between transition-colors group">
-                                <div>
-                                    <p class="font-bold text-sm text-slate-800">2. Review GC Evidentiary Photos</p>
-                                    <p class="text-xs text-slate-500 mt-0.5">Verify GPS tags and timestamps before overriding approval.</p>
-                                </div>
-                                <i data-lucide="camera" class="text-slate-400 group-hover:text-fuchsia-500 transform transition-all"></i>
-                            </button>
-                            <button class="w-full text-left bg-red-50 hover:bg-red-100 border border-red-100 p-4 rounded-xl flex items-center justify-between transition-colors">
-                                <div>
-                                    <p class="font-bold text-sm text-red-700">3. Adjudicate & Force Payout</p>
-                                    <p class="text-xs text-red-500 mt-0.5">Release project funds to GC per terms of service.</p>
-                                </div>
-                                <i data-lucide="shield-alert" class="text-red-400"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </main>
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TOP NAV — Dark gradient, shared across all concierge screens -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <nav class="gradient-bg text-white h-14 flex items-center justify-between px-6 flex-shrink-0 z-50 shadow-md">
+    <div class="flex items-center space-x-4">
+      <!-- Mobile sidebar toggle -->
+      <button onclick="document.getElementById('sidebar').classList.toggle('open')" class="lg:hidden mr-1">
+        <i data-lucide="menu" class="w-5 h-5 text-slate-300"></i>
+      </button>
+      <i data-lucide="layers" class="text-fuchsia-400 w-5 h-5"></i>
+      <span class="text-sm font-bold tracking-widest uppercase">Orchestration OS</span>
     </div>
+    <div class="flex items-center space-x-3">
+      <a href="concierge_index.html" class="text-xs text-slate-400 hover:text-fuchsia-300 transition-colors hidden sm:inline">Mock Index</a>
+      <span class="text-xs font-medium text-slate-300">Active Shift: Fixer Fiona</span>
+      <img src="https://i.pravatar.cc/100?img=32" alt="Fiona" class="w-8 h-8 rounded-full border-2 border-fuchsia-500">
+    </div>
+  </nav>
 
-    <script>
-        lucide.createIcons();
-    </script>
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- SIDEBAR — Dark slate, persistent nav with badge counts -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <aside id="sidebar" class="sidebar w-64 bg-slate-900 border-r border-slate-800 text-slate-400 p-4 flex-col flex-shrink-0 hidden lg:flex">
+      <div class="space-y-1 mt-4">
+        <a href="#triage" class="flex items-center space-x-3 bg-fuchsia-600/20 text-fuchsia-400 px-4 py-3 rounded-xl font-bold">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          <span>Triage Queue</span>
+          <span class="ml-auto bg-fuchsia-600 text-white text-[10px] px-2 py-0.5 rounded-full">4</span>
+        </a>
+        <a href="#projects" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+          <span>Active Projects</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">8</span>
+        </a>
+        <a href="concierge_permit_tracker.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="file-check" class="w-5 h-5"></i>
+          <span>Permit SLAs</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">3</span>
+        </a>
+        <a href="concierge_crane_day.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="crane" class="w-5 h-5"></i>
+          <span>Crane Calendar</span>
+        </a>
+        <a href="concierge_messages.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="message-circle" class="w-5 h-5"></i>
+          <span>Messages</span>
+          <span class="ml-auto bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">2</span>
+        </a>
+        <a href="concierge_settings.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span>Settings</span>
+        </a>
+      </div>
+
+      <!-- Shift info at bottom -->
+      <div class="mt-auto pt-6 border-t border-slate-800">
+        <div class="flex items-center space-x-2 px-4">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs text-slate-500">On Shift · 6h 23m</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MAIN CONTENT — KPI row + triage queue + active projects -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <main class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+
+      <header class="mb-2">
+        <h1 class="text-2xl font-extrabold text-slate-900">Dashboard</h1>
+        <p class="text-sm text-slate-500 mt-1">Portfolio overview · April 4, 2026</p>
+      </header>
+
+      <!-- ──────────── KPI ROW ──────────── -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Active Projects -->
+        <div class="kpi-card console-panel p-5 border-l-4 border-l-fuchsia-500">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Projects</span>
+            <div class="w-8 h-8 rounded-lg bg-fuchsia-100 flex items-center justify-center">
+              <i data-lucide="folder-kanban" class="w-4 h-4 text-fuchsia-600"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-slate-900">8</p>
+          <p class="text-xs text-slate-500 mt-1">across 4 lifecycle phases</p>
+        </div>
+
+        <!-- At Risk -->
+        <div class="kpi-card console-panel p-5 border-l-4 border-l-red-500">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">At Risk</span>
+            <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+              <i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-red-600 flex items-center">
+            1
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse ml-2"></span>
+          </p>
+          <p class="text-xs text-slate-500 mt-1">permit SLA approaching</p>
+        </div>
+
+        <!-- Pending Approvals -->
+        <div class="kpi-card console-panel p-5 border-l-4 border-l-amber-500">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Approvals</span>
+            <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+              <i data-lucide="clock" class="w-4 h-4 text-amber-600"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-slate-900">2</p>
+          <p class="text-xs text-slate-500 mt-1">milestone reviews queued</p>
+        </div>
+
+        <!-- Permits in Review -->
+        <div class="kpi-card console-panel p-5 border-l-4 border-l-blue-500">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Permits in Review</span>
+            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+              <i data-lucide="file-check" class="w-4 h-4 text-blue-600"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-slate-900">3</p>
+          <p class="text-xs text-slate-500 mt-1">city review in progress</p>
+        </div>
+
+      </div>
+
+      <!-- ──────────── TRIAGE QUEUE ──────────── -->
+      <div id="triage" class="console-panel">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <h2 class="text-lg font-bold text-slate-900">Triage Queue</h2>
+            <span class="bg-fuchsia-100 text-fuchsia-700 text-xs font-bold px-2.5 py-0.5 rounded-full">4 items</span>
+          </div>
+          <span class="text-xs text-slate-400">Sorted by SLA urgency</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <th class="text-left px-5 py-3">Order</th>
+                <th class="text-left px-5 py-3">Project</th>
+                <th class="text-left px-5 py-3">Flag Type</th>
+                <th class="text-left px-5 py-3">Time Left</th>
+                <th class="text-left px-5 py-3">Severity</th>
+                <th class="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row 1: Material Exception -->
+              <tr class="triage-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_triage_detail.html'">
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9021</span>
+                </td>
+                <td class="px-5 py-4">
+                  <p class="font-semibold text-slate-800">Annie Morrison</p>
+                  <p class="text-xs text-slate-400">742 SE Morrison St</p>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                    <i data-lucide="layers" class="w-3 h-3 mr-1"></i> Material Exception
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-sm font-bold text-amber-600 flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse mr-1.5"></span>
+                    3h 47m
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">Medium</span>
+                </td>
+                <td class="px-5 py-4 text-right">
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                </td>
+              </tr>
+
+              <!-- Row 2: Payment Delay -->
+              <tr class="triage-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_triage_detail.html'">
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9021</span>
+                </td>
+                <td class="px-5 py-4">
+                  <p class="font-semibold text-slate-800">Annie Morrison</p>
+                  <p class="text-xs text-slate-400">742 SE Morrison St</p>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="inline-flex items-center text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-full">
+                    <i data-lucide="gavel" class="w-3 h-3 mr-1"></i> Mediation Required
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-sm font-bold text-orange-600 flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse mr-1.5"></span>
+                    1d 6h
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-orange-700 bg-orange-100 px-2.5 py-1 rounded-full">High</span>
+                </td>
+                <td class="px-5 py-4 text-right">
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                </td>
+              </tr>
+
+              <!-- Row 3: Permit SLA Breach -->
+              <tr class="triage-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_triage_detail.html'">
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9018</span>
+                </td>
+                <td class="px-5 py-4">
+                  <p class="font-semibold text-slate-800">Chen Family</p>
+                  <p class="text-xs text-slate-400">1205 NE Prescott St</p>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="inline-flex items-center text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i> SLA Breach
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-sm font-bold text-red-600 flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mr-1.5"></span>
+                    2d 14h
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-red-700 bg-red-100 px-2.5 py-1 rounded-full">Critical</span>
+                </td>
+                <td class="px-5 py-4 text-right">
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                </td>
+              </tr>
+
+              <!-- Row 4: Inspection Scheduling -->
+              <tr class="triage-row cursor-pointer" onclick="window.location='concierge_triage_detail.html'">
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9024</span>
+                </td>
+                <td class="px-5 py-4">
+                  <p class="font-semibold text-slate-800">Rivera Household</p>
+                  <p class="text-xs text-slate-400">3318 SE Division St</p>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="inline-flex items-center text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                    <i data-lucide="clipboard-check" class="w-3 h-3 mr-1"></i> Inspection Hold
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-sm font-bold text-amber-600 flex items-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse mr-1.5"></span>
+                    5h 22m
+                  </span>
+                </td>
+                <td class="px-5 py-4">
+                  <span class="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">Medium</span>
+                </td>
+                <td class="px-5 py-4 text-right">
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ──────────── ACTIVE PROJECTS ──────────── -->
+      <div id="projects" class="console-panel">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <h2 class="text-lg font-bold text-slate-900">Active Projects</h2>
+            <span class="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-0.5 rounded-full">8 projects</span>
+          </div>
+          <span class="text-xs text-slate-400">Click row to view detail</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <th class="text-left px-5 py-3">Project</th>
+                <th class="text-left px-5 py-3">Homeowner</th>
+                <th class="text-left px-5 py-3">Phase</th>
+                <th class="text-left px-5 py-3">Track A (Factory)</th>
+                <th class="text-left px-5 py-3">Track B (Site)</th>
+                <th class="text-left px-5 py-3">Next Action</th>
+                <th class="px-5 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <tr class="project-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9015</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Thompson Family</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Close-out</span></td>
+                <td class="px-5 py-3.5 text-xs text-emerald-600 font-medium">Complete</td>
+                <td class="px-5 py-3.5 text-xs text-emerald-600 font-medium">Complete</td>
+                <td class="px-5 py-3.5 text-xs text-slate-500">File CO + warranty docs</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+              <tr class="project-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9017</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Nakamura Household</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Transit</span></td>
+                <td class="px-5 py-3.5 text-xs text-emerald-600 font-medium">Complete</td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 font-medium">95%</td>
+                <td class="px-5 py-3.5 text-xs text-slate-500">Confirm crane ETA</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+              <tr class="project-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9018</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Chen Family</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">Permit</span></td>
+                <td class="px-5 py-3.5 text-xs text-slate-400">—</td>
+                <td class="px-5 py-3.5 text-xs text-slate-400">—</td>
+                <td class="px-5 py-3.5 text-xs text-red-500 font-medium">Follow up BDS (SLA breach)</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+              <tr class="project-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9019</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Patel Family</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 px-2 py-0.5 rounded-full">Active Build</span></td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 font-medium">72%</td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 font-medium">60%</td>
+                <td class="px-5 py-3.5 text-xs text-slate-500">Review milestone photos</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+              <tr class="project-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9020</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Garcia Residence</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 px-2 py-0.5 rounded-full">Active Build</span></td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 font-medium">45%</td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 font-medium">38%</td>
+                <td class="px-5 py-3.5 text-xs text-slate-500">Schedule inspection</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+              <tr class="project-row border-b border-slate-50 cursor-pointer bg-fuchsia-50/30" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-fuchsia-600 bg-fuchsia-100 px-2 py-1 rounded">ORD-9021</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Annie Morrison</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-fuchsia-700 bg-fuchsia-50 px-2 py-0.5 rounded-full">Active Build</span></td>
+                <td class="px-5 py-3.5 text-xs text-blue-600 font-medium">65%</td>
+                <td class="px-5 py-3.5 text-xs text-amber-600 font-medium">52% (blocked)</td>
+                <td class="px-5 py-3.5 text-xs text-amber-600 font-medium">Resolve 2 triage items</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+              <tr class="project-row border-b border-slate-50 cursor-pointer" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9023</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Williams Home</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">Intake</span></td>
+                <td class="px-5 py-3.5 text-xs text-slate-400">—</td>
+                <td class="px-5 py-3.5 text-xs text-slate-400">—</td>
+                <td class="px-5 py-3.5 text-xs text-slate-500">Set emotional anchor</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+              <tr class="project-row cursor-pointer" onclick="window.location='concierge_project_detail.html'">
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ORD-9024</span></td>
+                <td class="px-5 py-3.5 font-semibold text-slate-800">Rivera Household</td>
+                <td class="px-5 py-3.5"><span class="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">Permit</span></td>
+                <td class="px-5 py-3.5 text-xs text-slate-400">—</td>
+                <td class="px-5 py-3.5 text-xs text-slate-400">—</td>
+                <td class="px-5 py-3.5 text-xs text-amber-600 font-medium">Respond to deficiency</td>
+                <td class="px-5 py-3.5"><i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i></td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>
