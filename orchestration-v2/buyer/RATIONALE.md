@@ -95,3 +95,23 @@ This document correlates the UI features seen in the `buyer_dashboard.html` mock
 - Nav stripping handled by `showState()`: authenticated controls + tab bar hidden; logo only remains
 
 **Rationale:** Crane Day is the emotional peak of the entire buyer journey — the "Move That Bus" moment. The countdown timer makes the event feel imminent and concrete; Annie can share it with family the way you'd share a flight tracker. The confetti + "Your ADU is home!" heading on set-complete mirrors the deposit screen's celebration, creating a bookend: Annie felt this same delight when she put down her first $5K, and she feels it again when the unit lands. The live chat simulation is deliberately looped and cosmetic — it conveys the social energy of a shared live event without requiring real infrastructure. The GPS tracker bar at ~85% positions the unit as "nearly home," building tension before the set-complete reveal. The spectator mode nav stripping is a deliberate trust signal — public viewers see the shared celebration but nothing about Annie's financials, project details, or account. The emotional energy is preserved; the privacy boundary is absolute.
+
+---
+
+## Screen 11: `buyer_project_complete.html`
+
+**File:** `orchestration-v2/buyer/buyer_project_complete.html`
+
+**UI Features:**
+- "🏠 Your ADU is ready to occupy." hero heading with CO issuance subtitle
+- All-green 7-node progress bar (Permit → Foundation → Framing → MEP → Delivery → Utility → CO), each with completion date; CO node has ring highlight
+- Stats strip: 107 days · $172K · 7 milestones · 0 exceptions
+- Document Vault: 4 download cards (CO, permit, photo archive, engineering drawings) — each shows "Preparing download…" toast on click
+- Milestone financial summary table: 7 rows + total row ($172,000), "Released To" column hidden on mobile
+- "Share Your ADU Story" → share modal with pre-filled testimonial text + Copy Text + Twitter/Facebook/NextDoor cosmetic buttons
+- "Leave a Review for Cascadia Modular →" → toast confirmation
+- Fiona farewell card (left emerald border, italic quote)
+- Escape key and overlay click close share modal
+- Secondary tab bar ("My Project" active)
+
+**Rationale:** The project-complete screen closes Annie's emotional arc. The all-green progress bar is a mirror of the milestone stepper she watched advance for 107 days — seeing every node green triggers a "I actually did this" feeling that no text copy can replicate. The Document Vault answers the practical anxiety that follows the emotional high: "Where do I keep all this paperwork?" By surfacing CO, permit, photos, and drawings in one place, Yardstake signals that its value extends beyond delivery. The "Share Your ADU Story" CTA is deliberately prominent — Annie's story is a marketing asset, and the pre-filled text removes the activation energy barrier. The Fiona farewell card uses a left border instead of a card header to feel more like a personal note than a UI component, reinforcing the "wedding planner" relationship model at its conclusion.
