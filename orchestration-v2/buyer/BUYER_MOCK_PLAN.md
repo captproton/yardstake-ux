@@ -238,7 +238,7 @@ Supporting screens that follow established patterns from the vendor mocks.
 
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
-| B-9 | Notifications + settings | `buyer_notifications.html`, `buyer_settings.html` | Low-Medium | Notifications: vendor pattern adapted (filter tabs: All/Milestones/Payments/Messages). Settings: simplified vendor pattern (Profile, Payment, Notifications, Security, Documents). |
+| B-9 ✅ | Notifications + settings | `buyer_notifications.html`, `buyer_settings.html` | Low-Medium | **Shipped — PR #35 merged 2026-04-04.** Filter tabs (All/Milestones/Payments/Messages), 5 seeded notifications with mark-read, bell badge. Settings: 5-section sidebar (Profile, Payment, Notif Prefs, Security, Documents) with CSS toggle switches. |
 
 ### Batch 6: Final Polish
 
@@ -277,7 +277,7 @@ Issues **across** batches have cross-link dependencies (later screens reference 
 # /new-pr-auto 18   ✅ DONE — PR #34 merged 2026-04-04 — buyer_project_complete
 
 # Batch 5 — single issue, after Batch 4 merges
-/new-pr-auto 19   # buyer_notifications + buyer_settings
+# /new-pr-auto 19   ✅ DONE — PR #35 merged 2026-04-04 — buyer_notifications + buyer_settings
 
 # Batch 6 — after everything merges
 /new-pr-auto 20   # RATIONALE.md + cross-link audit

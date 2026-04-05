@@ -115,3 +115,38 @@ This document correlates the UI features seen in the `buyer_dashboard.html` mock
 - Secondary tab bar ("My Project" active)
 
 **Rationale:** The project-complete screen closes Annie's emotional arc. The all-green progress bar is a mirror of the milestone stepper she watched advance for 107 days — seeing every node green triggers a "I actually did this" feeling that no text copy can replicate. The Document Vault answers the practical anxiety that follows the emotional high: "Where do I keep all this paperwork?" By surfacing CO, permit, photos, and drawings in one place, Yardstake signals that its value extends beyond delivery. The "Share Your ADU Story" CTA is deliberately prominent — Annie's story is a marketing asset, and the pre-filled text removes the activation energy barrier. The Fiona farewell card uses a left border instead of a card header to feel more like a personal note than a UI component, reinforcing the "wedding planner" relationship model at its conclusion.
+
+---
+
+## Screen 12: `buyer_notifications.html`
+
+**File:** `orchestration-v2/buyer/buyer_notifications.html`
+
+**UI Features:**
+- Filter tabs (All · Milestones · Payments · Messages) with live unread counts per category
+- 5 seeded notifications: 3 unread (foundation verified, Fiona message, upcoming payment) + 2 read (factory complete, photo share)
+- Unread indicator: blue left border (`border-left: 3px solid #2563EB`) + blue dot on the right edge of each item
+- Click any item to mark it read — left border transitions to transparent, dot disappears, tab badge decrements
+- "Mark all read" button fires a toast confirmation and clears all indicators including the nav bell badge
+- Bell badge in authenticated nav auto-hides when all notifications are read
+- Empty state (bell-off icon + copy) shown when a filter category has no items
+
+**Rationale:** The notifications screen is the ambient trust layer — Annie doesn't need to visit her project hub to know something happened, but when she does open notifications, she should feel the project is actively moving. The filter tabs solve a real pain point: "Was that a payment message or a Fiona message?" The blue left-border unread pattern is borrowed from email clients Annie already knows (Gmail, Apple Mail), reducing the learning curve. The mark-all-read interaction rewards engagement — Annie shouldn't feel chased by an ever-growing badge count. Clearing the nav bell badge when all items are read creates a satisfying "inbox zero" moment that reinforces her sense of being on top of her project.
+
+---
+
+## Screen 13: `buyer_settings.html`
+
+**File:** `orchestration-v2/buyer/buyer_settings.html`
+
+**UI Features:**
+- 5-section sidebar nav (Profile, Payment Methods, Notification Preferences, Security, Documents)
+- Active section highlighted with `bg-blue-50 text-blue-700` pill; content panel swaps without page reload
+- Profile: editable name/email/phone fields; property address read-only with helper text pointing to support
+- Payment Methods: two cards (Visa primary + Mastercard backup) with Set Primary / Remove actions; "Add payment method" button
+- Notification Preferences: per-event-type rows with independent SMS and CSS toggle switches — groups for Milestones, Payments, Messages, General
+- Security: password (last changed), 2FA (enabled via SMS, shown with green badge), active sessions list (current + one other device) with "Sign out all"
+- Documents: 4 project documents (Agreement, Escrow Instructions, Feasibility Report, Building Permit) as download cards with file type + date; pointer to project-complete screen for CO
+- Save toast fires on all interactive actions across sections
+
+**Rationale:** Settings is intentionally simpler than the vendor equivalent — Annie is a homeowner, not a business managing a fleet of units and sub-contractors. The sidebar nav pattern scales to 5 sections cleanly on desktop without the cognitive overhead of a full-page navigation. The SMS/email toggles are CSS-only (no JavaScript library) to keep load fast and render instantly — notification preferences are a high-frequency interaction as Annie tunes her experience over the 6-month build. The read-only property address field with support copy signals that Yardstake protects data integrity (you can't accidentally move your project to the wrong lot). The Documents section in Settings is a lightweight shortcut — the canonical Document Vault lives on the project-complete screen, but surfacing project docs here means Annie can find them from anywhere without remembering to navigate to "completed" state first.
