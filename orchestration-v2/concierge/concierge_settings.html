@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings | Concierge Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F1F5F9; color: #0F172A; }
+    .console-panel {
+      background: #FFFFFF;
+      border-radius: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      border: 1px solid #E2E8F0;
+      overflow: hidden;
+    }
+    .gradient-bg { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); }
+
+    /* Toggle switch */
+    .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background-color: #CBD5E1; border-radius: 24px;
+      transition: background-color 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; height: 18px; width: 18px;
+      left: 3px; bottom: 3px; background-color: white;
+      border-radius: 50%; transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background-color: #D946EF; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    /* Section nav */
+    .section-link { transition: all 0.1s; }
+    .section-link.active { background-color: #FDF4FF; color: #D946EF; border-left: 3px solid #D946EF; font-weight: 700; }
+    .section-link:not(.active) { border-left: 3px solid transparent; }
+    .section-link:not(.active):hover { background-color: #F8FAFC; }
+
+    .template-card { transition: transform 0.1s, box-shadow 0.1s; cursor: pointer; }
+    .template-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .template-card.selected { ring: 2px; outline: 2px solid #D946EF; outline-offset: -2px; }
+
+    @media (max-width: 1023px) {
+      .sidebar { display: none; }
+      .sidebar.open { display: flex; position: fixed; top: 3.5rem; left: 0; bottom: 0; z-index: 40; width: 16rem; }
+    }
+  </style>
+</head>
+<body class="antialiased h-screen flex flex-col overflow-hidden">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TOP NAV -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <nav class="gradient-bg text-white h-14 flex items-center justify-between px-6 flex-shrink-0 z-50 shadow-md">
+    <div class="flex items-center space-x-4">
+      <button onclick="document.getElementById('sidebar').classList.toggle('open')" class="lg:hidden mr-1">
+        <i data-lucide="menu" class="w-5 h-5 text-slate-300"></i>
+      </button>
+      <i data-lucide="layers" class="text-fuchsia-400 w-5 h-5"></i>
+      <span class="text-sm font-bold tracking-widest uppercase">Orchestration OS</span>
+    </div>
+    <div class="flex items-center space-x-3">
+      <a href="concierge_index.html" class="text-xs text-slate-400 hover:text-fuchsia-300 transition-colors hidden sm:inline">Mock Index</a>
+      <span class="text-xs font-medium text-slate-300">Active Shift: Fixer Fiona</span>
+      <img src="https://i.pravatar.cc/100?img=32" alt="Fiona" class="w-8 h-8 rounded-full border-2 border-fuchsia-500">
+    </div>
+  </nav>
+
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- SIDEBAR -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <aside id="sidebar" class="sidebar w-64 bg-slate-900 border-r border-slate-800 text-slate-400 p-4 flex-col flex-shrink-0 hidden lg:flex">
+      <div class="space-y-1 mt-4">
+        <a href="concierge_dashboard.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          <span>Triage Queue</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">4</span>
+        </a>
+        <a href="concierge_dashboard.html#projects" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+          <span>Active Projects</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">8</span>
+        </a>
+        <a href="concierge_permit_tracker.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="file-check" class="w-5 h-5"></i>
+          <span>Permit SLAs</span>
+          <span class="ml-auto text-slate-600 text-[10px] px-2 py-0.5 rounded-full bg-slate-800">3</span>
+        </a>
+        <a href="concierge_crane_day.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="crane" class="w-5 h-5"></i>
+          <span>Crane Calendar</span>
+        </a>
+        <a href="concierge_messages.html" class="flex items-center space-x-3 hover:bg-slate-800 hover:text-white px-4 py-3 rounded-xl font-medium transition-colors">
+          <i data-lucide="message-circle" class="w-5 h-5"></i>
+          <span>Messages</span>
+          <span class="ml-auto bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full">2</span>
+        </a>
+        <a href="concierge_settings.html" class="flex items-center space-x-3 bg-fuchsia-600/20 text-fuchsia-400 px-4 py-3 rounded-xl font-bold">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span>Settings</span>
+        </a>
+      </div>
+      <div class="mt-auto pt-6 border-t border-slate-800">
+        <div class="flex items-center space-x-2 px-4">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs text-slate-500">On Shift · 6h 23m</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- MAIN CONTENT — Section nav + content panels -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <main class="flex-1 overflow-hidden flex">
+
+      <!-- Section Nav (left) -->
+      <div class="w-56 flex-shrink-0 border-r border-slate-200 bg-white p-4 hidden md:block overflow-y-auto">
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-3">Settings</p>
+        <div class="space-y-1">
+          <a href="#shift" onclick="showSection('shift')" class="section-link active block px-3 py-2.5 rounded-lg text-sm text-slate-600">
+            <i data-lucide="clock" class="w-4 h-4 inline mr-2"></i>Shift Management
+          </a>
+          <a href="#templates" onclick="showSection('templates')" class="section-link block px-3 py-2.5 rounded-lg text-sm text-slate-600">
+            <i data-lucide="file-text" class="w-4 h-4 inline mr-2"></i>Message Templates
+          </a>
+          <a href="#notifications" onclick="showSection('notifications')" class="section-link block px-3 py-2.5 rounded-lg text-sm text-slate-600">
+            <i data-lucide="bell" class="w-4 h-4 inline mr-2"></i>Notifications
+          </a>
+          <a href="#portfolio" onclick="showSection('portfolio')" class="section-link block px-3 py-2.5 rounded-lg text-sm text-slate-600">
+            <i data-lucide="layout-grid" class="w-4 h-4 inline mr-2"></i>Portfolio Overview
+          </a>
+        </div>
+      </div>
+
+      <!-- Content Area (right) -->
+      <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+
+        <!-- Breadcrumb -->
+        <div>
+          <div class="flex items-center text-xs text-slate-400 space-x-2 mb-2">
+            <a href="concierge_dashboard.html" class="hover:text-fuchsia-500 transition-colors">Dashboard</a>
+            <i data-lucide="chevron-right" class="w-3 h-3"></i>
+            <span class="text-slate-600 font-semibold">Settings</span>
+          </div>
+          <h1 class="text-2xl font-extrabold text-slate-900">Settings</h1>
+          <p class="text-sm text-slate-500 mt-1">Shift, templates, notifications, and portfolio preferences</p>
+        </div>
+
+        <!-- ──────────── SECTION: Shift Management ──────────── -->
+        <div id="section-shift" class="settings-section space-y-5">
+          <div class="console-panel p-6">
+            <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4 text-fuchsia-500"></i> Shift Management
+            </h2>
+
+            <!-- On/Off Shift Toggle -->
+            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl mb-4">
+              <div>
+                <p class="text-sm font-bold text-slate-800">Shift Status</p>
+                <p class="text-xs text-slate-500 mt-0.5" id="shift-label">Currently: On Shift</p>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" checked onchange="toggleShift(this)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <!-- Schedule -->
+            <div class="p-4 bg-slate-50 rounded-xl mb-4">
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Shift Schedule</p>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="flex justify-between"><span class="text-slate-500">Days</span><span class="font-medium text-slate-800">Mon – Fri</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Hours</span><span class="font-medium text-slate-800">8:00 AM – 5:00 PM PST</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Timezone</span><span class="font-medium text-slate-800">Pacific (UTC-7)</span></div>
+                <div class="flex justify-between"><span class="text-slate-500">Next Off</span><span class="font-medium text-slate-800">Sat, Apr 7</span></div>
+              </div>
+            </div>
+
+            <!-- Coverage Partner -->
+            <div class="p-4 bg-slate-50 rounded-xl">
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Coverage Partner</p>
+              <div class="flex items-center gap-3 mb-3">
+                <img src="https://i.pravatar.cc/100?img=26" class="w-10 h-10 rounded-full" alt="Backup">
+                <div>
+                  <p class="text-sm font-bold text-slate-800">Maria Santos</p>
+                  <p class="text-xs text-slate-500">Backup Concierge · Portland Region</p>
+                </div>
+                <span class="ml-auto text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Available</span>
+              </div>
+              <div>
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1">Handoff Notes</label>
+                <textarea class="w-full text-sm text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 resize-none" rows="3" placeholder="Notes for your coverage partner…">ORD-9021 (Annie Morrison): Crane Day May 15 — checklist 5/6 complete, weather check pending morning-of. ORD-9028 (David Park): Deficiency response due Apr 8, Jordan Lee handling resubmission.</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ──────────── SECTION: Message Templates ──────────── -->
+        <div id="section-templates" class="settings-section space-y-5">
+          <div class="console-panel p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-fuchsia-500"></i> Message Templates
+              </h2>
+              <button class="text-xs font-bold bg-fuchsia-600 hover:bg-fuchsia-700 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Template
+              </button>
+            </div>
+
+            <!-- Template Groups -->
+            <div class="space-y-4">
+
+              <!-- Group: Milestone -->
+              <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Milestone Updates</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div class="template-card bg-slate-50 border border-slate-200 rounded-xl p-4" onclick="previewTemplate(this, 'milestone-approaching')">
+                    <p class="text-sm font-bold text-slate-800">Milestone Approaching</p>
+                    <p class="text-xs text-slate-500 mt-1">Proactive update when a milestone is nearing completion.</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{buyer_name}}</span>
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{milestone}}</span>
+                    </div>
+                  </div>
+                  <div class="template-card bg-slate-50 border border-slate-200 rounded-xl p-4" onclick="previewTemplate(this, 'milestone-complete')">
+                    <p class="text-sm font-bold text-slate-800">Milestone Complete</p>
+                    <p class="text-xs text-slate-500 mt-1">Notification after photos verified and funds released.</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{buyer_name}}</span>
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{milestone}}</span>
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{amount}}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group: Permit -->
+              <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Permit Updates</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div class="template-card bg-slate-50 border border-slate-200 rounded-xl p-4" onclick="previewTemplate(this, 'permit-update')">
+                    <p class="text-sm font-bold text-slate-800">Permit Status Update</p>
+                    <p class="text-xs text-slate-500 mt-1">Regular queue position and timeline update.</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{buyer_name}}</span>
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{permit_status}}</span>
+                    </div>
+                  </div>
+                  <div class="template-card bg-slate-50 border border-slate-200 rounded-xl p-4" onclick="previewTemplate(this, 'permit-approved')">
+                    <p class="text-sm font-bold text-slate-800">Permit Approved</p>
+                    <p class="text-xs text-slate-500 mt-1">Celebration message when permit clears.</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{buyer_name}}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group: Exceptions & Crane -->
+              <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Exceptions & Logistics</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div class="template-card bg-slate-50 border border-slate-200 rounded-xl p-4" onclick="previewTemplate(this, 'exception')">
+                    <p class="text-sm font-bold text-slate-800">Exception Notification</p>
+                    <p class="text-xs text-slate-500 mt-1">Explain a change or substitution to the buyer.</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{buyer_name}}</span>
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{exception_detail}}</span>
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{impact}}</span>
+                    </div>
+                  </div>
+                  <div class="template-card bg-slate-50 border border-slate-200 rounded-xl p-4" onclick="previewTemplate(this, 'crane-prep')">
+                    <p class="text-sm font-bold text-slate-800">Crane Day Prep</p>
+                    <p class="text-xs text-slate-500 mt-1">Pre-delivery excitement + logistics overview.</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{buyer_name}}</span>
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{crane_date}}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Group: Close-out -->
+              <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Close-out</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  <div class="template-card bg-slate-50 border border-slate-200 rounded-xl p-4" onclick="previewTemplate(this, 'project-complete')">
+                    <p class="text-sm font-bold text-slate-800">Project Complete</p>
+                    <p class="text-xs text-slate-500 mt-1">Congratulations + document vault + welcome home.</p>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      <span class="text-[10px] bg-fuchsia-50 text-fuchsia-600 px-1.5 py-0.5 rounded font-mono">{{buyer_name}}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Template Preview -->
+            <div id="template-preview" class="mt-4 hidden">
+              <div class="bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-xs font-bold text-fuchsia-700 uppercase tracking-widest">Template Preview</p>
+                  <button onclick="closePreview()" class="text-xs text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                  </button>
+                </div>
+                <p id="preview-text" class="text-sm text-slate-700 leading-relaxed"></p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ──────────── SECTION: Notifications ──────────── -->
+        <div id="section-notifications" class="settings-section space-y-5">
+          <div class="console-panel p-6">
+            <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <i data-lucide="bell" class="w-4 h-4 text-fuchsia-500"></i> Notification Preferences
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">Choose how you want to be notified for each event type.</p>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-slate-100">
+                    <th class="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Event</th>
+                    <th class="text-center px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">In-App</th>
+                    <th class="text-center px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
+                    <th class="text-center px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">SMS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-medium text-slate-800">New triage item</td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-medium text-slate-800">SLA approaching</td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-medium text-slate-800">Buyer message</td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-medium text-slate-800">Milestone submitted</td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                  </tr>
+                  <tr>
+                    <td class="px-4 py-3 font-medium text-slate-800">Permit update</td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+                    <td class="px-4 py-3 text-center"><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ──────────── SECTION: Portfolio Overview ──────────── -->
+        <div id="section-portfolio" class="settings-section space-y-5">
+          <div class="console-panel p-6">
+            <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <i data-lucide="layout-grid" class="w-4 h-4 text-fuchsia-500"></i> Portfolio Overview
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">Read-only summary of all assigned projects.</p>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-slate-100">
+                    <th class="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Project</th>
+                    <th class="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Homeowner</th>
+                    <th class="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">City</th>
+                    <th class="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phase</th>
+                    <th class="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Next Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-bold text-fuchsia-600">ORD-9021</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">Annie Morrison</td>
+                    <td class="px-4 py-3 text-slate-500">Portland</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Active Build</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">MEP rough-in verification</td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-700">ORD-9028</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">David Park</td>
+                    <td class="px-4 py-3 text-slate-500">Portland</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">Permit (Deficiency)</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">Resubmit site plan</td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-700">ORD-9035</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">Sarah Kim</td>
+                    <td class="px-4 py-3 text-slate-500">Portland</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Permit (Approved)</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">Schedule foundation GC</td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-700">ORD-9041</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">Lisa Nguyen</td>
+                    <td class="px-4 py-3 text-slate-500">Milwaukie</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Permit (In Review)</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">Monitor SLA (11 days)</td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-700">ORD-9044</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">Tom Bradley</td>
+                    <td class="px-4 py-3 text-slate-500">Lake Oswego</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">Permit (In Review)</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">Awaiting approval (22 days)</td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-700">ORD-9047</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">James Chen</td>
+                    <td class="px-4 py-3 text-slate-500">Portland</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">Intake</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">Set emotional anchor</td>
+                  </tr>
+                  <tr class="border-b border-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-700">ORD-9050</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">Priya Patel</td>
+                    <td class="px-4 py-3 text-slate-500">Portland</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full">Transit</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">Crane Day prep (Jun 1)</td>
+                  </tr>
+                  <tr>
+                    <td class="px-4 py-3 font-bold text-slate-700">ORD-9053</td>
+                    <td class="px-4 py-3 font-medium text-slate-800">Robert Wilson</td>
+                    <td class="px-4 py-3 text-slate-500">Portland</td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Close-out</span></td>
+                    <td class="px-4 py-3 text-xs text-slate-500">Final bank draw + CO</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // Template preview data
+    const templateTexts = {
+      'milestone-approaching': 'Hi {{buyer_name}}, great news — your {{milestone}} milestone is approaching! The contractor is on track, and I\'ll have photos and verification details for you within the next few days. No action needed on your end yet.',
+      'milestone-complete': 'Hi {{buyer_name}}, your {{milestone}} milestone is verified and complete! I\'ve released {{amount}} to the contractor. Photos are in your project hub. Everything is on track — I\'ll keep you posted on the next phase.',
+      'permit-update': 'Hi {{buyer_name}}, quick update on your permit: {{permit_status}}. I\'m monitoring the queue daily and will let you know the moment anything changes. You don\'t need to do anything right now.',
+      'permit-approved': 'Hi {{buyer_name}}, wonderful news — your permit just came through! That was faster than average. I\'m coordinating with your site contractor now to schedule the foundation work. I\'ll have dates for you soon.',
+      'exception': 'Hi {{buyer_name}}, I want to let you know about a small change to your project: {{exception_detail}}. I\'ve already reviewed this with the team and here\'s what it means for you: {{impact}}. Happy to talk through this if you have questions.',
+      'crane-prep': 'Hi {{buyer_name}}, exciting news — your Crane Day is scheduled for {{crane_date}}! This is when your ADU gets placed on the foundation. I\'ll send you a spectator link so you can watch. The street will be closed 6AM–2PM and the crane crew will handle everything.',
+      'project-complete': 'Hi {{buyer_name}}, congratulations — your ADU project is officially complete! All inspections passed, the Certificate of Occupancy is filed, and your document vault has been updated with all final paperwork. Welcome home!'
+    };
+
+    function previewTemplate(card, key) {
+      // Remove selected from all
+      document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      const preview = document.getElementById('template-preview');
+      const text = document.getElementById('preview-text');
+      text.textContent = templateTexts[key] || 'Template not found.';
+      preview.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closePreview() {
+      document.getElementById('template-preview').classList.add('hidden');
+      document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+    }
+
+    function toggleShift(el) {
+      const label = document.getElementById('shift-label');
+      label.textContent = el.checked ? 'Currently: On Shift' : 'Currently: Off Shift — Maria Santos covering';
+    }
+
+    function showSection(id) {
+      // Update nav
+      document.querySelectorAll('.section-link').forEach(l => l.classList.remove('active'));
+      event.target.closest('.section-link').classList.add('active');
+
+      // Scroll to section
+      const section = document.getElementById('section-' + id);
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  </script>
+</body>
+</html>
