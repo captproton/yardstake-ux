@@ -281,7 +281,7 @@ Settings screen and documentation audit.
 | Issue | Title | Screens | Complexity | Notes |
 |---|---|---|---|---|
 | F-9 (#45) | Concierge settings | `concierge_settings.html` | Low | Shift management, message template library, notification preferences, portfolio overview. **✅ DONE — PR #55 merged 2026-04-06** |
-| F-10 (#46) | RATIONALE.md + cross-link audit | None (documentation) | Low | Overwrite RATIONALE.md with all 9 screen entries. Verify cross-links. Update `concierge_index.html` if filenames changed. |
+| F-10 (#46) | RATIONALE.md + cross-link audit | None (documentation) | Low | Overwrite RATIONALE.md with all 9 screen entries. Verify cross-links. Update `concierge_index.html` if filenames changed. **✅ DONE — PR #56 merged 2026-04-06** |
 
 **Total: 10 issues across 5 batches. 9 screens.**
 
