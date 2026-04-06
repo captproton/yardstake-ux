@@ -272,7 +272,7 @@ Fiona's information and coordination screens.
 |---|---|---|---|---|
 | F-6 (#42) | Messages (multi-thread inbox) | `concierge_messages.html` | **High** | Thread list (left) + conversation (right) + emotional anchor sidebar. Template selector with merge fields. Tone indicator badge. System event pills. **✅ DONE — PR #52 merged 2026-04-05** |
 | F-7 (#43) | Permit SLA tracker | `concierge_permit_tracker.html` | Medium | Portfolio-wide permit table with SLA color-coding. Proactive notification drafts. Deficiency alert cards. **✅ DONE — PR #53 merged 2026-04-05** |
-| F-8 (#44) | Crane Day operations | `concierge_crane_day.html` | Medium | Upcoming deliveries list. Pre-delivery checklist. Crane operator assignment. Weather widget. Spectator link generation. |
+| F-8 (#44) | Crane Day operations | `concierge_crane_day.html` | Medium | Upcoming deliveries list. Pre-delivery checklist. Crane operator assignment. Weather widget. Spectator link generation. **✅ DONE — PR #54 merged 2026-04-05** |
 
 ### Batch 5: Peripheral + Polish
 
