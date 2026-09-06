@@ -580,6 +580,51 @@ textures:
     was replaced, for a 13x saving.
 
 # ---------------------------------------------------------------------------
+video_sources:
+  # READ THIS BEFORE SAMPLING ANY FINISH FROM THE VIDEO.
+  file: "Affordable Housing Option. ADU Tour (w free plans).mp4"
+  duration: "8:31"
+  finding: >
+    THE VIDEO INTERCUTS AT LEAST TWO DIFFERENT BUILT UNITS of the same floor
+    plan. The kitchen chapter alone cuts between them 26 seconds apart: at 2:14
+    the countertop is tan/beige granite and the refrigerator is white; at 2:40
+    the countertop is white/grey granite and the refrigerator is stainless.
+    Granite is not swapped between takes, so these are different buildings, not
+    the same room restaged.
+  consequence: >
+    A finish sampled from the video describes ONE of those units, not "the"
+    unit, and two finishes sampled from different timestamps may not belong
+    together. Every finish citation must carry its timestamp — the existing ones
+    do — and a finish must never be averaged across timestamps.
+  what_is_safe: >
+    CASEWORK IS CONSISTENT ACROSS BOTH UNITS and can be trusted: shaker doors,
+    natural wood, upper cabinets present, an under-cabinet range hood, a sink
+    base with doors, a four-drawer stack to its right, and the dishwasher at the
+    south end. Both units also agree with the A1.1 appliance ORDER, which is an
+    independent check on the Tier 3 footprint datum — see fixtures.measurement.
+  exteriors_checked: >
+    The exterior citations were re-checked against 0:00, 6:56 and 7:50 and are
+    consistent with each other: warm off-white lap siding, grey composition
+    roof, white trim. materials.provenance stands. (Note the stored values are
+    LINEAR — siding 0.788/0.724/0.649 is sRGB ~232/224/212, a warm off-white,
+    not the tan those linear figures suggest at a glance.)
+  earlier_caution: >
+    A weaker form of this was already recorded: a "siding" colour patch once
+    turned out to be the pollinator garden, and an outdoor concrete-countertop
+    pour was flagged as possibly a different project. The pour at 2:16-2:20 does
+    resemble the 2:40 counter, but that is not established and should not be
+    relied on.
+  open:
+    - id: range-fuel
+      note: >
+        A1.1 labels the appliance ELEC RANGE, and the unit is otherwise
+        all-electric (tankless electric water heater, heat pump). Both video
+        units appear to show a cooktop with raised burner grates, which usually
+        means gas. LOW CONFIDENCE — a single oblique frame each, and not
+        followed up. Do not record it as a discrepancy without a better frame;
+        it changes nothing about the footprint either way.
+
+# ---------------------------------------------------------------------------
 fixtures:
   # TIER 3. Kitchen casework, appliances and bath fixtures.
   #

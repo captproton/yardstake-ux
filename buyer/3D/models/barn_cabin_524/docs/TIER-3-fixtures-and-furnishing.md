@@ -115,7 +115,7 @@ ways, and all three exist:
 |---|---|---|
 | **Where things sit** | A1.1 plan, measurable at 50 px/ft | ±1", same technique as the windows |
 | **How tall they are** | Industry standards | High — these are stock items the builder repeats across units |
-| **What they look like** | Video, kitchen chapter 2:11 and bath 2:52 | Good; hue reliable, luminance not |
+| **What they look like** | Video, kitchen chapter 2:11 and bath 2:52 | Good for CASEWORK; **finishes differ between units — see [§7](#7-the-video-shows-more-than-one-unit)** |
 
 Every fixture is drawn to scale on A1.1, and all of them are now measured —
 see §1a for the full table and the gates.
@@ -225,6 +225,49 @@ A failing clearance check is a finding about the *plan*, not necessarily a bug
 in the model — record it in `spec.yaml → discrepancies` the way the loft egress
 issue was, rather than quietly adjusting geometry to make it fit.
 
+## 7. The video shows more than one unit
+
+**Established by looking, not inferred.** The kitchen chapter cuts between two
+different built units of the same floor plan, 26 seconds apart:
+
+| | 2:14 | 2:40 |
+|---|---|---|
+| Countertop | tan / beige granite | white / grey granite |
+| Refrigerator | white | stainless |
+
+Granite is not swapped between takes. These are different buildings, not the
+same room restaged. Side by side:
+[`../refs/video_two_units_2-14_vs_2-40.jpg`](../refs/video_two_units_2-14_vs_2-40.jpg).
+
+**What this costs.** A finish sampled from the video describes *one* of those
+units, not "the" unit, and two finishes taken from different timestamps may not
+belong together. Every finish citation must carry its timestamp — the existing
+ones do — and finishes must never be averaged across timestamps. Recorded in
+`spec.video_sources`, positioned immediately above `spec.fixtures` so anyone
+sampling for Tier 3 hits it first.
+
+**What survives intact, and it is most of what this tier needs.** The
+*casework* is identical across both units:
+
+- Shaker doors, natural wood
+- **Upper cabinets present** — which settles the §2 assumption
+- An under-cabinet range hood, which is on neither the plan nor this document
+- A sink base with doors, a four-drawer stack to its right, dishwasher at the
+  south end
+
+The clearest single frame is
+[`../refs/video_kitchen_2-40.jpg`](../refs/video_kitchen_2-40.jpg) — build the
+casework against that one, and take finishes from it only with the timestamp
+attached.
+
+Both units also reproduce the A1.1 appliance **order** — dishwasher, sink,
+range, refrigerator running south to north. That is an independent check on the
+Tier 3 footprint datum, from a source that had no part in the measurement.
+
+**The exterior citations were re-checked** against 0:00, 6:56 and 7:50 and are
+consistent with one another — warm off-white lap siding, grey composition roof,
+white trim. `materials.provenance` stands and nothing shipped needs revisiting.
+
 ## 6. Open questions
 
 - ~~Which appliances are included in the price?~~ **Settled** — appliances and
@@ -242,7 +285,7 @@ issue was, rather than quietly adjusting geometry to make it fit.
 - ~~Loft ladder ownership~~ **Settled** — Tier 1 built it, at the measured
   20° heel cut (verified 20.07°), and it lands on the loft subfloor within
   ¼". Nothing left here.
-- **Some video frames are a different project.** There is a sequence of a
-  concrete countertop being poured outdoors that is not this unit. Verify frame
-  contents before using them as reference — a colour sample earlier in this work
-  turned out to be the pollinator garden.
+- ~~Some video frames are a different project.~~ **Confirmed and worse than
+  suspected — see [§7](#7-the-video-shows-more-than-one-unit).** The video
+  intercuts at least two different built units of this plan, inside the kitchen
+  chapter itself.
