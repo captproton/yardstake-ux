@@ -27,19 +27,55 @@ import mathutils
 
 FT = 0.3048
 
-# Which themes to render. Ids only — every value comes from the manifest, so
-# this cannot drift from the spec. A typo fails loudly in `apply()`.
-DEMOS = [
-    ("variant_sandstone", {"color_theme": "sandstone", "roof_colour": "weathered",
-                           "trim_colour": "white"}),
-    ("variant_sage",      {"color_theme": "sage",      "roof_colour": "charcoal",
-                           "trim_colour": "white"}),
-    ("variant_charcoal",  {"color_theme": "charcoal",  "roof_colour": "driftwood",
-                           "trim_colour": "almond"}),
-]
-
-# A patch of the south wall, well clear of windows, trim and the porch shadow.
-WALL_PATCH = (slice(380, 470), slice(120, 420))
+# Two scenes, because the manifest now drives finishes in two places. Ids only
+# — every VALUE comes from the manifest, so this cannot drift from the spec, and
+# a typo fails loudly in `apply()`.
+#
+# `patches` are image regions to measure, keyed by what they should show. Each
+# scene asserts two things: that its own set moves (separation), and that a set
+# does NOT move anything it does not target (isolation). The isolation half
+# matters — it is what proves a swap is addressing the material it claims to.
+SCENES = {
+    "exterior": {
+        "out": "variants.png",
+        "cam": ((-12 * FT, -14 * FT, 6.5 * FT), (11 * FT, 15 * FT, 4.5 * FT), 42),
+        "hide": (),
+        "res": (1000, 700),
+        "demos": [
+            ("variant_sandstone", {"color_theme": "sandstone", "roof_colour": "weathered",
+                                   "trim_colour": "white"}),
+            ("variant_sage",      {"color_theme": "sage",      "roof_colour": "charcoal",
+                                   "trim_colour": "white"}),
+            ("variant_charcoal",  {"color_theme": "charcoal",  "roof_colour": "driftwood",
+                                   "trim_colour": "almond"}),
+        ],
+        # A patch of the south wall, clear of windows, trim and the porch shadow.
+        "patches": {"wall": (slice(380, 470), slice(120, 420))},
+        "expect": [("wall", "variant_sandstone", "variant_charcoal", 20.0, "move")],
+    },
+    "interior": {
+        "out": "variants_casework.png",
+        # Roof and ceilings off so daylight reaches the room, as dollhouse does.
+        "hide": ("Roof_", "Ceil_"),
+        "cam": ((11.0 * FT, 10.5 * FT, 5.2 * FT), (0.5 * FT, 16.5 * FT, 4.0 * FT), 21),
+        "res": (900, 560),
+        "demos": [
+            ("casework_default",  {"cabinet_finish": "natural",  "countertop": "white_granite"}),
+            ("casework_tan",      {"cabinet_finish": "natural",  "countertop": "tan_granite"}),
+            ("casework_espresso", {"cabinet_finish": "espresso", "countertop": "charcoal"}),
+        ],
+        "patches": {
+            "countertop": (slice(322, 344), slice(100, 320)),
+            "cabinet":    (slice(430, 520), slice(150, 380)),
+        },
+        "expect": [
+            # countertop-only change: the counter moves, the cabinets must not.
+            ("countertop", "casework_default", "casework_tan", 8.0, "move"),
+            ("cabinet",    "casework_default", "casework_tan", 1.0, "hold"),
+            ("cabinet",    "casework_default", "casework_espresso", 20.0, "move"),
+        ],
+    },
+}
 
 
 def set_base_color(mat, rgba):
@@ -92,13 +128,17 @@ def apply(manifest, choice):
             print(f"   {st['id']}={pick} -> {tname}")
 
 
-def build_scene():
+def build_scene(cfg):
     """Overcast-ish daylight. Deliberately not blown out: the first pass was lit
     hard enough that a 0.15 charcoal read as mid grey, which flatters the swap
     by hiding how dark the dark options really are."""
     sc = bpy.context.scene
     sc.render.engine = "BLENDER_EEVEE"
-    sc.render.resolution_x, sc.render.resolution_y = 1000, 700
+    sc.render.resolution_x, sc.render.resolution_y = cfg["res"]
+
+    for ob in bpy.data.objects:
+        if ob.type == "MESH" and ob.name.startswith(tuple(cfg["hide"]) or ("\0",)):
+            ob.hide_render = True
 
     w = bpy.data.worlds.new("W")
     w.use_nodes = True
@@ -113,51 +153,62 @@ def build_scene():
     sc.collection.objects.link(so)
     so.rotation_euler = (math.radians(50), 0, math.radians(215))
 
+    eye, tgt, lens = cfg["cam"]
     cd = bpy.data.cameras.new("C")
-    cd.lens = 42
+    cd.lens = lens
     cam = bpy.data.objects.new("C", cd)
     sc.collection.objects.link(cam)
     sc.camera = cam
-    cam.location = (-12 * FT, -14 * FT, 6.5 * FT)
-    tgt = mathutils.Vector((11 * FT, 15 * FT, 4.5 * FT))
-    cam.rotation_euler = (tgt - cam.location).to_track_quat("-Z", "Y").to_euler()
+    cam.location = eye
+    cam.rotation_euler = (mathutils.Vector(tgt)
+                          - mathutils.Vector(eye)).to_track_quat("-Z", "Y").to_euler()
     return sc
 
 
-def montage(out, names):
-    """Side-by-side, plus the measured wall colour of each. numpy ships with
-    Blender; PIL does not, so the PNGs are read back through Blender's own
-    image loader."""
+def montage(out, cfg):
+    """Side-by-side, plus the measured patch colours. numpy ships with Blender;
+    PIL does not, so the PNGs are read back through Blender's own image loader."""
     import numpy as np
 
-    strips, report = [], []
+    names = [n for n, _ in cfg["demos"]]
+    strips, vals = [], {}
     for name in names:
         img = bpy.data.images.load(str(out / f"{name}.png"))
         w, h = img.size
-        px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
-        px = px[::-1]                      # Blender images are bottom-up
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)[::-1]
         rgb = np.clip(px[:, :, :3], 0, 1)
         strips.append(rgb)
-        m = rgb[WALL_PATCH] .mean(axis=(0, 1)) * 255.0
-        report.append((name, m))
+        for pname, sl in cfg["patches"].items():
+            vals[(pname, name)] = rgb[sl].mean(axis=(0, 1)) * 255.0
         bpy.data.images.remove(img)
 
-    for name, m in report:
-        print(f"[wall] {name:20s} mean RGB {m[0]:6.1f} {m[1]:6.1f} {m[2]:6.1f}")
-    spread = max(abs(a[1][0] - b[1][0]) for a in report for b in report)
-    print(f"[wall] widest separation between themes: {spread:.1f} / 255")
-    if spread < 20.0:
-        raise SystemExit("themes are not visibly distinct — the swap did nothing")
+    for pname in cfg["patches"]:
+        for name in names:
+            m = vals[(pname, name)]
+            print(f"  [{pname:10s}] {name:20s} {m[0]:6.1f} {m[1]:6.1f} {m[2]:6.1f}")
+
+    bad = []
+    for pname, a, b, thresh, kind in cfg["expect"]:
+        sep = float(max(abs(vals[(pname, a)] - vals[(pname, b)])))
+        ok = sep >= thresh if kind == "move" else sep <= thresh
+        verb = "moves" if kind == "move" else "holds"
+        print(f"  [{'PASS' if ok else 'FAIL'}] {pname} {verb} between {a} and "
+              f"{b}: {sep:.1f} (limit {thresh})")
+        if not ok:
+            bad.append(f"{pname} {a}->{b} {sep:.1f}")
+    if bad:
+        raise SystemExit("variant assertions failed: " + "; ".join(bad))
 
     joined = np.concatenate(strips, axis=1)
     h, w, _ = joined.shape
-    outimg = bpy.data.images.new("variants", width=w, height=h, alpha=True)
+    outimg = bpy.data.images.new("v", width=w, height=h, alpha=True)
     rgba = np.concatenate([joined, np.ones((h, w, 1), np.float32)], axis=2)
     outimg.pixels = rgba[::-1].ravel()
-    outimg.filepath_raw = str(out / "variants.png")
+    outimg.filepath_raw = str(out / cfg["out"])
     outimg.file_format = "PNG"
     outimg.save()
-    print(f"[montage] {out / 'variants.png'}  {w}x{h}")
+    bpy.data.images.remove(outimg)
+    print(f"  [montage] {cfg['out']}  {w}x{h}")
 
 
 def main():
@@ -166,17 +217,18 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     manifest = json.loads(man.read_text())
 
-    for name, choice in DEMOS:
+    for scene, cfg in SCENES.items():
+        print(f"\n=== {scene}")
+        for name, choice in cfg["demos"]:
+            bpy.ops.wm.read_factory_settings(use_empty=True)
+            bpy.ops.import_scene.gltf(filepath=str(glb))
+            apply(manifest, choice)
+            sc = build_scene(cfg)
+            sc.render.filepath = str(out / f"{name}.png")
+            bpy.ops.render.render(write_still=True)
+            print("  rendered", name)
         bpy.ops.wm.read_factory_settings(use_empty=True)
-        bpy.ops.import_scene.gltf(filepath=str(glb))
-        apply(manifest, choice)
-        sc = build_scene()
-        sc.render.filepath = str(out / f"{name}.png")
-        bpy.ops.render.render(write_still=True)
-        print("rendered", name)
-
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    montage(out, [n for n, _ in DEMOS])
+        montage(out, cfg)
 
 
 if __name__ == "__main__":

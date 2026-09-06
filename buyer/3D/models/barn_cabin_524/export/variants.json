@@ -208,6 +208,92 @@
           "default": false
         }
       ]
+    },
+    {
+      "id": "cabinet_finish",
+      "label": "Cabinets",
+      "targets": [
+        "adu_cab_wood"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "natural",
+          "label": "Natural wood",
+          "value": [
+            0.43,
+            0.29,
+            0.16,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "white",
+          "label": "White shaker",
+          "value": [
+            0.78,
+            0.775,
+            0.76,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "espresso",
+          "label": "Espresso",
+          "value": [
+            0.13,
+            0.095,
+            0.07,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "countertop",
+      "label": "Countertop",
+      "targets": [
+        "adu_counter_stone"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "white_granite",
+          "label": "White granite",
+          "value": [
+            0.56,
+            0.54,
+            0.51,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "tan_granite",
+          "label": "Tan granite",
+          "value": [
+            0.52,
+            0.45,
+            0.36,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "charcoal",
+          "label": "Charcoal quartz",
+          "value": [
+            0.14,
+            0.14,
+            0.145,
+            1.0
+          ],
+          "default": false
+        }
+      ]
     }
   ]
 }

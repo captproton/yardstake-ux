@@ -7,6 +7,11 @@ Tiers 1 and 2 have both landed ([#57](https://github.com/captproton/yardstake-ux
 tier sits on exist and are textured. **This is the only substantial work
 remaining** — firm it up before building.
 
+**Casework is built.** Footprints measured (§1a), then cabinets, counters,
+backsplash, uppers, hood and the bath vanity built parametrically from
+`spec.fixtures` (§1b). What remains in this tier is the *buy* half — appliances
+and plumbing fittings — which is gated on licensing.
+
 **Step 1 of 2 is done.** Fixture footprints are measured and in
 `spec.fixtures` — 9 footprints, 10/10 gates, verified against the sheet.
 See §1a. No geometry is built yet.
@@ -105,6 +110,82 @@ satisfy all of them. So `tools/tier3/overlay.py` draws the recorded rectangles
 back onto the sheet they came from:
 [`../renders/tier3_fixture_overlay.png`](../renders/tier3_fixture_overlay.png).
 All nine land on their drawn fixtures.
+
+## 1b. Casework — BUILT
+
+`build_casework()` in `build_adu.py`, driven entirely by `spec.fixtures`. This
+is the *build* half of §2's build-vs-buy: boxes, spec-driven, and it regenerates
+for the next plan set for free.
+
+**Where the cabinets go was not a new measurement.** The base segments are
+exactly the gaps left over between the measured appliances and the interior
+south wall, so they inherit those measurements and add no new claim — which is
+why the spec marks them `derived`, not `measured`. The gaps then land where the
+video says cabinets are, and that is the check:
+
+| Gap | Size | What the video shows there |
+|---|---|---|
+| 10.71–12.37 | 19.9" | base cabinet between refrigerator and range |
+| 14.88–16.64 | 21.1" | **the four-drawer stack** |
+| 21.65–23.08 | 17.2" | base cabinet at the south end, past the dishwasher |
+
+Built: base carcasses, toe kicks, door and drawer fronts, countertop, 6"
+backsplash, upper cabinets, the range hood, and the bath vanity. **8 objects,
+240 faces** — `multibox()` keeps the object count down, because trim already
+taught us draw calls bite before triangles do. `lod0` mesh count is 59 against
+a 120 cap.
+
+**Uppers are cut by what stands under them.** A run is not floated at one
+height: the refrigerator and the range hood interrupt it at different levels,
+so `spans()` cuts each run at every obstruction edge and gives each piece its
+own floor. That is what produces the stepped profile in
+[`../renders/tier3_kitchen.jpg`](../renders/tier3_kitchen.jpg), and it matches
+the video.
+
+**Not built here, deliberately:** refrigerator, range, dishwasher, stacked W/D,
+toilet, tub and taps. Those are the *buy* half and are gated on licensing, so
+the render has gaps where appliances belong. That is expected, not missing work.
+
+### Configurator
+
+The two option sets `spec.variants.not_yet` reserved for this tier now exist:
+**cabinet finish** (natural / white / espresso) and **countertop** (white
+granite / tan granite / charcoal quartz). The manifest is now **7 sets, 20
+options, still 0 extra texture bytes** — both new materials are neutral-albedo,
+so the colour rides on `baseColorFactor` exactly as the exterior does.
+
+The first two countertop options are the **two actual filmed units**. The video
+showing different stone in different buildings (§7) is precisely why this is a
+choice rather than a fact, so both ship.
+
+Two new procedural textures, `cab_wood` and `granite`. `cab_wood` is
+deliberately *not* `oak_floor` with a different tint — that generator draws
+planks with butt joints and seams, which is right for a floor and reads as a
+fault in the joinery on a cabinet door.
+
+### Verification
+
+The manifest gate only checks that targets name real materials, and §6 of
+TIER-2 records what that missed last time. So `variant_demo.py` now runs **two
+scenes**, and the interior one asserts **isolation as well as separation**:
+
+| Assertion | Result |
+|---|---|
+| countertop moves when only the countertop changes | **15.0** (limit 8) |
+| **cabinets HOLD when only the countertop changes** | **0.0** (limit 1) |
+| cabinets move when the cabinet finish changes | **50.7** (limit 20) |
+
+The isolation row is the one that carries weight: it proves a swap addresses
+the material it claims to and nothing else. Evidence:
+[`../renders/tier3_casework_variants.png`](../renders/tier3_casework_variants.png).
+
+A wrong turn worth recording: the countertop first looked like it barely
+moved. That was a bad sample patch straddling the wall and the counter, not a
+defect — which is exactly why the patches are now named, fixed in the spec of
+the demo, and asserted rather than eyeballed.
+
+`lod1` and `lod2` are byte-identical before and after. The placement handoff is
+untouched.
 
 ## 1. The good news: sourcing is already solved in principle
 
