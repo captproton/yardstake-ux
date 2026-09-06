@@ -1,9 +1,20 @@
 # Tier 3 — Fixtures and furnishing
 
 **Status: sketch.** Enough to scope and estimate; not enough to build from.
-Tiers 1 and 2 have both landed, so the interior surfaces this tier sits on now
-exist and are textured. **This is the only substantial work remaining** — firm
-it up before building.
+Tiers 1 and 2 have both landed ([#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58)), so the interior surfaces this
+tier sits on exist and are textured. **This is the only substantial work
+remaining** — firm it up before building.
+
+**Two things to start now, because both have lead time and neither needs the
+plan firmed up first:**
+
+1. **Licensing.** Every downloaded asset must be CC0 or explicitly licensed for
+   commercial use before it reaches a homeowner. This is the one genuine
+   long-lead item in the whole ladder and the only place third-party assets
+   enter the model at all — tiers 1 and 2 shipped entirely procedural.
+2. **Fixture footprints from A1.1** into a `fixtures:` block in `spec.yaml`.
+   The measuring technique is proven, the sheet is in hand, and it is
+   independent of every sourcing decision.
 
 **Owner:** us. Tiers 1 and 2 are complete, so the floors and walls fixtures
 need already exist and carry real materials — see

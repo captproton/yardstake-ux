@@ -4,9 +4,8 @@
 texel density, compressed for the web, and swappable at runtime so the
 configurator's finishes picker has something to pick.
 
-**Status: DONE bar one optimisation.** The exterior half merged in
-[#57](https://github.com/captproton/yardstake-ux/pull/57); interior materials
-and the configurator hooks have landed since. UVs, seven textures, neutral
+**Status: DONE bar one optimisation.** The exterior half merged in [#57](https://github.com/captproton/yardstake-ux/pull/57);
+interior materials and the configurator hooks merged in [#58](https://github.com/captproton/yardstake-ux/pull/58). UVs, seven textures, neutral
 albedos, size budgets, the reveal materials and the variants manifest are all
 shipped and gated — 5/5 in `verify_tier2.py`, 4/4 in `finish_adu.py`.
 **Remaining: KTX2 compression only**, and that is an optimisation rather than a
