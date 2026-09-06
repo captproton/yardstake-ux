@@ -1,6 +1,8 @@
 # Tier 3 — Fixtures and furnishing
 
-**Status: sketch.** Enough to scope and estimate; not enough to build from.
+**Status: footprints measured ([#59](https://github.com/captproton/yardstake-ux/pull/59)); geometry not started.** Section 1a is
+built work with gates behind it. Everything else here is still a sketch —
+enough to scope and estimate, not enough to build from.
 Tiers 1 and 2 have both landed ([#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58)), so the interior surfaces this
 tier sits on exist and are textured. **This is the only substantial work
 remaining** — firm it up before building.
