@@ -58,6 +58,9 @@ def assign(spec, mats):
             if ob.name.startswith(prefix):
                 ob.data.materials.clear()
                 ob.data.materials.append(mats[mname])
+                # Faces tagged by mark_reveals() take trim in slot 1.
+                if any(p.material_index for p in ob.data.polygons):
+                    ob.data.materials.append(mats["trim"])
                 break
         else:
             unmatched.append(ob.name)

@@ -186,12 +186,52 @@ def main():
          not bad, "; ".join(bad) or f"{len(lay['doors'])} doors, "
          f"{len([o for o in bpy.data.objects if o.name.startswith('Door_')])} leaves")
 
-    # ---- 7. new geometry confined to Finish --------------------------------
+    # ---- 7. reveals tagged for the trim material ---------------------------
+    # A door with sill 0 has no sill reveal, so it contributes 3 faces, not 4.
+    op = spec["openings"]["main_floor"]
+    want = {}
+    for wall, key in (("Wall_N", "north_wall"), ("Wall_S", "south_wall"),
+                      ("Wall_W", "west_wall"), ("Wall_E", "east_wall")):
+        want[wall] = sum(3 if o["sill"] <= 1e-6 else 4
+                         for o in op[key]["openings"])
+    nloft = len(spec["openings"]["loft"]["windows"]) * 4
+    want["Dormer_face_W"] = want["Dormer_face_E"] = nloft
+    wrong = []
+    for n, k in want.items():
+        got = sum(1 for p in bpy.data.objects[n].data.polygons
+                  if p.material_index == 1)
+        if got != k:
+            wrong.append(f"{n} {got} vs {k}")
+    gate("window/door reveals tagged for trim, not siding", not wrong,
+         "; ".join(wrong) or f"{sum(want.values())} reveal faces across 6 walls")
+
+    # ---- 8. ladder and guardrail -------------------------------------------
+    la = spec["loft_access"]["ladder"]
+    lo, hi = bounds("Ladder_loft")
+    rise = hi[2] - lo[2]
+    run = hi[1] - lo[1]
+    ang = math.degrees(math.atan(run / rise)) if rise else 0.0
+    want_ang = la["heel_cut_deg"]["value"]
+    gate("ladder stands at the 20 degree heel cut", abs(ang - want_ang) < 0.6,
+         f"{ang:.2f} deg vs {want_ang} deg")
+    gate("ladder reaches the loft subfloor", abs(hi[2] - loft_sf) < 0.05,
+         f"top at {ft(hi[2])}, loft subfloor {ft(loft_sf)}")
+    gh = spec["loft_access"]["guardrail"]["height"]["ft"]
+    lo, hi = bounds("Rail_loft")
+    gate("guardrail reaches its stated height", abs((hi[2] - loft_sf) - gh) < 0.02,
+         f"{ft(hi[2] - loft_sf)} above the loft floor (stated {ft(gh)}, ASSUMED)")
+
+    # ---- 9. mesh budget ----------------------------------------------------
+    nm = len([o for o in bpy.data.objects if o.type == "MESH"])
+    gate("lod0 mesh count within budget", nm <= 120, f"{nm} meshes, cap 120")
+
+    # ---- 10. new geometry confined to Finish -------------------------------
     fin = {o.name for o in bpy.data.collections["Finish"].objects}
     stray = [o.name for o in bpy.data.objects
              if o.type == "MESH" and o.name.startswith(("Ceil_", "Floor_main",
                                                         "Floor_bath", "Floor_loft",
-                                                        "Door_"))
+                                                        "Door_", "Trim_", "Ladder_",
+                                                        "Rail_"))
              and o.name not in fin]
     gate("all Tier 1 geometry is in the Finish collection", not stray,
          ", ".join(stray) or f"{len(fin)} objects")

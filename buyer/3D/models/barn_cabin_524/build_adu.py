@@ -97,6 +97,18 @@ def box(name, x0, x1, y0, y1, z0, z1, coll):
     return _new_obj(name, v, f, coll)
 
 
+def multibox(name, specs, coll):
+    """Several boxes as ONE mesh. Trim would otherwise explode the object count."""
+    verts, faces = [], []
+    for (x0, x1, y0, y1, z0, z1) in specs:
+        n = len(verts)
+        verts += [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+                  (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
+        faces += [(n+0, n+3, n+2, n+1), (n+4, n+5, n+6, n+7), (n+0, n+1, n+5, n+4),
+                  (n+1, n+2, n+6, n+5), (n+2, n+3, n+7, n+6), (n+3, n+0, n+4, n+7)]
+    return _new_obj(name, verts, faces, coll)
+
+
 def prism_xz(name, pts_xz, y0, y1, coll):
     """Closed polygon in the XZ plane, extruded along Y. Points counter-clockwise."""
     n = len(pts_xz)
@@ -104,6 +116,34 @@ def prism_xz(name, pts_xz, y0, y1, coll):
     faces = [tuple(range(n - 1, -1, -1)), tuple(range(n, 2 * n))]
     faces += [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)]
     return _new_obj(name, verts, faces, coll)
+
+
+def mark_reveals(ob, thickness_axis):
+    """Tag the jamb/head/sill faces inside cut openings with material slot 1.
+
+    They take TRIM, not siding — the per-face split TIER-2 §3 depends on. A
+    reveal face is one whose centroid is strictly inside the wall's extents in
+    both axes perpendicular to its thickness; the wall's own end, top and
+    bottom faces sit exactly on those extents.
+    """
+    me = ob.data
+    vs = [v.co for v in me.vertices]
+    lo = [min(v[i] for v in vs) for i in range(3)]
+    hi = [max(v[i] for v in vs) for i in range(3)]
+    other = [i for i in range(3) if i != thickness_axis]
+    eps = 1e-4
+    n = 0
+    for poly in me.polygons:
+        c = poly.center
+        # A reveal faces ACROSS the wall, so its normal is not along the
+        # thickness axis. Without this the wall's own front and back faces
+        # qualify too, since the boolean leaves their centroids inside.
+        if abs(poly.normal[thickness_axis]) > 0.9:
+            continue
+        if all(lo[i] + eps < c[i] < hi[i] - eps for i in other):
+            poly.material_index = 1
+            n += 1
+    return n
 
 
 def difference(target, cutters):
@@ -263,9 +303,11 @@ def build(spec, cut_openings=True):
                 o["sill"], o["sill"] + o["h"], shell))
         # east_wall carries no openings — confirmed three ways, see spec.
 
+        AXIS = {"Wall_N": 1, "Wall_S": 1, "Wall_W": 0, "Wall_E": 0}
         for name, cl in cutters.items():
             if cl:
                 difference(walls[name], cl)
+                mark_reveals(walls[name], AXIS[name])
 
     # ---- gable end walls (Z plate .. roof underside) -----------------------
     # The NORTH wall is where the dormers land, so its top edge follows the 4:12
@@ -302,6 +344,7 @@ def build(spec, cut_openings=True):
                               yn(o["offset"] + o["w"]), yn(o["offset"]),
                               sill, sill + o["h"], shell))
             difference(dormer_faces[f"Dormer_face_{side}"], cl)
+            mark_reveals(dormer_faces[f"Dormer_face_{side}"], 0)
 
     # dormer cheek wall at the inboard (south) end of each dormer
     for side in ("W", "E"):
@@ -480,6 +523,89 @@ def build(spec, cut_openings=True):
     box("Floor_main_N", bath_x1, xe, bath_y0, ye, 0, ff, finish)
     box("Floor_bath",   xw, bath_x1, bath_y0, ye, 0, ff, finish)
     box("Floor_loft",   xw, xe, loft_s, ye, loft_sf, loft_sf + ff, finish)
+
+    # ---- Tier 1: casing, baseboard, ladder and guardrail --------------------
+    tr = spec["trim"]
+    cw = tr["casing_width"]["ft"]
+    hh = tr["head_casing_height"]["ft"]
+    bh = tr["baseboard_height"]["ft"]
+    cd_ = 0.06                                   # casing proud of the wall face
+
+    def casing(name, axis, plane, a0, a1, z0, z1):
+        """Frame on the interior face of an opening. axis 'x' spans X, 'y' spans Y."""
+        if axis == "x":
+            specs = [(a0 - cw, a0, plane, plane + cd_, z0, z1),
+                     (a1, a1 + cw, plane, plane + cd_, z0, z1),
+                     (a0 - cw, a1 + cw, plane, plane + cd_, z1, z1 + hh)]
+        else:
+            specs = [(plane, plane + cd_, a0 - cw, a0, z0, z1),
+                     (plane, plane + cd_, a1, a1 + cw, z0, z1),
+                     (plane, plane + cd_, a0 - cw, a1 + cw, z1, z1 + hh)]
+        multibox(name, specs, finish)
+
+    op = spec["openings"]["main_floor"]
+    for o in op["north_wall"]["openings"]:
+        casing(f"Trim_{o['id']}", "x", ye - cd_, o["offset"], o["offset"] + o["w"],
+               o["sill"], o["sill"] + o["h"])
+    for o in op["south_wall"]["openings"]:
+        casing(f"Trim_{o['id']}", "x", ys, o["offset"], o["offset"] + o["w"],
+               o["sill"], o["sill"] + o["h"])
+    for o in op["west_wall"]["openings"]:
+        casing(f"Trim_{o['id']}", "y", xw, yn(o["offset"] + o["w"]), yn(o["offset"]),
+               o["sill"], o["sill"] + o["h"])
+    dsill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
+    for o in spec["openings"]["loft"]["windows"]:
+        for side, pl in (("W", xw), ("E", xe - cd_)):
+            casing(f"Trim_{o['id']}_{side}", "y", pl,
+                   yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"])
+
+    # baseboard: one welded mesh around the main interior perimeter
+    bb = 0.05
+    multibox("Trim_baseboard", [
+        (xw, xe, ys, ys + bb, 0, bh), (xw, xe, ye - bb, ye, 0, bh),
+        (xw, xw + bb, ys, ye, 0, bh), (xe - bb, xe, ys, ye, 0, bh)], finish)
+
+    # ladder: two stringers plus rungs, leaning at the heel-cut angle
+    la = spec["loft_access"]["ladder"]
+    ang = math.radians(la["heel_cut_deg"]["value"])
+    lw = la["width"]["ft"]
+    run = loft_sf * math.tan(ang)
+    lx = ix(la["top_at"]["x_ft"])
+    y_top = iy(pdefs["P_bedroom_S"]["at_ft"])
+    y_bot = y_top - run
+    st = 0.29
+    specs = []
+    for sx in (lx - lw / 2, lx + lw / 2 - st):
+        for k in range(14):                       # stepped stringer approximation
+            f0, f1 = k / 14.0, (k + 1) / 14.0
+            specs.append((sx, sx + st,
+                          y_bot + (y_top - y_bot) * f0, y_bot + (y_top - y_bot) * f1 + 0.02,
+                          loft_sf * f0, loft_sf * f1 + 0.02))
+    rs = la["rung_spacing"]["ft"]
+    rt = la["rung_section"]["ft"]
+    n_r = int(loft_sf / rs)
+    for k in range(1, n_r + 1):
+        f = k * rs / loft_sf
+        yy = y_bot + (y_top - y_bot) * f
+        specs.append((lx - lw / 2, lx + lw / 2, yy - rt / 2, yy + rt / 2,
+                      k * rs - rt / 2, k * rs + rt / 2))
+    multibox("Ladder_loft", specs, finish)
+
+    # guardrail along the loft's open (south) edge, clear of the ladder
+    gr = spec["loft_access"]["guardrail"]
+    gh = gr["height"]["ft"]
+    ps = gr["post_section"]["ft"]
+    gy = loft_s
+    gap = (lx - lw / 2 - 0.5, lx + lw / 2 + 0.5)
+    rails = []
+    for a, b in ((xw, gap[0]), (gap[1], xe)):
+        if b - a < 0.5:
+            continue
+        rails.append((a, b, gy, gy + ps, loft_sf + gh - 0.29, loft_sf + gh))
+        for k in range(int((b - a) / 4.0) + 2):
+            px_ = min(a + k * 4.0, b - ps)
+            rails.append((px_, px_ + ps, gy, gy + ps, loft_sf, loft_sf + gh))
+    multibox("Rail_loft", rails, finish)
 
     geo.update(ct=ct, ff=ff, xw=xw, xe=xe, ys=ys, ye=ye, loft_s=loft_s,
                bath_x1=bath_x1, bath_y0=bath_y0,
