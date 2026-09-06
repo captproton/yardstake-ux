@@ -98,6 +98,19 @@ def main():
     gate("reveal faces still carry material slot 1", not bad,
          "; ".join(bad) or "reveals tagged on every wall that has openings")
 
+    # inward wall faces must be drywall, not siding
+    walls = ["Wall_N", "Wall_S", "Wall_W", "Wall_E",
+             "Gable_N", "Gable_S_porch", "Dormer_face_W", "Dormer_face_E"]
+    missing = []
+    for n in walls:
+        ob = bpy.data.objects.get(n)
+        if ob is None:
+            continue
+        if not any(p.material_index == 2 for p in ob.data.polygons):
+            missing.append(n)
+    gate("wall inner faces tagged drywall, not siding", not missing,
+         "; ".join(missing) or f"{len(walls)} walls split cladding / trim / drywall")
+
     # tile coverage: a tile spans tile_px / density feet
     tile_ft = tile_px / target
     gate("tile size is sane for the longest wall", tile_ft >= 4.0,

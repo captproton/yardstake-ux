@@ -13,15 +13,33 @@ Phases P1–P4 are complete and gated:
 | P1 | `spec.yaml` — every dimension with a sheet citation | done |
 | P2 | `build_adu.py` — massing + openings, no hardcoded dimensions | done |
 | P3 | Overlay against A1.1 at true 1/4"=1'-0" | done, −0.18" mean / 0.21" sd |
-| P4 | Materials, glazing, 3 LODs, Draco `.glb` | done, 29 KB |
+| P4 | Materials, glazing, 3 LODs, Draco `.glb` | done |
+| **Tier 1** | Ceilings, floors, closet wall, doors, trim, reveals, ladder, guardrail | **done**, 14/14 gates |
+| **Tier 2a** | UVs at 128 px/ft, exterior textures | **done**, 4/4 gates |
+| **Tier 2b** | Interior textures, neutral albedos, configurator manifest | **done**, 5/5 + 4/4 gates |
+
+Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57).
+The placement developer is unblocked — `lod2` and their handoff are on `main`.
 
 The **exterior is finished work**. Silhouette, both pitches, ridge height,
 overhangs, and every opening are validated against the sheet. Nothing in this
 ladder should require touching exterior geometry.
 
-The **interior is a shell**. Four measured partitions with two pocket-door
-openings, and nothing else. Standing inside, a first-person camera sees flat
-grey boxes — see [`../renders/fpv_interior_asis.png`](../renders/fpv_interior_asis.png).
+The **interior is built and textured**. Tier 1 delivered ceilings, floor
+planes, the closet wall, six door leaves, casing, baseboard, tagged window
+reveals, the loft ladder and its guardrail; Tier 2 gave them oak, slate, carpet
+and drywall. What is missing from the interior now is *contents* — that is
+Tier 3.
+
+The model is also **configurable**: 5 option sets and 14 finishes swap at
+runtime from `export/variants.json`, adding zero bytes to the download. See
+[TIER-2 §6](TIER-2-materials-and-textures.md#6-configurator-hooks--done) and
+[`../renders/tier2_variants.png`](../renders/tier2_variants.png).
+
+For the progression, compare
+[`../renders/fpv_interior_asis.png`](../renders/fpv_interior_asis.png),
+[`../renders/tier1_trim_ladder.png`](../renders/tier1_trim_ladder.png) and
+[`../renders/tier2_interior.png`](../renders/tier2_interior.png).
 
 ## Ownership
 
@@ -43,9 +61,9 @@ another party. We set the pace.
 
 | Tier | Scope | Plan |
 |---|---|---|
-| **1** | Schematic interior — door leaves, trim, casing, ceiling planes, distinct floor surfaces, closet walls, loft ladder + guardrail | [TIER-1](TIER-1-schematic-interior.md) |
-| **2** | Materially real — UVs, texel density, tileable maps, KTX2 compression, configurator-swappable finishes | [TIER-2](TIER-2-materials-and-textures.md) |
-| **3** | Furnished — kitchen casework, appliances, bath fixtures, furniture | [TIER-3](TIER-3-fixtures-and-furnishing.md) — sketch |
+| **1** | Schematic interior — door leaves, trim, casing, ceiling planes, distinct floor surfaces, closet walls, loft ladder + guardrail | [TIER-1](TIER-1-schematic-interior.md) — **DONE** |
+| **2** | Materially real — UVs, texel density, tileable maps, KTX2 compression, configurator-swappable finishes | [TIER-2](TIER-2-materials-and-textures.md) — **done bar KTX2**, which is optimisation only |
+| **3** | Furnished — kitchen casework, appliances, bath fixtures, furniture | [TIER-3](TIER-3-fixtures-and-furnishing.md) — sketch, not started |
 
 > **Note on numbering.** In earlier conversation these tiers were described
 > once with fixtures folded into tier 1. That was a slip. The definitions above
@@ -65,8 +83,10 @@ Their scope is placement in the buildable envelope, and nothing else. They take
 the exported `.glb`; nothing in tiers 1–3 may break it. All figures verified
 against the current export.
 
-**Use `barn_cabin_524_lod2.glb`** (17.0 KB). It is the massing: no openings, no
-glazing, no interior. Nothing in tiers 1–3 lands in it.
+**Use `barn_cabin_524_lod2.glb`** (24.1 KB). It is the massing: no openings, no
+glazing, no interior. Nothing in tiers 1–3 lands in it, and a gate in
+`finish_adu.py` fails the build if it exceeds 200 KB — which has already caught
+one regression, when texturing took it to 239 KB.
 
 **Units and axes.** glTF standard — **metres**, **Y-up**. The scene is authored
 at 1 unit = 1 foot and converted on export; do not apply a further scale.
@@ -117,8 +137,10 @@ hold as our own constraints — they exist to keep tiers 2 and 3 cheap.
    collections — verified: 35 nodes, zero with children. New prefixes are fine
    but must be declared in `spec.yaml`, or the dollhouse toggle silently breaks.
 2. **Build UV-ready.** Adopt the texel density from
-   [TIER-2 §2](TIER-2-materials-and-textures.md) — **128 px/ft, world-axis cube
+   [TIER-2 §2](TIER-2-materials-and-textures.md) — **128 px/ft, in-plane cube
    projection, unwrapped after booleans** — while the geometry is being made.
+   *In-plane*, not world-axis: a world-axis projection foreshortens sloped
+   faces and stretched the 9:12 roof by ~20% against the walls.
    Retrofitting UVs onto finished trim and ceilings is far more expensive than
    generating them in place. **Because tiers 1 and 2 are both ours, decide this
    once, at the start of Tier 1, and use it throughout.**
@@ -140,24 +162,33 @@ textured oak, slate and drywall.**
 hand — 5/4×4 clear vertical grain Douglas fir, 20° heel cut, flange-bolted
 (video 5:02–5:20). Use it rather than inventing one.
 
-## Sequencing
+## What remains
 
-Tier 1 → 2 → 3 is the dependency order, but the tiers are not strictly serial.
-Work that can run alongside Tier 1:
+Tiers 1 and 2 are complete bar one optimisation. In order of value:
 
-| Can run in parallel with Tier 1 | Genuinely waits for Tier 1 |
+| Work | Notes |
 |---|---|
-| **T2:** all exterior materials — siding, shingle gable, roof, concrete, trim | **T2:** interior materials — drywall, oak floor, slate — need surfaces to sit on |
-| **T2:** KTX2 toolchain, size gates | **T2:** per-face material work on window reveals |
-| **T3:** fixture footprint extraction from A1.1 into a `fixtures:` spec block | **T3:** placing anything — fixtures need floors and walls |
-| **T3:** sourcing and licence-clearing CC0 assets, decimation budget | **T3:** clearance verification |
+| **T3:** fixtures and furniture | The whole of what is left of substance. Sketch only; firm it up before building |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 419 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
 
-**Two things worth starting before Tier 1 geometry:**
+Two prerequisites are long discharged: **texel density is fixed at 128 px/ft**
+in `spec.texturing`, and the **window reveals are tagged and verified through
+export** — that one needed a fix, because `materials.clear()` was silently
+resetting every polygon's material index and stripping them.
 
-- **Fix texel density.** It constrains how Tier 1 is built (rule 2 above), so it
-  is a Tier 1 prerequisite even though it is documented in Tier 2.
-- **Asset licensing.** It has lead time and is a shipping constraint, not a
-  detail. Nothing about it depends on geometry.
+**The material names are now a public API.** The configurator manifest
+addresses materials by name (`adu_siding`, `adu_roof`, …) exactly as the
+display modes address objects by name prefix. Renaming one breaks the picker,
+so both are gated: `finish_adu.py` fails the build if a manifest target names a
+material that does not exist.
+
+Asset licensing, flagged earlier as the long-lead item, is moot for everything
+built so far: **all seven textures are procedural**, generated by
+`make_textures.py`, with no third-party assets anywhere in the model. It
+returns as a real constraint only in Tier 3, where appliances and fittings get
+downloaded — and it has lead time, so it is worth starting before the modelling
+does.
 
 ## Ground rules inherited from P1–P4
 
@@ -178,3 +209,7 @@ Keep these — they caught real errors:
    to be the pollinator garden. Crop and look before you measure.
 5. **Video is appearance evidence, never geometry.** Hue is reliable; luminance
    from an auto-exposing camera is not.
+6. **A gate that checks names does not check behaviour.** The configurator
+   manifest passed its "every target is a real material" gate while the swap
+   itself was a silent no-op, and three colour themes rendered identically.
+   When something is meant to *change* an output, assert the change.

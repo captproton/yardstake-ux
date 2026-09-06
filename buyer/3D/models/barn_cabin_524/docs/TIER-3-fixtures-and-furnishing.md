@@ -1,16 +1,18 @@
 # Tier 3 — Fixtures and furnishing
 
 **Status: sketch.** Enough to scope and estimate; not enough to build from.
-Firm this up once Tier 1 lands and the interior surfaces actually exist.
+Tiers 1 and 2 have both landed, so the interior surfaces this tier sits on now
+exist and are textured. **This is the only substantial work remaining** — firm
+it up before building.
 
-**Owner:** us — as are Tiers 1 and 3. The placement developer's scope is
-placement only, and that is the sole external interface — see
-[The one handoff](README.md#the-one-handoff--to-the-placement-developer).
-Nothing here is blocked on another party; we set the pace.
+**Owner:** us. Tiers 1 and 2 are complete, so the floors and walls fixtures
+need already exist and carry real materials — see
+[The one handoff](README.md#the-one-handoff--to-the-placement-developer) for the
+one external interface. Nothing here is blocked; we set the pace.
 
-**Partly blocked.** Nothing can be *placed* until Tier 1 delivers floors and
-walls, and clearance checks need the same. But two substantial pieces can start
-immediately and are on the critical path:
+**No longer blocked.** Tier 1 delivered the floors and walls, so placement and
+clearance checks can both proceed. Two pieces are still the sensible starting
+point:
 
 - **Extract fixture footprints from A1.1** into a `fixtures:` block in
   `spec.yaml` — the measuring technique is proven and the sheet is in hand.
@@ -78,7 +80,9 @@ per asset in the spec, same as everything else.
 
 ## 3. Payload — the real constraint
 
-This is where the model stops being 29 KB.
+This is where the model stops being small. `lod0` is 419 KB with Tier 2
+complete, against a 4 MB ceiling; fixtures are the next big step up and will
+consume most of the headroom.
 
 Downloaded assets routinely arrive at 50k–500k triangles each. Fifteen of them
 naively imported would be tens of megabytes, which destroys the configurator on
@@ -95,7 +99,7 @@ a phone.
 This keeps the exterior and siting payloads exactly as light as they are today.
 `lod2` in particular must not gain a single triangle from this tier.
 
-Rough budget: fixtures glb ≤ 3 MB compressed, on top of tier 2's ≤ 2.5 MB
+Rough budget: fixtures glb ≤ 3 MB compressed, on top of the current 419 KB
 `lod0`. If it exceeds that, decimate harder before dropping items.
 
 ## 4. Furniture and appliances — DECIDED
@@ -156,16 +160,19 @@ issue was, rather than quietly adjusting geometry to make it fit.
 
 - ~~Which appliances are included in the price?~~ **Settled** — appliances and
   furniture are both shown and neither is included. See §4.
-- **Model as-built or as-configurable?** The video shows natural wood shaker
-  cabinets and speckled granite. The configurator implies choice. If the
-  finishes picker from Tier 2 is real, fixtures need to be authored for
-  material swapping — which affects how they are built and UV'd. Note this
-  applies to *fixtures* (cabinets, counters), which are part of the unit —
-  not to the furniture and appliances settled above.
-- **Loft ladder** — nominally Tier 1, but it is the one "fixture" with real
-  dimensional information already in hand: 5/4×4 clear vertical grain Douglas
-  fir, 20° heel cut, bolted to a flange (video 5:02–5:20). Confirm ownership so
-  it does not fall between the two tiers.
+- **Model as-built or as-configurable? — now decided by Tier 2.** The finishes
+  picker is real and shipped, so fixtures must be authored for material
+  swapping: **neutral albedo maps, colour on `baseColorFactor`, one named
+  material per swappable surface.** `spec.variants.not_yet` already reserves
+  countertops and cabinets as the two sets waiting on this tier. Follow the
+  pattern in [TIER-2 §6](TIER-2-materials-and-textures.md#6-configurator-hooks--done)
+  and the options cost nothing; ignore it and each finish becomes another
+  texture in the payload. This applies to *fixtures* (cabinets, counters),
+  which are part of the unit — not to the furniture and appliances settled
+  above, which are not configurable because they are not sold.
+- ~~Loft ladder ownership~~ **Settled** — Tier 1 built it, at the measured
+  20° heel cut (verified 20.07°), and it lands on the loft subfloor within
+  ¼". Nothing left here.
 - **Some video frames are a different project.** There is a sequence of a
   concrete countertop being poured outdoors that is not this unit. Verify frame
   contents before using them as reference — a colour sample earlier in this work

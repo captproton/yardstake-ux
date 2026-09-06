@@ -1,5 +1,12 @@
 # Tier 1 — Schematic interior
 
+**Status: DONE**, merged in
+[#57](https://github.com/captproton/yardstake-ux/pull/57). 14/14 gates.
+Two things surfaced that are worth carrying forward: the main roof ran through
+the loft across 100% of its width (a defect inherited from P2, fixed by cutting
+the roof out of the dormer zone), and the reveal tagging did not survive export
+until `materials.clear()` was found to reset every polygon's material index.
+
 **Goal.** Turn the interior from a shell into rooms. Door leaves, casing and
 trim, ceiling planes, distinct floor surfaces, and the loft ladder and
 guardrail. Geometry only — no textures, no fixtures.
@@ -17,8 +24,10 @@ grey boxes.
 **Two prerequisites, both cheap, both before geometry:**
 
 1. **Fix texel density.** [TIER-2 §2](TIER-2-materials-and-textures.md) —
-   128 px/ft, world-axis cube projection, unwrapped after booleans. It
+   128 px/ft, in-plane cube projection, unwrapped after booleans. It
    constrains how everything below is authored. Decide once, use throughout.
+   (World-axis projection was the original recommendation and turned out to be
+   wrong; see TIER-2 §3.)
 2. **Read the build rules** in [README](README.md#tier-1-build-rules). They
    exist to keep Tiers 2 and 3 cheap.
 
