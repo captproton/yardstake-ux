@@ -614,15 +614,15 @@ video_sources:
     pour was flagged as possibly a different project. The pour at 2:16-2:20 does
     resemble the 2:40 counter, but that is not established and should not be
     relied on.
-  open:
+  resolved:
     - id: range-fuel
       note: >
-        A1.1 labels the appliance ELEC RANGE, and the unit is otherwise
-        all-electric (tankless electric water heater, heat pump). Both video
-        units appear to show a cooktop with raised burner grates, which usually
-        means gas. LOW CONFIDENCE — a single oblique frame each, and not
-        followed up. Do not record it as a discrepancy without a better frame;
-        it changes nothing about the footprint either way.
+        SETTLED — all-electric, per the A1.1 ELEC RANGE label and the owner's
+        decision. Video frames suggesting raised burner grates were a
+        low-confidence read of one of the two units and are not a reason to
+        depart from the plan. All-electric is also the internally consistent
+        reading: the unit has a tankless ELECTRIC water heater and a heat pump.
+  open: []
 
 # ---------------------------------------------------------------------------
 fixtures:
@@ -670,10 +670,57 @@ fixtures:
     counter_thk: {ft: 0.125, raw: "1-1/2\"", source: "industry standard", confidence: assumed}
     toe_kick_h:  {ft: 0.292, raw: "3-1/2\"", source: "industry standard", confidence: assumed}
     upper_cab:
+      exists: true
       clear_above_counter: {ft: 1.5, raw: "1'-6\"", source: "industry standard 18\"", confidence: assumed}
-      height:              {ft: 2.5, raw: "2'-6\"", source: "industry standard 30\"", confidence: assumed}
-      depth:               {ft: 1.0, raw: "1'-0\"", source: "industry standard 12\"", confidence: assumed}
-      note: "NOT DRAWN on A1.1 — uppers do not appear in plan at all. Existence and extent are an assumption; the video is the only evidence."
+      height:
+        ft: 3.0
+        raw: "3'-0\""
+        confidence: assumed
+        source: "industry standard 36\" — NOT the 30\" first assumed here"
+        reasoning: >
+          Video 1:08 gives a near-straight-on view of the whole run, and the
+          upper cabinet tops sit clearly ABOVE the 7'-0" window head. That rules
+          out a 30" upper, which would top out at exactly 84" (36" counter +
+          18" clear + 30") and sit level with the head. A 36" upper reaches 90",
+          leaving 6" to the 8'-0" flat ceiling in this zone, which matches the
+          gap in frame.
+          This is a QUALITATIVE constraint from the video, not a measurement.
+          The footage is wide-angle and radially distorted, so pixel
+          photogrammetry on it is not trustworthy at this precision — it can
+          rule a value out without establishing one.
+      depth: {ft: 1.0, raw: "1'-0\"", source: "industry standard 12\"", confidence: assumed}
+      note: >
+        NOT DRAWN on A1.1 — uppers do not appear in plan at all. Their EXISTENCE
+        is now confirmed (video 1:08, 2:14 and 2:40, consistent across both
+        units), but every dimension here remains an assumption.
+    backsplash:
+      height:
+        ft: 0.5
+        raw: "6\""
+        confidence: derived
+        source: >
+          NOT assumed — arithmetic on two knowns. The W-KITCHEN sill is a
+          MEASURED 3'-6" above finished floor and a 36" counter leaves exactly
+          6" beneath it. Video 1:13 shows the granite backsplash running up to
+          meet the window sill, which closes the loop.
+      material: "same granite slab as the counter, not tile"
+      source: "video 1:13 close-up, 1:08 wide"
+    range_hood:
+      exists: true
+      type: under_cabinet
+      note: >
+        Stainless under-cabinet hood over the range, with a cabinet above it.
+        On NEITHER the plan nor the original Tier 3 scope, and consistent across
+        both video units.
+      source: "video 1:08, 2:14, 2:40"
+    datum_cross_check: >
+      The sink cabinet centres under the kitchen window to within 2.3", which
+      the video confirms visually. This is a real check rather than a
+      coincidence: it validates the Tier 3 fixture datum (measured here) against
+      the P1 openings datum (measured separately, in a different pass), and it
+      settles that openings.west_wall offsets run from the EXTERIOR north
+      corner. Reading them from the interior face instead would put the sink
+      7.8" off centre, which the video contradicts.
     items:
       - {id: refrigerator, x: 0.0, y: 8.290, w: 2.310, d: 2.420,
          raw_measured: "2'-3-3/4\" deep x 2'-5\" wide", h: 5.75,
