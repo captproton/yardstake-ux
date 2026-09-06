@@ -1,0 +1,24 @@
+# ---------------------------------------------------------------------------
+# Large source media — NOT versioned.
+# Two of these exceed GitHub's hard 100 MB per-file limit and would be rejected
+# on push; all of them would bloat a 2.9 MB repo by ~150x, permanently.
+# Retrieve from the original sources instead.
+# ---------------------------------------------------------------------------
+*.mp4
+*.mov
+*.m4v
+*.avi
+
+# Published plan sets: large binaries, freely re-downloadable from the issuing
+# city or designer, and not yet used by any model in models/. Un-ignore a set
+# when a model actually depends on it.
+example plans/concord_plans/
+example plans/sacramento_adus/
+example plans/richmond_plans/
+example plans/original/
+
+# Build artifacts — regenerated deterministically by the scripts in models/
+**/spec.json
+**/__pycache__/
+*.blend
+*.blend1

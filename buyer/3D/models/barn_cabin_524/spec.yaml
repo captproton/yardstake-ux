@@ -1,0 +1,652 @@
+# Barn Cabin 524sf ADU — dimensional spec
+# Source plan set: buyer/3D/example plans/thataduguy/Barn-Cabin-524sf-ADU-1.0-.pdf
+#   Design Residential, Inc. / Derek Sherrell (That ADU Guy). Drawn 1/25/2024.
+# Cross-check video: "Affordable Housing Option. ADU Tour (w free plans).mp4" (8:31)
+#
+# AUTHORITY RULE: the PDF is the only geometry authority. Video frames may flag a
+# discrepancy (see `discrepancies:`) but never override a plan dimension.
+#
+# UNITS: all numeric values are decimal FEET unless the key says otherwise.
+#        `raw:` preserves the original feet-and-inches string from the sheet.
+
+meta:
+  model_id: barn_cabin_524
+  option: B                       # dormered variant — see option_selection below
+  plan_date: 2024-01-25
+  designer: Design Residential, Inc., Medford OR
+  code_basis: 2021 Oregon Residential Specialty Code
+  source_pdf_pages: 7
+  source_sheets_declared: 8
+
+# ---------------------------------------------------------------------------
+option_selection:
+  chosen: B
+  reason: >
+    The plan set contains two complete variants. Option A (sheet 3 / A1.0) is the
+    non-dormered barn cabin, 9:12 carried all the way across. Option B (sheet 4 /
+    A1.1) adds shed dormers to both side walls. The video tours the DORMERED unit:
+    at 6:08 the narrator contrasts it with "the non-dormered barn cabin ... that
+    carries the 9:12 all the way across", and at 6:20 credits "these pop-up dormers"
+    for the loft headroom. Option B is therefore the as-built subject.
+  source: A1.0 vs A1.1; video 6:08-6:22
+
+# ---------------------------------------------------------------------------
+sheet_index:
+  # NOTE: the PDF has 7 pages but the drawing index on A0.0 lists 8 sheets.
+  # Sheet 2 (A0.1 SITE PLAN) is absent from this file. It carries no building
+  # geometry, so it does not block the model.
+  sheets:
+  - {pdf_page: 1, sheet: "1 of 8", id: A0.0, title: "Cover / planning summary / front elevation"}
+  - {pdf_page: 2, sheet: "3 of 8", id: A1.0, title: "Floor plans + elevations — OPTION A"}
+  - {pdf_page: 3, sheet: "4 of 8", id: A1.1, title: "Floor plans + elevations — OPTION B"}
+  - {pdf_page: 4, sheet: "5 of 8", id: A2.0, title: "Foundation plans / framing plans"}
+  - {pdf_page: 5, sheet: "6 of 8", id: A3.0, title: "Roof plans (stick frame / stick frame dormers)"}
+  - {pdf_page: 6, sheet: "7 of 8", id: A4.0, title: "Sections / details"}
+  - {pdf_page: 7, sheet: "8 of 8", id: N-1,  title: "Notes information"}
+  missing_sheets:
+  - {sheet: "2 of 8", id: A0.1, title: "Site plan", impact: none_for_geometry}
+
+# ---------------------------------------------------------------------------
+envelope:
+  main_body_width:      {ft: 22.0, raw: "22'-0\"",  axis: X, source: "A2.0 foundation plan, overall dim; A1.1 main floor plan"}
+  main_body_depth:      {ft: 24.0, raw: "24'-0\"",  axis: Y, source: "A2.0 foundation plan, overall dim; A1.1 main floor plan"}
+  porch_depth:          {ft: 6.0,  raw: "6'-0\"",   axis: Y, source: "A2.0 foundation plan; A1.1 main floor plan"}
+  total_footprint_depth: {ft: 30.0, raw: "30'-0\"",  axis: Y, source: "A2.0 foundation plan, overall dim"}
+  porch_clear_between_posts: {ft: 18.0, raw: "18'-0\"", source: "A2.0 foundation plan (2'-0\" + 18'-0\" + 2'-0\" = 22'-0\")"}
+  porch_post_setback_each_end: {ft: 2.0, raw: "2'-0\"", source: "A2.0 foundation plan"}
+  bounding_box:
+    x: {ft: 22.0, note: "excludes 18\" eave overhangs"}
+    y: {ft: 30.0, note: "main body 24' + porch 6'"}
+    z: {ft: 17.807, raw: "17'-9 11/16\"", note: "see levels.overall_height — datum is GRADE, not main FF"}
+
+# ---------------------------------------------------------------------------
+levels:
+  main_ff:            {ft: 0.0,    note: "datum for this spec"}
+  main_top_of_plate:  {ft: 8.0,    raw: "8'-0\"",     source: "A4.0 cross sections A & B; A1.1 front elevation; '8'-0\" CEILING' tags on A1.1 plan"}
+  floor_system_depth: {ft: 0.854,  raw: "10 1/4\"",   source: "A4.0 cross sections, TOP OF PLATE -> TOP OF SUBFLOOR"
+                       , note: "= 9-1/2\" BCI 5000 1.7 loft joists @16\" o.c. + 3/4\" T&G subfloor; A2.0 loft floor framing"}
+  loft_top_of_subfloor: {ft: 8.854, raw: "8'-10 1/4\"", derived: "main_top_of_plate + floor_system_depth"}
+  loft_knee_wall_height: {ft: 4.333, raw: "4'-4\"",   source: "A3.0 roof plan - stick frame dormers, left & right edge tags; A4.0 detail 5"}
+  dormer_wall_height: {ft: 7.0,    raw: "7'-0\"",     source: "A3.0 roof plan - stick frame dormers, top tag; A1.1 loft plan '7'-0\" WALL HEIGHT'"}
+  overall_height:
+    ft: 17.807
+    raw: "17'-9 11/16\""
+    datum: main_ff
+    source: "A0.0 planning summary 'H.T. OF (N) ROOF'; A1.1 front elevation vertical string"
+    note: >
+      P3 CORRECTION. P1 assumed this was measured GRADE -> top of roof, because a
+      bottom-up framing stack (8'-0" plate + 9" heel + 9:12 over the 11'-0" half
+      span = 17'-0") left a 9-11/16" remainder that looked like a stemwall reveal.
+      That was wrong. Overlaying the model on the A1.1 front elevation at 50 px/ft
+      settles it independently: the 4:12 dormer plane, projected from the ridge
+      down to the wall line, lands at 17.807 - 4/12 x 11'-0" = 14.140 ft, and the
+      sheet's own silhouette measures 14.16 ft there — a 0.24" agreement. That
+      relationship only holds if 17'-9 11/16" is measured from the FINISHED FLOOR.
+      The 9-11/16" remainder is roof assembly and heel, not a grade reveal.
+
+# ---------------------------------------------------------------------------
+roof:
+  form: >
+    Gable, ridge running FRONT-TO-BACK (parallel to the 24' depth axis), with a
+    shed dormer on each of the left and right side walls.
+  ridge_direction: Y
+  ridge_member: {desc: "2x10 DF #2 ridge", source: "A3.0 roof plan, both variants"}
+  main_pitch:   {rise: 9, run: 12, source: "A3.0 pitch notes at front and rear of roof plan; A4.0 cross sections A & B; A1.1 front + rear elevations"}
+  dormer_pitch: {rise: 4, run: 12, source: "A3.0 pitch note mid-plan (dormer zone); A1.1 front elevation outboard planes; A1.1 left elevation"}
+  eave_overhang: {ft: 1.5, raw: "18\"", source: "A3.0 ROOF NOTES: 'ALL SLOPES 4/12 & 9/12, 18\" OVERHANGS, 9\" RAISED HEEL'"}
+  rake_overhang: {ft: 1.5, raw: "18\"", source: "A3.0 ROOF NOTES (same note; not separately dimensioned)", confidence: medium}
+  raised_heel:   {ft: 0.75, raw: "9\"", source: "A3.0 ROOF NOTES; A4.0 detail 1 '9\" RAISED ENERGY HEEL (IF TRUSSED)'"}
+  framing_note: "Sheet offers both truss and stick-frame; A0.0 planning summary says TYPE: TRUSS ROOF. Irrelevant to massing."
+  elevation_calibration:
+    # P3. The roof's finished silhouette is driven by these two numbers rather
+    # than by a bottom-up framing stack, because the heel and roof-assembly
+    # conventions cannot be pinned down from the sheets closely enough. Both
+    # were checked against the A1.1 front elevation traced at 50 px/ft.
+    ridge_top_of_roof: {ft: 17.807, raw: "17'-9 11/16\"", datum: main_ff,
+                        source: "A0.0 planning summary", measured_on_sheet_ft: 17.90,
+                        note: "Measurement includes line weight; the stated value is used."}
+    dormer_plane_reaches_ridge: true
+    dormer_reaches_ridge_evidence: >
+      Projecting 4:12 from the ridge to the wall gives 17.807 - 3.667 = 14.140 ft.
+      The sheet silhouette measures 14.16 ft at the wall line — 0.24" apart. Traced
+      across the whole elevation the slope holds at 0.331-0.332 against a true 4:12
+      of 0.3333. The dormer roof therefore runs at 4:12 from the eave ALL THE WAY
+      to the main ridge; it does not die into the main roof short of the peak.
+    dormer_roof_top_at_wall: {ft: 14.140, derived: "ridge_top_of_roof - 4/12 * (W/2)",
+                              measured_on_sheet_ft: 14.16}
+    knee_wall_crosscheck:
+      computed_in: "48.1\" back-solved from the sheet (roof underside - 9\" heel - loft subfloor)"
+      sheet_tag: "4'-4\" = 52.0\" on A3.0"
+      delta: "3.9\""
+      verdict: >
+        The 4'-4" tag stands. The gap is absorbed by construction.roof_assembly_thickness,
+        which is itself flagged `confidence: assumed` and is the least certain input.
+
+  geometry_derivation:
+    # Which surface carries the 9:12 and which the 4:12 is NOT stated on any sheet.
+    # It was settled in P2 by testing both readings against the arithmetic, and the
+    # surviving one is confirmed three independent ways.
+    reading: "Main gable 9:12 springing from the main plate + 9\" heel. Shed dormers 4:12 rising from a 4'-4\" face wall on the loft subfloor."
+    rejected: "Dormer face at the 7'-0\" wall height. That puts the 4:12 plane past the ridge (intersection at X = 17.05 ft on a 22 ft span) — geometrically impossible."
+    confirmations:
+      - id: ridge-height
+        status: OVERTURNED_IN_P3
+        check: "8'-0\" plate + 9\" heel + 9:12 over the 11'-0\" half span = 17'-0\" above FF."
+        against: "A0.0 states 17'-9 11/16\"; P2 read the 9-11/16\" remainder as a stemwall reveal."
+        correction: >
+          This was circular — the remainder was explained by the very assumption it
+          was meant to test. The P3 overlay shows the ridge top of roof is 17'-9 11/16"
+          above the FINISHED FLOOR. See levels.overall_height and elevation_calibration.
+      - id: beam-clearance
+        check: "Loft subfloor 8'-10 1/4\" + 6'-7 1/2\" clearance + 16 1/2\" RB01 beam depth = 16'-10\", against a 17'-0\" ridge."
+        against: "Video 5:53 — 'I think we're about 6'7 and a half to the bottom of the beam'. RB01 is 5-1/2\" x 16-1/2\" per the A3.0 beam schedule."
+      - id: standing-room
+        status: WEAKENED_IN_P3
+        check: "With a 4'-4\" face and 4:12 dormer, 6'-0\" clear headroom spans a 12'-0\" band."
+        against: "Video 6:02 — 'we're able to stand up for oh about 12 feet of this room'."
+        correction: >
+          P2 called this "exact". It is not. With the P3-corrected roof the band is
+          14.5 ft at 6'-0" clearance and 10.5 ft at 6'-8" clearance — so the result
+          swings 4 ft on what "stand up" means, and the video figure is a verbal
+          estimate ("oh about"). Treat as broadly consistent, not confirmatory.
+    dormer_meets_main_roof_at:
+      superseded_by: elevation_calibration.dormer_plane_reaches_ridge
+      p2_value: {x_ft: 10.65, z_ft: 16.74}
+      note: >
+        P2 derived this from the bottom-up stack and it put the dormer plane 11.5"
+        too low and stopped it 4" short of the peak. P3 measurement shows the 4:12
+        plane runs to the ridge. Superseded.
+    unresolved_7ft_wall:
+      note: >
+        A "7'-0\" WALL HEIGHT" tag appears across the top of both the A1.1 loft plan
+        and the A3.0 dormer roof plan. It is NOT the dormer face height (see rejected
+        above). Most likely the loft's rear gable-end wall. It does not drive the
+        massing, which is fully determined by the 4'-4\" face, the two pitches and
+        the plate height, so it is left unresolved rather than guessed.
+
+  dormers:
+    count: 2
+    placement: [left, right]      # i.e. on the two long (24') side walls
+    width: {ft: 12.0, raw: "12'-0\"", source: "A1.1 loft plan, dimension string on both side edges"}
+    inset_from_each_end: {ft: 1.75, raw: "1'-9\"", source: "A1.1 loft plan (1'-9\" + 12'-0\" + ... string)"}
+    type: shed
+    type_source: "A1.1 LEFT ELEVATION - OPTION B shows a flat-topped shed dormer with a 2-window band"
+    wall_height: {ft: 7.0, raw: "7'-0\"", source: "A3.0 dormer roof plan"}
+
+# ---------------------------------------------------------------------------
+interior_partitions:
+  # Positions are approximate to the plan's dimension strings; enough to place
+  # walls for massing, not to finish them.
+  top_dim_string_north:
+    raw: ["3'-0\"", "3'-0\"", "16'-0\""]
+    sums_to: "22'-0\""
+    source: "A1.1 main floor plan, upper dimension string"
+  second_dim_string_north:
+    raw: ["5'-10\"", "3'-2\"", "13'-0\""]
+    source: "A1.1 main floor plan, second dimension string"
+  rooms:
+    - {id: bedroom,  w: 12.25, d: 11.083, raw: "12'-3\" x 11'-1\"", ceiling: 8.0, source: "A1.1 main floor plan tag"}
+    - {id: bath,     w: 5.083, d: 8.0,    raw: "5'-1\" x 8'-0\"",   ceiling: 8.0, source: "A1.1 main floor plan tag"}
+    - {id: living_kitchen, w: 19.083, d: 11.583, raw: "19'-1\" x 11'-7\"", ceiling: vaulted, source: "A1.1 main floor plan tag"}
+    - {id: covered_porch, raw: "8'-0\" x 6'-0\"", ceiling: 8.0, source: "A1.1 main floor plan tag"
+       , note: "Tagged 8'-0\" x 6'-0\" but the porch roof spans the full 22'-0\" width x 6'-0\" depth. The tag appears to describe the clear walking area beside the attic-stair box. VERIFY."}
+    - {id: loft_storage, w: 21.083, d: 11.083, raw: "21'-1\" x 11'-1\"", ceiling: vaulted, source: "A1.1 loft plan tag"}
+  layout:
+    # Partition positions MEASURED on A1.1 at 50 px/ft by scanning for wall-density
+    # bands, offsets from the INTERIOR face named. The bedroom west partition read
+    # 3.6" thick at 8.56-8.86 ft, and its east face at 8.86 ft reproduces the sheet's
+    # own 8'-10" string; the bedroom then reads 12'-2.9" against its 12'-3" tag.
+    datum: "x from the interior WEST face; y from the interior NORTH face"
+    partitions:
+      - {id: P_bedroom_W, axis: y, at_ft: 8.86, from_ft: 0.0,  to_ft: 11.40,
+         measured: "3.6\" band at x 8.56-8.86", confidence: measured}
+      - {id: P_bedroom_S, axis: x, at_ft: 11.40, from_ft: 8.86, to_ft: 21.10,
+         measured: "density peak 0.48 at y 11.40 — about half the run is door opening",
+         confidence: measured}
+      - {id: P_bath_E,    axis: y, at_ft: 5.10, from_ft: 0.0, to_ft: 8.20,
+         measured: "line candidates at x 5.10 and 5.38", confidence: measured}
+      - {id: P_bath_S,    axis: x, at_ft: 8.20, from_ft: 0.0, to_ft: 5.10,
+         measured: "line candidates at y 8.08 and 8.36", confidence: measured}
+    doors:
+      # SIZES are plan callouts and exact. POSITIONS are approximate: interior
+      # linework (fixtures, pocket hardware, swing arcs) does not scan cleanly the
+      # way the exterior wall bands do. Treat as +/- 6", not the +/- 5/8" of the
+      # exterior openings.
+      - {id: D-POCKET-DBL, in: P_bedroom_S, w: 5.0, h: 6.667, raw: "5'-0\" P",
+         centre_ft: 15.30, position_confidence: approx_6in,
+         measured_open_span: "13.44 -> 17.16 ft on the wall line",
+         source: "A1.1 callout (size); video 4:00"}
+      - {id: D-POCKET-BATH, in: P_bath_S, w: 2.333, h: 6.667, raw: "2'-4\" P",
+         centre_ft: 2.55, position_confidence: approx_6in,
+         source: "A1.1 callout (size); video 2:52"}
+    not_modelled:
+      - "Closet / stacked-W-D walls and their 6'-0\" bypass doors."
+      - "Loft ladder."
+      - "Kitchen casework."
+  features:
+    - {id: double_pocket_door, desc: "Double pocket door between living/kitchen and bedroom", source: "A1.1 plan; video 4:00 'this is our double pocket door standard'"}
+    - {id: closet, desc: "Full closet, houses full-size washer/dryer", depth_raw: "38\"", source: "video 4:20 — NOT dimensioned on A1.1; see assumptions"}
+    - {id: stack_wd, desc: "Stacked W/D niche", source: "A1.1 plan 'STACK W/D'"}
+    - {id: crawl_hole, raw: "24\" x 24\"", source: "A1.1 plan; A2.0 foundation plan"}
+    - {id: attic_access, desc: "Pull-down stairs to attic over bedroom/bath", source: "A1.1 plan; A3.0 roof plan; video 1:46-2:09"}
+    - {id: loft_ladder, desc: "Ladder to main floor", source: "A1.1 loft plan 'LADDER TO MAIN FLOOR'; video 4:50-5:20"}
+
+# ---------------------------------------------------------------------------
+openings:
+  # ---------------------------------------------------------------------------
+  # POSITIONS ARE MEASURED, NOT DIMENSIONED. The plan set gives every opening a
+  # size callout but never an offset. Positions below were measured off the A1.1
+  # sheet rendered at 200 dpi, where 1/4"=1'-0" gives exactly 50.0 px/ft. The
+  # scale was verified three ways before measuring:
+  #   - plan exterior wall faces 1100 px apart  = 22.00 ft (stated 22'-0")
+  #   - plan N wall to porch edge 1500 px       = 30.00 ft (stated 30'-0")
+  #   - front elevation FF to top of plate 400 px = 8.00 ft (stated 8'-0")
+  # Every measured WIDTH reproduced its own size callout to within ~1", which is
+  # the accuracy check on the method. Tolerance: +/- 0.05 ft (~5/8").
+  # `offset` = distance from the named corner to the opening's near edge.
+  measurement:
+    method: raster_measurement
+    dpi: 200
+    px_per_ft: 50.0
+    tolerance_ft: 0.05
+    scale_verified_by: ["22'-0\" wall-to-wall", "30'-0\" overall depth", "8'-0\" FF to plate"]
+
+  main_floor:
+    north_wall:
+      datum: "offsets from the WEST corner; heights above main FF"
+      openings:
+      - {id: W-BED-EGRESS, w: 5.0, h: 4.0, raw: "5'-0\" x 4'-0\" X/O EGRESS", type: slider_XO,
+         offset: 13.00, centre: 15.50, sill: 3.0, head: 7.0,
+         source: "A1.1 plan callout (size); measured on A1.1 plan + rear elevation (position)",
+         note: "Two independent measurements agree: 15.50 ft from the west corner on the plan, 15.37 ft derived from the mirrored rear elevation. Sill 3'-0\" (36\") clears the 44\" egress maximum. The automated width read 4.54 ft because the scan split this unit at its centre mullion and missed the outer frame; the CENTRE is unaffected, so offset is set from centre minus half the 5'-0\" callout."}
+    south_wall:
+      datum: "offsets from the WEST corner; heights above main FF"
+      openings:
+      - {id: W-LIVING-S1, w: 4.0, h: 3.0, raw: "4'-0\" x 3'-0\" D.S.H.", type: double_single_hung,
+         offset: 3.04, centre: 5.01, sill: 4.0, head: 7.0, source: "A1.1 plan callout + measured"}
+      - {id: D-FRONT, w: 3.0, h: 6.667, raw: "3'-0\" HL", type: half_lite_entry_door,
+         offset: 9.40, centre: 11.00, sill: 0.0, head: 6.667,
+         source: "A1.1 plan callout + measured",
+         note: "Centre lands on 11.00 ft = the exact centreline of the 22'-0\" wall, under the gable peak."}
+      - {id: W-LIVING-S2, w: 3.0, h: 5.0, raw: "3'-0\" x 5'-0\" S.H.", type: single_hung,
+         offset: 15.54, centre: 17.01, sill: 2.0, head: 7.0, source: "A1.1 plan callout + measured"}
+    west_wall:
+      datum: "offsets from the NORTH corner; heights above main FF"
+      openings:
+      - {id: W-BATH, w: 2.5, h: 3.5, raw: "2'-6\" x 3'-6\" S.H. TEMPERED FROSTED GLASS", type: single_hung,
+         offset: 3.42, centre: 4.64, sill: 3.5, head: 7.0, head_confidence: assumed,
+         source: "A1.1 plan callout + measured position; head assumed 7'-0\" per measured N and S walls"}
+      - {id: W-KITCHEN, w: 3.0, h: 3.5, raw: "3'-0\" x 3'-6\" S.H.", type: single_hung,
+         offset: 17.22, centre: 18.69, sill: 3.5, head: 7.0, head_confidence: assumed,
+         source: "A1.1 plan callout + measured position; head assumed 7'-0\" per measured N and S walls"}
+    east_wall:
+      openings: []
+      note: >
+        NO OPENINGS. Confirmed three independent ways: the A1.1 plan shows a solid
+        wall with the electrical meter/panel outside it; the RIGHT ELEVATION shows
+        unbroken lap siding at ground level; and the automated wall scan returned
+        zero openings on this wall while correctly finding every opening on the
+        other three. See discrepancies.bedroom-exterior-door.
+
+  loft:
+    datum: "offsets from the NORTH corner; dormers are identical on the east and west walls"
+    dormer_extent: {from_north: 0.0, to: 12.0, raw: "12'-0\"",
+                    source: "A1.1 loft plan dimension string; confirmed by measurement"}
+    windows:
+      - {id: W-LOFT-1, w: 4.0, h: 2.0, raw: "4'-0\" x 2'-0\" X/O", type: slider_XO,
+         offset: 1.75, centre: 3.75, source: "A1.1 loft plan string; measured 3.98 ft wide"}
+      - {id: W-LOFT-2, w: 4.0, h: 2.0, raw: "4'-0\" x 2'-0\" X/O", type: slider_XO,
+         offset: 6.25, centre: 8.25, source: "A1.1 loft plan string; measured 3.98 ft wide"}
+    spacing_verified: "1'-9\" + 4'-0\" + 6\" + 4'-0\" + 1'-9\" = 12'-0\" — measured 1.72 | 3.98 | 0.52 | 3.98 | 1.72"
+    sill_height: {value: null, note: "Not measured — the left elevation's datum could not be isolated from the siding courses. Derive from the 7'-0\" dormer wall in P2, or measure against the dormer plate."}
+
+  interior_doors:
+    - {id: D-POCKET-DBL, w: 5.0, raw: "5'-0\" P", type: double_pocket, between: [living_kitchen, bedroom], source: "A1.1 plan; video 4:00"}
+    - {id: D-POCKET-BATH, w: 2.333, raw: "2'-4\" P", type: pocket, between: [living_kitchen, bath], source: "A1.1 plan; video 2:52"}
+    - {id: D-CLOSET, w: 6.0, raw: "6'-0\" SLDR. W/ 4 X 10 DF #2 HDR", type: bypass_slider, note: "Closet/laundry bypass doors, interior", source: "A1.1 plan"}
+
+# ---------------------------------------------------------------------------
+exterior_finish:
+  gable_field:  {material: shingle, source: "A1.1 + A0.0 front elevations — shingle coursing hatch in the gable"}
+  walls:        {material: lap_siding, raw: "6\" LAP SIDING", source: "A4.0 wall details 1, 2, 4, 5"}
+  transition_height:
+    value: null
+    note: >
+      The shingle-to-lap transition lands at the main TOP OF PLATE line (8'-0"),
+      where the dormer/gable field begins. Read off the A1.1 front elevation
+      geometry, not a dimension. Confirm against a video frame in P4.
+  sheathing: {raw: "7/16 O.S.B. + Tyvek drain wrap", source: "A4.0 wall details"}
+  studs:     {raw: "2 X 6 STUD 16\" O.C.", source: "A4.0 wall details"}
+
+# ---------------------------------------------------------------------------
+p3_verification:
+  method: >
+    The model was rendered orthographically at 50.0 px/ft — the same scale the A1.1
+    sheet was rasterised at — and its silhouette compared column by column against
+    the sheet's own silhouette. Columns falling under the pitch-annotation boxes are
+    excluded and labelled; they are drawing annotation, not building.
+  front_elevation:
+    clean_columns: 41
+    mean_error_in: -0.18
+    sd_in: 0.21
+    max_abs_error_in: 0.96
+    verdict: "Sub-inch agreement across the full width, both pitches, ridge and overhangs."
+  rear_elevation:
+    clean_columns: 33
+    result_before_reregistration: "uniform -5.6 to -6.8 in offset, same sign on BOTH roof slopes"
+    diagnosis: >
+      A uniform, same-signed offset on both slopes cannot be a model error — a wrong
+      pitch or width would skew, not shift. It is a datum registration error. Best-fit
+      puts the sheet's rear FF line at page y 3274.6, and a line WAS detected at 3273
+      in P1 which I passed over when hand-picking 3248.5.
+    mean_error_after_in: 0.00
+    sd_after_in: 0.56
+    max_abs_error_after_in: 0.62
+    verdict: "Model correct; the P1 rear-elevation datum was wrong by 6.3 inches."
+  corrections_made:
+    - id: mirrored-model
+      severity: high
+      finding: >
+        The P2 model was a MIRROR IMAGE of the building. build_adu.py placed north at
+        Y=0 with the porch at +Y, making (east=+X, north=-Y, up=+Z) a left-handed
+        compass frame. Facing north in that frame, screen-right computes as west.
+        Caught by the front-elevation overlay: the 4'-0" D.S.H. landed on the wrong
+        side of the door. Fixed by running Y south->north; all offsets remap through
+        a single helper.
+    - id: height-datum
+      severity: high
+      finding: "17'-9 11/16\" is FF -> top of roof, not grade -> top of roof. See levels.overall_height."
+    - id: dormer-plane
+      severity: medium
+      finding: >
+        P2 put the 4:12 dormer plane 11.5" too low and stopped it 4" short of the
+        peak, because it was derived bottom-up and omitted the raised heel on the
+        dormer (A3.0: "ALL SLOPES ... 9\" RAISED HEEL"). The plane in fact runs to
+        the ridge. Roof is now driven by the elevation.
+    - id: rear-datum
+      severity: low
+      finding: "P1's rear-elevation FF datum was 6.3\" off. Affects the egress sill reading only."
+  open_items:
+    - id: egress-sill
+      note: >
+        Recorded as 3'-0" in P1 from the rear elevation. With the corrected datum the
+        same lines read 3'-4", and the head then reads 7'-5" against 7'-0" on every
+        front window, so one of the two picks is trim rather than frame. Uncertainty
+        is about +/-4". Immaterial either way: 36" and 40" both clear the 44" egress
+        sill maximum, and the massing impact is nil.
+    - id: dormer-sill
+      note: "Still derived, not measured. Unchanged from P2."
+    - id: side_elevation_overlay
+      note: >
+        Not performed. The left/right elevations on A1.1 have no vertical dimension
+        string, and their FF datum could not be isolated from the siding courses —
+        the same trap that produced the rear-datum error. The front and rear overlays
+        already constrain width, both pitches, ridge height, overhangs and the dormer
+        plane; the sides would mainly re-test depth, which the plan measurement fixed.
+
+# ---------------------------------------------------------------------------
+construction:
+  # Assembly depths the builder needs. Kept here, not in build_adu.py, so the
+  # script stays free of hardcoded dimensions.
+  exterior_wall_thickness:
+    ft: 0.4583
+    raw: "5 1/2\""
+    source: "A1.1 arithmetic: 22'-0\" body less the 21'-1\" loft clear width = 11\" total, 5 1/2\" per side. Bare 2x6 stud depth."
+    superseded:
+      ft: 0.542
+      raw: "6 1/2\""
+      why: >
+        P2 measured the drawn wall band at 27 px and took it as 6 1/2". That reading
+        includes the line weight of the wall edges, so it measured ink rather than
+        wall. The 1" error made the interior 2" narrow and pushed the bedroom
+        partition 4.3" off its dimension string. Same failure mode as the P3 rear
+        datum: measure what the ink represents, not the ink.
+    note: >
+      The 22'-0" overall is to the outside of framing. Sheathing and siding sit
+      outboard of it and are not modelled, so exterior dimensions are unaffected.
+  interior_wall_thickness:
+    ft: 0.2917
+    raw: "3 1/2\""
+    source: "Measured 3.6\" at the bedroom west partition (A1.1 @ 50 px/ft). 2x4 stud."
+  roof_assembly_thickness:
+    ft: 0.5
+    raw: "6\""
+    confidence: assumed
+    note: "Rafter + 5/8\" sub-roof + felt + composition roofing. Not dimensioned on any sheet; affects silhouette thickness only."
+  porch_post:
+    ft: 0.5
+    raw: "6x6"
+    confidence: assumed
+    note: "A2.0 concrete footing table permits 4x4, 4x6 or 6x6 on type B footings and requires 6x6 on type C. 6x6 chosen as the heavier, and the one the footing table mandates at the porch corners."
+  porch_slab_thickness: {ft: 0.333, raw: "4\"", source: "A2.0 '4\" CONC SLAB #4, 18\" GRID'"}
+  dormer_window_sill_above_loft_floor:
+    ft: 2.0
+    confidence: derived
+    note: >
+      NOT measured — see openings.loft.sill_height. Derived by centring a 2'-0" window
+      in the 4'-4" dormer face wall with the head 4" below the top plate. Gives a 24"
+      sill, which clears the 44" egress sill maximum; the loft egress failure is one of
+      net openable area, not sill height. Revisit in P3 against the left elevation.
+
+# ---------------------------------------------------------------------------
+materials:
+  provenance: >
+    HUE and character are sampled from the video's exterior footage (frames at
+    6:56 and 7:50, full resolution, patches visually confirmed before sampling —
+    an earlier pick turned out to be the pollinator garden). LUMINANCE is NOT
+    measured. A single uncontrolled frame cannot yield albedo: the siding patch
+    sits in shade while the roof is in full sun, so their measured ratio (0.955)
+    compares illumination, not reflectance, and the camera is auto-exposing.
+    Levels below are therefore set to physically plausible albedos and the
+    sampled hue applied on top. Swap in measured values if a controlled shot
+    ever exists.
+  sampled_hue_linear:
+    siding_shaded: [0.521, 0.479, 0.429]   # warm — R > G > B
+    roof_sunlit:   [0.468, 0.503, 0.533]   # cool — B > G > R
+  library:
+    siding:
+      base_color_linear: [0.788, 0.724, 0.649]
+      roughness: 0.80
+      metallic: 0.0
+      raw: "6\" LAP SIDING"
+      source: "A4.0 wall details; colour hue from video 6:56 / 7:50"
+    shingle_gable:
+      base_color_linear: [0.788, 0.724, 0.649]
+      roughness: 0.88
+      metallic: 0.0
+      note: >
+        A1.1 and A0.0 draw shingle coursing in the FRONT gable only — the rear gable
+        is lap siding. In the video the gable reads the same body colour as the walls,
+        consistent with painted cedar shingle. Same colour, higher roughness, kept as
+        a separate slot so a shingle texture can be dropped in without touching the walls.
+      source: "A1.1 front elevation (coursing); video (colour)"
+    roof:
+      base_color_linear: [0.234, 0.251, 0.266]
+      roughness: 0.90
+      metallic: 0.0
+      raw: "COMPOSITION ROOF"
+      source: "A4.0 roof details; hue from video 6:56. Light-mid grey, not charcoal."
+    trim:
+      base_color_linear: [0.850, 0.850, 0.850]
+      roughness: 0.55
+      metallic: 0.0
+      source: "Video — window casing and fascia read brighter than the body colour."
+    glass:
+      base_color_linear: [0.055, 0.062, 0.070]
+      roughness: 0.08
+      metallic: 0.0
+      transmission: 0.85
+      source: "Generic architectural glazing; not measured."
+    concrete:
+      base_color_linear: [0.330, 0.325, 0.315]
+      roughness: 0.92
+      metallic: 0.0
+      raw: "4\" CONC SLAB"
+      source: "A2.0; video 1:25 'we just do basic concrete patios'."
+    post:
+      base_color_linear: [0.820, 0.820, 0.810]
+      roughness: 0.60
+      metallic: 0.0
+      source: "Video 6:56 — porch posts read white, same family as the trim."
+    soffit:
+      base_color_linear: [0.800, 0.795, 0.780]
+      roughness: 0.70
+      metallic: 0.0
+      source: "Porch ceiling, 8'-0\" — video."
+  assignment:
+    # object-name prefix -> material. First match wins.
+    Wall_: siding
+    Gable_N: siding
+    Gable_S_porch: shingle_gable
+    Dormer_face_: siding
+    Dormer_cheek_: siding
+    Roof_: roof
+    Eave_band_: trim
+    Loft_floor: trim
+    Porch_post_: post
+    Porch_ceiling: soffit
+    Porch_slab: concrete
+    Floor_slab: concrete
+    Part_: trim
+    Glazing_: glass
+    Door_: trim
+
+# ---------------------------------------------------------------------------
+lod:
+  # Three.js THREE.LOD switch distances, in feet from the model origin.
+  levels:
+    - {name: lod0, contents: "shell + roof + porch + glazing + interior partitions", switch_ft: 0}
+    - {name: lod1, contents: "shell + roof + porch + glazing; interior dropped", switch_ft: 60}
+    - {name: lod2, contents: "massing only — no openings, no glazing, no interior", switch_ft: 160}
+  export:
+    format: glb
+    compression: draco
+    note: "Y-up, metres, +Z forward per glTF convention; Blender exporter converts from the Z-up foot-scaled scene."
+
+# ---------------------------------------------------------------------------
+areas_declared:
+  main_floor_living_sf: {value: 528, source: "A1.1 'EXISTING S.F. NOTES'; A0.0 planning summary GHFA MAIN FLOOR"}
+  upper_floor_storage_sf: {value: 264, source: "A1.1 'EXISTING S.F. NOTES'; A0.0 planning summary GHFA UPPER FLOOR"}
+  total_living_sf: {value: 528, source: "A1.1 'EXISTING S.F. NOTES'"}
+  ghfa_total_sf: {value: 792, source: "A0.0 planning summary"}
+  proposed_building_footprint_sf: {value: 528, source: "A0.0 planning summary"}
+
+# ---------------------------------------------------------------------------
+discrepancies:
+  # Built unit (video) vs published plans. Plans win for geometry; these are flagged
+  # because they change what the model should show if the goal is the as-built unit.
+  - id: loft-egress-window
+    severity: high
+    plan_says: "4'-0\" x 2'-0\" X/O slider, two per dormer (A1.1 loft plan + left elevation)"
+    video_says: >
+      6:26 — "one thing that's hard to get in this small lofted space is an egress
+      window; we've gone to the 3-0-3 casement window, and by being a full extension
+      90-degree opening casement window we can meet egress requirements, which is
+      5.7 square feet, no higher than 44 inches off the ground."
+    analysis: >
+      A 4'-0" x 2'-0" X/O slider has 8.0 sf gross but only ~4.0 sf net openable
+      (one leaf), below the 5.7 sf egress minimum. A 3'-0" x 3'-0" casement gives
+      ~9 sf gross and, at full 90-degree swing, meets 5.7 sf net. The built unit
+      therefore departs from the published loft window schedule. The A1.1 loft plan
+      even carries the "(18\" MIN-44\")" sill note next to that string.
+    action: "Model the plan (4'-0\" x 2'-0\" X/O). Note the as-built alternative in P4 material/config notes."
+  - id: bedroom-exterior-door
+    severity: medium
+    plan_says: "No exterior door shown on the bedroom's east wall. The 6'-0\" slider callout is the closet/laundry bypass door, on an interior wall."
+    video_says: "4:16 — 'we have an egress window here, a door out to the pet yard'; 7:43 — 'a nice walkway over to the door leading out of the bedroom'"
+    analysis: >
+      The built unit has an exterior door from the bedroom to the rear yard. I could
+      not find it on the A1.1 Option B plan at the resolution read. Either it is an
+      as-built addition, or it is drawn on a wall segment I misread.
+    resolved: true
+    finding: >
+      SETTLED — the published Option B set has NO exterior door on the bedroom's
+      east wall, and no opening of any kind there. Confirmed by the A1.1 plan (solid
+      wall, meter/panel outside), the RIGHT ELEVATION (unbroken lap siding at ground
+      level), and an automated opening scan that found zero openings on that wall
+      while correctly detecting all six on the other three walls. The pet-yard door
+      seen in the video is an AS-BUILT ADDITION, not part of the free plan set.
+    action: "Model the plans: solid east wall. Offer the door as a P4 configurator option if the as-built look is wanted."
+  - id: closet-depth
+    severity: low
+    plan_says: "closet shown but depth not called out in the strings I could resolve"
+    video_says: "4:20 — 'we do a full closet, this is 38 inches deep'"
+    action: "Use 38\" if a dimension is needed; flag as video-sourced."
+  - id: loft-usable-area
+    severity: low
+    plan_says: "264 sf upper floor storage (= 22.0 x 12.0)"
+    video_says: "5:44 — 'we get about 200 ft of usable space up here'; 1:55 — 'about 150 square ft of storage' in the pull-down attic"
+    analysis: "264 sf is the gross 22x12 dormered footprint; 21'-1\" x 11'-1\" clear = 234 sf; ~200 sf is the standing/usable subset. Not a conflict — three different measures."
+    action: none
+
+# ---------------------------------------------------------------------------
+assumptions:
+  height_datum:
+    statement: "17'-9 11/16\" is measured GRADE -> TOP OF ROOF, not main FF -> TOP OF ROOF."
+    reasoning: >
+      Framing arithmetic from the sheets gives FF -> ridge = 8.0 + 0.75 + 8.25 = 17.00 ft.
+      The 0.807 ft (9-11/16") remainder matches a normal stemwall grade-to-subfloor
+      reveal, and the A1.1 front elevation string does show GRADE below FF. If instead
+      the dimension is FF -> TOP OF ROOF, the model's ridge must rise by ~9-11/16"
+      and something else in the stack is wrong. THIS IS THE ONE NUMBER TO CONFIRM.
+    impact: "Shifts total height by 9-11/16\". Does not change plan dimensions or pitches."
+  compass:
+    statement: "Porch/front assumed to face south; N/E/W assigned accordingly."
+    reasoning: "The site plan (A0.1) is missing from the PDF, so true orientation is unknown. Wall IDs are self-consistent; remap if the site plan surfaces."
+  rake_overhang:
+    statement: "Rake overhang assumed equal to the 18\" eave overhang."
+    reasoning: "A3.0 says '18\" OVERHANGS' without distinguishing eave from rake, and the elevations show a generous rake."
+  porch_roof:
+    statement: "Porch roof modeled as a continuation of the main 9:12 gable over the full 22' width."
+    reasoning: "A1.1 right/left elevations show the roof running out over the porch posts with no break. Not separately dimensioned."
+  front_door_size:
+    statement: "3'-0\" x 6'-8\" assumed."
+    reasoning: "Not resolved in the callouts at the resolution read. Standard size; low massing impact."
+
+# ---------------------------------------------------------------------------
+p4_export:
+  verification: >
+    Each .glb was parsed back out of its own bytes and, for the primary file,
+    re-imported into a clean Blender session and rendered. Round-trip: 35 meshes,
+    8 materials, bbox 7.62 x 10.06 x 5.53 m. Every baseColorFactor and roughness
+    matches spec.materials.library exactly.
+  files:
+    - {name: barn_cabin_524_lod0.glb, kb: 29.3, meshes: 35, note: "shell + roof + porch + glazing + interior partitions with door openings"}
+    - {name: barn_cabin_524_lod1.glb, kb: 26.2, meshes: 31, note: "interior partitions dropped"}
+    - {name: barn_cabin_524_lod2.glb, kb: 17.0, meshes: 21, note: "massing only; openings not cut"}
+    - {name: barn_cabin_524.glb, kb: 29.3, note: "primary deliverable, copy of lod0"}
+  extensions: [KHR_draco_mesh_compression, KHR_materials_transmission]
+  units: {scene_authored_in: feet, exported_in: metres, factor: 0.3048}
+  bugs_found_and_fixed:
+    - id: gltf-ignores-unit-scale
+      finding: >
+        The Blender glTF exporter writes raw Blender units as metres and ignores
+        scene.unit_settings.scale_length. Setting scale_length alone produced a
+        25 m wide building. Mesh data is now converted explicitly before export.
+    - id: bbox-included-normals
+      finding: >
+        The first export check read every VEC3 accessor's min/max, which includes
+        NORMAL (range -1..1) and inflated the measured bbox by up to 2 units per
+        axis — it reported 18.14 where the model is 17.81. Now filtered to the
+        POSITION accessors named by each primitive.
+    - id: door-had-no-material
+      finding: "The assignment map had no Door_ prefix, so the entry door exported untextured. Added."
+  known_limitations:
+    - "No UVs or textures. Flat PBR colours only; lap and shingle coursing is not represented."
+    - "Closet / stacked-W-D walls and the loft ladder are still not modelled — see interior_partitions.layout.not_modelled."
+    - "Trim, fascia, casing and gutters are not modelled — see the tier-3 list from P1."
+    - "Glass uses KHR_materials_transmission. Confirm the Three.js material path supports it, or swap for an opaque dark pane."
+
+# ---------------------------------------------------------------------------
+material_notes_for_p4:
+  # From the video transcript. NOT geometry. Deferred to the finish phase.
+  - "White oak floors, repeated across all units (0:31)"
+  - "Stone/granite countertops, kitchen and bath (1:12, 3:20)"
+  - "Slate in the bathroom (1:17)"
+  - "Shingle gable over lap siding (elevations)"
+  - "Concrete patio at front, no deck (1:25)"
+  - "5' fiberglass tub/shower combo, 24\" vanity (2:52-3:00)"
+  - "One-wall galley kitchen, 30\" range, 24\" dishwasher, 24\" apartment fridge (2:11-2:44)"
+  - "12,000 BTU 19 SEER mini split + ERV (3:25-3:52)"
+  - "Loft: heavy pad + light carpet (6:46)"
+  - "Ladder: 5/4 x 4 clear vertical grain Douglas fir, 20-degree heel cut (5:14)"

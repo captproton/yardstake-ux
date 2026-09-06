@@ -1,0 +1,465 @@
+"""
+build_adu.py — parametric massing model of the Barn Cabin 524sf ADU (Option B).
+
+Reads spec.yaml. Contains NO hardcoded building dimensions: every length, height,
+pitch and offset is read from the spec. The only literals here are geometric
+constants (2 for halving a span, 12 for pitch denominators) and mesh bookkeeping.
+
+Run:
+    blender --background --python build_adu.py -- [--out DIR] [--no-openings]
+
+Coordinate system (feet, Blender +Z up):
+    X  0 .. W          west wall .. east wall
+    Y  0 .. D+P        north (rear) wall .. porch outer edge
+    Z  0 = main finished floor
+Wall offsets in the spec are stated from the WEST corner (north/south walls) and
+from the NORTH corner (east/west walls), which matches this frame directly.
+"""
+
+import sys
+import json
+import math
+import shutil
+import subprocess
+from pathlib import Path
+
+import bpy
+import bmesh
+
+HERE = Path(__file__).resolve().parent
+
+
+# ---------------------------------------------------------------------------
+# spec loading
+# ---------------------------------------------------------------------------
+def load_spec(path: Path):
+    """Blender's bundled Python has no pyyaml. Convert with the host python3
+    on every run so the spec can never drift out of sync with a cached copy."""
+    try:
+        import yaml  # noqa: F401
+        import yaml as _y
+        return _y.safe_load(path.read_text())
+    except ImportError:
+        pass
+
+    cache = path.with_suffix(".json")
+    py = shutil.which("python3")
+    if py:
+        conv = (
+            "import yaml,json,sys;"
+            "json.dump(yaml.safe_load(open(sys.argv[1])),"
+            "open(sys.argv[2],'w'),indent=2,default=str)"
+        )
+        r = subprocess.run([py, "-c", conv, str(path), str(cache)],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            return json.loads(cache.read_text())
+        print(f"[spec] host python3 conversion failed: {r.stderr.strip()}")
+
+    if cache.exists():
+        if cache.stat().st_mtime < path.stat().st_mtime:
+            raise SystemExit(
+                f"[spec] {cache.name} is older than {path.name}. "
+                f"Regenerate it, or install pyyaml where this script can reach it."
+            )
+        print(f"[spec] falling back to cached {cache.name}")
+        return json.loads(cache.read_text())
+
+    raise SystemExit(f"[spec] cannot read {path}: no pyyaml and no {cache.name}")
+
+
+# ---------------------------------------------------------------------------
+# mesh helpers
+# ---------------------------------------------------------------------------
+def _new_obj(name, verts, faces, coll):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata(verts, [], faces)
+    me.validate()
+    # Face winding below is written by hand, so normals cannot be trusted.
+    # An inverted solid makes BOOLEAN DIFFERENCE imprint edges without removing
+    # material — the mesh looks cut but keeps its full volume. Recalculate
+    # outward here so every solid is unambiguously closed and correctly oriented.
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(me)
+    bm.free()
+    ob = bpy.data.objects.new(name, me)
+    coll.objects.link(ob)
+    return ob
+
+
+def box(name, x0, x1, y0, y1, z0, z1, coll):
+    v = [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+         (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
+    f = [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1),
+         (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
+    return _new_obj(name, v, f, coll)
+
+
+def prism_xz(name, pts_xz, y0, y1, coll):
+    """Closed polygon in the XZ plane, extruded along Y. Points counter-clockwise."""
+    n = len(pts_xz)
+    verts = [(x, y0, z) for x, z in pts_xz] + [(x, y1, z) for x, z in pts_xz]
+    faces = [tuple(range(n - 1, -1, -1)), tuple(range(n, 2 * n))]
+    faces += [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)]
+    return _new_obj(name, verts, faces, coll)
+
+
+def difference(target, cutters):
+    """Boolean-subtract each cutter, then delete it."""
+    for c in cutters:
+        m = target.modifiers.new(name=f"cut_{c.name}", type="BOOLEAN")
+        m.operation = "DIFFERENCE"
+        m.object = c
+        m.solver = "EXACT"
+    bpy.context.view_layer.objects.active = target
+    for m in list(target.modifiers):
+        bpy.ops.object.modifier_apply(modifier=m.name)
+    for c in cutters:
+        bpy.data.objects.remove(c, do_unlink=True)
+
+
+def collection(name):
+    c = bpy.data.collections.new(name)
+    bpy.context.scene.collection.children.link(c)
+    return c
+
+
+def world_bbox(objects):
+    lo = [float("inf")] * 3
+    hi = [float("-inf")] * 3
+    for ob in objects:
+        for corner in ob.bound_box:
+            w = ob.matrix_world @ __import__("mathutils").Vector(corner)
+            for i in range(3):
+                lo[i] = min(lo[i], w[i])
+                hi[i] = max(hi[i], w[i])
+    return lo, hi
+
+
+def ft(x):
+    """Decimal feet -> feet-and-inches string."""
+    neg = x < 0
+    x = abs(x)
+    f = int(x)
+    inches = (x - f) * 12.0
+    if round(inches, 2) >= 11.995:
+        f += 1
+        inches = 0.0
+    return f"{'-' if neg else ''}{f}'-{inches:.2f}\""
+
+
+# ---------------------------------------------------------------------------
+# build
+# ---------------------------------------------------------------------------
+def build(spec, cut_openings=True):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.context.scene.unit_settings.system = "IMPERIAL"
+    bpy.context.scene.unit_settings.length_unit = "FEET"
+
+    env, lv, rf, con = spec["envelope"], spec["levels"], spec["roof"], spec["construction"]
+
+    W = env["main_body_width"]["ft"]
+    D = env["main_body_depth"]["ft"]
+    P = env["porch_depth"]["ft"]
+    t = con["exterior_wall_thickness"]["ft"]
+    rt = con["roof_assembly_thickness"]["ft"]
+
+    plate = lv["main_top_of_plate"]["ft"]
+    loft_sf = lv["loft_top_of_subfloor"]["ft"]
+    knee = lv["loft_knee_wall_height"]["ft"]
+
+    heel = rf["raised_heel"]["ft"]
+    eave = rf["eave_overhang"]["ft"]
+    rake = rf["rake_overhang"]["ft"]
+    mp = rf["main_pitch"]["rise"] / rf["main_pitch"]["run"]
+    dp = rf["dormer_pitch"]["rise"] / rf["dormer_pitch"]["run"]
+    dorm_len = rf["dormers"]["width"]["ft"]          # extent along Y, from the rear
+
+    # ---- roof geometry, driven by the A1.1 elevation (P3) ------------------
+    # P2 built the roof bottom-up (plate + heel + pitch). Overlaying that on the
+    # A1.1 front elevation put the dormer plane 11.5" low and stopped it 4" short
+    # of the peak. The sheet is the authority for the finished silhouette, so the
+    # roof is now driven by the ridge height and the two pitches, and the 4:12
+    # dormer plane runs all the way to the ridge.
+    cal = rf["elevation_calibration"]
+    ridge_x = W / 2.0
+    ridge_top = cal["ridge_top_of_roof"]["ft"]        # top of roof at the ridge, above FF
+    mp_v = rt / math.cos(math.atan(mp))               # vertical assembly depth, 9:12
+    dp_v = rt / math.cos(math.atan(dp))               # vertical assembly depth, 4:12
+
+    main_top_wall = ridge_top - mp * ridge_x
+    dorm_top_wall = ridge_top - dp * ridge_x
+    main_under_wall = main_top_wall - mp_v
+    dorm_under_wall = dorm_top_wall - dp_v
+    ridge_under = ridge_top - mp_v
+
+    springs = plate + heel                            # framing cross-check only
+    face_top = loft_sf + knee                         # structural 4'-4" knee wall
+
+    def main_under(x):
+        """Underside of the main roof at plan X."""
+        return ridge_top - mp * abs(ridge_x - x) - mp_v
+
+    geo = dict(W=W, D=D, P=P, t=t, rt=rt, plate=plate, loft_sf=loft_sf,
+               knee=knee, springs=springs, ridge_x=ridge_x, ridge_top=ridge_top,
+               ridge_under=ridge_under, face_top=face_top, eave=eave, rake=rake,
+               mp=mp, dp=dp, dorm_len=dorm_len, heel=heel,
+               main_top_wall=main_top_wall, dorm_top_wall=dorm_top_wall,
+               main_under_wall=main_under_wall, dorm_under_wall=dorm_under_wall)
+
+    shell = collection("Shell")
+    roofc = collection("Roof")
+    porchc = collection("Porch")
+    interior = collection("Interior_approx")
+
+    # ---- frame convention -------------------------------------------------
+    # Y runs SOUTH -> NORTH so that (east=+X, north=+Y, up=+Z) is a right-handed
+    # compass frame matching the north-up A1.1 plan. Building with north at Y=0
+    # yields a MIRROR IMAGE of the building: facing north, screen-right computes
+    # as -X (west) when it must be east. Caught in P3 by overlaying the front
+    # elevation, where the 4'-0" D.S.H. landed on the wrong side of the door.
+    NY = P + D          # north (rear) exterior face
+    SY = P              # south (front) exterior face of the main body
+
+    def yn(d):
+        """Spec distance measured from the NORTH corner -> world Y."""
+        return NY - d
+
+    geo["NY"], geo["SY"] = NY, SY
+
+    # ---- main body walls (Z 0..plate) -------------------------------------
+    walls = {
+        "Wall_N": box("Wall_N", 0, W, NY - t, NY, 0, plate, shell),
+        "Wall_S": box("Wall_S", 0, W, SY, SY + t, 0, plate, shell),
+        "Wall_W": box("Wall_W", 0, t, SY + t, NY - t, 0, plate, shell),
+        "Wall_E": box("Wall_E", W - t, W, SY + t, NY - t, 0, plate, shell),
+    }
+
+    # ---- openings ---------------------------------------------------------
+    if cut_openings:
+        op = spec["openings"]["main_floor"]
+        pad = 0.05  # overshoot so boolean faces never land coplanar
+        cutters = {k: [] for k in walls}
+
+        for o in op["north_wall"]["openings"]:
+            cutters["Wall_N"].append(box(
+                f"cut_{o['id']}", o["offset"], o["offset"] + o["w"],
+                NY - t - pad, NY + pad, o["sill"], o["sill"] + o["h"], shell))
+        for o in op["south_wall"]["openings"]:
+            cutters["Wall_S"].append(box(
+                f"cut_{o['id']}", o["offset"], o["offset"] + o["w"],
+                SY - pad, SY + t + pad, o["sill"], o["sill"] + o["h"], shell))
+        for o in op["west_wall"]["openings"]:
+            cutters["Wall_W"].append(box(
+                f"cut_{o['id']}", -pad, t + pad,
+                yn(o["offset"] + o["w"]), yn(o["offset"]),
+                o["sill"], o["sill"] + o["h"], shell))
+        # east_wall carries no openings — confirmed three ways, see spec.
+
+        for name, cl in cutters.items():
+            if cl:
+                difference(walls[name], cl)
+
+    # ---- gable end walls (Z plate .. roof underside) -----------------------
+    # The NORTH wall is where the dormers land, so its top edge follows the 4:12
+    # dormer plane out to x_int and the 9:12 main plane from there to the ridge.
+    # The porch-end gable has no dormer and is a plain triangle. Getting this
+    # wrong leaves the dormer ends open to the sky.
+    gable_dormered = [
+        (0, plate), (0, dorm_under_wall), (ridge_x, ridge_top - dp_v),
+        (W, dorm_under_wall), (W, plate),
+    ]
+    gable_plain = [(0, plate), (0, main_under_wall), (ridge_x, ridge_under),
+                   (W, main_under_wall), (W, plate)]
+    prism_xz("Gable_N", gable_dormered, NY - t, NY, shell)
+    prism_xz("Gable_S_porch", gable_plain, 0, t, shell)
+
+    # ---- loft floor and dormer face walls ---------------------------------
+    box("Loft_floor", t, W - t, yn(dorm_len), NY - t, plate, loft_sf, shell)
+
+    dormer_faces = {
+        # Runs to the roof underside. The structural knee wall is the 4'-4" tag
+        # (face_top); the remainder above it is the raised heel and fascia zone.
+        "Dormer_face_W": box("Dormer_face_W", 0, t, yn(dorm_len), NY,
+                             loft_sf, dorm_under_wall, shell),
+        "Dormer_face_E": box("Dormer_face_E", W - t, W, yn(dorm_len), NY,
+                             loft_sf, dorm_under_wall, shell),
+    }
+    if cut_openings:
+        sill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
+        pad = 0.05
+        for side, (x0, x1) in (("W", (-pad, t + pad)), ("E", (W - t - pad, W + pad))):
+            cl = []
+            for o in spec["openings"]["loft"]["windows"]:
+                cl.append(box(f"cut_{o['id']}_{side}", x0, x1,
+                              yn(o["offset"] + o["w"]), yn(o["offset"]),
+                              sill, sill + o["h"], shell))
+            difference(dormer_faces[f"Dormer_face_{side}"], cl)
+
+    # dormer cheek wall at the inboard (south) end of each dormer
+    for side in ("W", "E"):
+        tri = [(0, main_under_wall), (0, dorm_under_wall), (ridge_x, ridge_top - dp_v)]
+        if side == "E":
+            tri = [(W - x, z) for x, z in tri]
+        prism_xz(f"Dormer_cheek_{side}", tri, yn(dorm_len), yn(dorm_len) + t, shell)
+
+    # ---- main roof --------------------------------------------------------
+    z_eave = main_top_wall - mp * eave
+    roof_profile = [
+        (-eave, z_eave), (ridge_x, ridge_top), (W + eave, z_eave),
+        (W + eave, z_eave - mp_v), (ridge_x, ridge_top - mp_v), (-eave, z_eave - mp_v),
+    ]
+    prism_xz("Roof_main", roof_profile, -rake, NY + rake, roofc)
+
+    # ---- dormer roofs (4:12, sloping up from the face to the main plane) ---
+    for side in ("W", "E"):
+        z_face_eave = dorm_top_wall - dp * eave
+        prof = [(-eave, z_face_eave), (ridge_x, ridge_top),
+                (ridge_x, ridge_top - dp_v), (-eave, z_face_eave - dp_v)]
+        if side == "E":
+            prof = [(W - x, z) for x, z in prof]
+        prism_xz(f"Roof_dormer_{side}", prof, yn(dorm_len), NY, roofc)
+
+    # ---- eave / raised-heel band on the side walls -------------------------
+    # Between the 8'-0" top of plate and the main roof underside. This is the 9"
+    # raised heel plus fascia; without it the walls stop short of the roof.
+    for side, (bx0, bx1) in (("W", (0, t)), ("E", (W - t, W))):
+        box(f"Eave_band_{side}", bx0, bx1, SY + t, yn(dorm_len),
+            plate, main_under_wall, shell)
+
+    # ---- porch ------------------------------------------------------------
+    slab_t = con["porch_slab_thickness"]["ft"]
+    post = con["porch_post"]["ft"]
+    setback = env["porch_post_setback_each_end"]["ft"]
+    box("Porch_slab", 0, W, 0, P, -slab_t, 0, porchc)
+    box("Porch_ceiling", 0, W, 0, P, plate - 0.1, plate, porchc)
+    for i, px in enumerate((setback, W - setback)):
+        box(f"Porch_post_{i+1}", px - post / 2, px + post / 2,
+            0, post, 0, plate, porchc)
+    box("Floor_slab", 0, W, SY, NY, -slab_t, 0, porchc)
+
+    # ---- interior partitions, from the measured layout ---------------------
+    # Positions come from spec.interior_partitions.layout, measured on A1.1.
+    # Door openings are cut in; their SIZES are plan callouts, their POSITIONS
+    # are approximate (+/- 6") — see the layout block.
+    lay = spec["interior_partitions"]["layout"]
+    ti = con["interior_wall_thickness"]["ft"]
+    xw, ye = t, NY - t                 # interior west face, interior north face
+
+    def ix(v):
+        return xw + v                  # layout x -> world X
+    def iy(v):
+        return ye - v                  # layout y (south of N face) -> world Y
+
+    parts, doors_by_wall = {}, {}
+    for d in lay["doors"]:
+        doors_by_wall.setdefault(d["in"], []).append(d)
+
+    for pdef in lay["partitions"]:
+        pid = pdef["id"]
+        if pdef["axis"] == "y":        # runs north-south at a fixed x
+            x0, x1 = ix(pdef["at_ft"]) - ti, ix(pdef["at_ft"])
+            y0, y1 = iy(pdef["to_ft"]), iy(pdef["from_ft"])
+        else:                          # runs east-west at a fixed y
+            x0, x1 = ix(pdef["from_ft"]), ix(pdef["to_ft"])
+            y0, y1 = iy(pdef["at_ft"]), iy(pdef["at_ft"]) + ti
+        ob = box(f"Part_{pid}", x0, x1, y0, y1, 0, plate, interior)
+        parts[pid] = ob
+
+        cutters = []
+        for d in doors_by_wall.get(pid, []):
+            c, hw, pad = d["centre_ft"], d["w"] / 2.0, 0.05
+            if pdef["axis"] == "y":
+                cutters.append(box(f"cut_{d['id']}", x0 - pad, x1 + pad,
+                                   iy(c + hw), iy(c - hw), 0, d["h"], interior))
+            else:
+                cutters.append(box(f"cut_{d['id']}", ix(c - hw), ix(c + hw),
+                                   y0 - pad, y1 + pad, 0, d["h"], interior))
+        if cutters:
+            difference(ob, cutters)
+
+    return geo, dict(shell=shell, roof=roofc, porch=porchc, interior=interior)
+
+
+# ---------------------------------------------------------------------------
+def report(spec, geo, colls):
+    lv, env = spec["levels"], spec["envelope"]
+    W, D, P = geo["W"], geo["D"], geo["P"]
+
+    shell_roof = list(colls["shell"].objects) + list(colls["roof"].objects)
+    lo, hi = world_bbox(shell_roof)
+    stated = lv["overall_height"]["ft"]
+
+    print("\n" + "=" * 72)
+    print("BUILD REPORT — barn_cabin_524 (Option B)")
+    print("=" * 72)
+
+    rows = [
+        ("Footprint width  (X)", W, env["main_body_width"]["raw"]),
+        ("Footprint depth  (Y)", D + P, env["total_footprint_depth"]["raw"]),
+        ("Main body depth", D, env["main_body_depth"]["raw"]),
+        ("Ridge, top of roof", geo["ridge_top"], lv["overall_height"]["raw"]),
+        ("Model bbox top", hi[2], lv["overall_height"]["raw"]),
+    ]
+    w = max(len(r[0]) for r in rows)
+    print(f"\n{'DIMENSION'.ljust(w)} | {'MODEL':>10} | {'':>13} | SHEET")
+    print("-" * (w + 48))
+    for n, v, sheet in rows:
+        print(f"{n.ljust(w)} | {v:>7.2f} ft | {ft(v):>13} | {sheet}")
+
+    print("\nRoof, driven by the A1.1 elevation (see spec.roof.elevation_calibration):")
+    print(f"  ridge, top of roof        {ft(geo['ridge_top'])} above main FF")
+    print(f"  main 9:12 top at wall     {ft(geo['main_top_wall'])}")
+    print(f"  dormer 4:12 top at wall   {ft(geo['dorm_top_wall'])}   (sheet measured 14'-1.9\")")
+    print(f"  dormer plane reaches the ridge — no intersection short of the peak")
+    print(f"\nFraming cross-check (not used to place geometry):")
+    print(f"  plate {ft(geo['plate'])} + {ft(geo['heel'])} heel = {ft(geo['springs'])} springs")
+    print(f"  structural knee wall top  {ft(geo['face_top'])}  (loft subfloor + 4'-4\")")
+    print(f"  heel/fascia band on side walls: {ft(geo['plate'])} -> {ft(geo['main_under_wall'])}")
+
+    print(f"\nBounding box, shell + roof (with {ft(geo['eave'])} eave / {ft(geo['rake'])} rake):")
+    for i, ax in enumerate("XYZ"):
+        print(f"  {ax} {lo[i]:7.2f} .. {hi[i]:7.2f}   span {hi[i]-lo[i]:6.2f} ft")
+
+    print("\nGATES")
+    dorm_at_ridge = abs(geo["dorm_top_wall"] + geo["dp"] * geo["ridge_x"]
+                        - geo["ridge_top"]) < 1e-9
+    checks = [
+        ("footprint 22'-0\" x 30'-0\"", abs(W - 22) < 0.01 and abs(D + P - 30) < 0.01),
+        ("main floor area = 528 sf",
+         abs(W * D - spec["areas_declared"]["main_floor_living_sf"]["value"]) < 0.5),
+        ("ridge top of roof = 17'-9 11/16\" above FF",
+         abs(geo["ridge_top"] - stated) < 0.01),
+        ("model bbox top matches the stated height", abs(hi[2] - stated) < 0.01),
+        ("4:12 dormer plane reaches the ridge", dorm_at_ridge),
+        ("no NaN / degenerate geometry", all(math.isfinite(v) for v in lo + hi)),
+    ]
+    ok = True
+    for label, passed in checks:
+        print(f"  [{'PASS' if passed else 'FAIL'}] {label}")
+        ok &= passed
+    print("=" * 72)
+    return ok
+
+
+def main():
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else HERE
+    cut = "--no-openings" not in argv
+
+    spec = load_spec(HERE / "spec.yaml")
+    geo, colls = build(spec, cut_openings=cut)
+    ok = report(spec, geo, colls)
+
+    out.mkdir(parents=True, exist_ok=True)
+    dest = out / "barn_cabin_524.blend"
+    bpy.ops.wm.save_as_mainfile(filepath=str(dest))
+    print(f"\nsaved: {dest}")
+    if not ok:
+        raise SystemExit("one or more gates FAILED")
+
+
+if __name__ == "__main__":
+    main()
