@@ -79,6 +79,25 @@ def main():
         for v, k in offenders:
             print(f"    {k:24} {v*100:6.1f}% off")
 
+    # reveals must reach slot 1 — materials.clear() once wiped this silently
+    want = {}
+    op = spec["openings"]["main_floor"]
+    for wall, key in (("Wall_N", "north_wall"), ("Wall_S", "south_wall"),
+                      ("Wall_W", "west_wall"), ("Wall_E", "east_wall")):
+        want[wall] = len(op[key]["openings"])
+    want["Dormer_face_W"] = want["Dormer_face_E"] = len(
+        spec["openings"]["loft"]["windows"])
+    bad = []
+    for n, k in want.items():
+        ob = bpy.data.objects.get(n)
+        if ob is None:
+            continue
+        tagged = sum(1 for p in ob.data.polygons if p.material_index == 1)
+        if (k > 0) != (tagged > 0):
+            bad.append(f"{n}: {tagged} tagged faces for {k} openings")
+    gate("reveal faces still carry material slot 1", not bad,
+         "; ".join(bad) or "reveals tagged on every wall that has openings")
+
     # tile coverage: a tile spans tile_px / density feet
     tile_ft = tile_px / target
     gate("tile size is sane for the longest wall", tile_ft >= 4.0,

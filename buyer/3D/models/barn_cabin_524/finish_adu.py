@@ -84,11 +84,18 @@ def assign(spec, mats):
             continue
         for prefix, mname in rules:
             if ob.name.startswith(prefix):
+                # materials.clear() RESETS every polygon's material_index to 0,
+                # which silently discarded the reveal tagging from
+                # build_adu.mark_reveals(). Capture the indices first and put
+                # them back once both slots exist.
+                tagged = [i for i, poly in enumerate(ob.data.polygons)
+                          if poly.material_index == 1]
                 ob.data.materials.clear()
                 ob.data.materials.append(mats[mname])
-                # Faces tagged by mark_reveals() take trim in slot 1.
-                if any(p.material_index for p in ob.data.polygons):
+                if tagged:
                     ob.data.materials.append(mats["trim"])
+                    for i in tagged:
+                        ob.data.polygons[i].material_index = 1
                 break
         else:
             unmatched.append(ob.name)
