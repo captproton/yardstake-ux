@@ -52,8 +52,19 @@ def make_materials(spec, textured=True):
                                    "roughness": 0}.get(slot, 0))
             if slot == "base_color":
                 img.colorspace_settings.name = "sRGB"
-                nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-                bsdf.inputs["Base Color"].default_value = (1, 1, 1, 1)
+                if m.get("neutral_albedo"):
+                    # The map carries luminance only; the colour stays on the
+                    # factor so a configurator can swap it without new textures.
+                    mix = nt.nodes.new("ShaderNodeMixRGB")
+                    mix.blend_type = "MULTIPLY"
+                    mix.location = (-300, 300)
+                    mix.inputs["Fac"].default_value = 1.0
+                    mix.inputs["Color2"].default_value = (r, g, b, 1.0)
+                    nt.links.new(tex.outputs["Color"], mix.inputs["Color1"])
+                    nt.links.new(mix.outputs["Color"], bsdf.inputs["Base Color"])
+                else:
+                    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+                    bsdf.inputs["Base Color"].default_value = (1, 1, 1, 1)
             elif slot == "normal":
                 img.colorspace_settings.name = "Non-Color"
                 nm = nt.nodes.new("ShaderNodeNormalMap")
@@ -179,6 +190,82 @@ def export_glb(path, objects, draco=True):
     bpy.ops.export_scene.gltf(**kw)
 
 
+def patch_base_color_factors(path, spec):
+    """Write baseColorFactor for the neutral-albedo materials.
+
+    Blender's exporter does not recognise a multiply node feeding Base Color,
+    so it emits baseColorTexture with no factor — which would ship the model
+    untinted, since those maps carry luminance only. Two node types were tried
+    before settling on patching the file, which is deterministic and does not
+    depend on the exporter matching a graph pattern.
+    """
+    lib = spec["materials"]["library"]
+    raw = path.read_bytes()
+    assert raw[:4] == b"glTF"
+    chunks, off = [], 12
+    while off < len(raw):
+        clen, ctype = struct.unpack_from("<II", raw, off)
+        chunks.append([ctype, raw[off + 8: off + 8 + clen]])
+        off += 8 + clen
+    n = 0
+    for c in chunks:
+        if c[0] != 0x4E4F534A:
+            continue
+        js = json.loads(c[1].decode("utf-8"))
+        for m in js.get("materials", []):
+            key = m["name"].replace("adu_", "")
+            spec_m = lib.get(key, {})
+            if not spec_m.get("neutral_albedo"):
+                continue
+            r, g, b = spec_m["base_color_linear"]
+            m.setdefault("pbrMetallicRoughness", {})["baseColorFactor"] = [r, g, b, 1.0]
+            n += 1
+        blob = json.dumps(js, separators=(",", ":")).encode("utf-8")
+        blob += b" " * ((4 - len(blob) % 4) % 4)          # pad with spaces
+        c[1] = blob
+    body = b"".join(struct.pack("<II", len(c[1]), c[0]) + c[1] for c in chunks)
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
+    return n
+
+
+def emit_variants(out, spec, materials_present):
+    """Write the configurator manifest the Three.js runtime reads.
+
+    Every option is a baseColorFactor, so this file is the entire cost of the
+    finishes picker — no extra geometry, no extra textures. Validated against
+    the materials actually exported, so a typo in the spec fails here rather
+    than silently doing nothing in the browser.
+    """
+    v = spec.get("variants")
+    if not v:
+        return None, []
+    problems = []
+    sets = []
+    for st in v["sets"]:
+        for t in st["targets"]:
+            if t not in materials_present:
+                problems.append(f"{st['id']} -> unknown material {t}")
+        opts = [{"id": o["id"], "label": o["label"],
+                 "value": list(o["value"]) + [1.0],
+                 "default": bool(o.get("default"))} for o in st["options"]]
+        if sum(o["default"] for o in opts) != 1:
+            problems.append(f"{st['id']} needs exactly one default")
+        sets.append({"id": st["id"], "label": st["label"],
+                     "targets": st["targets"],
+                     "property": v.get("property", "baseColorFactor"),
+                     "options": opts})
+    manifest = {
+        "model": "barn_cabin_524",
+        "note": ("Runtime material swaps. Each option sets baseColorFactor on the "
+                 "named materials; the albedo maps are neutral, so no textures "
+                 "need loading and none ship per option."),
+        "sets": sets,
+    }
+    path = out / v.get("emit", "variants.json")
+    path.write_text(json.dumps(manifest, indent=2) + "\n")
+    return path, problems
+
+
 def glb_info(path):
     """Read a GLB's JSON chunk: extension use, mesh/accessor counts, bbox."""
     raw = path.read_bytes()
@@ -242,11 +329,16 @@ def main():
 
         p = out / f"barn_cabin_524_{lod}.glb"
         export_glb(p, keep)
+        if textured:
+            patch_base_color_factors(p, spec)
         info = glb_info(p)
         info["objects"] = len(keep)
         info["unmatched_materials"] = unmatched
         info["textured"] = textured
         results[lod] = info
+
+    all_mats = sorted(m.name for m in bpy.data.materials)
+    vpath, vproblems = emit_variants(out, spec, set(all_mats))
 
     # primary deliverable is a copy of lod0
     (out / "barn_cabin_524.glb").write_bytes((out / "barn_cabin_524_lod0.glb").read_bytes())
@@ -284,7 +376,16 @@ def main():
     print("-" * 76)
     print(f"expected X span (22'-0\" + 2 x 18\" eave) = {exp_x:.3f} m   got {got_x:.3f} m")
     scale_ok = abs(got_x - exp_x) < 0.01
-    print(f"\n  [{'PASS' if not over else 'FAIL'}] every level within its size budget")
+    if vpath:
+        nsets = len(spec["variants"]["sets"])
+        nopts = sum(len(x["options"]) for x in spec["variants"]["sets"])
+        print(f"\nconfigurator manifest: {vpath.name} — {nsets} sets, {nopts} options, "
+              f"{vpath.stat().st_size} bytes, 0 extra texture bytes")
+        for p_ in vproblems:
+            print(f"  PROBLEM: {p_}")
+        ok &= not vproblems
+    print(f"\n  [{'PASS' if not vproblems else 'FAIL'}] configurator manifest targets real materials")
+    print(f"  [{'PASS' if not over else 'FAIL'}] every level within its size budget")
     print(f"  [{'PASS' if scale_ok else 'FAIL'}] glTF exported in metres at the right scale")
     print(f"  [{'PASS' if ok else 'FAIL'}] Draco applied and every object matched a material")
     print("=" * 76)

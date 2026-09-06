@@ -1,0 +1,213 @@
+{
+  "model": "barn_cabin_524",
+  "note": "Runtime material swaps. Each option sets baseColorFactor on the named materials; the albedo maps are neutral, so no textures need loading and none ship per option.",
+  "sets": [
+    {
+      "id": "color_theme",
+      "label": "Colour theme",
+      "targets": [
+        "adu_siding",
+        "adu_shingle_gable"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "sandstone",
+          "label": "Sandstone",
+          "value": [
+            0.788,
+            0.724,
+            0.649,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "cloud",
+          "label": "Cloud",
+          "value": [
+            0.78,
+            0.79,
+            0.795,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "sage",
+          "label": "Sage",
+          "value": [
+            0.4,
+            0.44,
+            0.36,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "charcoal",
+          "label": "Charcoal",
+          "value": [
+            0.15,
+            0.155,
+            0.16,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "roof_colour",
+      "label": "Roof colour",
+      "targets": [
+        "adu_roof"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "weathered",
+          "label": "Weathered grey",
+          "value": [
+            0.234,
+            0.251,
+            0.266,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "charcoal",
+          "label": "Charcoal",
+          "value": [
+            0.11,
+            0.115,
+            0.12,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "driftwood",
+          "label": "Driftwood",
+          "value": [
+            0.23,
+            0.19,
+            0.15,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "trim_colour",
+      "label": "Trim",
+      "targets": [
+        "adu_trim",
+        "adu_post",
+        "adu_soffit"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "white",
+          "label": "White",
+          "value": [
+            0.85,
+            0.85,
+            0.85,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "almond",
+          "label": "Almond",
+          "value": [
+            0.82,
+            0.78,
+            0.7,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "main_flooring",
+      "label": "Main flooring",
+      "targets": [
+        "adu_floor_oak"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "natural_oak",
+          "label": "Natural oak",
+          "value": [
+            0.48,
+            0.36,
+            0.22,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "light_oak",
+          "label": "Light oak",
+          "value": [
+            0.6,
+            0.48,
+            0.33,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "walnut",
+          "label": "Walnut",
+          "value": [
+            0.23,
+            0.15,
+            0.09,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "bath_flooring",
+      "label": "Bath flooring",
+      "targets": [
+        "adu_slate_bath"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "slate",
+          "label": "Slate",
+          "value": [
+            0.1,
+            0.108,
+            0.118,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "limestone",
+          "label": "Limestone",
+          "value": [
+            0.52,
+            0.5,
+            0.46,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    }
+  ]
+}

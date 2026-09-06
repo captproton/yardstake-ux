@@ -502,6 +502,66 @@ doors:
     their retracted position, which is where they physically are when open.
 
 # ---------------------------------------------------------------------------
+variants:
+  # Configurator options, in the manner of the Studio-Home finishes picker.
+  #
+  # Every option here is a baseColorFactor change and NOTHING ELSE. That is
+  # only possible because the albedo maps are neutral (see
+  # materials.*.neutral_albedo): they carry the luminance pattern, the colour
+  # rides on the factor. So the whole option set below adds ZERO texture bytes
+  # to the payload, and new colours can be added without re-exporting.
+  #
+  # TIER-2 §6 weighed KHR_materials_variants against a runtime swap and chose
+  # the runtime swap, to keep the initial load light for a homeowner on a
+  # phone. finish_adu.py emits export/variants.json from this block.
+  emit: variants.json
+  property: baseColorFactor
+  sets:
+    - id: color_theme
+      label: Colour theme
+      targets: [adu_siding, adu_shingle_gable]
+      note: "Body and gable move together — the gable is painted cedar shingle, same colour."
+      options:
+        - {id: sandstone, label: Sandstone, value: [0.788, 0.724, 0.649], default: true,
+           source: "sampled from video 7:50"}
+        - {id: cloud,     label: Cloud,     value: [0.780, 0.790, 0.795]}
+        - {id: sage,      label: Sage,      value: [0.400, 0.440, 0.360]}
+        - {id: charcoal,  label: Charcoal,  value: [0.150, 0.155, 0.160]}
+    - id: roof_colour
+      label: Roof colour
+      targets: [adu_roof]
+      options:
+        - {id: weathered, label: Weathered grey, value: [0.234, 0.251, 0.266], default: true,
+           source: "sampled from video 6:56"}
+        - {id: charcoal,  label: Charcoal,      value: [0.110, 0.115, 0.120]}
+        - {id: driftwood, label: Driftwood,     value: [0.230, 0.190, 0.150]}
+    - id: trim_colour
+      label: Trim
+      targets: [adu_trim, adu_post, adu_soffit]
+      options:
+        - {id: white,  label: White,  value: [0.850, 0.850, 0.850], default: true}
+        - {id: almond, label: Almond, value: [0.820, 0.780, 0.700]}
+    - id: main_flooring
+      label: Main flooring
+      targets: [adu_floor_oak]
+      options:
+        - {id: natural_oak, label: Natural oak, value: [0.480, 0.360, 0.220], default: true,
+           source: "transcript 0:31 — white oak"}
+        - {id: light_oak,   label: Light oak,   value: [0.600, 0.480, 0.330]}
+        - {id: walnut,      label: Walnut,      value: [0.230, 0.150, 0.090]}
+    - id: bath_flooring
+      label: Bath flooring
+      targets: [adu_slate_bath]
+      options:
+        - {id: slate,     label: Slate,     value: [0.100, 0.108, 0.118], default: true,
+           source: "transcript 1:17"}
+        - {id: limestone, label: Limestone, value: [0.520, 0.500, 0.460]}
+  not_yet:
+    - "Countertops and cabinets — need Tier 3 fixtures to exist first."
+    - "Roof MATERIAL (metal vs shingle) — a colour swap cannot do it; needs a second texture."
+    - "Styles and floor-plan variants — those are geometry, not materials."
+
+# ---------------------------------------------------------------------------
 textures:
   dir: textures/
   budget_kb: {lod0: 4096, lod1: 1536, lod2: 200}
@@ -587,6 +647,7 @@ materials:
       roughness: 0.80
       metallic: 0.0
       raw: "6\" LAP SIDING"
+      neutral_albedo: true    # colour rides on baseColorFactor, so variants are free
       maps: {base_color: siding_albedo.png, normal: siding_normal.png}
       source: "A4.0 wall details; colour hue from video 6:56 / 7:50"
     shingle_gable:
@@ -598,6 +659,7 @@ materials:
         is lap siding. In the video the gable reads the same body colour as the walls,
         consistent with painted cedar shingle. Same colour, higher roughness, kept as
         a separate slot so a shingle texture can be dropped in without touching the walls.
+      neutral_albedo: true    # colour rides on baseColorFactor, so variants are free
       maps: {base_color: shingle_albedo.png, normal: shingle_normal.png}
       source: "A1.1 front elevation (coursing); video (colour)"
     roof:
@@ -605,6 +667,7 @@ materials:
       roughness: 0.90
       metallic: 0.0
       raw: "COMPOSITION ROOF"
+      neutral_albedo: true    # colour rides on baseColorFactor, so variants are free
       maps: {base_color: roof_albedo.png, normal: roof_normal.png}
       source: "A4.0 roof details; hue from video 6:56. Light-mid grey, not charcoal."
     trim:
@@ -634,6 +697,7 @@ materials:
       base_color_linear: [0.480, 0.360, 0.220]
       roughness: 0.45
       metallic: 0.0
+      neutral_albedo: true    # colour rides on baseColorFactor, so variants are free
       maps: {base_color: oak_albedo.png, normal: oak_normal.png}
       source: "transcript 0:31 'the same White Oak'; hue from video kitchen chapter 2:11"
       confidence: "hue from video, luminance plausible-not-measured — see provenance"
@@ -641,6 +705,7 @@ materials:
       base_color_linear: [0.100, 0.108, 0.118]
       roughness: 0.55
       metallic: 0.0
+      neutral_albedo: true    # colour rides on baseColorFactor, so variants are free
       maps: {base_color: slate_albedo.png, normal: slate_normal.png}
       source: "transcript 1:17 'we use slate in the bathroom'"
       confidence: "luminance plausible-not-measured"
@@ -648,6 +713,7 @@ materials:
       base_color_linear: [0.520, 0.500, 0.470]
       roughness: 0.95
       metallic: 0.0
+      neutral_albedo: true    # colour rides on baseColorFactor, so variants are free
       maps: {base_color: carpet_albedo.png}
       source: "transcript 6:46 'a heavyduty pad and a nice light carpet'"
       confidence: "luminance plausible-not-measured"

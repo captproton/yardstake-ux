@@ -52,9 +52,16 @@ def save(name, arr):
     return (OUT / name).stat().st_size
 
 
-def tint(base_linear, shade):
-    """shade in [0,1] multiplies the linear base colour, then to sRGB bytes."""
-    c = np.asarray(base_linear)[None, None, :] * shade[..., None]
+def tint(base_linear, shade, neutral=False):
+    """shade multiplies the linear base colour, then encodes to sRGB bytes.
+
+    With neutral=True the base colour is left OUT and the map carries only the
+    luminance pattern. The colour then rides on the glTF baseColorFactor, so a
+    colour variant is a three-float change rather than a whole new texture —
+    which is what makes the configurator's colour options free.
+    """
+    base = np.ones(3) if neutral else np.asarray(base_linear)
+    c = base[None, None, :] * shade[..., None]
     return (linear_to_srgb(c) * 255).astype(np.uint8)
 
 
@@ -71,7 +78,7 @@ def lap_siding(px, density, exposure_ft, base):
     shade += (rng.random(course.max() + 2)[course] - 0.5) * 0.020   # board-to-board
     h = np.clip(f, 0, 1) * 0.5
     h[(y % n) < 2] = 0.0
-    return tint(base, np.clip(shade, 0, 1.3)), normal_from_height(h, 3.0)
+    return tint(base, np.clip(shade, 0, 1.3), neutral=True), normal_from_height(h, 3.0)
 
 
 def shingles(px, density, exposure_ft, base, min_w, max_w, seed, jitter):
@@ -95,7 +102,7 @@ def shingles(px, density, exposure_ft, base, min_w, max_w, seed, jitter):
             x += w
         shade[y0:y0 + 2, :] *= 0.60                      # course shadow
         h[y0:y0 + 2, :] = 0.0
-    return tint(base, np.clip(shade, 0, 1.4)), normal_from_height(h, 2.2)
+    return tint(base, np.clip(shade, 0, 1.4), neutral=True), normal_from_height(h, 2.2)
 
 
 def concrete(px, base):
@@ -132,7 +139,7 @@ def oak_floor(px, density, base, plank_in=5.0, seed=21):
         h[:, x0:x0 + 2] = 0.0
     grain = lowfreq(px, 96, rng, 0.030) + lowfreq(px, 192, rng, 0.018)
     shade += grain
-    return tint(base, np.clip(shade, 0, 1.4)), normal_from_height(h, 1.6)
+    return tint(base, np.clip(shade, 0, 1.4), neutral=True), normal_from_height(h, 1.6)
 
 
 def slate(px, density, base, tile_in=12.0, seed=31):
@@ -151,7 +158,7 @@ def slate(px, density, base, tile_in=12.0, seed=31):
         shade[:, x0:x0 + 2] *= 0.5
         h[:, x0:x0 + 2] = 0.0
     shade += lowfreq(px, 128, rng, 0.05)                    # cleft mottling
-    return tint(base, np.clip(shade, 0, 1.6)), normal_from_height(h, 1.4)
+    return tint(base, np.clip(shade, 0, 1.6), neutral=True), normal_from_height(h, 1.4)
 
 
 # Painted gypsum gets NO maps. A normal map for orange-peel cost 1.36 MB and
@@ -165,7 +172,7 @@ def carpet(px, base, seed=51):
     rng = np.random.default_rng(seed)
     fine = lowfreq(px, 160, rng, 0.055)
     slow = lowfreq(px, 24, rng, 0.030)
-    return tint(base, np.clip(1.0 + fine + slow, 0, 1.4))
+    return tint(base, np.clip(1.0 + fine + slow, 0, 1.4), neutral=True)
 
 
 def main():

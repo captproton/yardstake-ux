@@ -24,8 +24,10 @@ grey boxes.
 **Two prerequisites, both cheap, both before geometry:**
 
 1. **Fix texel density.** [TIER-2 §2](TIER-2-materials-and-textures.md) —
-   128 px/ft, world-axis cube projection, unwrapped after booleans. It
+   128 px/ft, in-plane cube projection, unwrapped after booleans. It
    constrains how everything below is authored. Decide once, use throughout.
+   (World-axis projection was the original recommendation and turned out to be
+   wrong; see TIER-2 §3.)
 2. **Read the build rules** in [README](README.md#tier-1-build-rules). They
    exist to keep Tiers 2 and 3 cheap.
 
