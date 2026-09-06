@@ -3,14 +3,14 @@
 **Status: sketch.** Enough to scope and estimate; not enough to build from.
 Firm this up once Tier 1 lands and the interior surfaces actually exist.
 
-**Owner:** us — as are Tiers 1 and 3. The placement developer's scope is
-placement only, and that is the sole external interface — see
-[The one handoff](README.md#the-one-handoff--to-the-placement-developer).
-Nothing here is blocked on another party; we set the pace.
+**Owner:** us. Tier 1 is complete and Tier 2's exterior half is merged, so the
+floors and walls fixtures need already exist — see
+[The one handoff](README.md#the-one-handoff--to-the-placement-developer) for the
+one external interface. Nothing here is blocked; we set the pace.
 
-**Partly blocked.** Nothing can be *placed* until Tier 1 delivers floors and
-walls, and clearance checks need the same. But two substantial pieces can start
-immediately and are on the critical path:
+**No longer blocked.** Tier 1 delivered the floors and walls, so placement and
+clearance checks can both proceed. Two pieces are still the sensible starting
+point:
 
 - **Extract fixture footprints from A1.1** into a `fixtures:` block in
   `spec.yaml` — the measuring technique is proven and the sheet is in hand.
@@ -78,7 +78,8 @@ per asset in the spec, same as everything else.
 
 ## 3. Payload — the real constraint
 
-This is where the model stops being 29 KB.
+This is where the model stops being small. `lod0` is 285 KB after Tier 2's
+exterior textures; fixtures are the next big step up.
 
 Downloaded assets routinely arrive at 50k–500k triangles each. Fifteen of them
 naively imported would be tens of megabytes, which destroys the configurator on

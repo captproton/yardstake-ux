@@ -1,5 +1,12 @@
 # Tier 1 — Schematic interior
 
+**Status: DONE**, merged in
+[#57](https://github.com/captproton/yardstake-ux/pull/57). 14/14 gates.
+Two things surfaced that are worth carrying forward: the main roof ran through
+the loft across 100% of its width (a defect inherited from P2, fixed by cutting
+the roof out of the dormer zone), and the reveal tagging did not survive export
+until `materials.clear()` was found to reset every polygon's material index.
+
 **Goal.** Turn the interior from a shell into rooms. Door leaves, casing and
 trim, ceiling planes, distinct floor surfaces, and the loft ladder and
 guardrail. Geometry only — no textures, no fixtures.

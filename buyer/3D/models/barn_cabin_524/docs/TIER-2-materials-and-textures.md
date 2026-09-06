@@ -4,22 +4,20 @@
 texel density, compressed for the web, and swappable at runtime so the
 configurator's finishes picker has something to pick.
 
+**Status: the exterior half is DONE**, merged in
+[#57](https://github.com/captproton/yardstake-ux/pull/57). UVs, four exterior
+textures, size budgets and the reveal materials are shipped and gated.
+Remaining: interior materials, configurator hooks, KTX2.
+
 **Owner:** us — as are Tiers 1 and 3. The placement developer's scope is
 placement only, and that is the sole external interface — see
 [The one handoff](README.md#the-one-handoff--to-the-placement-developer).
-Nothing here is blocked on another party; we set the pace.
+Tier 1 is complete, so nothing here is blocked; we set the pace.
 
-**Partly blocked.** Interior materials (drywall, oak floor, slate) need Tier 1's
-surfaces to exist. Everything else can start now: all exterior materials, the
-texel density decision, the UV strategy, the KTX2 toolchain and the size gates.
-
-**Settle §2 before Tier 1 geometry is built.** Texel density constrains how
-Tier 1 must be authored. Since both tiers are ours, decide it once at the start
-of Tier 1 and use it throughout — retrofitting UVs onto finished trim and
-ceilings costs far more than generating them in place.
-
-**Do not break the handoff.** `lod2` is the placement developer's model. If
-texturing inflates it past ~100 KB that is a bug, not a tradeoff.
+**Do not break the handoff.** `lod2` is the placement developer's model. This
+already bit once: texturing took it from 17 KB to 239 KB, past its ceiling. It
+now ships flat-shaded at 21 KB, and the budgets are gated in `finish_adu.py`
+rather than left to inspection.
 
 **Does not depend on:** Tier 3.
 
@@ -27,11 +25,13 @@ texturing inflates it past ~100 KB that is a bug, not a tradeoff.
 
 ## 1. Where things stand
 
-`spec.yaml → materials.library` defines eight materials, all flat colour, no
-maps, no UVs:
+`spec.yaml → materials.library` now defines **13 materials**. Every mesh is
+unwrapped, and the four exterior ones carry maps:
 
 ```
-siding  shingle_gable  roof  trim  glass  concrete  post  soffit
+TEXTURED   siding  shingle_gable  roof  concrete
+FLAT       trim  glass  post  soffit  fir_ladder
+PENDING    drywall  floor_oak  slate_bath  carpet_loft   <- interior, next up
 ```
 
 Their **hue** was sampled from verified video frames (6:56 and 7:50). Their
@@ -39,14 +39,15 @@ Their **hue** was sampled from verified video frames (6:56 and 7:50). Their
 `materials.provenance`. That limitation carries forward into tier 2 and should
 be resolved here if it is ever going to be, because a texture bakes it in.
 
-Total `lod0` payload today: **29 KB**. This is the number tier 2 will move most.
+`lod0` was 29 KB before texturing and is **285 KB** now — see §5.
 
-## 2. Texel density — decide this first
+## 2. Texel density — DECIDED: 128 px/ft
 
 Everything downstream depends on one number, and it belongs in `spec.yaml`, not
 in a script.
 
-**Recommendation: 128 px/ft (≈420 px/m), uniform across the model.**
+**128 px/ft (≈420 px/m), uniform across the model.** Fixed in
+`spec.texturing`.
 
 Rationale: the tightest detail that must read crisply is the 6" lap siding
 exposure. At 128 px/ft that's 64 px per course — comfortably sharp at the 2–6 ft
@@ -54,7 +55,7 @@ viewing distance a walkthrough implies, and still legible at configurator
 orbit distance. A 22 ft wall maps to ~2816 px, so a 4K tile covers the longest
 wall without repeating visibly.
 
-Add to spec:
+As it stands in the spec:
 
 ```yaml
 texturing:
@@ -64,11 +65,10 @@ texturing:
   uv_channel: 0
 ```
 
-**Verification gate:** a script that reports actual px/ft per object and fails
-if any is more than ±15% off target. Without this, hand-unwrapped objects drift
-and the siding scale visibly jumps between walls.
+**Verification gate:** implemented in `verify_tier2.py`. Result on the shipped
+model: **3290 of 3290 edges at exactly 128.0 px/ft, 0.0% off.**
 
-## 3. UV generation
+## 3. UV generation — DONE
 
 The geometry is box-like, so cube projection is close to free — but three
 details will bite:
@@ -77,17 +77,26 @@ details will bite:
 Openings introduce new faces that no pre-boolean UV layout accounts for.
 Generate UVs as the last step in `build_adu.py`, after `difference()`.
 
-**Project on world axes, not local.** Objects are axis-aligned so world-space
-cube projection gives consistent, seam-free tiling across adjacent walls —
-siding courses will line up around a corner instead of stepping.
+**Do NOT project on world axes.** This was the original recommendation here and
+it is wrong: a world-axis projection foreshortens any sloped face, and the 9:12
+roof came out ~20% stretched against the walls. See the projection note below
+for what shipped instead.
 
-**Openings will produce seams at the reveals.** The jamb faces inside each
-window cut are perpendicular to the wall face and will take a different
-projection axis. Acceptable for lap siding (the reveal is trim in reality, not
-siding), but it means the reveals want the `trim` material, not `siding`. That
-implies a per-face material assignment on wall meshes, which is a change from
-the current one-material-per-object model. **Flag this early — it's the single
-most likely source of scope creep in tier 2.**
+**Openings produce seams at the reveals — RESOLVED.** The jamb, head and sill
+faces want `trim`, not `siding`, which meant per-face material assignment on
+wall meshes. Done in Tier 1 while the openings were being detailed anyway,
+which was far cheaper than retrofitting.
+
+It did not work first time. `materials.clear()` resets every polygon's
+`material_index` to 0, so the tagging was silently discarded and every wall
+exported as a single siding primitive. Only checking the exported bytes caught
+it. Now gated in `verify_tier2.py`.
+
+**On the projection.** A naive world-axis cube projection foreshortens sloped
+faces — the 9:12 roof came out ~20% stretched against the walls. The shipped
+version gives each face a basis in its own plane: *u* level along the face,
+*v* up the true slope. That also keeps lap courses horizontal on walls and
+shingle courses running true up the roof.
 
 ## 4. Material list
 
@@ -117,7 +126,7 @@ already get.
 
 ## 5. Compression and budget
 
-This is where 29 KB becomes megabytes if nobody is watching.
+This is where a 29 KB model becomes megabytes if nobody is watching.
 
 **Do not ship PNG or JPEG.** Use **KTX2 / Basis Universal**
 (`KHR_texture_basisu`) — GPU-compressed, stays compressed in VRAM, and Three.js
@@ -135,18 +144,17 @@ treat the Blender `.glb` as an intermediate.
 
 **Budget targets:**
 
-| Level | Today | Tier 2 target | Ceiling |
+| Level | Shipped | Ceiling | |
 |---|---|---|---|
-| `lod0` | 29 KB | ≤ 2.5 MB | 4 MB |
-| `lod1` | 26 KB | ≤ 1.5 MB | — |
-| `lod2` | 17 KB | **≤ 100 KB** | 200 KB |
+| `lod0` | **285.0 KB** | 4 MB | textured |
+| `lod1` | **249.4 KB** | 1.5 MB | textured |
+| `lod2` | **21.1 KB** | 200 KB | flat, deliberately untextured |
 
-`lod2` is the siting model. It must stay tiny — plausibly several instances on
-screen at once, on a homeowner's phone. **If texturing inflates `lod2`, that is
-a bug, not a tradeoff.** Give it a single low-res atlas or leave it flat-shaded.
+Gated in `finish_adu.py`: the export fails if a level exceeds its ceiling.
 
-**Add both as gates**, in the manner of the existing export gates: fail the
-build if a level exceeds its ceiling.
+`lod2` is the siting model and must stay tiny — plausibly several instances on
+screen at once, on a homeowner's phone. Texturing pushed it to 239 KB before it
+was caught; it now ships flat-shaded, which at 20–100 ft costs nothing visible.
 
 ## 6. Configurator hooks
 
