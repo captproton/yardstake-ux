@@ -202,6 +202,10 @@ def build(spec, cut_openings=True):
         """Underside of the main roof at plan X."""
         return ridge_top - mp * abs(ridge_x - x) - mp_v
 
+    def dorm_under(x):
+        """Underside of the 4:12 dormer roof at plan X. Runs to the ridge."""
+        return ridge_top - dp * abs(ridge_x - x) - dp_v
+
     geo = dict(W=W, D=D, P=P, t=t, rt=rt, plate=plate, loft_sf=loft_sf,
                knee=knee, springs=springs, ridge_x=ridge_x, ridge_top=ridge_top,
                ridge_under=ridge_under, face_top=face_top, eave=eave, rake=rake,
@@ -213,6 +217,7 @@ def build(spec, cut_openings=True):
     roofc = collection("Roof")
     porchc = collection("Porch")
     interior = collection("Interior_approx")
+    finish = collection("Finish")
 
     # ---- frame convention -------------------------------------------------
     # Y runs SOUTH -> NORTH so that (east=+X, north=+Y, up=+Z) is a right-handed
@@ -311,7 +316,17 @@ def build(spec, cut_openings=True):
         (-eave, z_eave), (ridge_x, ridge_top), (W + eave, z_eave),
         (W + eave, z_eave - mp_v), (ridge_x, ridge_top - mp_v), (-eave, z_eave - mp_v),
     ]
-    prism_xz("Roof_main", roof_profile, -rake, NY + rake, roofc)
+    roof_main = prism_xz("Roof_main", roof_profile, -rake, NY + rake, roofc)
+    # Cut the main roof out of the DORMER ZONE, but only between the wall faces.
+    # A dormer is made by removing roof; leaving it continuous put a 9:12 slab
+    # through the loft across 100% of its width. Truncating the roof instead was
+    # wrong -- the A1.1 left elevation shows the main roof continuing below and
+    # around the dormer, so the eave must survive. Keeping x < 0 and x > W
+    # preserves the 18" eave overhang while clearing the interior.
+    pad = 0.05
+    difference(roof_main, [box("cut_dormer_void", 0.0, W,
+                               yn(dorm_len), NY,      # stop at the wall, not the rake
+                               -pad, ridge_top + pad, roofc)])
 
     # ---- dormer roofs (4:12, sloping up from the face to the main plane) ---
     for side in ("W", "E"):
@@ -320,7 +335,9 @@ def build(spec, cut_openings=True):
                 (ridge_x, ridge_top - dp_v), (-eave, z_face_eave - dp_v)]
         if side == "E":
             prof = [(W - x, z) for x, z in prof]
-        prism_xz(f"Roof_dormer_{side}", prof, yn(dorm_len), NY, roofc)
+        # Runs out to the rear rake: past the dormers the roof surface IS the
+        # 4:12 plane, so the rear overhang follows it, not the 9:12 main plane.
+        prism_xz(f"Roof_dormer_{side}", prof, yn(dorm_len), NY + rake, roofc)
 
     # ---- eave / raised-heel band on the side walls -------------------------
     # Between the 8'-0" top of plate and the main roof underside. This is the 9"
@@ -380,7 +397,97 @@ def build(spec, cut_openings=True):
         if cutters:
             difference(ob, cutters)
 
-    return geo, dict(shell=shell, roof=roofc, porch=porchc, interior=interior)
+    # ---- Tier 1: door leaves -----------------------------------------------
+    # Every leaf is built; spec.doors.default_state says which are shown open.
+    # A pocket leaf "open" lives inside the wall cavity beside its opening,
+    # which is physically where it is — so it is modelled there, not hidden.
+    dspec = spec["doors"]
+    pdefs = {pp["id"]: pp for pp in lay["partitions"]}
+    lt = dspec["leaf_thickness"]["ft"]
+    state = dspec["default_state"]
+
+    def leaf(name, x0, x1, y0, y1, z0, z1):
+        box(name, x0, x1, y0, y1, z0, z1, finish)
+
+    # exterior entry door, in the south wall
+    for o in spec["openings"]["main_floor"]["south_wall"]["openings"]:
+        if not o["type"].endswith("door"):
+            continue
+        c = SY + t / 2
+        leaf(f"Door_{o['id']}", o["offset"], o["offset"] + o["w"],
+             c - lt / 2, c + lt / 2, o["sill"], o["sill"] + o["h"])
+
+    # interior leaves, one per door in the measured layout
+    for d in lay["doors"]:
+        pdef = pdefs[d["in"]]
+        typ = "bypass" if d["id"].endswith("CLOSET") else (
+            "double_pocket" if "DBL" in d["id"] else "pocket")
+        c, hw = d["centre_ft"], d["w"] / 2.0
+        opn = state.get(typ, "closed") == "open"
+        if pdef["axis"] == "x":                       # wall runs east-west
+            wy = iy(pdef["at_ft"]) + ti / 2
+            spans = ([(c - hw, c), (c, c + hw)] if typ == "double_pocket"
+                     else [(c - hw, c + hw)])
+            for k, (a, b) in enumerate(spans):
+                if opn:
+                    # A pocket leaf slides its OWN width to clear the opening.
+                    # For a single leaf, pick whichever side has wall to take it.
+                    lw = b - a
+                    if len(spans) == 2:
+                        west = (k == 0)
+                    else:
+                        west = (a - lw) >= pdef["from_ft"] - 1e-6
+                    a, b = (a - lw, b - lw) if west else (a + lw, b + lw)
+                leaf(f"Door_{d['id']}_{k}", ix(a), ix(b),
+                     wy - lt / 2, wy + lt / 2, 0, d["h"])
+        else:                                         # wall runs north-south
+            wx = ix(pdef["at_ft"]) - ti / 2
+            spans = ([(c - hw, c), (c, c + hw)] if typ == "bypass"
+                     else [(c - hw, c + hw)])
+            for k, (a, b) in enumerate(spans):
+                off = (lt if k else -lt)              # bypass leaves offset in depth
+                leaf(f"Door_{d['id']}_{k}", wx - lt / 2 + off, wx + lt / 2 + off,
+                     iy(b), iy(a), 0, d["h"])
+
+    # ---- Tier 1: ceilings and floor finishes -------------------------------
+    # Ceiling zones come from spec.ceilings; the vaulted ones are derived from
+    # main_under()/dorm_under() so they cannot drift from the roof they follow.
+    ct = con["ceiling_thickness"]["ft"]
+    ff = con["floor_finish_thickness"]["ft"]
+    xw, xe = t, W - t                      # interior west / east faces
+    ye = NY - t                            # interior north face
+    ys = SY + t                            # interior south face
+    loft_s = yn(dorm_len)                  # south edge of the loft floor
+
+    pdefs = {p["id"]: p for p in lay["partitions"]}
+    bath_x1 = ix(pdefs["P_bath_E"]["at_ft"]) - ti   # west face of the bath's east wall
+    bath_y0 = iy(pdefs["P_bath_S"]["at_ft"]) + ti   # north face of the bath's south wall
+
+    def vault(name, under, y0, y1):
+        """Thin ceiling slab following a roof-underside function."""
+        prof = [(xw, under(xw)), (ridge_x, under(ridge_x)), (xe, under(xe)),
+                (xe, under(xe) - ct), (ridge_x, under(ridge_x) - ct),
+                (xw, under(xw) - ct)]
+        return prism_xz(name, prof, y0, y1, finish)
+
+    box("Ceil_flat_under_loft", xw, xe, loft_s, ye, plate - ct, plate, finish)
+    vault("Ceil_vault_living", main_under, ys, loft_s)
+    vault("Ceil_vault_loft", dorm_under, loft_s, ye)
+
+    # Floor finishes tile without overlapping: south band full width, then the
+    # north band east of the bath, then the bath itself.
+    box("Floor_main_S", xw, xe, ys, bath_y0, 0, ff, finish)
+    box("Floor_main_N", bath_x1, xe, bath_y0, ye, 0, ff, finish)
+    box("Floor_bath",   xw, bath_x1, bath_y0, ye, 0, ff, finish)
+    box("Floor_loft",   xw, xe, loft_s, ye, loft_sf, loft_sf + ff, finish)
+
+    geo.update(ct=ct, ff=ff, xw=xw, xe=xe, ys=ys, ye=ye, loft_s=loft_s,
+               bath_x1=bath_x1, bath_y0=bath_y0,
+               main_under_wall_i=main_under(xw), dorm_under_wall_i=dorm_under(xw),
+               main_under_ridge=main_under(ridge_x), dorm_under_ridge=dorm_under(ridge_x))
+
+    return geo, dict(shell=shell, roof=roofc, porch=porchc,
+                     interior=interior, finish=finish)
 
 
 # ---------------------------------------------------------------------------
