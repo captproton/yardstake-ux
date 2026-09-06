@@ -1,0 +1,4 @@
+spec.json
+__pycache__/
+*.blend
+*.blend1
