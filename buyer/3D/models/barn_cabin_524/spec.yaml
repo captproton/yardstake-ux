@@ -580,6 +580,135 @@ textures:
     was replaced, for a 13x saving.
 
 # ---------------------------------------------------------------------------
+fixtures:
+  # TIER 3. Kitchen casework, appliances and bath fixtures.
+  #
+  # FOOTPRINTS ARE MEASURED; HEIGHTS ARE NOT. The plan set contains no interior
+  # elevations at all — sheets A0.0, A0.1, A1.0, A1.1, A2.0, A3.0, A4.0 and N-1,
+  # and not one shows a vertical interior surface. So every `h:` and `z:` below
+  # is an industry standard, marked `confidence: assumed`, and none of them
+  # should be quoted back as though it came off the drawings.
+  #
+  # Footprints were measured on A1.1 (pdf page 3) rasterised at 200 dpi, where
+  # 1/4"=1'-0" is exactly 50.0 px/ft — the same technique and the same scale the
+  # exterior openings were measured at.
+  measurement:
+    dpi: 200
+    px_per_ft: 50.0
+    calibration: >
+      Anchored on the INTERIOR wall faces, not the drawn wall band. The band
+      measures 29 px (~7") where the wall is 5-1/2": the same line-weight
+      inflation that made the exterior wall read 6-1/2" before P4 corrected it.
+      Interior faces are also what fixtures physically sit against.
+      Check: interior north face (row 559) to interior south face (row 1713.5)
+      is 1154.5 px for an interior depth of 23'-1", i.e. 50.01 px/ft against a
+      theoretical 50.0. The interior east face then lands within 0.006 ft of its
+      expected 21'-6-1/2". Both interior dimensions reproduce to 1/8".
+    method: >
+      Fixture edges were taken from the DRAWN LINES — rows and columns whose ink
+      spans most of the fixture — not from ink bounding boxes inside hand-chosen
+      windows. Bounding boxes were tried first and abandoned: a window that
+      clips its fixture reports the window, a window inside the fixture reports
+      the window too, and nothing in the output distinguishes either from a real
+      measurement. Six of nine fixtures were wrong that way before the method
+      changed.
+    tolerance_in: 1.0
+  datum: "x from the interior WEST face; y measured SOUTH from the interior NORTH face — the same datum as interior_partitions.layout"
+  # x,y = the fixture's north-west corner in that datum. w = extent in x (depth
+  # off the west wall, for the wall runs). d = extent in y (length along it).
+  kitchen:
+    # A continuous run down the interior west wall. The cabinet front is a
+    # single line at x = 2.00 ft: a 24" base cabinet, exactly stock. The
+    # refrigerator and range project past it, which is how real kitchens draw.
+    cabinet_run_depth: {ft: 2.0, raw: "2'-0\"", measured: "east edge col 534 for vanity, sink and dishwasher alike", confidence: measured}
+    counter_h:   {ft: 3.0,   raw: "3'-0\"",  source: "industry standard 36\" counter", confidence: assumed}
+    counter_thk: {ft: 0.125, raw: "1-1/2\"", source: "industry standard", confidence: assumed}
+    toe_kick_h:  {ft: 0.292, raw: "3-1/2\"", source: "industry standard", confidence: assumed}
+    upper_cab:
+      clear_above_counter: {ft: 1.5, raw: "1'-6\"", source: "industry standard 18\"", confidence: assumed}
+      height:              {ft: 2.5, raw: "2'-6\"", source: "industry standard 30\"", confidence: assumed}
+      depth:               {ft: 1.0, raw: "1'-0\"", source: "industry standard 12\"", confidence: assumed}
+      note: "NOT DRAWN on A1.1 — uppers do not appear in plan at all. Existence and extent are an assumption; the video is the only evidence."
+    items:
+      - {id: refrigerator, x: 0.0, y: 8.290, w: 2.310, d: 2.420,
+         raw_measured: "2'-3-3/4\" deep x 2'-5\" wide", h: 5.75,
+         stock_check: "29\" wide reads as a 30\" nominal unit; projects 3-3/4\" past the cabinet front, as fridges do",
+         confidence: measured, height_confidence: assumed,
+         source: "A1.1 main floor plan, box labelled REF."}
+      - {id: range, x: 0.0, y: 12.370, w: 2.180, d: 2.510,
+         raw_measured: "2'-2-1/8\" deep x 2'-6-1/8\" wide", h: 3.0,
+         stock_check: "30.1\" — matches the video's '30 inch range' (2:11) to within 1/8\"",
+         confidence: measured, height_confidence: assumed,
+         source: "A1.1 main floor plan, box labelled ELEC RANGE"}
+      - {id: sink_cabinet, x: 0.0, y: 16.640, w: 2.0, d: 2.800,
+         raw_measured: "2'-0\" deep x 2'-9-3/8\" wide", h: 3.0,
+         stock_check: "33.6\" reads as a 33\" sink base",
+         confidence: measured, height_confidence: assumed,
+         source: "A1.1 main floor plan, basin drawn inside the run"}
+      - {id: dishwasher, x: 0.0, y: 19.440, w: 2.0, d: 2.210,
+         raw_measured: "2'-0\" deep x 2'-2-1/2\" wide", h: 2.875,
+         stock_check: "26.5\" against a 24\" stock dishwasher — a 2-1/2\" disagreement, see discrepancies.dishwasher_width",
+         confidence: measured, height_confidence: assumed,
+         source: "A1.1 main floor plan, dashed box labelled D.W."}
+  bath:
+    items:
+      - {id: tub_shower, x: 0.0, y: 0.0, w: 5.0, d: 2.710,
+         raw: "5'-0\" x 2'8\"", raw_measured: "5'-0\" x 2'-8-1/2\"",
+         h: 1.667, apron_h: {ft: 1.667, raw: "1'-8\"", confidence: assumed},
+         stock_check: "callout 5'-0\" x 2'8\"; measured agrees to 1/2\" on the short axis and exactly on the long",
+         confidence: measured, height_confidence: assumed,
+         note: "Tucked into the north-west corner, against both walls.",
+         source: "A1.1 main floor plan callout T/S 5'-0\" x 2'8\""}
+      - {id: toilet, x: 0.060, y: 3.080, w: 2.480, d: 1.840,
+         raw_measured: "2'-5-3/4\" off the wall x 1'-10-1/8\" wide",
+         h: 2.5, seat_h: {ft: 1.292, raw: "15-1/2\"", confidence: assumed},
+         stock_check: "29-3/4\" projection and 22\" width are both ordinary for a floor-mount two-piece",
+         confidence: measured, height_confidence: assumed,
+         note: "Drawn as an oval with a tank rectangle, so this is an ink bounding box rather than a line measurement — the only fixture here that is.",
+         source: "A1.1 main floor plan"}
+      - {id: vanity, x: 0.0, y: 5.500, w: 2.0, d: 2.500,
+         raw_measured: "2'-0\" deep x 2'-6\" wide", h: 2.667,
+         stock_check: "30\" x 24\" — exactly stock, both axes",
+         confidence: measured, height_confidence: assumed,
+         source: "A1.1 main floor plan"}
+      - {id: fan_light, drawn: true, ceiling_mounted: true,
+         note: "Tagged FAN, LIGHT, V.T.O. Position drawn but it is a ceiling item; no footprint on the floor.",
+         confidence: measured, source: "A1.1 main floor plan tag"}
+  laundry:
+    items:
+      - {id: stacked_wd, x: 5.390, y: 0.590, w: 2.300, d: 2.0,
+         raw_measured: "2'-3-3/4\" x 2'-0\"", h: 6.167,
+         stock_check: "27-3/4\" x 24\" is a compact stacked unit; full-size stacks are ~27\" x 31\", so this is the shallow variant",
+         confidence: measured, height_confidence: assumed,
+         source: "A1.1 main floor plan, box labelled STACK W/D"}
+  access:
+    items:
+      - {id: crawl_hole, x: 5.990, y: 4.790, w: 2.0, d: 2.0,
+         raw: "24\" x 24\"", raw_measured: "2'-0\" x 2'-0\"",
+         stock_check: "reproduces the callout exactly on both axes",
+         confidence: measured, floor_opening: true,
+         source: "A1.1 main floor plan callout 24\" X 24\" CRAWL HOLE"}
+  not_measured:
+    # Drawn on A1.1 but outside this pass, and why.
+    - {id: mini_split_head, reason: "wall-mounted high on the living/kitchen south wall; plan shows position but height is the whole question and no elevation gives it"}
+    - {id: heat_pump, reason: "EXTERIOR, north of the building. Not part of the interior model; belongs with siting if it is ever wanted"}
+    - {id: tankless_water_heater, reason: "EXTERIOR, north wall"}
+    - {id: elec_meter_panel, reason: "EXTERIOR, north-east corner"}
+    - {id: smoke_co_detectors, reason: "ceiling items, tagged SD and SD/CO; no footprint"}
+    - {id: upper_cabinets, reason: "not drawn in plan at all — see kitchen.upper_cab.note"}
+  furniture:
+    # Settled in TIER-3 section 4: furniture and appliances are both SHOWN and
+    # neither is included in the price, matching how Studio-Home presents its
+    # defaults. Furniture is architectural fill-in-the-space — schematic,
+    # neutral, unbranded — there to let a buyer read scale and circulation.
+    #
+    # It is NOT ON THE PLAN. Nothing below is measured, and nothing below should
+    # be verified against A1.1, because the sheet says nothing about it.
+    status: not_yet_placed
+    disclosure_required: "Furniture and appliances shown for scale; not included. This is a UI requirement — no part of the model can enforce it."
+    prefixes: {furniture: "Furn_", appliances: "Appl_"}
+
+# ---------------------------------------------------------------------------
 texturing:
   # DECIDED 2026-09-06, per docs/TIER-2-materials-and-textures.md §2. Fixed
   # before Tier 1 geometry because it constrains how everything is authored.
@@ -786,6 +915,21 @@ areas_declared:
 discrepancies:
   # Built unit (video) vs published plans. Plans win for geometry; these are flagged
   # because they change what the model should show if the goal is the as-built unit.
+  - id: dishwasher-width
+    severity: low
+    plan_says: "Dashed box labelled D.W., measured 2'-2-1/2\" (26.5\") wide on A1.1 at 200 dpi"
+    stock_says: "24\" — the only width domestic dishwashers come in, bar an 18\" compact"
+    analysis: >
+      The drawn opening is 2-1/2" wider than any dishwasher that could occupy it.
+      Most likely the box is the cabinet OPENING rather than the appliance, or a
+      nominal gap was drawn. Every other appliance on this run reproduces a stock
+      size closely — the range measures 30.1" against the video's "30 inch range" —
+      so this is a local oddity and not a scale error.
+    action: >
+      Model the appliance at 24" inside the drawn opening. Do NOT snap the plan's
+      number to 24": record it and leave the sheet alone, the same treatment the
+      loft egress finding got.
+    severity_note: "Cosmetic. It cannot fail a clearance check — the aisle is measured to the cabinet front, which is exact."
   - id: loft-egress-window
     severity: high
     plan_says: "4'-0\" x 2'-0\" X/O slider, two per dormer (A1.1 loft plan + left elevation)"

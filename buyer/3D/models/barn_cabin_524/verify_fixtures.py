@@ -1,0 +1,173 @@
+"""
+verify_fixtures.py — gates on the Tier 3 fixture footprints, from spec alone.
+
+No geometry exists yet: this pass measured fixtures off A1.1 and wrote them to
+`spec.fixtures`. These gates check the NUMBERS, which is the cheapest moment to
+catch a bad measurement — before anything is modelled on top of it.
+
+Run it with plain Python; Blender is not needed.
+
+    python3 verify_fixtures.py
+
+The clearance checks are the ones that matter for credibility. The bath is
+5'-1" x 8'-0" with a 5'-0" tub, so the clearances there are genuinely tight and
+worth asserting rather than assuming. A failing clearance is a finding about
+the PLAN, to be recorded in spec.discrepancies — not a licence to nudge
+geometry until it fits.
+"""
+import sys
+from pathlib import Path
+
+import yaml
+
+HERE = Path(__file__).resolve().parent
+
+# Datum: x from the interior WEST face, y measured SOUTH from the interior
+# NORTH face. Same as interior_partitions.layout and spec.fixtures.datum.
+FAILED = []
+PASSED = []
+
+
+def gate(ok, name, detail=""):
+    (PASSED if ok else FAILED).append(name)
+    print(f"  [{'PASS' if ok else 'FAIL'}] {name:52s} {detail}")
+
+
+def ftin(v):
+    neg, v = v < 0, abs(v)
+    ft = int(v)
+    e = round((v - ft) * 96)
+    if e == 96:
+        ft, e = ft + 1, 0
+    i, r = divmod(e, 8)
+    return f"{'-' if neg else ''}{ft}'-{i}" + (f" {r}/8\"" if r else '"')
+
+
+def all_items(fx):
+    for group in ("kitchen", "bath", "laundry", "access"):
+        for it in fx[group].get("items", []):
+            if "x" in it:
+                yield group, it
+
+
+def main():
+    spec = yaml.safe_load((HERE / "spec.yaml").read_text())
+    fx = spec["fixtures"]
+    lay = spec["interior_partitions"]["layout"]
+    part = {p["id"]: p for p in lay["partitions"]}
+
+    W = spec["envelope"]["main_body_width"]["ft"]
+    D = spec["envelope"]["main_body_depth"]["ft"]
+    t = spec["construction"]["exterior_wall_thickness"]["ft"]
+    int_w, int_d = W - 2 * t, D - 2 * t
+
+    items = list(all_items(fx))
+    print("=" * 96)
+    print(f"TIER 3 FIXTURE GATES — {len(items)} measured footprints")
+    print("=" * 96)
+
+    # 1. Everything is inside the building.
+    out = [i["id"] for _, i in items
+           if i["x"] < -0.01 or i["y"] < -0.01
+           or i["x"] + i["w"] > int_w + 0.01
+           or i["y"] + i["d"] > int_d + 0.01]
+    gate(not out, "every fixture sits inside the interior envelope",
+         f"interior {ftin(int_w)} x {ftin(int_d)}" if not out else f"outside: {out}")
+
+    # 2. No two fixtures overlap. Cheap, and it catches a mis-keyed offset.
+    clashes = []
+    for a in range(len(items)):
+        for b in range(a + 1, len(items)):
+            p, q = items[a][1], items[b][1]
+            ox = min(p["x"] + p["w"], q["x"] + q["w"]) - max(p["x"], q["x"])
+            oy = min(p["y"] + p["d"], q["y"] + q["d"]) - max(p["y"], q["y"])
+            if ox > 0.02 and oy > 0.02:
+                clashes.append(f"{p['id']}/{q['id']} by {ox*12:.1f}x{oy*12:.1f}in")
+    gate(not clashes, "no two fixtures overlap",
+         "clear" if not clashes else "; ".join(clashes))
+
+    # 3. The tub is an alcove unit: it must fit its alcove, and only just.
+    tub = next(i for _, i in items if i["id"] == "tub_shower")
+    bath_e = part["P_bath_E"]["at_ft"]
+    slack = bath_e - (tub["x"] + tub["w"])
+    gate(-0.02 <= slack <= 0.25, "tub fits the bath alcove",
+         f"{ftin(slack)} spare against the bath east wall at {ftin(bath_e)}")
+
+    # 4. Kitchen aisle. Measured from the cabinet FRONT, which is exact (a
+    #    single drawn line at x = 2.00), not from the appliances that project.
+    front = fx["kitchen"]["cabinet_run_depth"]["ft"]
+    bed_w = part["P_bedroom_W"]["at_ft"]
+    bed_w_to = part["P_bedroom_W"]["to_ft"]
+    worst = None
+    for _, it in items:
+        if it["id"] not in ("refrigerator", "range", "sink_cabinet", "dishwasher"):
+            continue
+        # the bedroom partition only obstructs north of its own south end
+        limit = bed_w if it["y"] < bed_w_to else int_w
+        aisle = limit - max(front, it["x"] + it["w"])
+        if worst is None or aisle < worst[1]:
+            worst = (it["id"], aisle)
+    gate(worst[1] >= 3.0, "kitchen aisle >= 36in (NKBA)",
+         f"tightest {ftin(worst[1])} at the {worst[0]}")
+
+    # 5. Clear floor in front of the toilet and the vanity. IRC 307.1 wants 21"
+    #    clear in front; NKBA prefers 30".
+    for fid, need in (("toilet", 1.75), ("vanity", 1.75)):
+        it = next(i for _, i in items if i["id"] == fid)
+        clear = bath_e - (it["x"] + it["w"])
+        gate(clear >= need, f"clear floor in front of the {fid} >= 21in",
+             f"{ftin(clear)}")
+
+    # 6. Toilet centreline to the nearest obstruction each side: IRC wants 15".
+    toilet = next(i for _, i in items if i["id"] == "toilet")
+    ctr = toilet["y"] + toilet["d"] / 2.0
+    near = []
+    for _, it in items:
+        if it["id"] == "toilet" or it["x"] > toilet["x"] + toilet["w"]:
+            continue
+        if it["y"] + it["d"] <= toilet["y"] + 0.01:
+            near.append((it["id"], ctr - (it["y"] + it["d"])))
+        elif it["y"] >= toilet["y"] + toilet["d"] - 0.01:
+            near.append((it["id"], it["y"] - ctr))
+    tight = min(near, key=lambda kv: kv[1]) if near else ("none", 99)
+    gate(tight[1] >= 1.25, "toilet centreline >= 15in to each side (IRC 307.1)",
+         f"tightest {ftin(tight[1])} to the {tight[0]}")
+
+    # 7. Fixtures land in the room they are filed under.
+    wrong = []
+    for group, it in items:
+        in_bath = (it["x"] < bath_e and it["y"] < part["P_bath_S"]["at_ft"])
+        if group == "bath" and not in_bath:
+            wrong.append(it["id"])
+        if group == "kitchen" and in_bath:
+            wrong.append(it["id"])
+    gate(not wrong, "each fixture is in the room it is filed under",
+         "clear" if not wrong else str(wrong))
+
+    # 8. Heights are declared assumed, without exception. The plan set has no
+    #    interior elevations, so a height presented as measured would be false.
+    bad = [i["id"] for _, i in items
+           if ("h" in i or "z" in i) and i.get("height_confidence") != "assumed"]
+    gate(not bad, "every height is labelled assumed, not measured",
+         "no interior elevations exist in the set" if not bad else str(bad))
+
+    # 9. Anything checked against a plan callout must actually reproduce it.
+    callouts = {"tub_shower": (5.0, 2.667), "crawl_hole": (2.0, 2.0)}
+    off = []
+    for _, it in items:
+        if it["id"] in callouts:
+            cw, cd = callouts[it["id"]]
+            if abs(it["w"] - cw) > 1 / 12.0 or abs(it["d"] - cd) > 1 / 12.0:
+                off.append(f"{it['id']} {ftin(it['w'])}x{ftin(it['d'])} vs callout")
+    gate(not off, "callout fixtures reproduce their callout within 1in",
+         "tub and crawl hole both" if not off else "; ".join(off))
+
+    print("=" * 96)
+    print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}"
+          f"   ({len(PASSED)}/{len(PASSED) + len(FAILED)})")
+    print("=" * 96)
+    return 1 if FAILED else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -5,16 +5,15 @@ Tiers 1 and 2 have both landed ([#57](https://github.com/captproton/yardstake-ux
 tier sits on exist and are textured. **This is the only substantial work
 remaining** — firm it up before building.
 
-**Two things to start now, because both have lead time and neither needs the
-plan firmed up first:**
+**Step 1 of 2 is done.** Fixture footprints are measured and in
+`spec.fixtures` — 9 footprints, 10/10 gates, verified against the sheet.
+See §1a. No geometry is built yet.
 
-1. **Licensing.** Every downloaded asset must be CC0 or explicitly licensed for
-   commercial use before it reaches a homeowner. This is the one genuine
-   long-lead item in the whole ladder and the only place third-party assets
-   enter the model at all — tiers 1 and 2 shipped entirely procedural.
-2. **Fixture footprints from A1.1** into a `fixtures:` block in `spec.yaml`.
-   The measuring technique is proven, the sheet is in hand, and it is
-   independent of every sourcing decision.
+**Still to start: licensing.** Every downloaded asset must be CC0 or explicitly
+licensed for commercial use before it reaches a homeowner. This is the one
+genuine long-lead item in the whole ladder and the only place third-party
+assets enter the model at all — tiers 1 and 2 shipped entirely procedural. It
+does not depend on anything below, so it can begin immediately.
 
 **Owner:** us. Tiers 1 and 2 are complete, so the floors and walls fixtures
 need already exist and carry real materials — see
@@ -38,6 +37,73 @@ casework, appliances, bath fixtures, and a decision about staging furniture.
 
 ---
 
+## 1a. Footprints — DONE
+
+Measured on A1.1 (pdf page 3) at 200 dpi, where 1/4"=1'-0" is exactly
+50.0 px/ft, and recorded in `spec.fixtures` with provenance per item.
+
+| Fixture | Measured | Check |
+|---|---|---|
+| Tub / shower | 5'-0" × 2'-8½" | callout `5'-0" x 2'8"` — exact on the long axis, ½" on the short |
+| Toilet | 2'-5¾" proj. × 1'-10⅛" | ordinary floor-mount two-piece |
+| Vanity | 2'-6" × 2'-0" | **30" × 24" — stock on both axes** |
+| Refrigerator | 2'-5" × 2'-3¾" | 29" reads as a 30" nominal unit |
+| Range | 2'-6⅛" × 2'-2⅛" | **30.1" — matches the video's "30 inch range" to ⅛"** |
+| Sink cabinet | 2'-9⅜" × 2'-0" | 33.6" reads as a 33" sink base |
+| Dishwasher | 2'-2½" × 2'-0" | 26.5" vs 24" stock — see below |
+| Stacked W/D | 2'-3¾" × 2'-0" | compact stacked unit |
+| Crawl hole | 2'-0" × 2'-0" | callout `24" x 24"` — **exact on both axes** |
+
+The cabinet run has a single front line at **exactly 24"** off the wall — a
+stock base cabinet — with the refrigerator projecting to 27¾" and the range to
+26⅛", which is how real kitchens draw. That the run is exactly stock, and that
+the range independently reproduces the video's "30 inch range", are the two
+strongest signs the datum is right.
+
+**Calibration.** Anchored on the *interior* wall faces, not the drawn wall
+band. The band measures 29 px (≈7") where the wall is 5½" — the same
+line-weight inflation that made the exterior wall read 6½" until P4 corrected
+it. Interior faces are also what fixtures physically sit against. Both interior
+dimensions reproduce to ⅛".
+
+**Method, and a wrong turn worth recording.** Fixture edges come from the
+*drawn lines* — rows and columns whose ink spans most of the fixture. Ink
+bounding boxes inside hand-chosen windows were tried first and abandoned: a
+window that clips its fixture reports the window, a window inside the fixture
+reports the window too, and nothing in the output distinguishes either from a
+real measurement. Six of nine fixtures were wrong that way before the method
+changed, and every one of them looked like a plausible number.
+
+**One disagreement, recorded not silenced.** The dishwasher opening measures
+26½" against a 24" stock appliance — most likely the box is the cabinet opening
+rather than the appliance. It is in `spec.discrepancies` as
+`dishwasher-width`. Model the appliance at 24" inside the drawn opening; do not
+snap the plan's number, the same treatment the loft egress finding got.
+
+### Verification
+
+`verify_fixtures.py` — **10/10, no Blender needed**. It runs on the spec alone,
+which is the cheapest moment to catch a bad measurement, before anything is
+modelled on top of it.
+
+Envelope containment, pairwise overlap, tub-fits-alcove, kitchen aisle, clear
+floor at toilet and vanity, toilet centreline, room assignment, heights-declared-assumed,
+and callout reproduction.
+
+Two results worth reading:
+
+- **The toilet centreline clears by 15½" against a 15" IRC minimum.** This
+  section predicted the bath clearances would be tight and worth asserting
+  rather than assuming. They are.
+- **The tub has 1¼" spare** in its 5'-1" alcove. A 5'-0" tub in a 5'-1" room is
+  exactly as tight as it sounds.
+
+The relative gates cannot catch a systematic error — a wrong datum would
+satisfy all of them. So `tools/tier3/overlay.py` draws the recorded rectangles
+back onto the sheet they came from:
+[`../renders/tier3_fixture_overlay.png`](../renders/tier3_fixture_overlay.png).
+All nine land on their drawn fixtures.
+
 ## 1. The good news: sourcing is already solved in principle
 
 This was underestimated in earlier discussion. The inputs split cleanly three
@@ -49,18 +115,8 @@ ways, and all three exist:
 | **How tall they are** | Industry standards | High — these are stock items the builder repeats across units |
 | **What they look like** | Video, kitchen chapter 2:11 and bath 2:52 | Good; hue reliable, luminance not |
 
-Every fixture is drawn to scale on A1.1. Spot-measurements already taken:
-
-| Fixture | Plan | Measured |
-|---|---|---|
-| Tub / shower | callout `5'-0" x 2'8"` | 2.66 ft = **2'-8"** ✓ |
-| Electric range | drawn, no callout | **29.9"** — matches the video's "30 inch range" |
-| Counter run | drawn | east edge **2.29 ft** off the wall |
-| Crawl hole | callout `24" x 24"` | dimensioned |
-
-Also drawn and measurable: toilet, vanity with sink and faucet, dishwasher
-(dashed, under-counter), refrigerator, stacked W/D, and the bath ceiling
-fan/light.
+Every fixture is drawn to scale on A1.1, and all of them are now measured —
+see §1a for the full table and the gates.
 
 **What the plan does not contain: any vertical dimension.** The set has no
 interior elevations — sheets are A0.0, A0.1, A1.0, A1.1, A2.0, A3.0, A4.0, N-1,
