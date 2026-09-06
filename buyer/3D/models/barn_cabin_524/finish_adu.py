@@ -299,6 +299,32 @@ def glb_info(path):
 
 
 # ---------------------------------------------------------------------------
+def save_viewable_blend(spec, dest):
+    """Save a textured lod0 as a .blend you can actually open and look at.
+
+    build_adu.py saves the geometry, but the materials and textures are made
+    here and were only ever exported, never saved -- so opening
+    barn_cabin_524.blend showed a grey model and looked like the texturing had
+    failed. It had not; there was simply nothing to see.
+
+    This cannot reuse whatever is in memory at the end of main(): the export
+    loop rebuilds the scene per level and finishes on lod2, which is flat and
+    has no openings cut. So rebuild lod0 explicitly.
+
+    .blend is gitignored, so this is a local convenience and costs the repo
+    nothing. Image paths are made relative, or the file only opens on the
+    machine that wrote it.
+    """
+    geo, colls = build(spec, cut_openings=True)
+    bpy.context.scene.unit_settings.scale_length = FOOT_M
+    mats = make_materials(spec, textured=True)
+    add_glazing(spec, geo, collection("Glazing"))
+    assign(spec, mats)
+    bpy.ops.file.make_paths_relative()
+    bpy.ops.wm.save_as_mainfile(filepath=str(dest))
+    return dest
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else HERE / "export"
@@ -389,6 +415,10 @@ def main():
     print(f"  [{'PASS' if scale_ok else 'FAIL'}] glTF exported in metres at the right scale")
     print(f"  [{'PASS' if ok else 'FAIL'}] Draco applied and every object matched a material")
     print("=" * 76)
+
+    blend = save_viewable_blend(spec, HERE / "barn_cabin_524_textured.blend")
+    print(f"\nviewable: {blend}  (textured lod0 — open this, not barn_cabin_524.blend)")
+
     if not (ok and scale_ok):
         raise SystemExit(1)
 
