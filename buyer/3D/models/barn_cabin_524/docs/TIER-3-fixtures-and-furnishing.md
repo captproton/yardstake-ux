@@ -142,9 +142,35 @@ own floor. That is what produces the stepped profile in
 [`../renders/tier3_kitchen.jpg`](../renders/tier3_kitchen.jpg), and it matches
 the video.
 
+**The sink opening is cut**, and measured rather than assumed: A1.1 draws the
+sink as an outer rim and an inner bowl, and the cutout is the **inner bowl** —
+2'-4⅛" along the wall by 1'-3¼" off it. The rim spans very nearly the whole 33"
+cabinet, so using it would have cut away the counter's own bearing.
+
+It is built as a **frame of four boxes around the hole, not a boolean**.
+Booleans on hand-wound geometry are how P2 produced a mesh that looked cut and
+kept its full volume; four exact boxes cannot fail that way, and the counter is
+axis-aligned so a boolean would buy nothing. Gated by volume anyway — the
+counter must equal the solid slab less the hole, exactly.
+
 **Not built here, deliberately:** refrigerator, range, dishwasher, stacked W/D,
-toilet, tub and taps. Those are the *buy* half and are gated on licensing, so
-the render has gaps where appliances belong. That is expected, not missing work.
+toilet, tub, taps, and **the sink basin itself**. Those are the *buy* half and
+are gated on licensing, so the render has gaps where they belong — including a
+counter opening with nothing in it. That is the honest state: the hole is
+right, the fixture is pending.
+
+**The build/buy split in §2 needs amending, and this is why.** It sorted
+plumbing by *trade* rather than by *shape*, which swept the sink basin in with
+the tap. A basin is a box with a radius and carries no licensing exposure; a
+tap is genuinely organic. Same for the vanity basin, and arguably the tub —
+already measured to ⅛" against its callout. **The vanity top has the same
+missing cutout** and was left alone only to keep this branch to its stated
+scope.
+
+**Also outstanding:** the 24"×24" crawl hole is measured and reproduces its
+callout exactly, but is not cut into the floor. That is Tier 1 floor geometry
+which Tier 3a's measurement pass unblocked, not a Tier 1 regression — the
+dimension did not exist until this tier.
 
 ### Configurator
 

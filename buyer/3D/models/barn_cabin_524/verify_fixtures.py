@@ -162,6 +162,28 @@ def main():
     gate(not off, "callout fixtures reproduce their callout within 1in",
          "tub and crawl hole both" if not off else "; ".join(off))
 
+    # 10. The sink opening must sit inside the cabinet that carries it, and
+    #     leave a rim of counter all the way round. A cutout that reaches the
+    #     cabinet edge is a counter in two pieces, not a counter with a hole.
+    cut = fx["kitchen"]["runs"].get("sink_cutout")
+    if cut:
+        base = next(b for b in fx["kitchen"]["runs"]["base"] if b["id"] == "sink_base")
+        depth = fx["kitchen"]["cabinet_run_depth"]["ft"]
+        rim = min(cut["y0"] - base["y0"], base["y1"] - cut["y1"],
+                  cut["x0"], depth - cut["x1"])
+        gate(rim >= 1.5 / 12.0, "sink cutout leaves a counter rim all round",
+             f"tightest {ftin(rim)}")
+
+        seg = [s for s in fx["kitchen"]["runs"]["counter"]
+               if s["y0"] <= cut["y0"] and cut["y1"] <= s["y1"]]
+        gate(len(seg) == 1, "sink cutout falls inside exactly one counter run",
+             f"{len(seg)} matching run(s)")
+
+        bowl_w, bowl_d = cut["y1"] - cut["y0"], cut["x1"] - cut["x0"]
+        gate(1.5 <= bowl_w <= 3.0 and 1.0 <= bowl_d <= 2.0,
+             "sink opening is a plausible bowl size",
+             f"{ftin(bowl_w)} along the wall x {ftin(bowl_d)} off it")
+
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}"
           f"   ({len(PASSED)}/{len(PASSED) + len(FAILED)})")

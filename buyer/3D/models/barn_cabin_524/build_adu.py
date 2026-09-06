@@ -745,9 +745,26 @@ def build_casework(spec, geo, coll):
             fronts.append((xw + depth - door_t, xw + depth, ym(b), ym(a), z0, z1))
 
     # ---- counter and backsplash ------------------------------------------
+    # The sink opening is cut by BUILDING A FRAME around it, not by a boolean.
+    # Booleans on hand-wound geometry are how P2 got a mesh that looked cut and
+    # kept its full volume; four exact boxes cannot fail that way, and the
+    # counter is axis-aligned so there is nothing a boolean would buy.
+    cut = kit["runs"].get("sink_cutout")
+    cx0, cx1 = (xw + cut["x0"], xw + cut["x1"]) if cut else (0, 0)
+
     for seg in kit["runs"]["counter"]:
         ya, yb = ym(seg["y1"]), ym(seg["y0"])
-        tops.append((xw, xw + depth + overhang, ya, yb, ch - top_t, ch))
+        x1 = xw + depth + overhang
+        if cut and seg["y0"] <= cut["y0"] and cut["y1"] <= seg["y1"]:
+            cya, cyb = ym(cut["y1"]), ym(cut["y0"])
+            tops += [
+                (xw, x1, cyb, yb, ch - top_t, ch),      # beyond the opening, north
+                (xw, x1, ya, cya, ch - top_t, ch),      # beyond the opening, south
+                (xw, cx0, cya, cyb, ch - top_t, ch),    # behind it, against the wall
+                (cx1, x1, cya, cyb, ch - top_t, ch),    # in front of it
+            ]
+        else:
+            tops.append((xw, x1, ya, yb, ch - top_t, ch))
         splashes.append((xw, xw + splash_t, ya, yb, ch, ch + splash_h))
 
     # ---- uppers -----------------------------------------------------------
@@ -809,6 +826,15 @@ def build_casework(spec, geo, coll):
                                 (carcass, toes, fronts, tops, splashes,
                                  uppers, up_fronts, hoods))
 
+    # Gate input: what the counter actually is, against what it should be.
+    geo["counter_volume"] = sum(abs((b - a) * (d - c) * (f - e))
+                                for a, b, c, d, e, f in tops)
+    solid = sum(abs(depth + overhang) * abs(s["y1"] - s["y0"]) * top_t
+                for s in kit["runs"]["counter"])
+    solid += abs(van["w"] + overhang) * van["d"] * top_t
+    hole = ((cut["x1"] - cut["x0"]) * (cut["y1"] - cut["y0"]) * top_t) if cut else 0.0
+    geo["counter_expected"] = solid - hole
+
 
 # ---------------------------------------------------------------------------
 def report(spec, geo, colls):
@@ -862,6 +888,13 @@ def report(spec, geo, colls):
         ("model bbox top matches the stated height", abs(hi[2] - stated) < 0.01),
         ("4:12 dormer plane reaches the ridge", dorm_at_ridge),
         ("no NaN / degenerate geometry", all(math.isfinite(v) for v in lo + hi)),
+        # Volume, because that is what caught P2's boolean that imprinted edges
+        # without removing material. The counter is built as a frame around the
+        # sink opening, so its volume must be the solid slab LESS the hole —
+        # if the four strips ever overlap or leave a sliver, this moves.
+        ("counter carries the sink opening, by volume",
+         geo.get("counter_volume") is not None
+         and abs(geo["counter_volume"] - geo["counter_expected"]) < 1e-6),
     ]
     ok = True
     for label, passed in checks:

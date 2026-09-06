@@ -756,6 +756,23 @@ fixtures:
         # Broken by the slide-in range, which lands on the floor between them.
         - {y0: 10.710, y1: 12.370}
         - {y0: 14.880, y1: 23.083}
+      sink_cutout:
+        # The opening in the countertop. MEASURED off the bowl drawn on A1.1,
+        # not a stock assumption: the sheet draws the sink as an outer rim and
+        # an inner bowl, and this is the INNER bowl, which is the actual hole.
+        # The rim spans very nearly the whole 33" cabinet, so using it would
+        # have cut away the counter's own bearing.
+        x0: 0.400
+        x1: 1.670
+        y0: 16.940
+        y1: 19.280
+        raw_measured: "2'-4-1/8\" along the wall x 1'-3-1/4\" off it"
+        confidence: measured
+        source: "A1.1 main floor plan, inner bowl outline inside the sink cabinet"
+        note: >
+          The BASIN itself is not built — see TIER-3 §2. A hole with nothing in
+          it is deliberate and visibly unfinished, which is the honest state:
+          the opening is right, the fixture is pending.
       upper:
         # NOT DIMENSIONED ANYWHERE. Extents are read off video 1:08 and are the
         # weakest numbers in this block — treat them as +/- 6", the same licence
