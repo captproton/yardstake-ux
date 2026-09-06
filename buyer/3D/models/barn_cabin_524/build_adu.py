@@ -118,6 +118,34 @@ def prism_xz(name, pts_xz, y0, y1, coll):
     return _new_obj(name, verts, faces, coll)
 
 
+def uv_project(ob, tile_ft):
+    """In-plane cube projection at a fixed texel density.
+
+    Not a naive world-axis projection: that foreshortens sloped faces, so the
+    9:12 roof would come out ~20% stretched against the walls. Instead each
+    face gets a basis IN ITS OWN PLANE — u horizontal along the face, v up the
+    true slope — so texel density is uniform everywhere and lap courses stay
+    level on walls while shingle courses run true up the roof.
+    """
+    import mathutils
+    me = ob.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    uv = me.uv_layers.active.data
+    M = ob.matrix_world
+    Z = mathutils.Vector((0.0, 0.0, 1.0))
+    for poly in me.polygons:
+        n = (M.to_3x3() @ poly.normal).normalized()
+        if abs(n.z) > 0.999:                      # horizontal: floors, ceilings
+            u_ax, v_ax = mathutils.Vector((1, 0, 0)), mathutils.Vector((0, 1, 0))
+        else:
+            u_ax = Z.cross(n).normalized()        # level, along the face
+            v_ax = n.cross(u_ax).normalized()     # up the true slope
+        for li in poly.loop_indices:
+            co = M @ me.vertices[me.loops[li].vertex_index].co
+            uv[li].uv = (co.dot(u_ax) / tile_ft, co.dot(v_ax) / tile_ft)
+
+
 def mark_reveals(ob, thickness_axis):
     """Tag the jamb/head/sill faces inside cut openings with material slot 1.
 
@@ -611,6 +639,16 @@ def build(spec, cut_openings=True):
                bath_x1=bath_x1, bath_y0=bath_y0,
                main_under_wall_i=main_under(xw), dorm_under_wall_i=dorm_under(xw),
                main_under_ridge=main_under(ridge_x), dorm_under_ridge=dorm_under(ridge_x))
+
+    # ---- Tier 2 prerequisite: UVs, generated LAST -------------------------
+    # After the booleans, per TIER-2 §3 — openings create faces no earlier
+    # layout accounts for.
+    tx = spec["texturing"]
+    tile_ft = tx["tile_size_px"] / tx["texel_density_px_per_ft"]
+    for ob in bpy.data.objects:
+        if ob.type == "MESH":
+            uv_project(ob, tile_ft)
+    geo["tile_ft"] = tile_ft
 
     return geo, dict(shell=shell, roof=roofc, porch=porchc,
                      interior=interior, finish=finish)

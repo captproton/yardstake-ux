@@ -26,15 +26,43 @@ FOOT_M = 0.3048
 
 
 # ---------------------------------------------------------------------------
-def make_materials(spec):
+def make_materials(spec, textured=True):
     lib = spec["materials"]["library"]
+    tdir = HERE / spec.get("textures", {}).get("dir", "textures/")
     out = {}
     for name, m in lib.items():
         mat = bpy.data.materials.new(f"adu_{name}")
         mat.use_nodes = True
-        bsdf = mat.node_tree.nodes["Principled BSDF"]
+        nt = mat.node_tree
+        bsdf = nt.nodes["Principled BSDF"]
         r, g, b = m["base_color_linear"]
         bsdf.inputs["Base Color"].default_value = (r, g, b, 1.0)
+
+        # Textures, where the spec declares them. A base-colour map carries the
+        # colour itself, so the factor is left white and not double-tinted.
+        maps = (m.get("maps") or {}) if textured else {}
+        for slot, fname in maps.items():
+            path = tdir / fname
+            if not path.exists():
+                raise SystemExit(f"[tex] missing {path}")
+            img = bpy.data.images.load(str(path), check_existing=True)
+            tex = nt.nodes.new("ShaderNodeTexImage")
+            tex.image = img
+            tex.location = (-600, {"base_color": 300, "normal": -300,
+                                   "roughness": 0}.get(slot, 0))
+            if slot == "base_color":
+                img.colorspace_settings.name = "sRGB"
+                nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+                bsdf.inputs["Base Color"].default_value = (1, 1, 1, 1)
+            elif slot == "normal":
+                img.colorspace_settings.name = "Non-Color"
+                nm = nt.nodes.new("ShaderNodeNormalMap")
+                nm.location = (-300, -300)
+                nt.links.new(tex.outputs["Color"], nm.inputs["Color"])
+                nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
+            elif slot == "roughness":
+                img.colorspace_settings.name = "Non-Color"
+                nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
         bsdf.inputs["Roughness"].default_value = m.get("roughness", 0.8)
         bsdf.inputs["Metallic"].default_value = m.get("metallic", 0.0)
         if m.get("transmission"):
@@ -185,7 +213,9 @@ def main():
         geo, colls = build(spec, cut_openings=(lod != "lod2"))
         bpy.context.scene.unit_settings.scale_length = FOOT_M
 
-        mats = make_materials(spec)
+        tex_cfg = spec.get("textures", {})
+        textured = lod not in tex_cfg.get("untextured_levels", [])
+        mats = make_materials(spec, textured=textured)
         glaz = colls["shell"] if lod == "lod2" else collection("Glazing")
         if lod != "lod2":
             add_glazing(spec, geo, glaz)
@@ -204,6 +234,7 @@ def main():
         info = glb_info(p)
         info["objects"] = len(keep)
         info["unmatched_materials"] = unmatched
+        info["textured"] = textured
         results[lod] = info
 
     # primary deliverable is a copy of lod0
@@ -221,10 +252,20 @@ def main():
         ok &= draco
         bb = "x".join(f"{v:.2f}" for v in i["bbox"])
         print(f"{lod:7} {i['objects']:>8} {i['meshes']:>7} {i['materials']:>5} "
-              f"{i['size_kb']:>9.1f}  {bb:>22}  {'yes' if draco else 'NO'}")
+              f"{i['size_kb']:>9.1f}  {bb:>22}  {'yes' if draco else 'NO'}"
+              f"  {'tex' if i['textured'] else 'flat'}")
         if i["unmatched_materials"]:
             print(f"        unmatched: {i['unmatched_materials']}")
             ok = False
+
+    budget = spec.get("textures", {}).get("budget_kb", {})
+    over = [f"{k} {results[k]['size_kb']:.0f} KB > {v} KB"
+            for k, v in budget.items() if results[k]["size_kb"] > v]
+    print("-" * 76)
+    for k, v in budget.items():
+        print(f"  budget {k}: {results[k]['size_kb']:8.1f} KB / {v:5d} KB ceiling"
+              f"   {'OK' if results[k]['size_kb'] <= v else 'OVER'}")
+    ok &= not over
 
     W = spec["envelope"]["main_body_width"]["ft"]
     exp_x = (W + 2 * spec["roof"]["eave_overhang"]["ft"]) * FOOT_M
@@ -232,7 +273,8 @@ def main():
     print("-" * 76)
     print(f"expected X span (22'-0\" + 2 x 18\" eave) = {exp_x:.3f} m   got {got_x:.3f} m")
     scale_ok = abs(got_x - exp_x) < 0.01
-    print(f"\n  [{'PASS' if scale_ok else 'FAIL'}] glTF exported in metres at the right scale")
+    print(f"\n  [{'PASS' if not over else 'FAIL'}] every level within its size budget")
+    print(f"  [{'PASS' if scale_ok else 'FAIL'}] glTF exported in metres at the right scale")
     print(f"  [{'PASS' if ok else 'FAIL'}] Draco applied and every object matched a material")
     print("=" * 76)
     if not (ok and scale_ok):

@@ -502,6 +502,24 @@ doors:
     their retracted position, which is where they physically are when open.
 
 # ---------------------------------------------------------------------------
+textures:
+  dir: textures/
+  budget_kb: {lod0: 4096, lod1: 1536, lod2: 200}
+  untextured_levels: [lod2]
+  untextured_reason: >
+    lod2 is the placement developer's model — viewed at 20-100 ft, plausibly
+    several instances at once on a phone. Texturing took it from 17 KB to
+    239 KB, past its own ceiling. It ships flat-shaded with base colours only;
+    at that distance the maps buy nothing.
+  generated_by: make_textures.py
+  licence: "Procedurally generated here. No third-party assets, no licensing exposure."
+  note: >
+    Base colours come from materials.library, so the hue sampled from the video
+    in P4 carries through. Low-frequency noise only: per-pixel noise is
+    invisible at these contrasts and cost 2.4 MB across three maps before it
+    was replaced, for a 13x saving.
+
+# ---------------------------------------------------------------------------
 texturing:
   # DECIDED 2026-09-06, per docs/TIER-2-materials-and-textures.md §2. Fixed
   # before Tier 1 geometry because it constrains how everything is authored.
@@ -569,6 +587,7 @@ materials:
       roughness: 0.80
       metallic: 0.0
       raw: "6\" LAP SIDING"
+      maps: {base_color: siding_albedo.png, normal: siding_normal.png}
       source: "A4.0 wall details; colour hue from video 6:56 / 7:50"
     shingle_gable:
       base_color_linear: [0.788, 0.724, 0.649]
@@ -579,12 +598,14 @@ materials:
         is lap siding. In the video the gable reads the same body colour as the walls,
         consistent with painted cedar shingle. Same colour, higher roughness, kept as
         a separate slot so a shingle texture can be dropped in without touching the walls.
+      maps: {base_color: shingle_albedo.png, normal: shingle_normal.png}
       source: "A1.1 front elevation (coursing); video (colour)"
     roof:
       base_color_linear: [0.234, 0.251, 0.266]
       roughness: 0.90
       metallic: 0.0
       raw: "COMPOSITION ROOF"
+      maps: {base_color: roof_albedo.png, normal: roof_normal.png}
       source: "A4.0 roof details; hue from video 6:56. Light-mid grey, not charcoal."
     trim:
       base_color_linear: [0.850, 0.850, 0.850]
@@ -602,6 +623,7 @@ materials:
       roughness: 0.92
       metallic: 0.0
       raw: "4\" CONC SLAB"
+      maps: {base_color: concrete_albedo.png, roughness: concrete_roughness.png}
       source: "A2.0; video 1:25 'we just do basic concrete patios'."
     post:
       base_color_linear: [0.820, 0.820, 0.810]
