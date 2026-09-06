@@ -146,13 +146,19 @@ def uv_project(ob, tile_ft):
             uv[li].uv = (co.dot(u_ax) / tile_ft, co.dot(v_ax) / tile_ft)
 
 
-def mark_reveals(ob, thickness_axis):
-    """Tag the jamb/head/sill faces inside cut openings with material slot 1.
+def mark_reveals(ob, thickness_axis, outward=None):
+    """Split a wall's faces across three material slots.
 
-    They take TRIM, not siding — the per-face split TIER-2 §3 depends on. A
-    reveal face is one whose centroid is strictly inside the wall's extents in
-    both axes perpendicular to its thickness; the wall's own end, top and
-    bottom faces sit exactly on those extents.
+      0  cladding   the outward face — siding
+      1  trim       jamb, head and sill faces inside each opening
+      2  drywall    the inward face
+
+    Without slot 2 the wall shows lap siding on its INSIDE, which is what
+    happened the first time the interior was textured. A reveal is a face whose
+    centroid sits strictly inside the wall's extents in both axes
+    perpendicular to its thickness; the wall's own end, top and bottom faces
+    lie exactly on those extents. The inward face is the one whose normal runs
+    along the thickness axis opposite to `outward`.
     """
     me = ob.data
     vs = [v.co for v in me.vertices]
@@ -171,6 +177,10 @@ def mark_reveals(ob, thickness_axis):
         if all(lo[i] + eps < c[i] < hi[i] - eps for i in other):
             poly.material_index = 1
             n += 1
+    if outward is not None:
+        for poly in me.polygons:
+            if poly.normal[thickness_axis] * outward < -0.9:
+                poly.material_index = 2
     return n
 
 
@@ -331,11 +341,13 @@ def build(spec, cut_openings=True):
                 o["sill"], o["sill"] + o["h"], shell))
         # east_wall carries no openings — confirmed three ways, see spec.
 
-        AXIS = {"Wall_N": 1, "Wall_S": 1, "Wall_W": 0, "Wall_E": 0}
+        # axis, and which way is OUT of the building
+        FACE = {"Wall_N": (1, +1), "Wall_S": (1, -1),
+                "Wall_W": (0, -1), "Wall_E": (0, +1)}
         for name, cl in cutters.items():
             if cl:
                 difference(walls[name], cl)
-                mark_reveals(walls[name], AXIS[name])
+            mark_reveals(walls[name], *FACE[name])
 
     # ---- gable end walls (Z plate .. roof underside) -----------------------
     # The NORTH wall is where the dormers land, so its top edge follows the 4:12
@@ -348,8 +360,8 @@ def build(spec, cut_openings=True):
     ]
     gable_plain = [(0, plate), (0, main_under_wall), (ridge_x, ridge_under),
                    (W, main_under_wall), (W, plate)]
-    prism_xz("Gable_N", gable_dormered, NY - t, NY, shell)
-    prism_xz("Gable_S_porch", gable_plain, 0, t, shell)
+    mark_reveals(prism_xz("Gable_N", gable_dormered, NY - t, NY, shell), 1, +1)
+    mark_reveals(prism_xz("Gable_S_porch", gable_plain, 0, t, shell), 1, -1)
 
     # ---- loft floor and dormer face walls ---------------------------------
     box("Loft_floor", t, W - t, yn(dorm_len), NY - t, plate, loft_sf, shell)
@@ -372,7 +384,8 @@ def build(spec, cut_openings=True):
                               yn(o["offset"] + o["w"]), yn(o["offset"]),
                               sill, sill + o["h"], shell))
             difference(dormer_faces[f"Dormer_face_{side}"], cl)
-            mark_reveals(dormer_faces[f"Dormer_face_{side}"], 0)
+            mark_reveals(dormer_faces[f"Dormer_face_{side}"], 0,
+                         -1 if side == "W" else +1)
 
     # dormer cheek wall at the inboard (south) end of each dormer
     for side in ("W", "E"):

@@ -109,6 +109,65 @@ def concrete(px, base):
     return tint(base, shade), np.dstack([rough] * 3)
 
 
+def oak_floor(px, density, base, plank_in=5.0, seed=21):
+    """Strip flooring: planks of one width, random lengths, longitudinal grain."""
+    w = int(round(plank_in / 12 * density))
+    rng = np.random.default_rng(seed)
+    shade = np.ones((px, px))
+    h = np.zeros((px, px))
+    for col, x0 in enumerate(range(0, px, w)):
+        y = -int(rng.integers(0, 4 * density))
+        board_tone = 1.0 + rng.normal(0, 0.045)
+        while y < px:
+            ln = int(rng.integers(2 * density, 6 * density))
+            a, b = max(y, 0), min(y + ln, px)
+            if b > a:
+                shade[a:b, x0:x0 + w] = board_tone * (1.0 + rng.normal(0, 0.025))
+                h[a:b, x0:x0 + w] = 0.5
+                if y >= 0:                                  # butt joint
+                    shade[a:a + 2, x0:x0 + w] *= 0.45
+                    h[a:a + 2, x0:x0 + w] = 0.0
+            y += ln
+        shade[:, x0:x0 + 2] *= 0.45                         # plank seam
+        h[:, x0:x0 + 2] = 0.0
+    grain = lowfreq(px, 96, rng, 0.030) + lowfreq(px, 192, rng, 0.018)
+    shade += grain
+    return tint(base, np.clip(shade, 0, 1.4)), normal_from_height(h, 1.6)
+
+
+def slate(px, density, base, tile_in=12.0, seed=31):
+    """Cleft slate: square tiles, strong tile-to-tile tone, narrow joints."""
+    n = int(round(tile_in / 12 * density))
+    rng = np.random.default_rng(seed)
+    shade = np.ones((px, px))
+    h = np.zeros((px, px))
+    for y0 in range(0, px, n):
+        for x0 in range(0, px, n):
+            shade[y0:y0 + n, x0:x0 + n] = 1.0 + rng.normal(0, 0.16)
+            h[y0:y0 + n, x0:x0 + n] = 0.5
+        shade[y0:y0 + 2, :] *= 0.5
+        h[y0:y0 + 2, :] = 0.0
+    for x0 in range(0, px, n):
+        shade[:, x0:x0 + 2] *= 0.5
+        h[:, x0:x0 + 2] = 0.0
+    shade += lowfreq(px, 128, rng, 0.05)                    # cleft mottling
+    return tint(base, np.clip(shade, 0, 1.6)), normal_from_height(h, 1.4)
+
+
+# Painted gypsum gets NO maps. A normal map for orange-peel cost 1.36 MB and
+# is invisible at any distance this model is viewed from; flat colour is
+# genuinely correct here, as TIER-2 §4 already said for trim.
+
+
+def carpet(px, base, seed=51):
+    """Cut pile: tonal grain over slow variation. Albedo only — pile relief is
+    not readable at the distance a loft carpet is ever seen from."""
+    rng = np.random.default_rng(seed)
+    fine = lowfreq(px, 160, rng, 0.055)
+    slow = lowfreq(px, 24, rng, 0.030)
+    return tint(base, np.clip(1.0 + fine + slow, 0, 1.4))
+
+
 def main():
     spec = yaml.safe_load((HERE / "spec.yaml").read_text())
     tx = spec["texturing"]
@@ -130,6 +189,15 @@ def main():
 
     a, r = concrete(px, lib["concrete"]["base_color_linear"])
     made += [("concrete_albedo.png", a), ("concrete_roughness.png", r)]
+
+    # --- interior ---------------------------------------------------------
+    a, nrm = oak_floor(px, dens, lib["floor_oak"]["base_color_linear"])
+    made += [("oak_albedo.png", a), ("oak_normal.png", nrm)]
+
+    a, nrm = slate(px, dens, lib["slate_bath"]["base_color_linear"])
+    made += [("slate_albedo.png", a), ("slate_normal.png", nrm)]
+
+    made += [("carpet_albedo.png", carpet(px, lib["carpet_loft"]["base_color_linear"]))]
 
     print(f"{'file':28} {'KB':>8}   {px}px tile = {px/dens:.0f} ft at {dens} px/ft")
     print("-" * 62)

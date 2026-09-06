@@ -634,18 +634,21 @@ materials:
       base_color_linear: [0.480, 0.360, 0.220]
       roughness: 0.45
       metallic: 0.0
+      maps: {base_color: oak_albedo.png, normal: oak_normal.png}
       source: "transcript 0:31 'the same White Oak'; hue from video kitchen chapter 2:11"
       confidence: "hue from video, luminance plausible-not-measured — see provenance"
     slate_bath:
       base_color_linear: [0.100, 0.108, 0.118]
       roughness: 0.55
       metallic: 0.0
+      maps: {base_color: slate_albedo.png, normal: slate_normal.png}
       source: "transcript 1:17 'we use slate in the bathroom'"
       confidence: "luminance plausible-not-measured"
     carpet_loft:
       base_color_linear: [0.520, 0.500, 0.470]
       roughness: 0.95
       metallic: 0.0
+      maps: {base_color: carpet_albedo.png}
       source: "transcript 6:46 'a heavyduty pad and a nice light carpet'"
       confidence: "luminance plausible-not-measured"
     fir_ladder:
@@ -659,6 +662,10 @@ materials:
       roughness: 0.85
       metallic: 0.0
       source: "A4.0 wall details '1/2\" G.B.'; painted"
+      no_maps_reason: >
+        Deliberately untextured. A normal map for orange-peel relief cost
+        1.36 MB and is invisible at any distance this model is viewed from.
+        Flat colour is correct here, as it already is for trim.
     soffit:
       base_color_linear: [0.800, 0.795, 0.780]
       roughness: 0.70

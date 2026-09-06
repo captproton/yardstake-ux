@@ -88,14 +88,18 @@ def assign(spec, mats):
                 # which silently discarded the reveal tagging from
                 # build_adu.mark_reveals(). Capture the indices first and put
                 # them back once both slots exist.
-                tagged = [i for i, poly in enumerate(ob.data.polygons)
-                          if poly.material_index == 1]
+                # slot 1 = trim (reveals), slot 2 = drywall (inward face)
+                EXTRA = {1: "trim", 2: "drywall"}
+                tagged = {i: poly.material_index
+                          for i, poly in enumerate(ob.data.polygons)
+                          if poly.material_index in EXTRA}
                 ob.data.materials.clear()
                 ob.data.materials.append(mats[mname])
                 if tagged:
-                    ob.data.materials.append(mats["trim"])
-                    for i in tagged:
-                        ob.data.polygons[i].material_index = 1
+                    for slot in sorted(EXTRA):
+                        ob.data.materials.append(mats[EXTRA[slot]])
+                    for i, slot in tagged.items():
+                        ob.data.polygons[i].material_index = slot
                 break
         else:
             unmatched.append(ob.name)
