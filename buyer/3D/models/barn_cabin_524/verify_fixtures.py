@@ -272,9 +272,14 @@ def main():
         # Basin depth against the vanity carcass, threshold reported (rule 9).
         vh = van["h"]
         bd = fit["basin"]["depth"]["ft"]
+        bw = fit["basin"]["wall"]["ft"]
         toe = fx["kitchen"]["toe_kick_h"]["ft"]
-        top_t = fx["kitchen"]["counter_thk"]["ft"]
-        bottom = vh - top_t - bd
+        # Mirror build_adu exactly: the loft's lowest ring is at
+        # (vh - depth) - wall. The old formula used vh - counter_thk - depth,
+        # which is neither the inner floor nor the outer, and happened to sit
+        # BELOW the real mesh -- conservative, so it could not pass wrongly,
+        # but it was not measuring the thing it named.
+        bottom = vh - bd - bw
         limit = toe + 0.25
         gate(bottom > limit,
              "bath basin bottom clears the vanity interior",
@@ -294,15 +299,36 @@ def main():
         f = fit["faucet"]
         pts = [(f["spout"]["x"], f["spout"]["y"], "spout")]
         pts += [(h["x"], h["y"], f"handle {i}") for i, h in enumerate(f["handles"])]
+        # "Inside the rim" is not enough: the bowl opening is inside the rim
+        # too, so that test passes for a tap mounted over the hole. Every hole
+        # must be on the DECK -- inside the rim ellipse AND outside the bowl
+        # ellipse. This is what caught the spout mounting at x 0.920, inside a
+        # bowl opening spanning 0.720..1.600, rising out of the basin.
         for x, y, label in pts:
-            inside = (((x - rim["cx"]) / rim["ax"]) ** 2
+            in_rim = (((x - rim["cx"]) / rim["ax"]) ** 2
                       + ((y - rim["cy"]) / rim["ay"]) ** 2) < 1.0
-            gate(inside, f"tap {label} lands on the basin rim",
-                 f"at x {ftin(x)} y {ftin(y)}")
-        wall_side = all(x < bowl["cx"] for x, _, _ in pts)
-        gate(wall_side, "tap set is on the wall side of the bowl",
-             f"tap x {ftin(max(x for x, _, _ in pts))}, "
-             f"bowl centre {ftin(bowl['cx'])}")
+            in_bowl = (((x - bowl["cx"]) / bowl["ax"]) ** 2
+                       + ((y - bowl["cy"]) / bowl["ay"]) ** 2) < 1.0
+            gate(in_rim and not in_bowl,
+                 f"tap {label} mounts on the rim deck",
+                 f"at x {ftin(x)} y {ftin(y)}"
+                 + ("" if in_rim else " — outside the rim")
+                 + (" — OVER THE BOWL OPENING" if in_bowl else ""))
+
+        # Behind the bowl's wall-side EDGE, not merely its centre: half the
+        # bowl is on the wall side of the centre.
+        edge = bowl["cx"] - bowl["ax"]
+        worst = max(x for x, _, _ in pts)
+        gate(worst <= edge + 0.01,
+             "tap set is behind the bowl's wall-side edge",
+             f"furthest tap hole at {ftin(worst)}, bowl edge {ftin(edge)}")
+
+        # And the spout must still REACH over the bowl, or it pours on the deck.
+        tip = f["spout"]["x"] + f["reach"]["ft"]
+        gate(bowl["cx"] - bowl["ax"] < tip < bowl["cx"] + bowl["ax"],
+             "spout tip reaches over the bowl",
+             f"tip at {ftin(tip)}, bowl {ftin(bowl['cx']-bowl['ax'])}"
+             f"..{ftin(bowl['cx']+bowl['ax'])}")
 
     # 12. NO FIXTURE MAY BLOCK A DOOR OPENING.
     #     This gate is here because its absence shipped a defect: the bath

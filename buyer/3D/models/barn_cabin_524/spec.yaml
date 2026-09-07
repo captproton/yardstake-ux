@@ -969,10 +969,19 @@ fixtures:
     faucet:
       # Three-hole set: two handles flanking a spout, all drawn on the sheet.
       # Positions are measured; heights are standard and marked assumed.
-      spout:   {x: 0.920, y: 6.740}
+      spout:   {x: 0.560, y: 6.740}
       handles: [{x: 0.580, y: 6.520}, {x: 0.580, y: 6.980}]
       height:  {ft: 0.667, raw: "8\"", confidence: assumed}
-      reach:   {ft: 0.396, raw: "4-3/4\"", confidence: assumed}
+      reach:   {ft: 0.480, raw: "5-3/4\"", confidence: measured,
+                note: "Spout tip lands at x_int 1.040, the drawn end of the spout bar."}
+      spout_correction: >
+        Was x 0.920 with a 4-3/4" reach — taken from the MIDDLE of the spout
+        bar on A1.1. That put the tap column at x_int 0.920, inside the bowl
+        opening (0.720..1.600), so it rose out of the basin rather than off the
+        deck. The heavy ink at cols 470-471 that looked like a mounting feature
+        is the bowl outline crossing the spout. A three-hole set puts all three
+        holes in a line on the deck: the spout mounts with the handles at
+        x_int ~0.56 and arcs forward to 1.040.
       radius:  {ft: 0.036, raw: "7/16\"", confidence: assumed}
       handle_height: {ft: 0.208, raw: "2-1/2\"", confidence: assumed}
       handle_radius: {ft: 0.057, raw: "11/16\"", confidence: assumed,

@@ -190,7 +190,11 @@ def loft(name, rings, coll, cap_first=False, cap_last=False):
     what glTF's default backface culling requires. A single-sided shell renders
     with holes in it from half the angles.
     """
+    if len(rings) < 2:
+        raise ValueError(f"{name}: a loft needs at least two rings, got {len(rings)}")
     n = len(rings[0])
+    if n < 3:
+        raise ValueError(f"{name}: a ring needs at least three points, got {n}")
     if any(len(r) != n for r in rings):
         raise ValueError(f"{name}: every ring must have the same point count")
 
