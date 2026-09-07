@@ -1052,6 +1052,29 @@ def build_casework(spec, geo, coll):
         ]
         loft("Cab_basin_bath", rings, coll, cap_first=True, cap_last=True)
 
+        # ---- mirror over the vanity ---------------------------------
+        # Frame and glass are separate objects so they take different
+        # materials: Cab_mirror_* falls through to cab_wood, while
+        # Cab_mirror_glass is matched first and gets the mirror material.
+        mi = fit.get("mirror")
+        if mi:
+            mw, mh = mi["w"]["ft"], mi["h"]["ft"]
+            fw, mdep = mi["frame_w"]["ft"], mi["depth"]["ft"]
+            rec = mi["glass_recess"]["ft"]
+            z0 = vh + splash_h + mi["gap_above_splash"]["ft"]
+            z1 = z0 + mh
+            cy = fit["basin"]["rim"]["cy"]
+            my0, my1 = ym(cy + mw / 2.0), ym(cy - mw / 2.0)
+            mx0, mx1 = xw, xw + mdep
+            multibox("Cab_mirror_frame", [
+                (mx0, mx1, my0, my1, z0, z0 + fw),            # bottom rail
+                (mx0, mx1, my0, my1, z1 - fw, z1),            # top rail
+                (mx0, mx1, my0, my0 + fw, z0 + fw, z1 - fw),  # one stile
+                (mx0, mx1, my1 - fw, my1, z0 + fw, z1 - fw),  # the other
+            ], coll)
+            box("Cab_mirror_glass", mx0, mx1 - rec,
+                my0 + fw, my1 - fw, z0 + fw, z1 - fw, coll)
+
         f = fit["faucet"]
         fr, fh = f["radius"]["ft"], f["height"]["ft"]
         sp, arc_r = f["spout"], f["reach"]["ft"] / 2.0

@@ -945,6 +945,27 @@ fixtures:
               note: "bowl narrows to this fraction of its opening at the floor"}
       confidence: measured
       source: "A1.1 main floor plan, the two concentric ovals inside the vanity"
+    mirror:
+      # NOT on A1.1 — mirrors are not drawn in plan. Sourced from the video,
+      # which shows a wood-framed mirror above the vanity in BOTH filmed units
+      # (3:03 and 3:18 in one, 2:57 and 3:00 in the other), sitting just south
+      # of the bath window on the same wall.
+      #
+      # Position is DERIVED (centred on the measured vanity); size is a stock
+      # assumption. Nothing here is measured and none of it should be read as
+      # if it were.
+      w:         {ft: 2.0,   raw: "2'-0\"",     confidence: assumed}
+      h:         {ft: 2.5,   raw: "2'-6\"",     confidence: assumed}
+      gap_above_splash: {ft: 0.167, raw: "2\"", confidence: assumed}
+      frame_w:   {ft: 0.167, raw: "2\"",        confidence: assumed}
+      depth:     {ft: 0.125, raw: "1-1/2\"",    confidence: assumed}
+      glass_recess: {ft: 0.042, raw: "1/2\"",   confidence: assumed}
+      confidence: assumed
+      source: "video 3:03, 3:06, 3:18 — wood-framed mirror above the vanity, beside the bath window"
+      clearance_note: >
+        W-BATH ends at y_int 5.462 and the vanity starts at 5.500, so a 2'-0"
+        mirror centred on the vanity (5.75..7.75) clears the window by 3-1/2".
+        That adjacency is what the video shows.
     faucet:
       # Three-hole set: two handles flanking a spout, all drawn on the sheet.
       # Positions are measured; heights are standard and marked assumed.
@@ -1179,6 +1200,14 @@ materials:
       roughness: 0.15
       metallic: 0.0
       source: "video 2:52 — white sanitaryware, toilet and tub both"
+    mirror:
+      # A mirror is metallic and near-smooth in glTF PBR. It is NOT the `glass`
+      # material, which carries transmission and would render as a window —
+      # you would see the bathroom wall through it.
+      base_color_linear: [0.920, 0.930, 0.940]
+      roughness: 0.02
+      metallic: 1.0
+      source: "Bath mirror glass — video 3:03."
     steel:
       base_color_linear: [0.560, 0.570, 0.580]
       roughness: 0.30
@@ -1215,6 +1244,7 @@ materials:
     Cab_hood: steel
     # Cab_basin_bath MUST precede Cab_basin: first match wins, and the bath
     # basin is glazed porcelain where the kitchen's is stainless.
+    Cab_mirror_glass: mirror
     Cab_basin_bath: porcelain
     Cab_basin: steel
     Cab_faucet: steel
