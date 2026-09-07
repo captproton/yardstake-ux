@@ -7,7 +7,16 @@ Tiers 1 and 2 have both landed ([#57](https://github.com/captproton/yardstake-ux
 tier sits on exist and are textured. **This is the only substantial work
 remaining** — firm it up before building.
 
-**Casework, sink and tap are built** ([#60](https://github.com/captproton/yardstake-ux/pull/60), [#62](https://github.com/captproton/yardstake-ux/pull/62)).
+**Casework, both sinks, both taps and the bath mirror are built**
+([#60](https://github.com/captproton/yardstake-ux/pull/60), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64)).
+
+**The bath door position was corrected in [#64](https://github.com/captproton/yardstake-ux/pull/64).** It carried
+`position_confidence: approx_6in` and was wrong by **13.3"** — more than double
+its own stated tolerance — putting the doorway across the measured vanity. A1.1
+draws the opening plainly: both wall lines break together at x_int 2.52..4.80,
+2'-3-5/8" against a 2'-4" callout. **It never needed estimating.** Worth
+checking whether any other `approx_` position in the spec is similarly
+measurable rather than guessed.
 Footprints measured (§1a), then cabinets, counters, backsplash, uppers, hood
 and the bath vanity (§1b), then the kitchen sink basin and tap (§1c) — all
 parametric from `spec.fixtures`, none from a bought asset.

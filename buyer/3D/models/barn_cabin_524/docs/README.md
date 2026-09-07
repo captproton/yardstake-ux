@@ -18,18 +18,25 @@ Phases P1–P4 are complete and gated:
 | **Tier 2a** | UVs at 128 px/ft, exterior textures | **done**, 4/4 gates |
 | **Tier 2b** | Interior textures, neutral albedos, configurator manifest | **done**, 5/5 + 4/4 gates |
 | **Tier 3a** | Fixture footprints measured from A1.1 | **done**, 16/16 gates |
-| **Tier 3b** | Casework, sink and tap | **done** |
+| **Tier 3b** | Casework, both sinks, both taps, mirror | **done**, 29/29 fixture gates |
 | **Tier 3c** | Appliances and the toilet | **not started** — the only work still needing bought assets |
 
-Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59),
-[#60](https://github.com/captproton/yardstake-ux/pull/60), [#61](https://github.com/captproton/yardstake-ux/pull/61) and [#62](https://github.com/captproton/yardstake-ux/pull/62). The placement developer
-is unblocked — `lod2` and their handoff are on `main`, and **unchanged at
-24.1 KB through every one of them**.
+Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
+[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62) and [#64](https://github.com/captproton/yardstake-ux/pull/64). The placement developer is
+unblocked — `lod2` and their handoff are on `main`, and **unchanged at 24.1 KB
+through every one of them**.
 
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
 rather than necessity. Tier 3's *build* half is done: cabinets, counters,
-backsplash, uppers, hood, bath vanity, and the kitchen sink and tap. `lod0` is
-now **856 KB** against a 4 MB ceiling.
+backsplash, uppers, hood, the kitchen sink and tap, and the bath vanity with
+its basin, three-hole tap and mirror. `lod0` is now **870 KB** against a 4 MB
+ceiling.
+
+**The model has three primitives now**, not one. `box`/`multibox` for
+architecture, `tube()` for swept round stock (taps), and `loft()` +
+`ellipse_ring()` for revolved forms (the oval basin). `loft()` was built
+deliberately generic because **the toilet bowl needs the same primitive** —
+which is why 3c's scope should be re-tested rather than assumed, see below.
 
 What remains of Tier 3 is the *buy* half — appliances and the toilet — plus two
 small omissions listed under [What remains](#what-remains).
@@ -102,7 +109,7 @@ another party. We set the pace.
 |---|---|---|
 | **1** | Schematic interior — door leaves, trim, casing, ceiling planes, distinct floor surfaces, closet walls, loft ladder + guardrail | [TIER-1](TIER-1-schematic-interior.md) — **DONE** |
 | **2** | Materially real — UVs, texel density, tileable maps, KTX2 compression, configurator-swappable finishes | [TIER-2](TIER-2-materials-and-textures.md) — **done bar KTX2**, which is optimisation only. [#58](https://github.com/captproton/yardstake-ux/pull/58) |
-| **3** | Furnished — kitchen casework, appliances, bath fixtures, furniture | [TIER-3](TIER-3-fixtures-and-furnishing.md) — **casework, sink and tap built** ([#60](https://github.com/captproton/yardstake-ux/pull/60), [#62](https://github.com/captproton/yardstake-ux/pull/62)); appliances and toilet remain |
+| **3** | Furnished — kitchen casework, appliances, bath fixtures, furniture | [TIER-3](TIER-3-fixtures-and-furnishing.md) — **casework, both sinks, both taps and the mirror built** ([#60](https://github.com/captproton/yardstake-ux/pull/60), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64)); appliances and toilet remain |
 
 > **Note on numbering.** In earlier conversation these tiers were described
 > once with fixtures folded into tier 1. That was a slip. The definitions above
@@ -208,8 +215,8 @@ measurements. In order of value:
 
 | Work | Notes |
 |---|---|
-| **T3:** vanity top cutout | The kitchen counter had this defect and it is fixed; the bath vanity still has it. Smallest job on the list |
-| **T3:** crawl hole | 24"×24", measured and reproducing its callout exactly, but never cut into the floor. Tier 1 geometry that Tier 3a's measurements unblocked |
+| **T3:** crawl hole | 24"×24", measured and reproducing its callout exactly, but never cut into the floor. Tier 1 geometry that Tier 3a's measurements unblocked. Smallest job on the list |
+| **T3:** re-test the toilet | `loft()` exists now and is generic. **Check whether it makes the toilet buildable before assuming it does not** — the same assumption about the basin and the tub was wrong twice and left them behind a licensing gate for no reason |
 | **T3:** licensing decision | **Now scoped to two items only** — the toilet and the appliances. Everything else turned out to be buildable once §2's split was corrected from *by trade* to *by shape*. Sourcing is researched: poly.pizza's CC0 filter (`?lic=1`) has a toilet, tub, bathroom sink and fridge from Kenney and Quaternius, all unbranded. Not yet recorded in the spec |
 | **T3:** appliances and toilet | Decimate to ~2-5k triangles each; ship as a separate on-demand `.glb`. Gated by the decision above |
 | **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 856 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
@@ -286,4 +293,21 @@ Keep these — they caught real errors:
 11. **Check the reviews before merging.** Copilot reviewed every PR in this
     series and twelve comments went unread while "all green" was being reported
     from a local gate sweep. A green sweep is evidence about the code, not
-    about whether anyone has looked at it.
+    about whether anyone has looked at it. It also has to be REQUESTED from the
+    PR page each time — it does not watch the repo, and a PR with no review is
+    usually one nobody asked about, not one waiting on a slow bot.
+12. **A gate that names a container must test the EXTENT, not the corner.**
+    The room-assignment check compared a fixture's origin against the
+    partition, so the vanity sitting 7" across the bath doorway was invisible
+    to it. The same bug appeared twice more in one sitting: the door-blocking
+    gate first tested only a fixture's far edge, skipping every kitchen fixture
+    against the wall it shares, and the tap gate tested "inside the rim" when
+    the bowl opening is also inside the rim.
+13. **Correct beats literal.** A true mirror reflects whatever environment it
+    is handed, so it put foliage inside the bathroom — in the shipped model,
+    not just the preview. A flat grey panel reads as a mirror by context in
+    every renderer. Same reasoning that keeps drywall untextured.
+14. **A lit render is not evidence.** Two "defects" reported here — vanity
+    doors with no division, and a texture blotch — were a washed-out reveal and
+    a patch of daylight. One flat-shaded render settled both. Rule 3 applies to
+    your own observations, not only to other people's.
