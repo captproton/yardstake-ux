@@ -26,6 +26,7 @@ HERE = Path(__file__).resolve().parent
 # NORTH face. Same as interior_partitions.layout and spec.fixtures.datum.
 FAILED = []
 PASSED = []
+MISSING = []
 
 
 def gate(ok, name, detail=""):
@@ -41,6 +42,21 @@ def ftin(v):
         ft, e = ft + 1, 0
     i, r = divmod(e, 8)
     return f"{'-' if neg else ''}{ft}'-{i}" + (f" {r}/8\"" if r else '"')
+
+
+def find(seq, fid, what):
+    """Look up one entry by id, WITHOUT raising.
+
+    `next(gen)` raises StopIteration and kills the whole script with a bare
+    traceback if the id is ever renamed. In verification code that is the wrong
+    failure: a gate should report FAIL and let the remaining gates run, so one
+    rename does not hide every other result. Callers gate on None.
+    """
+    for it in seq:
+        if it.get("id") == fid:
+            return it
+    MISSING.append(f"{what} ({fid})")
+    return None
 
 
 def all_items(fx):
@@ -87,11 +103,12 @@ def main():
          "clear" if not clashes else "; ".join(clashes))
 
     # 3. The tub is an alcove unit: it must fit its alcove, and only just.
-    tub = next(i for _, i in items if i["id"] == "tub_shower")
     bath_e = part["P_bath_E"]["at_ft"]
-    slack = bath_e - (tub["x"] + tub["w"])
-    gate(-0.02 <= slack <= 0.25, "tub fits the bath alcove",
-         f"{ftin(slack)} spare against the bath east wall at {ftin(bath_e)}")
+    tub = find([i for _, i in items], "tub_shower", "bath fixture")
+    slack = bath_e - (tub["x"] + tub["w"]) if tub else None
+    gate(tub is not None and -0.02 <= slack <= 0.25, "tub fits the bath alcove",
+         f"{ftin(slack)} spare against the bath east wall at {ftin(bath_e)}"
+         if tub else "tub_shower not found in spec.fixtures")
 
     # 4. Kitchen aisle. Measured from the cabinet FRONT, which is exact (a
     #    single drawn line at x = 2.00), not from the appliances that project.
@@ -107,31 +124,37 @@ def main():
         aisle = limit - max(front, it["x"] + it["w"])
         if worst is None or aisle < worst[1]:
             worst = (it["id"], aisle)
-    gate(worst[1] >= 3.0, "kitchen aisle >= 36in (NKBA)",
-         f"tightest {ftin(worst[1])} at the {worst[0]}")
+    gate(worst is not None and worst[1] >= 3.0, "kitchen aisle >= 36in (NKBA)",
+         f"tightest {ftin(worst[1])} at the {worst[0]}" if worst
+         else "no kitchen appliances found in spec.fixtures")
 
     # 5. Clear floor in front of the toilet and the vanity. IRC 307.1 wants 21"
     #    clear in front; NKBA prefers 30".
     for fid, need in (("toilet", 1.75), ("vanity", 1.75)):
-        it = next(i for _, i in items if i["id"] == fid)
-        clear = bath_e - (it["x"] + it["w"])
-        gate(clear >= need, f"clear floor in front of the {fid} >= 21in",
-             f"{ftin(clear)}")
+        it = find([i for _, i in items], fid, "bath fixture")
+        clear = bath_e - (it["x"] + it["w"]) if it else None
+        gate(it is not None and clear >= need,
+             f"clear floor in front of the {fid} >= 21in",
+             ftin(clear) if it else f"{fid} not found in spec.fixtures")
 
     # 6. Toilet centreline to the nearest obstruction each side: IRC wants 15".
-    toilet = next(i for _, i in items if i["id"] == "toilet")
-    ctr = toilet["y"] + toilet["d"] / 2.0
+    toilet = find([i for _, i in items], "toilet", "bath fixture")
+    ctr = (toilet["y"] + toilet["d"] / 2.0) if toilet else 0.0
     near = []
     for _, it in items:
-        if it["id"] == "toilet" or it["x"] > toilet["x"] + toilet["w"]:
+        if toilet is None or it["id"] == "toilet":
+            continue
+        if it["x"] > toilet["x"] + toilet["w"]:
             continue
         if it["y"] + it["d"] <= toilet["y"] + 0.01:
             near.append((it["id"], ctr - (it["y"] + it["d"])))
         elif it["y"] >= toilet["y"] + toilet["d"] - 0.01:
             near.append((it["id"], it["y"] - ctr))
     tight = min(near, key=lambda kv: kv[1]) if near else ("none", 99)
-    gate(tight[1] >= 1.25, "toilet centreline >= 15in to each side (IRC 307.1)",
-         f"tightest {ftin(tight[1])} to the {tight[0]}")
+    gate(toilet is not None and tight[1] >= 1.25,
+         "toilet centreline >= 15in to each side (IRC 307.1)",
+         f"tightest {ftin(tight[1])} to the {tight[0]}"
+         if toilet else "toilet not found in spec.fixtures")
 
     # 7. Fixtures land in the room they are filed under.
     wrong = []
@@ -167,12 +190,14 @@ def main():
     #     cabinet edge is a counter in two pieces, not a counter with a hole.
     cut = fx["kitchen"]["runs"].get("sink_cutout")
     if cut:
-        base = next(b for b in fx["kitchen"]["runs"]["base"] if b["id"] == "sink_base")
+        base = find(fx["kitchen"]["runs"]["base"], "sink_base", "base cabinet run")
         depth = fx["kitchen"]["cabinet_run_depth"]["ft"]
         rim = min(cut["y0"] - base["y0"], base["y1"] - cut["y1"],
-                  cut["x0"], depth - cut["x1"])
-        gate(rim >= 1.5 / 12.0, "sink cutout leaves a counter rim all round",
-             f"tightest {ftin(rim)}")
+                  cut["x0"], depth - cut["x1"]) if base else None
+        gate(base is not None and rim >= 1.5 / 12.0,
+             "sink cutout leaves a counter rim all round",
+             f"tightest {ftin(rim)}" if base
+             else "sink_base not found in spec.fixtures.kitchen.runs.base")
 
         seg = [s for s in fx["kitchen"]["runs"]["counter"]
                if s["y0"] <= cut["y0"] and cut["y1"] <= s["y1"]]
@@ -185,6 +210,10 @@ def main():
              f"{ftin(bowl_w)} along the wall x {ftin(bowl_d)} off it")
 
     print("=" * 96)
+    if MISSING:
+        print("spec entries the gates expected but could not find:")
+        for m in MISSING:
+            print(f"  - {m}")
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}"
           f"   ({len(PASSED)}/{len(PASSED) + len(FAILED)})")
     print("=" * 96)

@@ -694,9 +694,12 @@ def build_casework(spec, geo, coll):
     """
     fx = spec["fixtures"]
     kit = fx["kitchen"]
-    t = spec["construction"]["exterior_wall_thickness"]["ft"]
 
-    xw = t                                  # interior west face
+    # Both faces come from geo, which build() computed. An earlier version
+    # re-derived xw from spec.construction while taking ye from geo — the same
+    # number by two routes, which is exactly how the two drift apart when the
+    # coordinate setup changes.
+    xw = geo["xw"]                          # interior west face
     ye = geo["ye"]                          # interior north face
 
     def ym(y_int):
