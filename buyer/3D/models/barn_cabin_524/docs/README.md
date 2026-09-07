@@ -14,17 +14,18 @@ Phases P1–P4 are complete and gated:
 | P2 | `build_adu.py` — massing + openings, no hardcoded dimensions | done |
 | P3 | Overlay against A1.1 at true 1/4"=1'-0" | done, −0.18" mean / 0.21" sd |
 | P4 | Materials, glazing, 3 LODs, Draco `.glb` | done |
-| **Tier 1** | Ceilings, floors, closet wall, doors, trim, reveals, ladder, guardrail | **done**, 14/14 gates |
+| **Tier 1** | Ceilings, floors, closet wall, doors, trim, reveals, ladder, guardrail, crawl hole | **done**, 16/16 gates — the crawl hole was cut in [#65](https://github.com/captproton/yardstake-ux/pull/65) |
 | **Tier 2a** | UVs at 128 px/ft, exterior textures | **done**, 4/4 gates |
 | **Tier 2b** | Interior textures, neutral albedos, configurator manifest | **done**, 5/5 + 4/4 gates |
 | **Tier 3a** | Fixture footprints measured from A1.1 | **done**, 16/16 gates |
 | **Tier 3b** | Casework, both sinks, both taps, mirror | **done**, 29/29 fixture gates |
-| **Tier 3c** | Appliances and the toilet | **not started** — the only work still needing bought assets |
+| **Tier 3c** | Toilet and appliances | **not started** — see the toilet note below before assuming these must be bought |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
-[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62) and [#64](https://github.com/captproton/yardstake-ux/pull/64). The placement developer is
-unblocked — `lod2` and their handoff are on `main`, and **unchanged at 24.1 KB
-through every one of them**.
+[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64) and [#65](https://github.com/captproton/yardstake-ux/pull/65). The placement
+developer is unblocked — `lod2` and their handoff are on `main`, and
+**byte-identical at 24.1 KB through all eight**. That is the constraint the
+whole ladder was designed around, and it has never moved.
 
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
 rather than necessity. Tier 3's *build* half is done: cabinets, counters,
@@ -215,11 +216,11 @@ measurements. In order of value:
 
 | Work | Notes |
 |---|---|
-| **T3:** crawl hole | 24"×24", measured and reproducing its callout exactly, but never cut into the floor. Tier 1 geometry that Tier 3a's measurements unblocked. Smallest job on the list |
-| **T3:** re-test the toilet | `loft()` exists now and is generic. **Check whether it makes the toilet buildable before assuming it does not** — the same assumption about the basin and the tub was wrong twice and left them behind a licensing gate for no reason |
+| **T3:** re-test the toilet | **Do this before the licensing decision, not after.** `loft()` exists now and is generic. Check whether it makes the toilet buildable rather than assuming it does not — that assumption was wrong twice, for the basin and the tub, and left both behind a licensing gate for no reason. If it holds, the buy list is appliances only |
+| **Foundation:** read A2.0 | `spec.discrepancies.crawl-hole-implies-crawlspace-not-slab`. A crawl hole exists because there is a void to reach, but the model slabs the whole footprint using a thickness taken from A2.0's callout for the **porch**. This is the only open question that could **invalidate** existing geometry rather than add to it. Worth its own issue |
 | **T3:** licensing decision | **Now scoped to two items only** — the toilet and the appliances. Everything else turned out to be buildable once §2's split was corrected from *by trade* to *by shape*. Sourcing is researched: poly.pizza's CC0 filter (`?lic=1`) has a toilet, tub, bathroom sink and fridge from Kenney and Quaternius, all unbranded. Not yet recorded in the spec |
 | **T3:** appliances and toilet | Decimate to ~2-5k triangles each; ship as a separate on-demand `.glb`. Gated by the decision above |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 856 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 872 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
 
 Two prerequisites are long discharged: **texel density is fixed at 128 px/ft**

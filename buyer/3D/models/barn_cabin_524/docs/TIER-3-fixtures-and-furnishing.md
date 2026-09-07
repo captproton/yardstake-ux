@@ -23,7 +23,19 @@ parametric from `spec.fixtures`, none from a bought asset.
 
 **What remains is smaller than it was.** Correcting §2's split from *by trade*
 to *by shape* moved the basin and the tub off the buy side, so the only items
-still needing third-party assets are the **toilet** and the **appliances**.
+still needing third-party assets are the **toilet** and the **appliances** —
+and the toilet is not settled either, see below.
+
+**The crawl hole is cut** ([#65](https://github.com/captproton/yardstake-ux/pull/65)), which closes out everything Tier 3a
+measured. Cutting it surfaced a foundation question recorded as
+`crawl-hole-implies-crawlspace-not-slab`: the model slabs the whole footprint
+using a thickness taken from A2.0's callout for the *porch*, while a crawl hole
+implies a void beneath. Recorded, not guessed at.
+
+**Re-test the toilet against `loft()` before treating it as a purchase.** The
+same "this must be bought" assumption was made about the basin and the tub and
+was wrong both times. `loft()` was built generic precisely so this question
+could be asked.
 
 **Step 1 of 2 is done.** Fixture footprints are measured and in
 `spec.fixtures` — 9 footprints, 10/10 gates, verified against the sheet.
