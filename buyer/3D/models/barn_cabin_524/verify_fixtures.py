@@ -244,6 +244,66 @@ def main():
              "sink opening is a plausible bowl size",
              f"{ftin(bowl_w)} along the wall x {ftin(bowl_d)} off it")
 
+    # 11. The bath vanity basin and its tap set. Same shape of check as the
+    #     kitchen sink, on the fixture that is now the model's only ellipse.
+    fit = fx.get("bath_fittings")
+    van = find([i for _, i in items], "vanity", "bath fixture")
+    if fit and van:
+        rim, bowl = fit["basin"]["rim"], fit["basin"]["bowl"]
+
+        # The rim must land inside the vanity top it sits in, on all four sides.
+        margins = (
+            (rim["cx"] - rim["ax"]) - van["x"],
+            (van["x"] + van["w"]) - (rim["cx"] + rim["ax"]),
+            (rim["cy"] - rim["ay"]) - van["y"],
+            (van["y"] + van["d"]) - (rim["cy"] + rim["ay"]),
+        )
+        gate(min(margins) > 0.08,
+             "basin rim sits inside the vanity top",
+             f"tightest margin {ftin(min(margins))}, needs > {ftin(0.08)}")
+
+        # The bowl opening must sit inside the rim, or the top has nothing to
+        # lap and a gap opens between counter and basin.
+        gate(bowl["ax"] < rim["ax"] and bowl["ay"] < rim["ay"],
+             "bowl opening is inside the rim",
+             f"bowl {ftin(bowl['ax'] * 2)}x{ftin(bowl['ay'] * 2)}, "
+             f"rim {ftin(rim['ax'] * 2)}x{ftin(rim['ay'] * 2)}")
+
+        # Basin depth against the vanity carcass, threshold reported (rule 9).
+        vh = van["h"]
+        bd = fit["basin"]["depth"]["ft"]
+        toe = fx["kitchen"]["toe_kick_h"]["ft"]
+        top_t = fx["kitchen"]["counter_thk"]["ft"]
+        bottom = vh - top_t - bd
+        limit = toe + 0.25
+        gate(bottom > limit,
+             "bath basin bottom clears the vanity interior",
+             f"basin floor at {ftin(bottom)}, must clear {ftin(limit)} "
+             f"(toe kick {ftin(toe)} + {ftin(0.25)})")
+
+        # The clearance gate above is correct but slack: a 32" vanity only trips
+        # it past ~23" of bowl depth, which nothing real approaches. Proving
+        # that took perturbing the value until it went red. So assert the
+        # plausible range too, which is the check that would actually catch a
+        # bad number -- same reasoning as the kitchen's bowl-size gate.
+        gate(0.33 <= bd <= 0.83,
+             "bath basin depth is a plausible bowl depth",
+             f"{ftin(bd)}, expected {ftin(0.33)}..{ftin(0.83)}")
+
+        # Tap set: handles and spout must all land on the rim, behind the bowl.
+        f = fit["faucet"]
+        pts = [(f["spout"]["x"], f["spout"]["y"], "spout")]
+        pts += [(h["x"], h["y"], f"handle {i}") for i, h in enumerate(f["handles"])]
+        for x, y, label in pts:
+            inside = (((x - rim["cx"]) / rim["ax"]) ** 2
+                      + ((y - rim["cy"]) / rim["ay"]) ** 2) < 1.0
+            gate(inside, f"tap {label} lands on the basin rim",
+                 f"at x {ftin(x)} y {ftin(y)}")
+        wall_side = all(x < bowl["cx"] for x, _, _ in pts)
+        gate(wall_side, "tap set is on the wall side of the bowl",
+             f"tap x {ftin(max(x for x, _, _ in pts))}, "
+             f"bowl centre {ftin(bowl['cx'])}")
+
     print("=" * 96)
     if MISSING:
         print("spec entries the gates expected but could not find:")

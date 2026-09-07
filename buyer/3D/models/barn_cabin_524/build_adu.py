@@ -166,6 +166,50 @@ def tube(name, path, radius, coll, sides=8, caps=True):
     return _new_obj(name, verts, faces, coll)
 
 
+def ellipse_ring(cx, cy, ax, ay, z, n=16):
+    """One horizontal ellipse as a ring of points, for feeding to loft().
+
+    Axis-aligned, which every ellipse in this plan set is. `ax` is the semi-axis
+    along X, `ay` along Y — the plan draws the vanity basin wider along the wall
+    than off it, so the two genuinely differ and a circle would not do.
+    """
+    return [(cx + ax * math.cos(2.0 * math.pi * k / n),
+             cy + ay * math.sin(2.0 * math.pi * k / n),
+             z) for k in range(n)]
+
+
+def loft(name, rings, coll, cap_first=False, cap_last=False):
+    """Skin a sequence of equal-length point rings, in order.
+
+    The second round primitive, after tube(). Deliberately generic rather than
+    basin-shaped: a lofted profile is what a toilet bowl needs too, so this is
+    the piece that makes the remaining bought fixtures worth re-examining.
+
+    Give it the WHOLE profile — down the inside, across the floor, up the
+    outside — and the result is a closed solid with no open boundary, which is
+    what glTF's default backface culling requires. A single-sided shell renders
+    with holes in it from half the angles.
+    """
+    n = len(rings[0])
+    if any(len(r) != n for r in rings):
+        raise ValueError(f"{name}: every ring must have the same point count")
+
+    verts, faces = [], []
+    for r in rings:
+        verts.extend(tuple(p) for p in r)
+    for i in range(len(rings) - 1):
+        a, b = i * n, (i + 1) * n
+        for k in range(n):
+            k2 = (k + 1) % n
+            faces.append((a + k, a + k2, b + k2, b + k))
+    if cap_first:
+        faces.append(tuple(range(n - 1, -1, -1)))
+    if cap_last:
+        base = (len(rings) - 1) * n
+        faces.append(tuple(range(base, base + n)))
+    return _new_obj(name, verts, faces, coll)
+
+
 def arc_points(centre, radius, axis, start_deg, end_deg, n=8):
     """Points on a circular arc, for feeding to tube(). `axis` is 'x' or 'y':
     the axis the arc turns about."""
@@ -903,14 +947,91 @@ def build_casework(spec, geo, coll):
 
     # ---- bath vanity ------------------------------------------------------
     van = next(i for i in fx["bath"]["items"] if i["id"] == "vanity")
+    fit = fx.get("bath_fittings")
     vh = van["h"]
     ya, yb = ym(van["y"] + van["d"]), ym(van["y"])
-    carcass.append((xw, xw + van["w"] - door_t, ya, yb, toe_h, vh - top_t))
+    # The vanity carcass needs the same cavity the kitchen sink base got. Left
+    # solid, it swallows the basin and the render shows cabinet through the
+    # bowl -- which is what happened here first time, and which none of the
+    # gates caught: they check the basin against the TOE KICK, not against the
+    # carcass top. Rule 10 the other way round for once, a defect only a render
+    # would show.
+    vcx = xw + van["w"] - door_t
+    if fit:
+        bowl = fit["basin"]["bowl"]
+        b = fit["basin"]
+        v_bottom = vh - top_t - b["depth"]["ft"] - b["wall"]["ft"]
+        bx0, bx1 = xw + bowl["cx"] - bowl["ax"], xw + bowl["cx"] + bowl["ax"]
+        bya, byb = ym(bowl["cy"] + bowl["ay"]), ym(bowl["cy"] - bowl["ay"])
+        carcass += [
+            (xw, vcx, ya, yb, toe_h, v_bottom),          # below the bowl
+            (xw, bx0, ya, yb, v_bottom, vh - top_t),     # behind it
+            (bx1, vcx, ya, yb, v_bottom, vh - top_t),    # in front of it
+            (bx0, bx1, ya, bya, v_bottom, vh - top_t),   # south of it
+            (bx0, bx1, byb, yb, v_bottom, vh - top_t),   # north of it
+        ]
+    else:
+        carcass.append((xw, vcx, ya, yb, toe_h, vh - top_t))
     toes.append((xw, xw + van["w"] - toe_recess, ya, yb, 0.0, toe_h))
     for a, b, z0, z1 in door_bands(van["y"], van["y"] + van["d"], toe_h,
                                    vh - top_t, "doors"):
         fronts.append((xw + van["w"] - door_t, xw + van["w"], ym(b), ym(a), z0, z1))
-    tops.append((xw, xw + van["w"] + overhang, ya, yb, vh - top_t, vh))
+    # The vanity top gets the same treatment the kitchen counter got in #62:
+    # a frame of four boxes around the basin opening, not a boolean. The
+    # opening is the bowl ellipse's bounding box, so the rim laps it on every
+    # side and no gap can open between top and basin.
+    vx1 = xw + van["w"] + overhang
+    if fit:
+        bowl = fit["basin"]["bowl"]
+        ox0, ox1 = xw + bowl["cx"] - bowl["ax"], xw + bowl["cx"] + bowl["ax"]
+        oy0, oy1 = ym(bowl["cy"] + bowl["ay"]), ym(bowl["cy"] - bowl["ay"])
+        tops += [
+            (xw, vx1, oy1, yb, vh - top_t, vh),
+            (xw, vx1, ya, oy0, vh - top_t, vh),
+            (xw, ox0, oy0, oy1, vh - top_t, vh),
+            (ox1, vx1, oy0, oy1, vh - top_t, vh),
+        ]
+    else:
+        tops.append((xw, vx1, ya, yb, vh - top_t, vh))
+
+    # ---- vanity basin and tap ---------------------------------------------
+    if fit:
+        b = fit["basin"]
+        rim, bowl = b["rim"], b["bowl"]
+        rt, bw = b["rim_thickness"]["ft"], b["wall"]["ft"]
+        bd, tf = b["depth"]["ft"], b["taper"]["factor"]
+        z_bot = vh - bd
+
+        # ONE closed profile: across the rim, down the inside, over the floor,
+        # back up the outside. loft() skins it into a solid with no open
+        # boundary, so glTF backface culling has nothing to punch a hole in.
+        rings = [
+            ellipse_ring(xw + bowl["cx"], ym(bowl["cy"]),
+                         bowl["ax"] * tf, bowl["ay"] * tf, z_bot),
+            ellipse_ring(xw + bowl["cx"], ym(bowl["cy"]), bowl["ax"], bowl["ay"], vh),
+            ellipse_ring(xw + rim["cx"], ym(rim["cy"]), rim["ax"], rim["ay"], vh),
+            ellipse_ring(xw + rim["cx"], ym(rim["cy"]), rim["ax"], rim["ay"], vh - rt),
+            ellipse_ring(xw + bowl["cx"], ym(bowl["cy"]),
+                         bowl["ax"] * tf, bowl["ay"] * tf, z_bot - bw),
+        ]
+        loft("Cab_basin_bath", rings, coll, cap_first=True, cap_last=True)
+
+        f = fit["faucet"]
+        fr, fh = f["radius"]["ft"], f["height"]["ft"]
+        sp, arc_r = f["spout"], f["reach"]["ft"] / 2.0
+        sx, sy = xw + sp["x"], ym(sp["y"])
+        path = [(sx, sy, vh), (sx, sy, vh + fh - arc_r)]
+        # arc_points() includes its start point, which is the top of the column
+        # -- appending it whole repeats that point and hands tube() a
+        # zero-length segment. #62 shipped eight twisted slivers that way.
+        path += [tuple(pt) for pt in arc_points((sx + arc_r, sy, vh + fh - arc_r),
+                                                arc_r, "y", 180, 0, n=6)[1:]]
+        tube("Cab_faucet_bath", path, fr, coll)
+        for i, h in enumerate(f["handles"]):
+            hx, hy = xw + h["x"], ym(h["y"])
+            tube(f"Cab_faucet_bath_handle_{i}",
+                 [(hx, hy, vh), (hx, hy, vh + f["handle_height"]["ft"])],
+                 f["handle_radius"]["ft"], coll, sides=6)
     splashes.append((xw, xw + splash_t, ya, yb, vh, vh + splash_h))
 
     # ---- hood -------------------------------------------------------------
@@ -992,6 +1113,13 @@ def build_casework(spec, geo, coll):
                 for s in kit["runs"]["counter"])
     solid += abs(van["w"] + overhang) * van["d"] * top_t
     hole = ((cut["x1"] - cut["x0"]) * (cut["y1"] - cut["y0"]) * top_t) if cut else 0.0
+    if fit:
+        # The vanity top is now cut too, so the expectation has to lose that
+        # hole as well. This gate FAILED when the cutout landed and the
+        # expectation still assumed a solid vanity slab — which is the gate
+        # doing its job: it caught a real change in what the counter is.
+        bowl = fit["basin"]["bowl"]
+        hole += (2 * bowl["ax"]) * (2 * bowl["ay"]) * top_t
     geo["counter_expected"] = solid - hole
 
 
