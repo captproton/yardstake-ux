@@ -34,12 +34,27 @@ PAGE = 3                      # A1.1, per spec.sheet_index
 # Crop of the sheet holding the main floor plan, in full-sheet pixels.
 CROP = (280, 180, 2100, 2750)
 
-WALL = 5.5 / 12.0             # spec.construction.exterior_wall_thickness
 COL_W_INNER = 434.0           # interior face of the west wall, in CROP pixels
 ROW_N_INNER = 559.0           # interior face of the north wall
 
+
+def _spec():
+    import yaml
+    return yaml.safe_load((MODEL / "spec.yaml").read_text())
+
+
+# Dimensions come FROM THE SPEC, not from literals here. An earlier version
+# hardcoded the 5-1/2" wall and the 30'-0" overall depth, duplicating numbers
+# the spec already owns. Those would drift silently the next time one was
+# corrected -- which is exactly what happened to the wall thickness between P2
+# and P4. The pixel anchors above stay literal: they are measurements of THIS
+# raster, not building dimensions.
+_S = _spec()
+WALL = _S["construction"]["exterior_wall_thickness"]["ft"]
+TOTAL_DEPTH = _S["envelope"]["total_footprint_depth"]["ft"]
+
 X0 = WALL                     # model X at COL_W_INNER
-Y0 = 30.0 - WALL              # model Y at ROW_N_INNER  (29.5417)
+Y0 = TOTAL_DEPTH - WALL       # model Y at ROW_N_INNER  (29.5417)
 
 
 def plan_raster():
@@ -50,20 +65,29 @@ def plan_raster():
     from PIL import Image
 
     CACHE.mkdir(exist_ok=True)
-    crop_png = CACHE / "mainplan.png"
+    # The cache filename carries the settings that produced it. Keyed only by a
+    # fixed name, a change to PAGE, DPI or CROP would silently return the OLD
+    # raster -- and every Tier 3 measurement is taken off this image, so one
+    # stale render would corrupt all of them without a word.
+    key = "p{}_d{}_c{}".format(PAGE, DPI, "-".join(str(v) for v in CROP))
+    crop_png = CACHE / ("mainplan_%s.png" % key)
     if crop_png.exists():
         return Image.open(crop_png)
 
     if not PDF.exists():
         raise SystemExit(f"plan set not found: {PDF}")
-    stem = CACHE / "sheet"
+    stem = CACHE / ("sheet_%s" % key)
     subprocess.run(
         ["pdftoppm", "-f", str(PAGE), "-l", str(PAGE), "-r", str(DPI), "-png",
          str(PDF), str(stem)],
         check=True,
     )
-    full = next(CACHE.glob("sheet-*.png"))
-    im = Image.open(full).convert("L").crop(CROP)
+    # pdftoppm appends its own page suffix, so glob for the render THIS call
+    # made rather than whatever sheet-*.png happens to be lying around.
+    renders = sorted(CACHE.glob("sheet_%s-*.png" % key))
+    if not renders:
+        raise SystemExit(f"pdftoppm produced no output for page {PAGE}")
+    im = Image.open(renders[0]).convert("L").crop(CROP)
     im.save(crop_png)
     return im
 

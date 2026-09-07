@@ -18,7 +18,7 @@ import yaml
 from PIL import ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from frame import MODEL, WALL, col_px, plan_raster, row_px  # noqa: E402
+from frame import MODEL, TOTAL_DEPTH, WALL, col_px, plan_raster, row_px  # noqa: E402
 
 OUT = MODEL / "renders" / "tier3_fixture_overlay.png"
 COLOUR = {"kitchen": (200, 30, 30), "bath": (20, 90, 200),
@@ -27,8 +27,12 @@ COLOUR = {"kitchen": (200, 30, 30), "bath": (20, 90, 200),
 
 def to_px(x_int, y_int):
     """spec.fixtures datum (x from interior west, y south from interior north)
-    -> model feet -> sheet pixels."""
-    return col_px(WALL + x_int), row_px(30.0 - WALL - y_int)
+    -> model feet -> sheet pixels.
+
+    TOTAL_DEPTH comes from frame.py, which reads it from the spec. It was a
+    literal 30.0 here, duplicating a dimension the spec already owns.
+    """
+    return col_px(WALL + x_int), row_px(TOTAL_DEPTH - WALL - y_int)
 
 
 def main():

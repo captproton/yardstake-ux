@@ -211,9 +211,26 @@ def montage(out, cfg):
     print(f"  [montage] {cfg['out']}  {w}x{h}")
 
 
+USAGE = ("blender --background --python variant_demo.py"
+         " -- MODEL.glb VARIANTS.json OUTDIR")
+
+
 def main():
+    # Blender swallows everything before "--", so a script run without it sees
+    # the wrong argv entirely. Unchecked, that surfaced as a ValueError or an
+    # IndexError from deep inside the parse — a stack trace that says nothing
+    # about the actual mistake, which is simply calling it wrongly.
+    if "--" not in sys.argv:
+        raise SystemExit(f"missing '--' before the arguments.\nusage: {USAGE}")
     argv = sys.argv[sys.argv.index("--") + 1:]
+    if len(argv) != 3:
+        raise SystemExit(f"expected 3 arguments, got {len(argv)}: {argv}\n"
+                         f"usage: {USAGE}")
+
     glb, man, out = Path(argv[0]), Path(argv[1]), Path(argv[2])
+    for path, what in ((glb, "model"), (man, "manifest")):
+        if not path.exists():
+            raise SystemExit(f"{what} not found: {path}")
     out.mkdir(parents=True, exist_ok=True)
     manifest = json.loads(man.read_text())
 

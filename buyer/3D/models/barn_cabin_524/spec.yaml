@@ -57,7 +57,7 @@ envelope:
   bounding_box:
     x: {ft: 22.0, note: "excludes 18\" eave overhangs"}
     y: {ft: 30.0, note: "main body 24' + porch 6'"}
-    z: {ft: 17.807, raw: "17'-9 11/16\"", note: "see levels.overall_height — datum is GRADE, not main FF"}
+    z: {ft: 17.807, raw: "17'-9 11/16\"", note: "datum is MAIN FINISHED FLOOR — see levels.overall_height and discrepancies.height-datum. An earlier note here said GRADE; P3 settled that it is FF."}
 
 # ---------------------------------------------------------------------------
 levels:
@@ -686,7 +686,16 @@ fixtures:
     # A continuous run down the interior west wall. The cabinet front is a
     # single line at x = 2.00 ft: a 24" base cabinet, exactly stock. The
     # refrigerator and range project past it, which is how real kitchens draw.
-    cabinet_run_depth: {ft: 2.0, raw: "2'-0\"", measured: "east edge col 534 for vanity, sink and dishwasher alike", confidence: measured}
+    cabinet_run_depth:
+      ft: 2.0
+      raw: "2'-0\""
+      confidence: measured
+      measured: "front edge at col 534 for the sink base and the dishwasher"
+      corroboration: >
+        The BATH vanity, which is a separate fixture in a different room, has its
+        front on the same col 534 — so 24" is the depth throughout, not a kitchen
+        coincidence. Named here as corroboration only; the vanity itself is under
+        fixtures.bath, not part of this run.
     counter_h:   {ft: 3.0,   raw: "3'-0\"",  source: "industry standard 36\" counter", confidence: assumed}
     counter_thk: {ft: 0.125, raw: "1-1/2\"", source: "industry standard", confidence: assumed}
     toe_kick_h:  {ft: 0.292, raw: "3-1/2\"", source: "industry standard", confidence: assumed}
@@ -1178,14 +1187,23 @@ discrepancies:
 # ---------------------------------------------------------------------------
 assumptions:
   height_datum:
-    statement: "17'-9 11/16\" is measured GRADE -> TOP OF ROOF, not main FF -> TOP OF ROOF."
-    reasoning: >
-      Framing arithmetic from the sheets gives FF -> ridge = 8.0 + 0.75 + 8.25 = 17.00 ft.
-      The 0.807 ft (9-11/16") remainder matches a normal stemwall grade-to-subfloor
-      reveal, and the A1.1 front elevation string does show GRADE below FF. If instead
-      the dimension is FF -> TOP OF ROOF, the model's ridge must rise by ~9-11/16"
-      and something else in the stack is wrong. THIS IS THE ONE NUMBER TO CONFIRM.
-    impact: "Shifts total height by 9-11/16\". Does not change plan dimensions or pitches."
+    status: RESOLVED_IN_P3
+    statement: "17'-9 11/16\" is measured MAIN FF -> TOP OF ROOF."
+    resolution: >
+      This entry used to assert the opposite — GRADE -> top of roof — and to call
+      it "the one number to confirm". P3 confirmed it, the other way, and this
+      block was never updated: it went on asserting the superseded reading in the
+      same file that records the correction. Two places did (see
+      envelope.bounding_box.z), which is how a corrected error gets re-adopted.
+      Settled by overlaying the model on the A1.1 front elevation at 50 px/ft:
+      the 4:12 dormer plane intercept agrees to 0.24" on the FF reading and is
+      9-11/16" out on the grade reading. See discrepancies.height-datum.
+    superseded_reasoning: >
+      The original argument was that framing arithmetic gives FF -> ridge = 8.0 +
+      0.75 + 8.25 = 17.00 ft, leaving a 0.807 ft (9-11/16") remainder that matches
+      a normal stemwall grade-to-subfloor reveal. That remainder is roof assembly
+      and heel, not a grade reveal — see levels.overall_height.
+    impact: "None outstanding. Grade is not modelled at all; placement owns the grade-to-floor offset."
   compass:
     statement: "Porch/front assumed to face south; N/E/W assigned accordingly."
     reasoning: "The site plan (A0.1) is missing from the PDF, so true orientation is unknown. Wall IDs are self-consistent; remap if the site plan surfaces."
