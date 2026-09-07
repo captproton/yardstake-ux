@@ -1201,12 +1201,28 @@ materials:
       metallic: 0.0
       source: "video 2:52 — white sanitaryware, toilet and tub both"
     mirror:
-      # A mirror is metallic and near-smooth in glTF PBR. It is NOT the `glass`
-      # material, which carries transmission and would render as a window —
-      # you would see the bathroom wall through it.
-      base_color_linear: [0.920, 0.930, 0.940]
-      roughness: 0.02
-      metallic: 1.0
+      # A SCHEMATIC mirror: pale cool grey with a specular sheen, deliberately
+      # NOT a real reflector.
+      #
+      # It shipped first as metallic 1.0 / roughness 0.02 — a true mirror — and
+      # that is wrong for this model in a way that is not obvious. A perfect
+      # metallic surface reflects whatever environment it is handed, and it
+      # reflected the preview HDRI's foliage: green blotches, inside a
+      # bathroom. That is not a viewport quirk to be waited out. A Three.js
+      # configurator with an outdoor environment map does exactly the same
+      # thing, and no reflection probe is guaranteed there.
+      #
+      # Reflecting the opposite wall would need a probe or screen-space
+      # reflections — renderer features we cannot rely on in a web viewer, and
+      # a heavy dependency for one 2'x2'6" panel.
+      #
+      # Metallic 0 means the environment contributes nothing but a highlight,
+      # so the panel reads as a mirror by CONTEXT — framed, above a basin —
+      # in every renderer, with no way for a garden to appear in it. This is
+      # the same reasoning that keeps drywall flat: correct beats literal.
+      base_color_linear: [0.720, 0.740, 0.775]
+      roughness: 0.12
+      metallic: 0.0
       source: "Bath mirror glass — video 3:03."
     steel:
       base_color_linear: [0.560, 0.570, 0.580]
