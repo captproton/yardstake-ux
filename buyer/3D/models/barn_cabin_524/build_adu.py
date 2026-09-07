@@ -953,9 +953,15 @@ def build_casework(spec, geo, coll):
         # Column, then a HALF turn so the spout comes back down over the bowl.
         # A quarter turn ends at the apex pointing sideways, which is not a
         # gooseneck — it is a hook.
+        # arc_points() INCLUDES its start point, which here is the top of the
+        # column — so appending it whole repeats (fx, fy, neck) and gives
+        # tube() a zero-length segment. That does not produce zero-area faces
+        # (the rings coincide but rotate, so validate() keeps them); it
+        # produces 8 twisted slivers at ~3% the area of a normal quad, which
+        # shade badly. Drop the repeat.
         path = [(fx, fy, ch), (fx, fy, neck)]
-        path += [tuple(p) for p in arc_points((fx + arc_r, fy, neck),
-                                              arc_r, "y", 180, 0, n=8)]
+        path += [tuple(pt) for pt in arc_points((fx + arc_r, fy, neck),
+                                                arc_r, "y", 180, 0, n=8)[1:]]
         tube("Cab_faucet", path, f["radius"]["ft"], coll)
         # Spray head, hanging from the far end of the arc, over the bowl.
         tube("Cab_faucet_head",

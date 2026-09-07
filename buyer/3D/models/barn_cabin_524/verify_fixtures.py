@@ -229,9 +229,15 @@ def main():
             counter_h = fx["kitchen"]["counter_h"]["ft"]
             toe = fx["kitchen"]["toe_kick_h"]["ft"]
             bottom = counter_h - fx["kitchen"]["counter_thk"]["ft"] - depth
-            gate(bottom > toe + 0.25,
+            # Report the THRESHOLD, not just the inputs. Saying "carcass starts
+            # at 3-1/2" hid the 3" margin actually being enforced, so a failure
+            # would have looked like a contradiction rather than a near miss.
+            clear = 0.25
+            floor_limit = toe + clear
+            gate(bottom > floor_limit,
                  "basin bottom clears the cabinet interior",
-                 f"basin floor at {ftin(bottom)}, carcass starts {ftin(toe)}")
+                 f"basin floor at {ftin(bottom)}, must clear {ftin(floor_limit)} "
+                 f"(toe kick {ftin(toe)} + {ftin(clear)})")
 
         bowl_w, bowl_d = cut["y1"] - cut["y0"], cut["x1"] - cut["x0"]
         gate(1.5 <= bowl_w <= 3.0 and 1.0 <= bowl_d <= 2.0,
