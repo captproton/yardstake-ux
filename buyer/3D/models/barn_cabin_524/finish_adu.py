@@ -8,8 +8,15 @@ with Draco mesh compression for the Three.js track.
 
     blender --background --python finish_adu.py -- [--out DIR]
 
-Scene is authored at 1 Blender unit = 1 foot. scale_length is set to 0.3048 so
-the glTF exporter writes metres, per glTF convention.
+Scene is authored at 1 Blender unit = 1 foot, and the export is in metres per
+glTF convention.
+
+Setting `scene.unit_settings.scale_length` does NOT achieve that: the glTF
+exporter ignores it and writes raw Blender units. `to_metres()` scales the mesh
+data explicitly instead, and that is what makes the export correct. This
+docstring used to credit scale_length for it, contradicting both the code and
+`to_metres()`'s own docstring a hundred lines below. scale_length is still set,
+because it makes Blender's own UI read in feet, but it is not load-bearing.
 """
 import sys
 import json
@@ -213,7 +220,13 @@ def patch_base_color_factors(path, spec):
             continue
         js = json.loads(c[1].decode("utf-8"))
         for m in js.get("materials", []):
-            key = m["name"].replace("adu_", "")
+            # removeprefix, NOT replace: replace() strips "adu_" anywhere in the
+            # name, so a material called "adu_wall_adu_trim" would map to the
+            # wrong spec key. Unnamed materials are skipped rather than raising.
+            name = m.get("name")
+            if not name:
+                continue
+            key = name[4:] if name.startswith("adu_") else name
             spec_m = lib.get(key, {})
             if not spec_m.get("neutral_albedo"):
                 continue
@@ -417,10 +430,18 @@ def main():
     print(f"  [{'PASS' if ok else 'FAIL'}] Draco applied and every object matched a material")
     print("=" * 76)
 
-    blend = save_viewable_blend(spec, HERE / "barn_cabin_524_textured.blend")
-    print(f"\nviewable: {blend}  (textured lod0 — open this, not barn_cabin_524.blend)")
-
-    if not (ok and scale_ok):
+    # Only write the viewable .blend if the export actually passed. The file
+    # carries no indication of validity, so writing it after a failure invites
+    # someone to open a model that failed its gates believing it is good —
+    # silent wrongness, which is worse than the inconvenience of not having it.
+    # (For inspecting a failing build, run build_adu.py and open
+    # barn_cabin_524.blend; it has the geometry, just not the materials.)
+    if ok and scale_ok:
+        blend = save_viewable_blend(spec, HERE / "barn_cabin_524_textured.blend")
+        print(f"\nviewable: {blend}"
+              f"  (textured lod0 — open this, not barn_cabin_524.blend)")
+    else:
+        print("\nviewable .blend NOT written: the export did not pass its gates.")
         raise SystemExit(1)
 
 
