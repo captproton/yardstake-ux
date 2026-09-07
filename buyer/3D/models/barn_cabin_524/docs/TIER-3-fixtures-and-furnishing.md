@@ -213,6 +213,59 @@ the demo, and asserted rather than eyeballed.
 `lod1` and `lod2` are byte-identical before and after. The placement handoff is
 untouched.
 
+## 1c. Sink and tap — BUILT
+
+Built from **our own sources**, which is the first thing worth saying: the
+footprint is the cutout measured off A1.1, and the appearance comes from video
+2:40, which shows this unit's sink plainly — an undermount stainless
+rectangular bowl with an integrated drain ledge, and a commercial-style
+spring-coil pull-down tap.
+
+**Nothing here came from a third-party asset or from another vendor's
+configurator.** That matters beyond licensing: every dimension still traces to
+the plan set or to a named standard, exactly like the rest of the spec, so
+there is no provenance question to answer later.
+
+| | |
+|---|---|
+| Basin footprint | the measured cutout, plus a 1/4" counter lap on the rim |
+| Basin depth | 8-3/4", industry standard — assumed, like every height here |
+| Tap | column, half-turn gooseneck, angled spray head |
+
+The tap is this model's **first round primitive**. `tube()` sweeps an n-gon
+along a polyline at 8 sides — enough to read as round at configurator distance,
+and a third the cost of a smooth one. Everything else in the model is
+axis-aligned boxes, which is right for architecture and useless for a tap.
+
+The two filmed units have **different taps** — 2:40 a commercial coil, 1:08 a
+plain gooseneck — so like the countertop this is a choice rather than a fact,
+and it is modelled generic. The coil itself sits below the fidelity of
+everything else here and is deliberately not modelled.
+
+### Two mistakes worth recording
+
+**The tap was on the wrong side of the counter.** "Behind the bowl" means
+toward the wall, which is a *smaller* x in this datum; the first version put it
+at `cx1 + behind`, standing it on the counter's front lip in the walkway. In a
+render it looked merely odd — the kind of thing that survives review.
+
+**The basin was buried inside the cabinet.** A sink base has an open top; ours
+was a solid box, so the basin sat entirely within it and the render showed
+cabinet through the cutout. That reads as a *missing* basin rather than a
+buried one, which is exactly the wrong diagnosis a render invites. The sink
+base is now carved: solid below the bowl, a frame around it above.
+
+Both are now gated, because neither would have failed any existing check:
+
+| Gate | Result |
+|---|---|
+| tap stands between the bowl and the wall | tap at 3", bowl starts 4-3/4" |
+| tap spout lands over the bowl | spout at 11", bowl 4-3/4" to 1'-8" |
+| basin bottom clears the cabinet interior | floor at 2'-1-3/4", carcass starts 3-1/2" |
+
+`verify_fixtures.py` is now **16/16**, still with no Blender needed. See
+[`../renders/tier3_sink.jpg`](../renders/tier3_sink.jpg).
+
 ## 1. The good news: sourcing is already solved in principle
 
 This was underestimated in earlier discussion. The inputs split cleanly three
@@ -247,8 +300,17 @@ spec-driven, verifiable, and they regenerate for the next plan set for free.
 **Buy or download** — organic or mechanically complex, not worth authoring:
 
 - Appliances: range, refrigerator, dishwasher, stacked W/D, mini-split head
-- Plumbing: toilet, sink, tub/shower, taps
+- Plumbing: **toilet** — and taps, optionally
 - Light fittings
+
+**AMENDED.** This list originally read "Plumbing: toilet, sink, tub/shower,
+taps", which sorted by **trade** rather than by **shape** — and shape is the
+only thing the split is actually about. A basin is a box with a rim; a tub is a
+box with radii, already measured to 1/8" against its callout. Neither is
+organic, neither is mechanically complex, and putting them on the buy side
+gated them behind asset licensing for no reason at all. The **kitchen sink and
+its tap are now built** (section 1c). The toilet stays on the buy side, where
+it belongs.
 
 CC0 sources: Poly Haven, ambientCG, Blender's own asset library. **Licensing is
 a shipping constraint** — this reaches homeowners. Record source and licence

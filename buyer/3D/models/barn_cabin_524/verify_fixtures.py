@@ -204,6 +204,41 @@ def main():
         gate(len(seg) == 1, "sink cutout falls inside exactly one counter run",
              f"{len(seg)} matching run(s)")
 
+        sink = fx["kitchen"]["runs"].get("sink")
+        if sink:
+            # The tap must stand BEHIND the bowl — between it and the wall —
+            # not on the counter's front lip. An earlier version put it in the
+            # walkway, which looked merely odd in a render and would have been
+            # missed. x is measured from the interior west face, so "behind"
+            # means a SMALLER x than the bowl's near edge.
+            fa = sink["faucet"]
+            fxpos = cut["x0"] - fa["behind_bowl"]["ft"]
+            gate(0.0 < fxpos < cut["x0"],
+                 "tap stands between the bowl and the wall",
+                 f"tap at {ftin(fxpos)}, bowl starts {ftin(cut['x0'])}")
+
+            # And its spout must actually reach over the bowl, or it pours onto
+            # the counter.
+            spout = fxpos + fa["reach"]["ft"]
+            gate(cut["x0"] < spout < cut["x1"],
+                 "tap spout lands over the bowl",
+                 f"spout at {ftin(spout)}, bowl {ftin(cut['x0'])}..{ftin(cut['x1'])}")
+
+            # The basin hangs below the counter and must clear the cabinet floor.
+            depth = sink["basin"]["depth"]["ft"]
+            counter_h = fx["kitchen"]["counter_h"]["ft"]
+            toe = fx["kitchen"]["toe_kick_h"]["ft"]
+            bottom = counter_h - fx["kitchen"]["counter_thk"]["ft"] - depth
+            # Report the THRESHOLD, not just the inputs. Saying "carcass starts
+            # at 3-1/2" hid the 3" margin actually being enforced, so a failure
+            # would have looked like a contradiction rather than a near miss.
+            clear = 0.25
+            floor_limit = toe + clear
+            gate(bottom > floor_limit,
+                 "basin bottom clears the cabinet interior",
+                 f"basin floor at {ftin(bottom)}, must clear {ftin(floor_limit)} "
+                 f"(toe kick {ftin(toe)} + {ftin(clear)})")
+
         bowl_w, bowl_d = cut["y1"] - cut["y0"], cut["x1"] - cut["x0"]
         gate(1.5 <= bowl_w <= 3.0 and 1.0 <= bowl_d <= 2.0,
              "sink opening is a plausible bowl size",

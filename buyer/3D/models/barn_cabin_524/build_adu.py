@@ -109,6 +109,82 @@ def multibox(name, specs, coll):
     return _new_obj(name, verts, faces, coll)
 
 
+def tube(name, path, radius, coll, sides=8, caps=True):
+    """Sweep an n-gon along a 3D polyline. The first round primitive here.
+
+    Everything else in this model is axis-aligned boxes, which is right for
+    architecture and useless for a tap. `sides=8` is deliberate: at
+    configurator distance an octagonal tube reads as round, and it costs 8
+    quads per segment instead of the 24 a smooth one would.
+
+    The frame is carried along the path rather than recomputed per segment, so
+    the tube does not twist where it bends.
+    """
+    import mathutils
+
+    pts = [mathutils.Vector(p) for p in path]
+    if len(pts) < 2:
+        raise ValueError(f"{name}: a tube needs at least two points")
+
+    # Seed a reference axis that is not parallel to the first segment, or the
+    # cross product below degenerates and the ring collapses.
+    d0 = (pts[1] - pts[0]).normalized()
+    up = mathutils.Vector((0.0, 0.0, 1.0))
+    if abs(d0.dot(up)) > 0.9:
+        up = mathutils.Vector((1.0, 0.0, 0.0))
+    u = d0.cross(up).normalized()
+    v = d0.cross(u).normalized()
+
+    rings, verts = [], []
+    for i, p in enumerate(pts):
+        if i == 0:
+            d = (pts[1] - pts[0]).normalized()
+        elif i == len(pts) - 1:
+            d = (pts[-1] - pts[-2]).normalized()
+        else:                                   # average, so bends are mitred
+            d = ((pts[i] - pts[i - 1]).normalized()
+                 + (pts[i + 1] - pts[i]).normalized()).normalized()
+        # Re-orthogonalise the carried frame against the new direction.
+        u = (u - d * u.dot(d)).normalized()
+        v = d.cross(u).normalized()
+        ring = []
+        for k in range(sides):
+            a = 2.0 * math.pi * k / sides
+            ring.append(len(verts))
+            verts.append(tuple(p + u * (math.cos(a) * radius)
+                               + v * (math.sin(a) * radius)))
+        rings.append(ring)
+
+    faces = []
+    for a, b in zip(rings, rings[1:]):
+        for k in range(sides):
+            k2 = (k + 1) % sides
+            faces.append((a[k], a[k2], b[k2], b[k]))
+    if caps:
+        faces.append(tuple(reversed(rings[0])))
+        faces.append(tuple(rings[-1]))
+    return _new_obj(name, verts, faces, coll)
+
+
+def arc_points(centre, radius, axis, start_deg, end_deg, n=8):
+    """Points on a circular arc, for feeding to tube(). `axis` is 'x' or 'y':
+    the axis the arc turns about."""
+    import mathutils
+    cx, cy, cz = centre
+    out = []
+    for i in range(n + 1):
+        a = math.radians(start_deg + (end_deg - start_deg) * i / n)
+        if axis == "x":
+            out.append(mathutils.Vector((cx,
+                                         cy + radius * math.cos(a),
+                                         cz + radius * math.sin(a))))
+        else:
+            out.append(mathutils.Vector((cx + radius * math.cos(a),
+                                         cy,
+                                         cz + radius * math.sin(a))))
+    return out
+
+
 def prism_xz(name, pts_xz, y0, y1, coll):
     """Closed polygon in the XZ plane, extruded along Y. Points counter-clockwise."""
     n = len(pts_xz)
@@ -738,10 +814,38 @@ def build_casework(spec, geo, coll):
                             z0 + reveal, z1 - reveal))
         return out
 
+    # The sink opening drives both the counter frame and the sink base cavity,
+    # so it is resolved before either is built.
+    cut = kit["runs"].get("sink_cutout")
+    cx0, cx1 = (xw + cut["x0"], xw + cut["x1"]) if cut else (0.0, 0.0)
+
     # ---- base run ---------------------------------------------------------
+    # The sink base needs a cavity for the bowl to hang in. Carved here rather
+    # than left solid: a solid carcass swallows the basin whole, and the render
+    # then shows cabinet through the cutout — which looks like a missing basin
+    # rather than a buried one.
+    sink_cfg = kit["runs"].get("sink")
+    basin_bottom = None
+    if cut and sink_cfg:
+        basin_bottom = (ch - top_t - sink_cfg["basin"]["depth"]["ft"]
+                        - sink_cfg["basin"]["wall"]["ft"])
+
     for seg in kit["runs"]["base"]:
         ya, yb = ym(seg["y1"]), ym(seg["y0"])
-        carcass.append((xw, xw + depth - door_t, ya, yb, toe_h, ch - top_t))
+        cx = xw + depth - door_t
+        if basin_bottom is not None and seg["id"] == "sink_base":
+            ins = sink_cfg["basin"]["inset"]["ft"]
+            bx0, bx1 = cx0 - ins, cx1 + ins
+            bya, byb = ym(cut["y1"]) - ins, ym(cut["y0"]) + ins
+            carcass += [
+                (xw, cx, ya, yb, toe_h, basin_bottom),         # below the bowl
+                (xw, bx0, ya, yb, basin_bottom, ch - top_t),   # behind it
+                (bx1, cx, ya, yb, basin_bottom, ch - top_t),   # in front of it
+                (bx0, bx1, ya, bya, basin_bottom, ch - top_t),  # south of it
+                (bx0, bx1, byb, yb, basin_bottom, ch - top_t),  # north of it
+            ]
+        else:
+            carcass.append((xw, cx, ya, yb, toe_h, ch - top_t))
         toes.append((xw, xw + depth - toe_recess, ya, yb, 0.0, toe_h))
         for a, b, z0, z1 in door_bands(seg["y0"], seg["y1"], toe_h, ch - top_t,
                                        seg["front"]):
@@ -752,9 +856,6 @@ def build_casework(spec, geo, coll):
     # Booleans on hand-wound geometry are how P2 got a mesh that looked cut and
     # kept its full volume; four exact boxes cannot fail that way, and the
     # counter is axis-aligned so there is nothing a boolean would buy.
-    cut = kit["runs"].get("sink_cutout")
-    cx0, cx1 = (xw + cut["x0"], xw + cut["x1"]) if cut else (0, 0)
-
     for seg in kit["runs"]["counter"]:
         ya, yb = ym(seg["y1"]), ym(seg["y0"])
         x1 = xw + depth + overhang
@@ -816,18 +917,73 @@ def build_casework(spec, geo, coll):
     hoods = [(xw, xw + hood["depth"]["ft"], ym(hood["y1"]), ym(hood["y0"]),
               hood["bottom"]["ft"], hood["bottom"]["ft"] + hood["height"]["ft"])]
 
+    # ---- sink basin and tap ----------------------------------------------
+    # The BUILD half of TIER-3 §2's split, now sorted by shape rather than by
+    # trade: a basin is a box with a rim and a tap is a swept tube, so neither
+    # needs a downloaded asset. Sources are ours — the footprint is the
+    # measured cutout, the appearance is video 2:40.
+    sink = kit["runs"].get("sink")
+    basins = []
+    if cut and sink:
+        b = sink["basin"]
+        inset, bd, bw = b["inset"]["ft"], b["depth"]["ft"], b["wall"]["ft"]
+        # The counter laps the rim, so the vessel is the opening plus that lap.
+        bx0, bx1 = cx0 - inset, cx1 + inset
+        by0, by1 = ym(cut["y1"]) - inset, ym(cut["y0"]) + inset
+        top = ch - top_t                      # underside of the counter
+        bot = top - bd
+        basins += [
+            (bx0, bx1, by0, by1, bot, bot + bw),          # floor of the bowl
+            (bx0, bx0 + bw, by0, by1, bot, top),          # west side
+            (bx1 - bw, bx1, by0, by1, bot, top),          # east side
+            (bx0, bx1, by0, by0 + bw, bot, top),          # south end
+            (bx0, bx1, by1 - bw, by1, bot, top),          # north end
+        ]
+
+    if cut and sink:
+        f = sink["faucet"]
+        fh, reach = f["height"]["ft"], f["reach"]["ft"]
+        # BEHIND the bowl means toward the WALL, so smaller x. The run is
+        # against the west wall and the room is to the east, so putting the tap
+        # at cx1 + behind stood it on the counter's front lip, in the walkway.
+        fy = ym((cut["y0"] + cut["y1"]) / 2.0)
+        fx = cx0 - f["behind_bowl"]["ft"]
+        arc_r = reach / 2.0
+        neck = ch + fh - arc_r
+        # Column, then a HALF turn so the spout comes back down over the bowl.
+        # A quarter turn ends at the apex pointing sideways, which is not a
+        # gooseneck — it is a hook.
+        # arc_points() INCLUDES its start point, which here is the top of the
+        # column — so appending it whole repeats (fx, fy, neck) and gives
+        # tube() a zero-length segment. That does not produce zero-area faces
+        # (the rings coincide but rotate, so validate() keeps them); it
+        # produces 8 twisted slivers at ~3% the area of a normal quad, which
+        # shade badly. Drop the repeat.
+        path = [(fx, fy, ch), (fx, fy, neck)]
+        path += [tuple(pt) for pt in arc_points((fx + arc_r, fy, neck),
+                                                arc_r, "y", 180, 0, n=8)[1:]]
+        tube("Cab_faucet", path, f["radius"]["ft"], coll)
+        # Spray head, hanging from the far end of the arc, over the bowl.
+        tube("Cab_faucet_head",
+             [(fx + reach, fy, neck),
+              (fx + reach, fy, neck - f["spray_drop"]["ft"])],
+             f["spray_radius"]["ft"], coll)
+
     made = 0
     for name, specs in (("Cab_carcass", carcass), ("Cab_toe", toes),
                         ("Cab_front", fronts), ("Cab_top", tops),
                         ("Cab_splash", splashes), ("Cab_upper", uppers),
-                        ("Cab_upper_front", up_fronts), ("Cab_hood", hoods)):
+                        ("Cab_upper_front", up_fronts), ("Cab_hood", hoods),
+                        ("Cab_basin", basins)):
         if specs:
             multibox(name, specs, coll)
             made += 1
     geo["casework_objects"] = made
     geo["casework_boxes"] = sum(len(s) for s in
                                 (carcass, toes, fronts, tops, splashes,
-                                 uppers, up_fronts, hoods))
+                                 uppers, up_fronts, hoods, basins))
+    geo["basin_volume"] = sum(abs((b - a) * (d - c) * (f - e))
+                              for a, b, c, d, e, f in basins)
 
     # Gate input: what the counter actually is, against what it should be.
     geo["counter_volume"] = sum(abs((b - a) * (d - c) * (f - e))
