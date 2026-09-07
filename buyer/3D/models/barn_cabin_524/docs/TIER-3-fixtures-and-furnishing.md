@@ -7,6 +7,11 @@ Tiers 1 and 2 have both landed ([#57](https://github.com/captproton/yardstake-ux
 tier sits on exist and are textured. **This is the only substantial work
 remaining** — firm it up before building.
 
+**Casework is built.** Footprints measured (§1a), then cabinets, counters,
+backsplash, uppers, hood and the bath vanity built parametrically from
+`spec.fixtures` (§1b). What remains in this tier is the *buy* half — appliances
+and plumbing fittings — which is gated on licensing.
+
 **Step 1 of 2 is done.** Fixture footprints are measured and in
 `spec.fixtures` — 9 footprints, 10/10 gates, verified against the sheet.
 See §1a. No geometry is built yet.
@@ -106,6 +111,108 @@ back onto the sheet they came from:
 [`../renders/tier3_fixture_overlay.png`](../renders/tier3_fixture_overlay.png).
 All nine land on their drawn fixtures.
 
+## 1b. Casework — BUILT
+
+`build_casework()` in `build_adu.py`, driven entirely by `spec.fixtures`. This
+is the *build* half of §2's build-vs-buy: boxes, spec-driven, and it regenerates
+for the next plan set for free.
+
+**Where the cabinets go was not a new measurement.** The base segments are
+exactly the gaps left over between the measured appliances and the interior
+south wall, so they inherit those measurements and add no new claim — which is
+why the spec marks them `derived`, not `measured`. The gaps then land where the
+video says cabinets are, and that is the check:
+
+| Gap | Size | What the video shows there |
+|---|---|---|
+| 10.71–12.37 | 19.9" | base cabinet between refrigerator and range |
+| 14.88–16.64 | 21.1" | **the four-drawer stack** |
+| 21.65–23.08 | 17.2" | base cabinet at the south end, past the dishwasher |
+
+Built: base carcasses, toe kicks, door and drawer fronts, countertop, 6"
+backsplash, upper cabinets, the range hood, and the bath vanity. **8 objects,
+240 faces** — `multibox()` keeps the object count down, because trim already
+taught us draw calls bite before triangles do. `lod0` mesh count is 59 against
+a 120 cap.
+
+**Uppers are cut by what stands under them.** A run is not floated at one
+height: the refrigerator and the range hood interrupt it at different levels,
+so `spans()` cuts each run at every obstruction edge and gives each piece its
+own floor. That is what produces the stepped profile in
+[`../renders/tier3_kitchen.jpg`](../renders/tier3_kitchen.jpg), and it matches
+the video.
+
+**The sink opening is cut**, and measured rather than assumed: A1.1 draws the
+sink as an outer rim and an inner bowl, and the cutout is the **inner bowl** —
+2'-4⅛" along the wall by 1'-3¼" off it. The rim spans very nearly the whole 33"
+cabinet, so using it would have cut away the counter's own bearing.
+
+It is built as a **frame of four boxes around the hole, not a boolean**.
+Booleans on hand-wound geometry are how P2 produced a mesh that looked cut and
+kept its full volume; four exact boxes cannot fail that way, and the counter is
+axis-aligned so a boolean would buy nothing. Gated by volume anyway — the
+counter must equal the solid slab less the hole, exactly.
+
+**Not built here, deliberately:** refrigerator, range, dishwasher, stacked W/D,
+toilet, tub, taps, and **the sink basin itself**. Those are the *buy* half and
+are gated on licensing, so the render has gaps where they belong — including a
+counter opening with nothing in it. That is the honest state: the hole is
+right, the fixture is pending.
+
+**The build/buy split in §2 needs amending, and this is why.** It sorted
+plumbing by *trade* rather than by *shape*, which swept the sink basin in with
+the tap. A basin is a box with a radius and carries no licensing exposure; a
+tap is genuinely organic. Same for the vanity basin, and arguably the tub —
+already measured to ⅛" against its callout. **The vanity top has the same
+missing cutout** and was left alone only to keep this branch to its stated
+scope.
+
+**Also outstanding:** the 24"×24" crawl hole is measured and reproduces its
+callout exactly, but is not cut into the floor. That is Tier 1 floor geometry
+which Tier 3a's measurement pass unblocked, not a Tier 1 regression — the
+dimension did not exist until this tier.
+
+### Configurator
+
+The two option sets `spec.variants.not_yet` reserved for this tier now exist:
+**cabinet finish** (natural / white / espresso) and **countertop** (white
+granite / tan granite / charcoal quartz). The manifest is now **7 sets, 20
+options, still 0 extra texture bytes** — both new materials are neutral-albedo,
+so the colour rides on `baseColorFactor` exactly as the exterior does.
+
+The first two countertop options are the **two actual filmed units**. The video
+showing different stone in different buildings (§7) is precisely why this is a
+choice rather than a fact, so both ship.
+
+Two new procedural textures, `cab_wood` and `granite`. `cab_wood` is
+deliberately *not* `oak_floor` with a different tint — that generator draws
+planks with butt joints and seams, which is right for a floor and reads as a
+fault in the joinery on a cabinet door.
+
+### Verification
+
+The manifest gate only checks that targets name real materials, and §6 of
+TIER-2 records what that missed last time. So `variant_demo.py` now runs **two
+scenes**, and the interior one asserts **isolation as well as separation**:
+
+| Assertion | Result |
+|---|---|
+| countertop moves when only the countertop changes | **15.0** (limit 8) |
+| **cabinets HOLD when only the countertop changes** | **0.0** (limit 1) |
+| cabinets move when the cabinet finish changes | **50.7** (limit 20) |
+
+The isolation row is the one that carries weight: it proves a swap addresses
+the material it claims to and nothing else. Evidence:
+[`../renders/tier3_casework_variants.png`](../renders/tier3_casework_variants.png).
+
+A wrong turn worth recording: the countertop first looked like it barely
+moved. That was a bad sample patch straddling the wall and the counter, not a
+defect — which is exactly why the patches are now named, fixed in the spec of
+the demo, and asserted rather than eyeballed.
+
+`lod1` and `lod2` are byte-identical before and after. The placement handoff is
+untouched.
+
 ## 1. The good news: sourcing is already solved in principle
 
 This was underestimated in earlier discussion. The inputs split cleanly three
@@ -115,7 +222,7 @@ ways, and all three exist:
 |---|---|---|
 | **Where things sit** | A1.1 plan, measurable at 50 px/ft | ±1", same technique as the windows |
 | **How tall they are** | Industry standards | High — these are stock items the builder repeats across units |
-| **What they look like** | Video, kitchen chapter 2:11 and bath 2:52 | Good; hue reliable, luminance not |
+| **What they look like** | Video, kitchen chapter 2:11 and bath 2:52 | Good for CASEWORK; **finishes differ between units — see [§7](#7-the-video-shows-more-than-one-unit)** |
 
 Every fixture is drawn to scale on A1.1, and all of them are now measured —
 see §1a for the full table and the gates.
@@ -225,6 +332,49 @@ A failing clearance check is a finding about the *plan*, not necessarily a bug
 in the model — record it in `spec.yaml → discrepancies` the way the loft egress
 issue was, rather than quietly adjusting geometry to make it fit.
 
+## 7. The video shows more than one unit
+
+**Established by looking, not inferred.** The kitchen chapter cuts between two
+different built units of the same floor plan, 26 seconds apart:
+
+| | 2:14 | 2:40 |
+|---|---|---|
+| Countertop | tan / beige granite | white / grey granite |
+| Refrigerator | white | stainless |
+
+Granite is not swapped between takes. These are different buildings, not the
+same room restaged. Side by side:
+[`../refs/video_two_units_2-14_vs_2-40.jpg`](../refs/video_two_units_2-14_vs_2-40.jpg).
+
+**What this costs.** A finish sampled from the video describes *one* of those
+units, not "the" unit, and two finishes taken from different timestamps may not
+belong together. Every finish citation must carry its timestamp — the existing
+ones do — and finishes must never be averaged across timestamps. Recorded in
+`spec.video_sources`, positioned immediately above `spec.fixtures` so anyone
+sampling for Tier 3 hits it first.
+
+**What survives intact, and it is most of what this tier needs.** The
+*casework* is identical across both units:
+
+- Shaker doors, natural wood
+- **Upper cabinets present** — which settles the §2 assumption
+- An under-cabinet range hood, which is on neither the plan nor this document
+- A sink base with doors, a four-drawer stack to its right, dishwasher at the
+  south end
+
+The clearest single frame is
+[`../refs/video_kitchen_2-40.jpg`](../refs/video_kitchen_2-40.jpg) — build the
+casework against that one, and take finishes from it only with the timestamp
+attached.
+
+Both units also reproduce the A1.1 appliance **order** — dishwasher, sink,
+range, refrigerator running south to north. That is an independent check on the
+Tier 3 footprint datum, from a source that had no part in the measurement.
+
+**The exterior citations were re-checked** against 0:00, 6:56 and 7:50 and are
+consistent with one another — warm off-white lap siding, grey composition roof,
+white trim. `materials.provenance` stands and nothing shipped needs revisiting.
+
 ## 6. Open questions
 
 - ~~Which appliances are included in the price?~~ **Settled** — appliances and
@@ -242,7 +392,7 @@ issue was, rather than quietly adjusting geometry to make it fit.
 - ~~Loft ladder ownership~~ **Settled** — Tier 1 built it, at the measured
   20° heel cut (verified 20.07°), and it lands on the loft subfloor within
   ¼". Nothing left here.
-- **Some video frames are a different project.** There is a sequence of a
-  concrete countertop being poured outdoors that is not this unit. Verify frame
-  contents before using them as reference — a colour sample earlier in this work
-  turned out to be the pollinator garden.
+- ~~Some video frames are a different project.~~ **Confirmed and worse than
+  suspected — see [§7](#7-the-video-shows-more-than-one-unit).** The video
+  intercuts at least two different built units of this plan, inside the kitchen
+  chapter itself.

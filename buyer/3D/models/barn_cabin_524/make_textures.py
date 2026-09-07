@@ -35,15 +35,33 @@ def normal_from_height(h, strength=2.0):
     return ((n * 0.5 + 0.5) * 255).astype(np.uint8)
 
 
-def lowfreq(px, cells, rng, sigma):
+def lowfreq(px, cells, rng, sigma, smooth=False):
     """Tileable low-frequency noise: generated small, then upsampled.
 
     Per-pixel noise is invisible at these contrasts and destroys PNG
     compression — it cost ~2.4 MB across three maps for nothing you can see.
+
+    `smooth` picks bilinear over nearest-neighbour upsampling. Nearest leaves
+    hard-edged cells — at 24 cells on a 1024 tile that is a 42 px block — which
+    the siding, shingle, oak and slate generators get away with because a lap
+    line or a plank seam sits on top and dominates. A generator whose ONLY
+    content is this noise does not get away with it: the first cabinet-wood
+    texture read as brickwork. Both paths wrap, so the tile still tiles.
+
+    The older generators deliberately keep nearest. Switching them would churn
+    every shipped texture and every exported byte for a difference nothing in
+    those maps would show.
     """
     small = rng.normal(0, sigma, (cells, cells))
-    idx = (np.arange(px) * cells // px)
-    return small[np.ix_(idx, idx)]
+    if not smooth:
+        idx = (np.arange(px) * cells // px)
+        return small[np.ix_(idx, idx)]
+    t = np.arange(px) * cells / px
+    i0 = np.floor(t).astype(int) % cells
+    i1 = (i0 + 1) % cells
+    f = (t - np.floor(t))
+    rows = small[i0] * (1 - f)[:, None] + small[i1] * f[:, None]
+    return rows[:, i0] * (1 - f)[None, :] + rows[:, i1] * f[None, :]
 
 
 def save(name, arr):
@@ -175,6 +193,49 @@ def carpet(px, base, seed=51):
     return tint(base, np.clip(1.0 + fine + slow, 0, 1.4), neutral=True)
 
 
+def cab_wood(px, density, base, seed=61):
+    """Cabinet-door wood: fine vertical grain, no plank seams.
+
+    Deliberately NOT oak_floor with a different tint. That generator draws
+    planks of random length with butt joints and seams, which is right for a
+    floor and quite wrong on a cabinet door — the seams would read as a
+    fault in the joinery.
+    """
+    rng = np.random.default_rng(seed)
+    # Grain runs vertically on a door stile, so the noise is stretched in y.
+    fine = lowfreq(px, 140, rng, 0.05, smooth=True)
+    fine = (fine + np.roll(fine, 1, axis=0) + np.roll(fine, 2, axis=0)) / 3.0
+    shade = 1.0 + fine + lowfreq(px, 24, rng, 0.030, smooth=True)
+    # The NORMAL is driven by a coarser field than the albedo. Feeding it the
+    # fine grain gave a 674 KB map: a normal map is three channels of gradient,
+    # so high-frequency input costs far more here than in the albedo, and wood
+    # grain is a colour variation rather than real relief anyway.
+    h = 0.5 + lowfreq(px, 40, rng, 0.35, smooth=True)
+    return tint(base, np.clip(shade, 0, 1.4), neutral=True), normal_from_height(h, 0.4)
+
+
+def granite(px, density, base, seed=71):
+    """Speckled stone. Two scales of blotch plus a hard mineral fleck.
+
+    The fleck is the one place per-pixel noise is actually right — it is the
+    thing being depicted. It is kept sparse (about 1.5% of pixels) so it still
+    compresses; a dense field here would repeat the mistake that took the
+    texture set to 3491 KB.
+    """
+    rng = np.random.default_rng(seed)
+    shade = (1.0 + lowfreq(px, 18, rng, 0.055, smooth=True)
+             + lowfreq(px, 64, rng, 0.035, smooth=True))
+    fleck = rng.random((px, px))
+    dark = fleck < 0.012
+    light = fleck > 0.994
+    shade[dark] *= 0.45
+    shade[light] *= 1.45
+    # Polished granite is FLAT. The fleck is colour, not relief, so the normal
+    # gets only the broad undulation — which also keeps it compressible.
+    h = 0.5 + lowfreq(px, 26, rng, 0.30, smooth=True)
+    return tint(base, np.clip(shade, 0, 1.6), neutral=True), normal_from_height(h, 0.25)
+
+
 def main():
     spec = yaml.safe_load((HERE / "spec.yaml").read_text())
     tx = spec["texturing"]
@@ -205,6 +266,13 @@ def main():
     made += [("slate_albedo.png", a), ("slate_normal.png", nrm)]
 
     made += [("carpet_albedo.png", carpet(px, lib["carpet_loft"]["base_color_linear"]))]
+
+    # --- Tier 3 casework --------------------------------------------------
+    a, nrm = cab_wood(px, dens, lib["cab_wood"]["base_color_linear"])
+    made += [("cabwood_albedo.png", a), ("cabwood_normal.png", nrm)]
+
+    a, nrm = granite(px, dens, lib["counter_stone"]["base_color_linear"])
+    made += [("granite_albedo.png", a), ("granite_normal.png", nrm)]
 
     print(f"{'file':28} {'KB':>8}   {px}px tile = {px/dens:.0f} ft at {dens} px/ft")
     print("-" * 62)

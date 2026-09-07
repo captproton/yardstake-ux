@@ -657,6 +657,16 @@ def build(spec, cut_openings=True):
     # After the booleans, per TIER-2 §3 — openings create faces no earlier
     # layout accounts for.
     tx = spec["texturing"]
+    # ---- Tier 3: casework -------------------------------------------------
+    # Its own collection, not `finish`: a verify_tier1 gate counts the Finish
+    # collection, and casework is lod0-only in a way Tier 1 geometry is not.
+    casework = collection("Casework")
+    build_casework(spec, geo, casework)
+
+    # ---- Tier 2 prerequisite: UVs, generated LAST -------------------------
+    # After the booleans, per TIER-2 §3 — openings create faces no earlier
+    # layout accounts for. Also after the casework, or it ships unwrapped and
+    # verify_tier2 fails.
     tile_ft = tx["tile_size_px"] / tx["texel_density_px_per_ft"]
     for ob in bpy.data.objects:
         if ob.type == "MESH":
@@ -664,7 +674,169 @@ def build(spec, cut_openings=True):
     geo["tile_ft"] = tile_ft
 
     return geo, dict(shell=shell, roof=roofc, porch=porchc,
-                     interior=interior, finish=finish)
+                     interior=interior, finish=finish, casework=casework)
+
+
+# ---------------------------------------------------------------------------
+# Tier 3 casework
+# ---------------------------------------------------------------------------
+def build_casework(spec, geo, coll):
+    """Kitchen and bath casework, entirely from spec.fixtures.
+
+    Everything here is boxes, so it is cheap and it regenerates for the next
+    plan set for free — the reason TIER-3 §2 put casework on the "build"
+    side of build-vs-buy. Appliances and plumbing are the "buy" side and are
+    NOT here; they are gated on asset licensing.
+
+    Object count is kept down with multibox(): trim taught us that many small
+    objects cost draw calls on a phone before the triangles do, and the lod0
+    mesh budget is a gate.
+    """
+    fx = spec["fixtures"]
+    kit = fx["kitchen"]
+
+    # Both faces come from geo, which build() computed. An earlier version
+    # re-derived xw from spec.construction while taking ye from geo — the same
+    # number by two routes, which is exactly how the two drift apart when the
+    # coordinate setup changes.
+    xw = geo["xw"]                          # interior west face
+    ye = geo["ye"]                          # interior north face
+
+    def ym(y_int):
+        """fixtures datum (south from the interior north face) -> world Y."""
+        return ye - y_int
+
+    depth = kit["cabinet_run_depth"]["ft"]
+    ch = kit["counter_h"]["ft"]
+    top_t = kit["counter_thk"]["ft"]
+    toe_h = kit["toe_kick_h"]["ft"]
+    up = kit["upper_cab"]
+    up_h, up_d = up["height"]["ft"], up["depth"]["ft"]
+    up_bot = ch + up["clear_above_counter"]["ft"]
+    splash_h = kit["backsplash"]["height"]["ft"]
+
+    # Not dimensioned anywhere and not worth a spec entry each: stock joinery
+    # figures that only affect how the boxes read close up.
+    door_t, reveal, overhang, toe_recess, splash_t = 0.0625, 0.0104, 0.0833, 0.25, 0.0625
+
+    carcass, toes, fronts, tops, splashes, uppers, up_fronts = [], [], [], [], [], [], []
+
+    def door_bands(y0, y1, z0, z1, kind):
+        """Split a bay into leaves. Doors divide across the wall, drawers up it."""
+        out = []
+        if kind == "drawers_4":
+            n = 4
+            h = (z1 - z0) / n
+            for i in range(n):
+                out.append((y0 + reveal, y1 - reveal,
+                            z0 + i * h + reveal, z0 + (i + 1) * h - reveal))
+        else:
+            n = 2 if (y1 - y0) > 2.0 else 1      # a bay over 24" gets a pair
+            w = (y1 - y0) / n
+            for i in range(n):
+                out.append((y0 + i * w + reveal, y0 + (i + 1) * w - reveal,
+                            z0 + reveal, z1 - reveal))
+        return out
+
+    # ---- base run ---------------------------------------------------------
+    for seg in kit["runs"]["base"]:
+        ya, yb = ym(seg["y1"]), ym(seg["y0"])
+        carcass.append((xw, xw + depth - door_t, ya, yb, toe_h, ch - top_t))
+        toes.append((xw, xw + depth - toe_recess, ya, yb, 0.0, toe_h))
+        for a, b, z0, z1 in door_bands(seg["y0"], seg["y1"], toe_h, ch - top_t,
+                                       seg["front"]):
+            fronts.append((xw + depth - door_t, xw + depth, ym(b), ym(a), z0, z1))
+
+    # ---- counter and backsplash ------------------------------------------
+    # The sink opening is cut by BUILDING A FRAME around it, not by a boolean.
+    # Booleans on hand-wound geometry are how P2 got a mesh that looked cut and
+    # kept its full volume; four exact boxes cannot fail that way, and the
+    # counter is axis-aligned so there is nothing a boolean would buy.
+    cut = kit["runs"].get("sink_cutout")
+    cx0, cx1 = (xw + cut["x0"], xw + cut["x1"]) if cut else (0, 0)
+
+    for seg in kit["runs"]["counter"]:
+        ya, yb = ym(seg["y1"]), ym(seg["y0"])
+        x1 = xw + depth + overhang
+        if cut and seg["y0"] <= cut["y0"] and cut["y1"] <= seg["y1"]:
+            cya, cyb = ym(cut["y1"]), ym(cut["y0"])
+            tops += [
+                (xw, x1, cyb, yb, ch - top_t, ch),      # beyond the opening, north
+                (xw, x1, ya, cya, ch - top_t, ch),      # beyond the opening, south
+                (xw, cx0, cya, cyb, ch - top_t, ch),    # behind it, against the wall
+                (cx1, x1, cya, cyb, ch - top_t, ch),    # in front of it
+            ]
+        else:
+            tops.append((xw, x1, ya, yb, ch - top_t, ch))
+        splashes.append((xw, xw + splash_t, ya, yb, ch, ch + splash_h))
+
+    # ---- uppers -----------------------------------------------------------
+    # An upper run is interrupted from below by whatever stands under it. The
+    # refrigerator and the range hood both do, at different heights, so the
+    # run is cut into sub-spans rather than floated at one height.
+    hood = kit["runs"]["hood"]
+    fridge = next(i for i in kit["items"] if i["id"] == "refrigerator")
+    obstructions = [
+        (fridge["y"], fridge["y"] + fridge["d"], fridge["h"] + 0.0833),
+        (hood["y0"], hood["y1"], hood["bottom"]["ft"] + hood["height"]["ft"]),
+    ]
+
+    def spans(y0, y1):
+        """Cut [y0,y1] at every obstruction edge, and give each piece a floor."""
+        cuts = sorted({y0, y1} | {c for a, b, _ in obstructions
+                                  for c in (a, b) if y0 < c < y1})
+        for a, b in zip(cuts, cuts[1:]):
+            mid = (a + b) / 2.0
+            floor = max([z for lo, hi, z in obstructions if lo <= mid <= hi]
+                        + [up_bot])
+            yield a, b, floor
+
+    for run in kit["runs"]["upper"]:
+        for a, b, z0 in spans(run["y0"], run["y1"]):
+            if up_bot + up_h - z0 < 0.4:          # too little left to be a cabinet
+                continue
+            uppers.append((xw, xw + up_d - door_t, ym(b), ym(a), z0, up_bot + up_h))
+            for da, db, dz0, dz1 in door_bands(a, b, z0, up_bot + up_h, "doors"):
+                up_fronts.append((xw + up_d - door_t, xw + up_d,
+                                  ym(db), ym(da), dz0, dz1))
+
+    # ---- bath vanity ------------------------------------------------------
+    van = next(i for i in fx["bath"]["items"] if i["id"] == "vanity")
+    vh = van["h"]
+    ya, yb = ym(van["y"] + van["d"]), ym(van["y"])
+    carcass.append((xw, xw + van["w"] - door_t, ya, yb, toe_h, vh - top_t))
+    toes.append((xw, xw + van["w"] - toe_recess, ya, yb, 0.0, toe_h))
+    for a, b, z0, z1 in door_bands(van["y"], van["y"] + van["d"], toe_h,
+                                   vh - top_t, "doors"):
+        fronts.append((xw + van["w"] - door_t, xw + van["w"], ym(b), ym(a), z0, z1))
+    tops.append((xw, xw + van["w"] + overhang, ya, yb, vh - top_t, vh))
+    splashes.append((xw, xw + splash_t, ya, yb, vh, vh + splash_h))
+
+    # ---- hood -------------------------------------------------------------
+    hoods = [(xw, xw + hood["depth"]["ft"], ym(hood["y1"]), ym(hood["y0"]),
+              hood["bottom"]["ft"], hood["bottom"]["ft"] + hood["height"]["ft"])]
+
+    made = 0
+    for name, specs in (("Cab_carcass", carcass), ("Cab_toe", toes),
+                        ("Cab_front", fronts), ("Cab_top", tops),
+                        ("Cab_splash", splashes), ("Cab_upper", uppers),
+                        ("Cab_upper_front", up_fronts), ("Cab_hood", hoods)):
+        if specs:
+            multibox(name, specs, coll)
+            made += 1
+    geo["casework_objects"] = made
+    geo["casework_boxes"] = sum(len(s) for s in
+                                (carcass, toes, fronts, tops, splashes,
+                                 uppers, up_fronts, hoods))
+
+    # Gate input: what the counter actually is, against what it should be.
+    geo["counter_volume"] = sum(abs((b - a) * (d - c) * (f - e))
+                                for a, b, c, d, e, f in tops)
+    solid = sum(abs(depth + overhang) * abs(s["y1"] - s["y0"]) * top_t
+                for s in kit["runs"]["counter"])
+    solid += abs(van["w"] + overhang) * van["d"] * top_t
+    hole = ((cut["x1"] - cut["x0"]) * (cut["y1"] - cut["y0"]) * top_t) if cut else 0.0
+    geo["counter_expected"] = solid - hole
 
 
 # ---------------------------------------------------------------------------
@@ -719,6 +891,13 @@ def report(spec, geo, colls):
         ("model bbox top matches the stated height", abs(hi[2] - stated) < 0.01),
         ("4:12 dormer plane reaches the ridge", dorm_at_ridge),
         ("no NaN / degenerate geometry", all(math.isfinite(v) for v in lo + hi)),
+        # Volume, because that is what caught P2's boolean that imprinted edges
+        # without removing material. The counter is built as a frame around the
+        # sink opening, so its volume must be the solid slab LESS the hole —
+        # if the four strips ever overlap or leave a sliver, this moves.
+        ("counter carries the sink opening, by volume",
+         geo.get("counter_volume") is not None
+         and abs(geo["counter_volume"] - geo["counter_expected"]) < 1e-6),
     ]
     ok = True
     for label, passed in checks:

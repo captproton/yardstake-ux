@@ -556,8 +556,29 @@ variants:
         - {id: slate,     label: Slate,     value: [0.100, 0.108, 0.118], default: true,
            source: "transcript 1:17"}
         - {id: limestone, label: Limestone, value: [0.520, 0.500, 0.460]}
+    - id: cabinet_finish
+      label: Cabinets
+      targets: [adu_cab_wood]
+      note: "Kitchen casework and the bath vanity move together — one material, as built."
+      options:
+        - {id: natural, label: Natural wood, value: [0.430, 0.290, 0.160], default: true,
+           source: "video 1:08, 2:14, 2:40 — all show natural-wood shaker"}
+        - {id: white,    label: White shaker,  value: [0.780, 0.775, 0.760]}
+        - {id: espresso, label: Espresso,      value: [0.130, 0.095, 0.070]}
+    - id: countertop
+      label: Countertop
+      targets: [adu_counter_stone]
+      note: >
+        The first two options are the two ACTUAL filmed units — see
+        video_sources. The video showing different stone in different buildings
+        is exactly why this is a choice rather than a fact, so both ship.
+      options:
+        - {id: white_granite, label: White granite, value: [0.560, 0.540, 0.510], default: true,
+           source: "video 2:40 — the white/grey unit"}
+        - {id: tan_granite,   label: Tan granite,   value: [0.520, 0.450, 0.360],
+           source: "video 1:13 and 2:14 — the tan/beige unit"}
+        - {id: charcoal,      label: Charcoal quartz, value: [0.140, 0.140, 0.145]}
   not_yet:
-    - "Countertops and cabinets — need Tier 3 fixtures to exist first."
     - "Roof MATERIAL (metal vs shingle) — a colour swap cannot do it; needs a second texture."
     - "Styles and floor-plan variants — those are geometry, not materials."
 
@@ -578,6 +599,51 @@ textures:
     in P4 carries through. Low-frequency noise only: per-pixel noise is
     invisible at these contrasts and cost 2.4 MB across three maps before it
     was replaced, for a 13x saving.
+
+# ---------------------------------------------------------------------------
+video_sources:
+  # READ THIS BEFORE SAMPLING ANY FINISH FROM THE VIDEO.
+  file: "Affordable Housing Option. ADU Tour (w free plans).mp4"
+  duration: "8:31"
+  finding: >
+    THE VIDEO INTERCUTS AT LEAST TWO DIFFERENT BUILT UNITS of the same floor
+    plan. The kitchen chapter alone cuts between them 26 seconds apart: at 2:14
+    the countertop is tan/beige granite and the refrigerator is white; at 2:40
+    the countertop is white/grey granite and the refrigerator is stainless.
+    Granite is not swapped between takes, so these are different buildings, not
+    the same room restaged.
+  consequence: >
+    A finish sampled from the video describes ONE of those units, not "the"
+    unit, and two finishes sampled from different timestamps may not belong
+    together. Every finish citation must carry its timestamp — the existing ones
+    do — and a finish must never be averaged across timestamps.
+  what_is_safe: >
+    CASEWORK IS CONSISTENT ACROSS BOTH UNITS and can be trusted: shaker doors,
+    natural wood, upper cabinets present, an under-cabinet range hood, a sink
+    base with doors, a four-drawer stack to its right, and the dishwasher at the
+    south end. Both units also agree with the A1.1 appliance ORDER, which is an
+    independent check on the Tier 3 footprint datum — see fixtures.measurement.
+  exteriors_checked: >
+    The exterior citations were re-checked against 0:00, 6:56 and 7:50 and are
+    consistent with each other: warm off-white lap siding, grey composition
+    roof, white trim. materials.provenance stands. (Note the stored values are
+    LINEAR — siding 0.788/0.724/0.649 is sRGB ~232/224/212, a warm off-white,
+    not the tan those linear figures suggest at a glance.)
+  earlier_caution: >
+    A weaker form of this was already recorded: a "siding" colour patch once
+    turned out to be the pollinator garden, and an outdoor concrete-countertop
+    pour was flagged as possibly a different project. The pour at 2:16-2:20 does
+    resemble the 2:40 counter, but that is not established and should not be
+    relied on.
+  resolved:
+    - id: range-fuel
+      note: >
+        SETTLED — all-electric, per the A1.1 ELEC RANGE label and the owner's
+        decision. Video frames suggesting raised burner grates were a
+        low-confidence read of one of the two units and are not a reason to
+        depart from the plan. All-electric is also the internally consistent
+        reading: the unit has a tankless ELECTRIC water heater and a heat pump.
+  open: []
 
 # ---------------------------------------------------------------------------
 fixtures:
@@ -625,10 +691,112 @@ fixtures:
     counter_thk: {ft: 0.125, raw: "1-1/2\"", source: "industry standard", confidence: assumed}
     toe_kick_h:  {ft: 0.292, raw: "3-1/2\"", source: "industry standard", confidence: assumed}
     upper_cab:
+      exists: true
       clear_above_counter: {ft: 1.5, raw: "1'-6\"", source: "industry standard 18\"", confidence: assumed}
-      height:              {ft: 2.5, raw: "2'-6\"", source: "industry standard 30\"", confidence: assumed}
-      depth:               {ft: 1.0, raw: "1'-0\"", source: "industry standard 12\"", confidence: assumed}
-      note: "NOT DRAWN on A1.1 — uppers do not appear in plan at all. Existence and extent are an assumption; the video is the only evidence."
+      height:
+        ft: 3.0
+        raw: "3'-0\""
+        confidence: assumed
+        source: "industry standard 36\" — NOT the 30\" first assumed here"
+        reasoning: >
+          Video 1:08 gives a near-straight-on view of the whole run, and the
+          upper cabinet tops sit clearly ABOVE the 7'-0" window head. That rules
+          out a 30" upper, which would top out at exactly 84" (36" counter +
+          18" clear + 30") and sit level with the head. A 36" upper reaches 90",
+          leaving 6" to the 8'-0" flat ceiling in this zone, which matches the
+          gap in frame.
+          This is a QUALITATIVE constraint from the video, not a measurement.
+          The footage is wide-angle and radially distorted, so pixel
+          photogrammetry on it is not trustworthy at this precision — it can
+          rule a value out without establishing one.
+      depth: {ft: 1.0, raw: "1'-0\"", source: "industry standard 12\"", confidence: assumed}
+      note: >
+        NOT DRAWN on A1.1 — uppers do not appear in plan at all. Their EXISTENCE
+        is now confirmed (video 1:08, 2:14 and 2:40, consistent across both
+        units), but every dimension here remains an assumption.
+    backsplash:
+      height:
+        ft: 0.5
+        raw: "6\""
+        confidence: derived
+        source: >
+          NOT assumed — arithmetic on two knowns. The W-KITCHEN sill is a
+          MEASURED 3'-6" above finished floor and a 36" counter leaves exactly
+          6" beneath it. Video 1:13 shows the granite backsplash running up to
+          meet the window sill, which closes the loop.
+      material: "same granite slab as the counter, not tile"
+      source: "video 1:13 close-up, 1:08 wide"
+    range_hood:
+      exists: true
+      type: under_cabinet
+      note: >
+        Stainless under-cabinet hood over the range, with a cabinet above it.
+        On NEITHER the plan nor the original Tier 3 scope, and consistent across
+        both video units.
+      source: "video 1:08, 2:14, 2:40"
+    runs:
+      # The casework itself, in the fixtures datum (y measured SOUTH from the
+      # interior north face). These are NOT independent measurements: the base
+      # segments are exactly the gaps LEFT OVER between the measured appliances
+      # and the interior south wall, so they inherit those measurements and add
+      # nothing. That is why they are `derived` and not `measured`.
+      #
+      # The gaps land where the video says cabinets are, which is the check:
+      #   10.710..12.370  19.9"  base cabinet between refrigerator and range
+      #   14.880..16.640  21.1"  the four-drawer stack (video 1:08, 2:40)
+      #   21.650..23.083  17.2"  base cabinet at the south end, past the D.W.
+      base:
+        - {id: base_mid, y0: 10.710, y1: 12.370, front: doors,     confidence: derived}
+        - {id: drawers,  y0: 14.880, y1: 16.640, front: drawers_4, confidence: derived,
+           source: "video 1:08 and 2:40 both show a four-drawer stack in exactly this gap"}
+        - {id: sink_base, y0: 16.640, y1: 19.440, front: doors,    confidence: derived,
+           source: "the measured sink_cabinet footprint; video shows two doors"}
+        - {id: base_south, y0: 21.650, y1: 23.083, front: doors,   confidence: derived}
+      counter:
+        # Broken by the slide-in range, which lands on the floor between them.
+        - {y0: 10.710, y1: 12.370}
+        - {y0: 14.880, y1: 23.083}
+      sink_cutout:
+        # The opening in the countertop. MEASURED off the bowl drawn on A1.1,
+        # not a stock assumption: the sheet draws the sink as an outer rim and
+        # an inner bowl, and this is the INNER bowl, which is the actual hole.
+        # The rim spans very nearly the whole 33" cabinet, so using it would
+        # have cut away the counter's own bearing.
+        x0: 0.400
+        x1: 1.670
+        y0: 16.940
+        y1: 19.280
+        raw_measured: "2'-4-1/8\" along the wall x 1'-3-1/4\" off it"
+        confidence: measured
+        source: "A1.1 main floor plan, inner bowl outline inside the sink cabinet"
+        note: >
+          The BASIN itself is not built — see TIER-3 §2. A hole with nothing in
+          it is deliberate and visibly unfinished, which is the honest state:
+          the opening is right, the fixture is pending.
+      upper:
+        # NOT DIMENSIONED ANYWHERE. Extents are read off video 1:08 and are the
+        # weakest numbers in this block — treat them as +/- 6", the same licence
+        # the interior door positions carry.
+        - {id: upper_north, y0: 8.290, y1: 16.762, confidence: approx_6in,
+           note: "Runs from above the refrigerator to the window's north edge, interrupted by the hood over the range."}
+        - {id: upper_south, y0: 20.000, y1: 23.083, confidence: approx_6in,
+           note: "A single cabinet at the south end, with a clear gap to the window in frame. Its exact start is the least certain number here."}
+      hood:
+        y0: 12.370
+        y1: 14.880
+        bottom: {ft: 5.5, raw: "5'-6\"", confidence: assumed,
+                 source: "industry standard 30\" above a 36\" cooktop"}
+        height: {ft: 0.5, raw: "6\"", confidence: assumed}
+        depth:  {ft: 1.5, raw: "1'-6\"", confidence: assumed,
+                 source: "industry standard — a hood is deeper than the 12\" cabinet above it"}
+    datum_cross_check: >
+      The sink cabinet centres under the kitchen window to within 2.3", which
+      the video confirms visually. This is a real check rather than a
+      coincidence: it validates the Tier 3 fixture datum (measured here) against
+      the P1 openings datum (measured separately, in a different pass), and it
+      settles that openings.west_wall offsets run from the EXTERIOR north
+      corner. Reading them from the interior face instead would put the sink
+      7.8" off centre, which the video contradicts.
     items:
       - {id: refrigerator, x: 0.0, y: 8.290, w: 2.310, d: 2.420,
          raw_measured: "2'-3-3/4\" deep x 2'-5\" wide", h: 5.75,
@@ -866,6 +1034,33 @@ materials:
       roughness: 0.70
       metallic: 0.0
       source: "Porch ceiling, 8'-0\" — video."
+    cab_wood:
+      # Tier 3. Natural-wood shaker casework, consistent across BOTH video
+      # units — see video_sources. Neutral albedo so the configurator's
+      # reserved cabinet finish set costs no texture bytes.
+      base_color_linear: [0.430, 0.290, 0.160]
+      roughness: 0.42
+      metallic: 0.0
+      neutral_albedo: true
+      maps: {base_color: "cabwood_albedo.png", normal: "cabwood_normal.png"}
+      source: "video 1:08, 2:14, 2:40 — natural wood shaker, all three"
+      confidence: "hue from video, luminance plausible-not-measured — see provenance"
+    counter_stone:
+      # Speckled granite. The two filmed units have DIFFERENT stone (tan/beige
+      # at 2:14, white/grey at 2:40), which is precisely why this is a
+      # configurator option rather than a fact — see variants.countertop.
+      base_color_linear: [0.560, 0.540, 0.510]
+      roughness: 0.22
+      metallic: 0.0
+      neutral_albedo: true
+      maps: {base_color: "granite_albedo.png", normal: "granite_normal.png"}
+      source: "video 1:13 close-up (tan unit), 2:40 wide (white/grey unit)"
+      confidence: "hue from video; the two units differ, so the DEFAULT is a choice, not a measurement"
+    steel:
+      base_color_linear: [0.560, 0.570, 0.580]
+      roughness: 0.30
+      metallic: 0.9
+      source: "Stainless under-cabinet range hood — video 1:08, 2:14, 2:40."
   assignment:
     # object-name prefix -> material. First match wins.
     Wall_: siding
@@ -890,6 +1085,12 @@ materials:
     Part_: trim
     Glazing_: glass
     Door_: trim
+    # Tier 3 casework. Longest prefix wins is NOT how `assignment` works —
+    # first match wins — so Cab_top must precede Cab_.
+    Cab_top: counter_stone
+    Cab_splash: counter_stone
+    Cab_hood: steel
+    Cab_: cab_wood
 
 # ---------------------------------------------------------------------------
 lod:
