@@ -126,15 +126,35 @@ def main():
          f"(err {actual - (uncut - removed):+.3f})")
 
     # ---- 4. floor finishes tile without gap or overlap --------------------
+    # Measure the REAL top surface, not the bounding box. A bbox cannot see a
+    # hole: cutting the 24"x24" crawl opening out of Floor_main_N leaves the
+    # bbox identical, so the old form of this gate would have kept reporting a
+    # perfect tiling over a floor with a square missing. Rule 12 -- a gate that
+    # names a container must test the extent.
     names = ["Floor_main_S", "Floor_main_N", "Floor_bath"]
     area = 0.0
     for n in names:
-        lo, hi = bounds(n)
-        area += (hi[0] - lo[0]) * (hi[1] - lo[1])
-    expect = (xe - xw) * (ye - ys)
-    gate("main-level floor finishes tile the interior exactly",
+        ob = bpy.data.objects[n]
+        for poly in ob.data.polygons:
+            if poly.normal.z > 0.9 and abs((ob.matrix_world @ poly.center).z - ff) < 1e-4:
+                area += poly.area
+    hole = next((i for i in spec["fixtures"]["access"]["items"]
+                 if i["id"] == "crawl_hole" and i.get("floor_opening")), None)
+    cut = (hole["w"] * hole["d"]) if hole else 0.0
+    expect = (xe - xw) * (ye - ys) - cut
+    gate("main-level floor finishes tile the interior, less the crawl opening",
          abs(area - expect) < 0.05,
-         f"{area:.2f} sf vs {expect:.2f} sf expected")
+         f"{area:.2f} sf vs {expect:.2f} sf expected "
+         f"({(xe - xw) * (ye - ys):.2f} less {cut:.2f} crawl hole)")
+
+    # And the hatch must fill that opening exactly, or the floor has a gap.
+    if hole:
+        hlo, hhi = bounds("Floor_crawl_hatch")
+        gate("crawl hatch fills its opening",
+             abs((hhi[0] - hlo[0]) - hole["w"]) < 0.01
+             and abs((hhi[1] - hlo[1]) - hole["d"]) < 0.01,
+             f"{hhi[0] - hlo[0]:.3f} x {hhi[1] - hlo[1]:.3f} ft "
+             f"vs {hole['w']:.3f} x {hole['d']:.3f}")
 
     # pairwise overlap
     ov = []

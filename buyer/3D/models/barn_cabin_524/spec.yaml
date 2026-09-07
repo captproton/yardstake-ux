@@ -1255,6 +1255,10 @@ materials:
     Trim_: trim
     Ladder_: fir_ladder
     Rail_: fir_ladder
+    # The hatch is a flush panel in the main floor, so it takes the same oak.
+    # It needs its own rule: "Floor_crawl_hatch" does not start with
+    # "Floor_main", and an unmatched object fails the export gate.
+    Floor_crawl_hatch: floor_oak
     Floor_main: floor_oak
     Floor_bath: slate_bath
     Floor_loft: carpet_loft
@@ -1297,6 +1301,24 @@ areas_declared:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: crawl-hole-implies-crawlspace-not-slab
+    finding: >
+      A1.1 calls out a 24" x 24" CRAWL HOLE in the main floor, which implies a
+      crawl space beneath it. The model puts a slab under the whole footprint,
+      and that slab's thickness is taken from A2.0's '4" CONC SLAB #4, 18"
+      GRID' — a callout for the PORCH. Nothing in the spec establishes the main
+      body's foundation type.
+    impact: >
+      Cutting the crawl hole makes this visible: the opening reveals the
+      modelled slab, when a crawl hole exists precisely because there is a void
+      to reach. Above the floor plane nothing is affected, so every gate and
+      every elevation still holds.
+    action: >
+      Recorded, not guessed at. Resolving it means reading A2.0's foundation
+      plan properly, which is its own piece of work. Do NOT quietly delete the
+      slab under the main body to make the render look right — that would be
+      inventing a foundation to suit a hole.
+    surfaced_by: "cutting the crawl hole; the opening had to show something"
   - id: crawl-hole-under-closet-doors
     finding: >
       The 24"x24" crawl-space hatch sits entirely within the 6'-0" closet

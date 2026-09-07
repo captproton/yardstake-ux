@@ -685,7 +685,32 @@ def build(spec, cut_openings=True):
     # Floor finishes tile without overlapping: south band full width, then the
     # north band east of the bath, then the bath itself.
     box("Floor_main_S", xw, xe, ys, bath_y0, 0, ff, finish)
-    box("Floor_main_N", bath_x1, xe, bath_y0, ye, 0, ff, finish)
+
+    # The 24"x24" crawl hole is a real opening in this floor, measured off A1.1
+    # in Tier 3a and reproducing its callout exactly. It sits wholly inside
+    # Floor_main_N with margins on all four sides, so the floor becomes a frame
+    # of four strips around it -- boxes, not a boolean, for the reason the
+    # counters give.
+    #
+    # The HATCH is a separate object sitting flush in the opening, because that
+    # is what a crawl hole is: an access panel, normally closed. An open square
+    # void in a finished floor would read as a modelling defect in a
+    # configurator, and hiding one named object is easier than cutting a hole
+    # on demand.
+    hole = next((i for i in spec["fixtures"]["access"]["items"]
+                 if i["id"] == "crawl_hole" and i.get("floor_opening")), None)
+    if hole:
+        hx0, hx1 = xw + hole["x"], xw + hole["x"] + hole["w"]
+        hy0, hy1 = ye - (hole["y"] + hole["d"]), ye - hole["y"]
+        multibox("Floor_main_N", [
+            (bath_x1, hx0, bath_y0, ye, 0, ff),      # west of the opening
+            (hx1, xe, bath_y0, ye, 0, ff),           # east of it
+            (hx0, hx1, bath_y0, hy0, 0, ff),         # south of it
+            (hx0, hx1, hy1, ye, 0, ff),              # north of it
+        ], finish)
+        box("Floor_crawl_hatch", hx0, hx1, hy0, hy1, 0, ff, finish)
+    else:
+        box("Floor_main_N", bath_x1, xe, bath_y0, ye, 0, ff, finish)
     box("Floor_bath",   xw, bath_x1, bath_y0, ye, 0, ff, finish)
     box("Floor_loft",   xw, xe, loft_s, ye, loft_sf, loft_sf + ff, finish)
 
