@@ -790,6 +790,44 @@ fixtures:
            note: "Runs from above the refrigerator to the window's north edge, interrupted by the hood over the range."}
         - {id: upper_south, y0: 20.000, y1: 23.083, confidence: approx_6in,
            note: "A single cabinet at the south end, with a clear gap to the window in frame. Its exact start is the least certain number here."}
+      sink:
+        # The basin and tap that drop into runs.sink_cutout. Sources are OUR
+        # OWN: the cutout is measured off A1.1, and the appearance comes from
+        # video 2:40, which shows this unit's sink clearly.
+        #
+        # NOT modelled from any third-party asset or from another vendor's
+        # configurator. That matters for provenance: every dimension here
+        # traces to the plan set or to a standard, the same as the rest of the
+        # spec.
+        basin:
+          # Footprint IS the cutout — an undermount bowl is the opening, minus
+          # the counter's overhang onto its rim.
+          inset: {ft: 0.021, raw: "1/4\"", confidence: assumed,
+                  note: "counter laps the bowl rim by this much all round"}
+          depth: {ft: 0.729, raw: "8-3/4\"", confidence: assumed,
+                  source: "industry standard undermount bowl, 8-10 inches"}
+          wall: {ft: 0.042, raw: "1/2\"", confidence: assumed,
+                 note: "schematic thickness so the basin reads as a vessel, not a hole"}
+          form: single_bowl_with_drain_ledge
+          source: "video 2:40 — undermount stainless rectangular bowl with an integrated drain ledge to its left"
+        faucet:
+          # A commercial-style spring-coil pull-down, per video 2:40. Modelled
+          # as a swept tube: column, arc over, angled spray head. The coil
+          # itself is detail below the fidelity of everything else here and is
+          # deliberately not modelled.
+          height: {ft: 1.333, raw: "1'-4\"", confidence: assumed,
+                   source: "industry standard for a pull-down kitchen tap"}
+          reach: {ft: 0.667, raw: "8\"", confidence: assumed}
+          radius: {ft: 0.052, raw: "5/8\"", confidence: assumed}
+          spray_radius: {ft: 0.073, raw: "7/8\"", confidence: assumed}
+          spray_drop: {ft: 0.25, raw: "3\"", confidence: assumed}
+          behind_bowl: {ft: 0.146, raw: "1-3/4\"", confidence: assumed,
+                        note: "centreline set back from the bowl's rear rim"}
+          source: "video 2:40 — brushed column, coiled neck, black spray head"
+          note: >
+            The two filmed units have DIFFERENT taps — 2:40 is a commercial
+            coil, 1:08 a plain gooseneck — so like the countertop this is a
+            choice rather than a fact. Modelled generic.
       hood:
         y0: 12.370
         y1: 14.880
@@ -1099,6 +1137,8 @@ materials:
     Cab_top: counter_stone
     Cab_splash: counter_stone
     Cab_hood: steel
+    Cab_basin: steel
+    Cab_faucet: steel
     Cab_: cab_wood
 
 # ---------------------------------------------------------------------------
