@@ -7,10 +7,14 @@ Tiers 1 and 2 have both landed ([#57](https://github.com/captproton/yardstake-ux
 tier sits on exist and are textured. **This is the only substantial work
 remaining** — firm it up before building.
 
-**Casework is built.** Footprints measured (§1a), then cabinets, counters,
-backsplash, uppers, hood and the bath vanity built parametrically from
-`spec.fixtures` (§1b). What remains in this tier is the *buy* half — appliances
-and plumbing fittings — which is gated on licensing.
+**Casework, sink and tap are built** ([#60](https://github.com/captproton/yardstake-ux/pull/60), [#62](https://github.com/captproton/yardstake-ux/pull/62)).
+Footprints measured (§1a), then cabinets, counters, backsplash, uppers, hood
+and the bath vanity (§1b), then the kitchen sink basin and tap (§1c) — all
+parametric from `spec.fixtures`, none from a bought asset.
+
+**What remains is smaller than it was.** Correcting §2's split from *by trade*
+to *by shape* moved the basin and the tub off the buy side, so the only items
+still needing third-party assets are the **toilet** and the **appliances**.
 
 **Step 1 of 2 is done.** Fixture footprints are measured and in
 `spec.fixtures` — 9 footprints, 10/10 gates, verified against the sheet.

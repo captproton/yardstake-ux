@@ -17,18 +17,22 @@ Phases P1–P4 are complete and gated:
 | **Tier 1** | Ceilings, floors, closet wall, doors, trim, reveals, ladder, guardrail | **done**, 14/14 gates |
 | **Tier 2a** | UVs at 128 px/ft, exterior textures | **done**, 4/4 gates |
 | **Tier 2b** | Interior textures, neutral albedos, configurator manifest | **done**, 5/5 + 4/4 gates |
-| **Tier 3a** | Fixture footprints measured from A1.1 | **done**, 10/10 gates |
-| **Tier 3b** | Casework and appliance geometry | **not started** |
+| **Tier 3a** | Fixture footprints measured from A1.1 | **done**, 16/16 gates |
+| **Tier 3b** | Casework, sink and tap | **done** |
+| **Tier 3c** | Appliances and the toilet | **not started** — the only work still needing bought assets |
 
-Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57),
-[#58](https://github.com/captproton/yardstake-ux/pull/58) and [#59](https://github.com/captproton/yardstake-ux/pull/59). The
-placement developer is unblocked — `lod2` and their handoff are on `main`, and
-unchanged at **24.1 KB**.
+Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59),
+[#60](https://github.com/captproton/yardstake-ux/pull/60), [#61](https://github.com/captproton/yardstake-ux/pull/61) and [#62](https://github.com/captproton/yardstake-ux/pull/62). The placement developer
+is unblocked — `lod2` and their handoff are on `main`, and **unchanged at
+24.1 KB through every one of them**.
 
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
-rather than necessity: `lod0` is 419 KB against a 4 MB ceiling. Tier 3 has its
-measurements but no geometry: nine fixture footprints are in `spec.fixtures`,
-gated and verified against the sheet, and nothing is modelled on them yet.
+rather than necessity. Tier 3's *build* half is done: cabinets, counters,
+backsplash, uppers, hood, bath vanity, and the kitchen sink and tap. `lod0` is
+now **856 KB** against a 4 MB ceiling.
+
+What remains of Tier 3 is the *buy* half — appliances and the toilet — plus two
+small omissions listed under [What remains](#what-remains).
 
 The **exterior is finished work**. Silhouette, both pitches, ridge height,
 overhangs, and every opening are validated against the sheet. Nothing in this
@@ -98,7 +102,7 @@ another party. We set the pace.
 |---|---|---|
 | **1** | Schematic interior — door leaves, trim, casing, ceiling planes, distinct floor surfaces, closet walls, loft ladder + guardrail | [TIER-1](TIER-1-schematic-interior.md) — **DONE** |
 | **2** | Materially real — UVs, texel density, tileable maps, KTX2 compression, configurator-swappable finishes | [TIER-2](TIER-2-materials-and-textures.md) — **done bar KTX2**, which is optimisation only. [#58](https://github.com/captproton/yardstake-ux/pull/58) |
-| **3** | Furnished — kitchen casework, appliances, bath fixtures, furniture | [TIER-3](TIER-3-fixtures-and-furnishing.md) — **footprints measured** ([#59](https://github.com/captproton/yardstake-ux/pull/59)); geometry not started |
+| **3** | Furnished — kitchen casework, appliances, bath fixtures, furniture | [TIER-3](TIER-3-fixtures-and-furnishing.md) — **casework, sink and tap built** ([#60](https://github.com/captproton/yardstake-ux/pull/60), [#62](https://github.com/captproton/yardstake-ux/pull/62)); appliances and toilet remain |
 
 > **Note on numbering.** In earlier conversation these tiers were described
 > once with fixtures folded into tier 1. That was a slip. The definitions above
@@ -204,10 +208,11 @@ measurements. In order of value:
 
 | Work | Notes |
 |---|---|
-| **T3:** licensing | **The long-lead item, and the only one nobody can start for you.** The sole place third-party assets enter the model at all. Not blocked by anything below |
-| **T3:** build the casework | Parametric cabinets, counters and vanity in `build_adu.py`, driven by `spec.fixtures`. Footprints are measured, so this is geometry work with no measuring left in it |
-| **T3:** source the appliances | Decimate to ~2-5k triangles each; ship as a separate on-demand `.glb`. Gated by licensing |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 419 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **T3:** vanity top cutout | The kitchen counter had this defect and it is fixed; the bath vanity still has it. Smallest job on the list |
+| **T3:** crawl hole | 24"×24", measured and reproducing its callout exactly, but never cut into the floor. Tier 1 geometry that Tier 3a's measurements unblocked |
+| **T3:** licensing decision | **Now scoped to two items only** — the toilet and the appliances. Everything else turned out to be buildable once §2's split was corrected from *by trade* to *by shape*. Sourcing is researched: poly.pizza's CC0 filter (`?lic=1`) has a toilet, tub, bathroom sink and fridge from Kenney and Quaternius, all unbranded. Not yet recorded in the spec |
+| **T3:** appliances and toilet | Decimate to ~2-5k triangles each; ship as a separate on-demand `.glb`. Gated by the decision above |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 856 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
 
 Two prerequisites are long discharged: **texel density is fixed at 128 px/ft**
@@ -268,3 +273,17 @@ Keep these — they caught real errors:
    nine, and every one looked plausible, because a window that clips its
    subject and a window inside its subject both just report the window.
    Measure the drawn lines.
+9. **A gate must report the threshold it enforces, not just its inputs.** The
+   basin clearance check compared against `toe + 0.25` while printing only
+   "carcass starts 3-1/2\"", so a failure would have read as a contradiction
+   rather than a near miss.
+10. **Some defects are invisible to a render, and this keeps happening.** P2's
+    boolean kept its full volume while looking cut. The configurator manifest
+    passed its gate while the swap did nothing. The faucet's duplicated path
+    point produced eight twisted slivers that `validate()` did not strip and no
+    picture would ever show. Counting — volume, vertices, face areas, pixel
+    separation — is what finds these. Looking is not.
+11. **Check the reviews before merging.** Copilot reviewed every PR in this
+    series and twelve comments went unread while "all green" was being reported
+    from a local gate sweep. A green sweep is evidence about the code, not
+    about whether anyone has looked at it.
