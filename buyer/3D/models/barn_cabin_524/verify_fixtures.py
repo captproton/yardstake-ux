@@ -304,6 +304,49 @@ def main():
              f"tap x {ftin(max(x for x, _, _ in pts))}, "
              f"bowl centre {ftin(bowl['cx'])}")
 
+    # 12. NO FIXTURE MAY BLOCK A DOOR OPENING.
+    #     This gate is here because its absence shipped a defect: the bath
+    #     vanity sat 7" across the bath doorway and every existing check
+    #     passed. The room-assignment gate compares a fixture's ORIGIN corner
+    #     against the partition, so anything whose far edge crosses a wall or a
+    #     doorway is invisible to it. Extents, not corners.
+    parts_by_id = {p["id"]: p for p in lay["partitions"]}
+    for door in lay["doors"]:
+        wall = parts_by_id.get(door["in"])
+        if wall is None:
+            MISSING.append(f"partition for door {door['id']} ({door['in']})")
+            continue
+        lo = door["centre_ft"] - door["w"] / 2.0
+        hi = door["centre_ft"] + door["w"] / 2.0
+        for group, it in items:
+            # A FLOOR OPENING cannot block a door: a door leaf passes over a
+            # hatch. The first version of this gate failed the 24"x24" crawl
+            # hole against the closet bypass doors, which sit directly above
+            # it. That is the plan's own arrangement, both positions are
+            # measured, and it is awkward rather than wrong -- recorded in
+            # discrepancies as `crawl-hole-under-closet-doors`, not gated here.
+            if it.get("floor_opening"):
+                continue
+            # Only fixtures standing ON this wall can block it.
+            along0, along1 = ((it["x"], it["x"] + it["w"]) if wall["axis"] == "x"
+                              else (it["y"], it["y"] + it["d"]))
+            # Check BOTH edges against the wall, not just the far one. A
+            # fixture NORTH of an x-axis wall meets it with its south edge; one
+            # SOUTH of the wall meets it with its north edge. Testing only the
+            # far edge silently skipped every kitchen fixture against the bath
+            # wall -- which is exactly the run that shares it.
+            near, far = ((it["y"], it["y"] + it["d"]) if wall["axis"] == "x"
+                         else (it["x"], it["x"] + it["w"]))
+            if min(abs(near - wall["at_ft"]), abs(far - wall["at_ft"])) > 1.0:
+                continue
+            overlap = min(along1, hi) - max(along0, lo)
+            gate(overlap <= 0.01,
+                 f"{it['id']} does not block {door['id']}",
+                 f"fixture {ftin(along0)}..{ftin(along1)} vs opening "
+                 f"{ftin(lo)}..{ftin(hi)}"
+                 + (f" — OVERLAP {ftin(overlap)}" if overlap > 0.01
+                    else f", clear by {ftin(-overlap)}"))
+
     print("=" * 96)
     if MISSING:
         print("spec entries the gates expected but could not find:")

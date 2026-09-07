@@ -218,8 +218,10 @@ interior_partitions:
          measured_open_span: "13.44 -> 17.16 ft on the wall line",
          source: "A1.1 callout (size); video 4:00"}
       - {id: D-POCKET-BATH, in: P_bath_S, w: 2.333, h: 6.667, raw: "2'-4\" P",
-         centre_ft: 2.55, position_confidence: approx_6in,
-         source: "A1.1 callout (size); video 2:52"}
+         centre_ft: 3.66, position_confidence: measured,
+         measured_opening: "both wall lines break together at x_int 2.52..4.80 = 2'-3-5/8\", against a 2'-4\" callout (3/8\" agreement)",
+         correction: "Was 2.55 / approx_6in -- a guess, wrong by 13.3\", more than double its own stated tolerance. It put the doorway across the measured vanity, which is how it surfaced: the vanity looked like it sat outside the bathroom. The plan draws this opening plainly; it never needed estimating.",
+         source: "A1.1 wall-line scan across the P_bath_S band; size from the callout"}
       - {id: D-CLOSET, in: P_bedroom_W, w: 6.0, h: 6.667, raw: "6'-0\" SLDR. W/ 4 X 10 DF #2 HDR",
          centre_ft: 4.09, position_confidence: measured,
          measured_opening: "1.04 -> 7.14 ft = 6.10 ft wide, against a 6'-0\" callout (1.2\" agreement)",
@@ -1211,6 +1213,18 @@ areas_declared:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: crawl-hole-under-closet-doors
+    finding: >
+      The 24"x24" crawl-space hatch sits entirely within the 6'-0" closet
+      bypass door opening — a 2'-0" overlap. Both positions are MEASURED off
+      A1.1, so this is the plan's own arrangement, not a modelling error.
+    impact: >
+      None geometrically: a door leaf passes over a floor hatch. It is awkward
+      to use — you would be lifting the hatch in the closet threshold, under
+      the door track — and worth raising with whoever owns the plan set rather
+      than silently adjusting geometry to make it look tidier.
+    action: "Recorded, not modelled around. The door-blocking gate skips floor openings for this reason."
+    surfaced_by: "verify_fixtures.py gate 12, added after the bath door correction"
   # Built unit (video) vs published plans. Plans win for geometry; these are flagged
   # because they change what the model should show if the goal is the as-built unit.
   - id: dishwasher-width
