@@ -835,11 +835,45 @@ def build_casework(spec, geo, coll):
     up_bot = ch + up["clear_above_counter"]["ft"]
     splash_h = kit["backsplash"]["height"]["ft"]
 
-    # Not dimensioned anywhere and not worth a spec entry each: stock joinery
-    # figures that only affect how the boxes read close up.
-    door_t, reveal, overhang, toe_recess, splash_t = 0.0625, 0.0104, 0.0833, 0.25, 0.0625
+    # Joinery figures, from spec.fixtures.casework_detail. These used to be
+    # five literals here with a comment saying they were "not worth a spec
+    # entry each" -- the project's first ground rule waived rather than
+    # followed. Stock figures are still dimensions.
+    cd = fx["casework_detail"]
+    door_t = cd["door_thickness"]["ft"]
+    reveal = cd["leaf_reveal"]["ft"]
+    overhang = cd["counter_overhang"]["ft"]
+    toe_recess = cd["toe_kick_recess"]["ft"]
+    splash_t = cd["backsplash_thickness"]["ft"]
+    shaker = cd["shaker"]
 
     carcass, toes, fronts, tops, splashes, uppers, up_fronts = [], [], [], [], [], [], []
+
+    def leaf(x_back, x_front, y0, y1, z0, z1, kind):
+        """One cabinet front: a shaker frame for a door, a slab for a drawer.
+
+        A door modelled as a flat slab is geometrically correct and visually
+        nothing: two coplanar same-material leaves with a 1/4" gap give the eye
+        no cue, so a pair reads as one panel under any lighting. The frame and
+        recessed panel are what make a shaker door legible, and all three
+        filmed units have shaker doors.
+
+        Drawers stay slab on purpose -- see the note in the spec.
+        """
+        if kind != "doors" or shaker.get("applies_to") != "doors":
+            return [(x_back, x_front, y0, y1, z0, z1)]
+        w = shaker["stile_width"]["ft"]
+        rec = shaker["panel_recess"]["ft"]
+        # Refuse to draw a frame that would leave no panel; fall back to slab.
+        if (y1 - y0) < 3 * w or (z1 - z0) < 3 * w:
+            return [(x_back, x_front, y0, y1, z0, z1)]
+        return [
+            (x_back, x_front, y0, y1, z0, z0 + w),              # bottom rail
+            (x_back, x_front, y0, y1, z1 - w, z1),              # top rail
+            (x_back, x_front, y0, y0 + w, z0 + w, z1 - w),      # left stile
+            (x_back, x_front, y1 - w, y1, z0 + w, z1 - w),      # right stile
+            (x_back, x_front - rec, y0 + w, y1 - w, z0 + w, z1 - w),   # panel
+        ]
 
     def door_bands(y0, y1, z0, z1, kind):
         """Split a bay into leaves. Doors divide across the wall, drawers up it."""
@@ -893,7 +927,8 @@ def build_casework(spec, geo, coll):
         toes.append((xw, xw + depth - toe_recess, ya, yb, 0.0, toe_h))
         for a, b, z0, z1 in door_bands(seg["y0"], seg["y1"], toe_h, ch - top_t,
                                        seg["front"]):
-            fronts.append((xw + depth - door_t, xw + depth, ym(b), ym(a), z0, z1))
+            fronts += leaf(xw + depth - door_t, xw + depth,
+                           ym(b), ym(a), z0, z1, seg["front"])
 
     # ---- counter and backsplash ------------------------------------------
     # The sink opening is cut by BUILDING A FRAME around it, not by a boolean.
@@ -942,8 +977,8 @@ def build_casework(spec, geo, coll):
                 continue
             uppers.append((xw, xw + up_d - door_t, ym(b), ym(a), z0, up_bot + up_h))
             for da, db, dz0, dz1 in door_bands(a, b, z0, up_bot + up_h, "doors"):
-                up_fronts.append((xw + up_d - door_t, xw + up_d,
-                                  ym(db), ym(da), dz0, dz1))
+                up_fronts += leaf(xw + up_d - door_t, xw + up_d,
+                                  ym(db), ym(da), dz0, dz1, "doors")
 
     # ---- bath vanity ------------------------------------------------------
     van = next(i for i in fx["bath"]["items"] if i["id"] == "vanity")
@@ -975,7 +1010,8 @@ def build_casework(spec, geo, coll):
     toes.append((xw, xw + van["w"] - toe_recess, ya, yb, 0.0, toe_h))
     for a, b, z0, z1 in door_bands(van["y"], van["y"] + van["d"], toe_h,
                                    vh - top_t, "doors"):
-        fronts.append((xw + van["w"] - door_t, xw + van["w"], ym(b), ym(a), z0, z1))
+        fronts += leaf(xw + van["w"] - door_t, xw + van["w"],
+                       ym(b), ym(a), z0, z1, "doors")
     # The vanity top gets the same treatment the kitchen counter got in #62:
     # a frame of four boxes around the basin opening, not a boolean. The
     # opening is the bowl ellipse's bounding box, so the rim laps it on every

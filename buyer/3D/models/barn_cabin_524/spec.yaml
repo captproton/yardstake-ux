@@ -891,6 +891,35 @@ fixtures:
       - {id: fan_light, drawn: true, ceiling_mounted: true,
          note: "Tagged FAN, LIGHT, V.T.O. Position drawn but it is a ceiling item; no footprint on the floor.",
          confidence: measured, source: "A1.1 main floor plan tag"}
+  casework_detail:
+    # Joinery figures shared by the kitchen run and the bath vanity.
+    #
+    # These were five hardcoded literals in build_adu.py, with a comment saying
+    # they were "not worth a spec entry each". That was the project's first
+    # ground rule being waived rather than followed: no dimension lives in a
+    # script. They are stock figures, not measurements, and they are labelled
+    # as such -- but that is an argument for `confidence: assumed`, not for
+    # hiding them in code where nobody can find or change them.
+    door_thickness:       {ft: 0.0625, raw: "3/4\"",   confidence: assumed}
+    leaf_reveal:          {ft: 0.0104, raw: "1/8\"",   confidence: assumed,
+                           note: "Inset per edge, so the gap between a pair of doors is twice this: 1/4\"."}
+    counter_overhang:     {ft: 0.0833, raw: "1\"",     confidence: assumed}
+    toe_kick_recess:      {ft: 0.25,   raw: "3\"",     confidence: assumed}
+    backsplash_thickness: {ft: 0.0625, raw: "3/4\"",   confidence: assumed}
+    shaker:
+      # Doors are shaker: a frame of stiles and rails around a recessed panel.
+      # Flat slabs are geometrically fine and read as nothing under lighting --
+      # a 1/4" reveal between two coplanar same-material leaves gives the eye
+      # no cue at all, which is what made the vanity doors look like one slab.
+      stile_width:  {ft: 0.1875, raw: "2-1/4\"", confidence: assumed}
+      panel_recess: {ft: 0.0208, raw: "1/4\"",   confidence: assumed}
+      applies_to: doors
+      note: >
+        Doors only. A four-drawer stack gives each front about 5-7/8", and a
+        2-1/4" rail top and bottom would leave a 1-3/8" panel — real shaker
+        drawer fronts use narrower rails or are slab. Slab is the honest
+        default for the drawers.
+      source: "video 1:08, 2:14 and 2:40 — natural-wood shaker doors in all three filmed units"
   bath_fittings:
     # The vanity basin and its three-hole tap set. Same provenance rule as the
     # kitchen sink in #62: footprint MEASURED off A1.1, appearance from the
