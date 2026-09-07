@@ -2,10 +2,21 @@
 verify_openings.py — geometric check that every opening in spec.yaml actually
 exists in the built mesh, at the right place and the right size.
 
-This does not trust a render. For each opening it asserts that the wall mesh
-contains vertices at all four corners of the hole, and that a point at the
-centre of the hole is NOT inside the wall solid while a point just outside the
-hole IS. Run after build_adu.py:
+This does not trust a render. For each opening it asserts two things:
+
+  VOLUME   the wall solid lost exactly the opening's volume. This is the strong
+           test and the one that earns its keep: P2 shipped booleans that
+           imprinted edges without removing material, so face counts rose and
+           corners existed while the mesh kept its full volume. Only volume
+           caught it.
+  CORNERS  the wall mesh carries vertices at the corners of the hole.
+
+It does NOT sample points for inside/outside containment. An earlier version of
+this docstring said it did, which was never true — and a docstring describing a
+check that does not exist is worse than no docstring, because it invites the
+reader to trust a guarantee nobody is making.
+
+Run after build_adu.py:
 
     blender --background barn_cabin_524.blend --python verify_openings.py
 """

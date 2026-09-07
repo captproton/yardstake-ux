@@ -101,15 +101,22 @@ def main():
     # inward wall faces must be drywall, not siding
     walls = ["Wall_N", "Wall_S", "Wall_W", "Wall_E",
              "Gable_N", "Gable_S_porch", "Dormer_face_W", "Dormer_face_E"]
-    missing = []
+    # A wall that is not in the file used to be skipped, which meant a deleted
+    # or renamed wall passed this gate silently. A gate that cannot fail is not
+    # a gate — the same defect class as the configurator manifest that checked
+    # names while the swap did nothing. Absent is now a failure.
+    missing, absent = [], []
     for n in walls:
         ob = bpy.data.objects.get(n)
         if ob is None:
+            absent.append(n)
             continue
         if not any(p.material_index == 2 for p in ob.data.polygons):
             missing.append(n)
-    gate("wall inner faces tagged drywall, not siding", not missing,
-         "; ".join(missing) or f"{len(walls)} walls split cladding / trim / drywall")
+    detail = "; ".join([f"NOT IN FILE: {a}" for a in absent] +
+                       [f"untagged: {m}" for m in missing])
+    gate("wall inner faces tagged drywall, not siding", not (missing or absent),
+         detail or f"{len(walls)} walls split cladding / trim / drywall")
 
     # tile coverage: a tile spans tile_px / density feet
     tile_ft = tile_px / target

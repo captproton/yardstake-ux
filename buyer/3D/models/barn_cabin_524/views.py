@@ -42,8 +42,13 @@ def _matches(ob, prefixes):
     return any(ob.name.startswith(p) for p in prefixes)
 
 
-def _show(prefixes=(), hide=()):
-    """Hide objects matching `hide`; show everything else."""
+def _show(hide=()):
+    """Hide objects matching `hide`; show everything else.
+
+    There was an unused `prefixes` parameter here, which read as a
+    half-built "show only these" feature. There is no such feature: every
+    mode is expressed as what to hide.
+    """
     for ob in bpy.data.objects:
         if ob.type != "MESH":
             continue
