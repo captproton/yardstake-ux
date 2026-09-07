@@ -218,8 +218,10 @@ interior_partitions:
          measured_open_span: "13.44 -> 17.16 ft on the wall line",
          source: "A1.1 callout (size); video 4:00"}
       - {id: D-POCKET-BATH, in: P_bath_S, w: 2.333, h: 6.667, raw: "2'-4\" P",
-         centre_ft: 2.55, position_confidence: approx_6in,
-         source: "A1.1 callout (size); video 2:52"}
+         centre_ft: 3.66, position_confidence: measured,
+         measured_opening: "both wall lines break together at x_int 2.52..4.80 = 2'-3-5/8\", against a 2'-4\" callout (3/8\" agreement)",
+         correction: "Was 2.55 / approx_6in -- a guess, wrong by 13.3\", more than double its own stated tolerance. It put the doorway across the measured vanity, which is how it surfaced: the vanity looked like it sat outside the bathroom. The plan draws this opening plainly; it never needed estimating.",
+         source: "A1.1 wall-line scan across the P_bath_S band; size from the callout"}
       - {id: D-CLOSET, in: P_bedroom_W, w: 6.0, h: 6.667, raw: "6'-0\" SLDR. W/ 4 X 10 DF #2 HDR",
          centre_ft: 4.09, position_confidence: measured,
          measured_opening: "1.04 -> 7.14 ft = 6.10 ft wide, against a 6'-0\" callout (1.2\" agreement)",
@@ -889,6 +891,103 @@ fixtures:
       - {id: fan_light, drawn: true, ceiling_mounted: true,
          note: "Tagged FAN, LIGHT, V.T.O. Position drawn but it is a ceiling item; no footprint on the floor.",
          confidence: measured, source: "A1.1 main floor plan tag"}
+  casework_detail:
+    # Joinery figures shared by the kitchen run and the bath vanity.
+    #
+    # These were five hardcoded literals in build_adu.py, with a comment saying
+    # they were "not worth a spec entry each". That was the project's first
+    # ground rule being waived rather than followed: no dimension lives in a
+    # script. They are stock figures, not measurements, and they are labelled
+    # as such -- but that is an argument for `confidence: assumed`, not for
+    # hiding them in code where nobody can find or change them.
+    door_thickness:       {ft: 0.0625, raw: "3/4\"",   confidence: assumed}
+    leaf_reveal:          {ft: 0.0104, raw: "1/8\"",   confidence: assumed,
+                           note: "Inset per edge, so the gap between a pair of doors is twice this: 1/4\"."}
+    counter_overhang:     {ft: 0.0833, raw: "1\"",     confidence: assumed}
+    toe_kick_recess:      {ft: 0.25,   raw: "3\"",     confidence: assumed}
+    backsplash_thickness: {ft: 0.0625, raw: "3/4\"",   confidence: assumed}
+    shaker:
+      # Doors are shaker: a frame of stiles and rails around a recessed panel.
+      # Flat slabs are geometrically fine and read as nothing under lighting --
+      # a 1/4" reveal between two coplanar same-material leaves gives the eye
+      # no cue at all, which is what made the vanity doors look like one slab.
+      stile_width:  {ft: 0.1875, raw: "2-1/4\"", confidence: assumed}
+      panel_recess: {ft: 0.0208, raw: "1/4\"",   confidence: assumed}
+      applies_to: doors
+      note: >
+        Doors only. A four-drawer stack gives each front about 5-7/8", and a
+        2-1/4" rail top and bottom would leave a 1-3/8" panel — real shaker
+        drawer fronts use narrower rails or are slab. Slab is the honest
+        default for the drawers.
+      source: "video 1:08, 2:14 and 2:40 — natural-wood shaker doors in all three filmed units"
+  bath_fittings:
+    # The vanity basin and its three-hole tap set. Same provenance rule as the
+    # kitchen sink in #62: footprint MEASURED off A1.1, appearance from the
+    # plan's own symbols. No third-party asset.
+    #
+    # A1.1 draws two concentric ovals plus three tap holes. The outer oval is
+    # the rim, the inner is the bowl opening, and the bowl sits 1-1/4" EAST of
+    # the rim centre — which is the tap deck, and is why the rim looks wider on
+    # the wall side.
+    #
+    # Issue #63 estimated the rim at "approx 19 x 21". Measured properly it is
+    # 17-1/2" x 20-7/8"; the long axis was right, the short was ~1-1/2" high.
+    basin:
+      rim:  {cx: 1.050, cy: 6.750, ax: 0.730, ay: 0.870,
+             raw_measured: "1'-5-1/2\" off the wall x 1'-8-7/8\" along it"}
+      bowl: {cx: 1.160, cy: 6.740, ax: 0.440, ay: 0.640,
+             raw_measured: "0'-10-1/2\" off the wall x 1'-3-3/8\" along it"}
+      depth: {ft: 0.458, raw: "5-1/2\"", confidence: assumed,
+              source: "industry standard lavatory bowl, 5-6 inches"}
+      rim_thickness: {ft: 0.042, raw: "1/2\"", confidence: assumed}
+      wall: {ft: 0.031, raw: "3/8\"", confidence: assumed}
+      taper: {factor: 0.55, confidence: assumed,
+              note: "bowl narrows to this fraction of its opening at the floor"}
+      confidence: measured
+      source: "A1.1 main floor plan, the two concentric ovals inside the vanity"
+    mirror:
+      # NOT on A1.1 — mirrors are not drawn in plan. Sourced from the video,
+      # which shows a wood-framed mirror above the vanity in BOTH filmed units
+      # (3:03 and 3:18 in one, 2:57 and 3:00 in the other), sitting just south
+      # of the bath window on the same wall.
+      #
+      # Position is DERIVED (centred on the measured vanity); size is a stock
+      # assumption. Nothing here is measured and none of it should be read as
+      # if it were.
+      w:         {ft: 2.0,   raw: "2'-0\"",     confidence: assumed}
+      h:         {ft: 2.5,   raw: "2'-6\"",     confidence: assumed}
+      gap_above_splash: {ft: 0.167, raw: "2\"", confidence: assumed}
+      frame_w:   {ft: 0.167, raw: "2\"",        confidence: assumed}
+      depth:     {ft: 0.125, raw: "1-1/2\"",    confidence: assumed}
+      glass_recess: {ft: 0.042, raw: "1/2\"",   confidence: assumed}
+      confidence: assumed
+      source: "video 3:03, 3:06, 3:18 — wood-framed mirror above the vanity, beside the bath window"
+      clearance_note: >
+        W-BATH ends at y_int 5.462 and the vanity starts at 5.500, so a 2'-0"
+        mirror centred on the vanity (5.75..7.75) clears the window by 3-1/2".
+        That adjacency is what the video shows.
+    faucet:
+      # Three-hole set: two handles flanking a spout, all drawn on the sheet.
+      # Positions are measured; heights are standard and marked assumed.
+      spout:   {x: 0.560, y: 6.740}
+      handles: [{x: 0.580, y: 6.520}, {x: 0.580, y: 6.980}]
+      height:  {ft: 0.667, raw: "8\"", confidence: assumed}
+      reach:   {ft: 0.480, raw: "5-3/4\"", confidence: measured,
+                note: "Spout tip lands at x_int 1.040, the drawn end of the spout bar."}
+      spout_correction: >
+        Was x 0.920 with a 4-3/4" reach — taken from the MIDDLE of the spout
+        bar on A1.1. That put the tap column at x_int 0.920, inside the bowl
+        opening (0.720..1.600), so it rose out of the basin rather than off the
+        deck. The heavy ink at cols 470-471 that looked like a mounting feature
+        is the bowl outline crossing the spout. A three-hole set puts all three
+        holes in a line on the deck: the spout mounts with the handles at
+        x_int ~0.56 and arcs forward to 1.040.
+      radius:  {ft: 0.036, raw: "7/16\"", confidence: assumed}
+      handle_height: {ft: 0.208, raw: "2-1/2\"", confidence: assumed}
+      handle_radius: {ft: 0.057, raw: "11/16\"", confidence: assumed,
+                      raw_measured: "1-3/8\" diameter on the sheet"}
+      confidence: measured_position_assumed_height
+      source: "A1.1 main floor plan — two handle circles at 5-1/2\" centres, spout between them"
   laundry:
     items:
       - {id: stacked_wd, x: 5.390, y: 0.590, w: 2.300, d: 2.0,
@@ -1103,6 +1202,37 @@ materials:
       maps: {base_color: "granite_albedo.png", normal: "granite_normal.png"}
       source: "video 1:13 close-up (tan unit), 2:40 wide (white/grey unit)"
       confidence: "hue from video; the two units differ, so the DEFAULT is a choice, not a measurement"
+    porcelain:
+      # Bath sanitaryware. Flat white is genuinely correct here, as it is for
+      # trim — glazed porcelain has no pattern to carry.
+      base_color_linear: [0.870, 0.870, 0.860]
+      roughness: 0.15
+      metallic: 0.0
+      source: "video 2:52 — white sanitaryware, toilet and tub both"
+    mirror:
+      # A SCHEMATIC mirror: pale cool grey with a specular sheen, deliberately
+      # NOT a real reflector.
+      #
+      # It shipped first as metallic 1.0 / roughness 0.02 — a true mirror — and
+      # that is wrong for this model in a way that is not obvious. A perfect
+      # metallic surface reflects whatever environment it is handed, and it
+      # reflected the preview HDRI's foliage: green blotches, inside a
+      # bathroom. That is not a viewport quirk to be waited out. A Three.js
+      # configurator with an outdoor environment map does exactly the same
+      # thing, and no reflection probe is guaranteed there.
+      #
+      # Reflecting the opposite wall would need a probe or screen-space
+      # reflections — renderer features we cannot rely on in a web viewer, and
+      # a heavy dependency for one 2'x2'6" panel.
+      #
+      # Metallic 0 means the environment contributes nothing but a highlight,
+      # so the panel reads as a mirror by CONTEXT — framed, above a basin —
+      # in every renderer, with no way for a garden to appear in it. This is
+      # the same reasoning that keeps drywall flat: correct beats literal.
+      base_color_linear: [0.720, 0.740, 0.775]
+      roughness: 0.12
+      metallic: 0.0
+      source: "Bath mirror glass — video 3:03."
     steel:
       base_color_linear: [0.560, 0.570, 0.580]
       roughness: 0.30
@@ -1137,6 +1267,10 @@ materials:
     Cab_top: counter_stone
     Cab_splash: counter_stone
     Cab_hood: steel
+    # Cab_basin_bath MUST precede Cab_basin: first match wins, and the bath
+    # basin is glazed porcelain where the kitchen's is stainless.
+    Cab_mirror_glass: mirror
+    Cab_basin_bath: porcelain
     Cab_basin: steel
     Cab_faucet: steel
     Cab_: cab_wood
@@ -1163,6 +1297,18 @@ areas_declared:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: crawl-hole-under-closet-doors
+    finding: >
+      The 24"x24" crawl-space hatch sits entirely within the 6'-0" closet
+      bypass door opening — a 2'-0" overlap. Both positions are MEASURED off
+      A1.1, so this is the plan's own arrangement, not a modelling error.
+    impact: >
+      None geometrically: a door leaf passes over a floor hatch. It is awkward
+      to use — you would be lifting the hatch in the closet threshold, under
+      the door track — and worth raising with whoever owns the plan set rather
+      than silently adjusting geometry to make it look tidier.
+    action: "Recorded, not modelled around. The door-blocking gate skips floor openings for this reason."
+    surfaced_by: "verify_fixtures.py gate 12, added after the bath door correction"
   # Built unit (video) vs published plans. Plans win for geometry; these are flagged
   # because they change what the model should show if the goal is the as-built unit.
   - id: dishwasher-width

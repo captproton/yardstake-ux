@@ -244,6 +244,135 @@ def main():
              "sink opening is a plausible bowl size",
              f"{ftin(bowl_w)} along the wall x {ftin(bowl_d)} off it")
 
+    # 11. The bath vanity basin and its tap set. Same shape of check as the
+    #     kitchen sink, on the fixture that is now the model's only ellipse.
+    fit = fx.get("bath_fittings")
+    van = find([i for _, i in items], "vanity", "bath fixture")
+    if fit and van:
+        rim, bowl = fit["basin"]["rim"], fit["basin"]["bowl"]
+
+        # The rim must land inside the vanity top it sits in, on all four sides.
+        margins = (
+            (rim["cx"] - rim["ax"]) - van["x"],
+            (van["x"] + van["w"]) - (rim["cx"] + rim["ax"]),
+            (rim["cy"] - rim["ay"]) - van["y"],
+            (van["y"] + van["d"]) - (rim["cy"] + rim["ay"]),
+        )
+        gate(min(margins) > 0.08,
+             "basin rim sits inside the vanity top",
+             f"tightest margin {ftin(min(margins))}, needs > {ftin(0.08)}")
+
+        # The bowl opening must sit inside the rim, or the top has nothing to
+        # lap and a gap opens between counter and basin.
+        gate(bowl["ax"] < rim["ax"] and bowl["ay"] < rim["ay"],
+             "bowl opening is inside the rim",
+             f"bowl {ftin(bowl['ax'] * 2)}x{ftin(bowl['ay'] * 2)}, "
+             f"rim {ftin(rim['ax'] * 2)}x{ftin(rim['ay'] * 2)}")
+
+        # Basin depth against the vanity carcass, threshold reported (rule 9).
+        vh = van["h"]
+        bd = fit["basin"]["depth"]["ft"]
+        bw = fit["basin"]["wall"]["ft"]
+        toe = fx["kitchen"]["toe_kick_h"]["ft"]
+        # Mirror build_adu exactly: the loft's lowest ring is at
+        # (vh - depth) - wall. The old formula used vh - counter_thk - depth,
+        # which is neither the inner floor nor the outer, and happened to sit
+        # BELOW the real mesh -- conservative, so it could not pass wrongly,
+        # but it was not measuring the thing it named.
+        bottom = vh - bd - bw
+        limit = toe + 0.25
+        gate(bottom > limit,
+             "bath basin bottom clears the vanity interior",
+             f"basin floor at {ftin(bottom)}, must clear {ftin(limit)} "
+             f"(toe kick {ftin(toe)} + {ftin(0.25)})")
+
+        # The clearance gate above is correct but slack: a 32" vanity only trips
+        # it past ~23" of bowl depth, which nothing real approaches. Proving
+        # that took perturbing the value until it went red. So assert the
+        # plausible range too, which is the check that would actually catch a
+        # bad number -- same reasoning as the kitchen's bowl-size gate.
+        gate(0.33 <= bd <= 0.83,
+             "bath basin depth is a plausible bowl depth",
+             f"{ftin(bd)}, expected {ftin(0.33)}..{ftin(0.83)}")
+
+        # Tap set: handles and spout must all land on the rim, behind the bowl.
+        f = fit["faucet"]
+        pts = [(f["spout"]["x"], f["spout"]["y"], "spout")]
+        pts += [(h["x"], h["y"], f"handle {i}") for i, h in enumerate(f["handles"])]
+        # "Inside the rim" is not enough: the bowl opening is inside the rim
+        # too, so that test passes for a tap mounted over the hole. Every hole
+        # must be on the DECK -- inside the rim ellipse AND outside the bowl
+        # ellipse. This is what caught the spout mounting at x 0.920, inside a
+        # bowl opening spanning 0.720..1.600, rising out of the basin.
+        for x, y, label in pts:
+            in_rim = (((x - rim["cx"]) / rim["ax"]) ** 2
+                      + ((y - rim["cy"]) / rim["ay"]) ** 2) < 1.0
+            in_bowl = (((x - bowl["cx"]) / bowl["ax"]) ** 2
+                       + ((y - bowl["cy"]) / bowl["ay"]) ** 2) < 1.0
+            gate(in_rim and not in_bowl,
+                 f"tap {label} mounts on the rim deck",
+                 f"at x {ftin(x)} y {ftin(y)}"
+                 + ("" if in_rim else " — outside the rim")
+                 + (" — OVER THE BOWL OPENING" if in_bowl else ""))
+
+        # Behind the bowl's wall-side EDGE, not merely its centre: half the
+        # bowl is on the wall side of the centre.
+        edge = bowl["cx"] - bowl["ax"]
+        worst = max(x for x, _, _ in pts)
+        gate(worst <= edge + 0.01,
+             "tap set is behind the bowl's wall-side edge",
+             f"furthest tap hole at {ftin(worst)}, bowl edge {ftin(edge)}")
+
+        # And the spout must still REACH over the bowl, or it pours on the deck.
+        tip = f["spout"]["x"] + f["reach"]["ft"]
+        gate(bowl["cx"] - bowl["ax"] < tip < bowl["cx"] + bowl["ax"],
+             "spout tip reaches over the bowl",
+             f"tip at {ftin(tip)}, bowl {ftin(bowl['cx']-bowl['ax'])}"
+             f"..{ftin(bowl['cx']+bowl['ax'])}")
+
+    # 12. NO FIXTURE MAY BLOCK A DOOR OPENING.
+    #     This gate is here because its absence shipped a defect: the bath
+    #     vanity sat 7" across the bath doorway and every existing check
+    #     passed. The room-assignment gate compares a fixture's ORIGIN corner
+    #     against the partition, so anything whose far edge crosses a wall or a
+    #     doorway is invisible to it. Extents, not corners.
+    parts_by_id = {p["id"]: p for p in lay["partitions"]}
+    for door in lay["doors"]:
+        wall = parts_by_id.get(door["in"])
+        if wall is None:
+            MISSING.append(f"partition for door {door['id']} ({door['in']})")
+            continue
+        lo = door["centre_ft"] - door["w"] / 2.0
+        hi = door["centre_ft"] + door["w"] / 2.0
+        for group, it in items:
+            # A FLOOR OPENING cannot block a door: a door leaf passes over a
+            # hatch. The first version of this gate failed the 24"x24" crawl
+            # hole against the closet bypass doors, which sit directly above
+            # it. That is the plan's own arrangement, both positions are
+            # measured, and it is awkward rather than wrong -- recorded in
+            # discrepancies as `crawl-hole-under-closet-doors`, not gated here.
+            if it.get("floor_opening"):
+                continue
+            # Only fixtures standing ON this wall can block it.
+            along0, along1 = ((it["x"], it["x"] + it["w"]) if wall["axis"] == "x"
+                              else (it["y"], it["y"] + it["d"]))
+            # Check BOTH edges against the wall, not just the far one. A
+            # fixture NORTH of an x-axis wall meets it with its south edge; one
+            # SOUTH of the wall meets it with its north edge. Testing only the
+            # far edge silently skipped every kitchen fixture against the bath
+            # wall -- which is exactly the run that shares it.
+            near, far = ((it["y"], it["y"] + it["d"]) if wall["axis"] == "x"
+                         else (it["x"], it["x"] + it["w"]))
+            if min(abs(near - wall["at_ft"]), abs(far - wall["at_ft"])) > 1.0:
+                continue
+            overlap = min(along1, hi) - max(along0, lo)
+            gate(overlap <= 0.01,
+                 f"{it['id']} does not block {door['id']}",
+                 f"fixture {ftin(along0)}..{ftin(along1)} vs opening "
+                 f"{ftin(lo)}..{ftin(hi)}"
+                 + (f" — OVERLAP {ftin(overlap)}" if overlap > 0.01
+                    else f", clear by {ftin(-overlap)}"))
+
     print("=" * 96)
     if MISSING:
         print("spec entries the gates expected but could not find:")

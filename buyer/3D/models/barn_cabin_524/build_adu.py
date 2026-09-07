@@ -166,6 +166,54 @@ def tube(name, path, radius, coll, sides=8, caps=True):
     return _new_obj(name, verts, faces, coll)
 
 
+def ellipse_ring(cx, cy, ax, ay, z, n=16):
+    """One horizontal ellipse as a ring of points, for feeding to loft().
+
+    Axis-aligned, which every ellipse in this plan set is. `ax` is the semi-axis
+    along X, `ay` along Y — the plan draws the vanity basin wider along the wall
+    than off it, so the two genuinely differ and a circle would not do.
+    """
+    return [(cx + ax * math.cos(2.0 * math.pi * k / n),
+             cy + ay * math.sin(2.0 * math.pi * k / n),
+             z) for k in range(n)]
+
+
+def loft(name, rings, coll, cap_first=False, cap_last=False):
+    """Skin a sequence of equal-length point rings, in order.
+
+    The second round primitive, after tube(). Deliberately generic rather than
+    basin-shaped: a lofted profile is what a toilet bowl needs too, so this is
+    the piece that makes the remaining bought fixtures worth re-examining.
+
+    Give it the WHOLE profile — down the inside, across the floor, up the
+    outside — and the result is a closed solid with no open boundary, which is
+    what glTF's default backface culling requires. A single-sided shell renders
+    with holes in it from half the angles.
+    """
+    if len(rings) < 2:
+        raise ValueError(f"{name}: a loft needs at least two rings, got {len(rings)}")
+    n = len(rings[0])
+    if n < 3:
+        raise ValueError(f"{name}: a ring needs at least three points, got {n}")
+    if any(len(r) != n for r in rings):
+        raise ValueError(f"{name}: every ring must have the same point count")
+
+    verts, faces = [], []
+    for r in rings:
+        verts.extend(tuple(p) for p in r)
+    for i in range(len(rings) - 1):
+        a, b = i * n, (i + 1) * n
+        for k in range(n):
+            k2 = (k + 1) % n
+            faces.append((a + k, a + k2, b + k2, b + k))
+    if cap_first:
+        faces.append(tuple(range(n - 1, -1, -1)))
+    if cap_last:
+        base = (len(rings) - 1) * n
+        faces.append(tuple(range(base, base + n)))
+    return _new_obj(name, verts, faces, coll)
+
+
 def arc_points(centre, radius, axis, start_deg, end_deg, n=8):
     """Points on a circular arc, for feeding to tube(). `axis` is 'x' or 'y':
     the axis the arc turns about."""
@@ -791,11 +839,45 @@ def build_casework(spec, geo, coll):
     up_bot = ch + up["clear_above_counter"]["ft"]
     splash_h = kit["backsplash"]["height"]["ft"]
 
-    # Not dimensioned anywhere and not worth a spec entry each: stock joinery
-    # figures that only affect how the boxes read close up.
-    door_t, reveal, overhang, toe_recess, splash_t = 0.0625, 0.0104, 0.0833, 0.25, 0.0625
+    # Joinery figures, from spec.fixtures.casework_detail. These used to be
+    # five literals here with a comment saying they were "not worth a spec
+    # entry each" -- the project's first ground rule waived rather than
+    # followed. Stock figures are still dimensions.
+    cd = fx["casework_detail"]
+    door_t = cd["door_thickness"]["ft"]
+    reveal = cd["leaf_reveal"]["ft"]
+    overhang = cd["counter_overhang"]["ft"]
+    toe_recess = cd["toe_kick_recess"]["ft"]
+    splash_t = cd["backsplash_thickness"]["ft"]
+    shaker = cd["shaker"]
 
     carcass, toes, fronts, tops, splashes, uppers, up_fronts = [], [], [], [], [], [], []
+
+    def leaf(x_back, x_front, y0, y1, z0, z1, kind):
+        """One cabinet front: a shaker frame for a door, a slab for a drawer.
+
+        A door modelled as a flat slab is geometrically correct and visually
+        nothing: two coplanar same-material leaves with a 1/4" gap give the eye
+        no cue, so a pair reads as one panel under any lighting. The frame and
+        recessed panel are what make a shaker door legible, and all three
+        filmed units have shaker doors.
+
+        Drawers stay slab on purpose -- see the note in the spec.
+        """
+        if kind != "doors" or shaker.get("applies_to") != "doors":
+            return [(x_back, x_front, y0, y1, z0, z1)]
+        w = shaker["stile_width"]["ft"]
+        rec = shaker["panel_recess"]["ft"]
+        # Refuse to draw a frame that would leave no panel; fall back to slab.
+        if (y1 - y0) < 3 * w or (z1 - z0) < 3 * w:
+            return [(x_back, x_front, y0, y1, z0, z1)]
+        return [
+            (x_back, x_front, y0, y1, z0, z0 + w),              # bottom rail
+            (x_back, x_front, y0, y1, z1 - w, z1),              # top rail
+            (x_back, x_front, y0, y0 + w, z0 + w, z1 - w),      # left stile
+            (x_back, x_front, y1 - w, y1, z0 + w, z1 - w),      # right stile
+            (x_back, x_front - rec, y0 + w, y1 - w, z0 + w, z1 - w),   # panel
+        ]
 
     def door_bands(y0, y1, z0, z1, kind):
         """Split a bay into leaves. Doors divide across the wall, drawers up it."""
@@ -849,7 +931,8 @@ def build_casework(spec, geo, coll):
         toes.append((xw, xw + depth - toe_recess, ya, yb, 0.0, toe_h))
         for a, b, z0, z1 in door_bands(seg["y0"], seg["y1"], toe_h, ch - top_t,
                                        seg["front"]):
-            fronts.append((xw + depth - door_t, xw + depth, ym(b), ym(a), z0, z1))
+            fronts += leaf(xw + depth - door_t, xw + depth,
+                           ym(b), ym(a), z0, z1, seg["front"])
 
     # ---- counter and backsplash ------------------------------------------
     # The sink opening is cut by BUILDING A FRAME around it, not by a boolean.
@@ -898,19 +981,120 @@ def build_casework(spec, geo, coll):
                 continue
             uppers.append((xw, xw + up_d - door_t, ym(b), ym(a), z0, up_bot + up_h))
             for da, db, dz0, dz1 in door_bands(a, b, z0, up_bot + up_h, "doors"):
-                up_fronts.append((xw + up_d - door_t, xw + up_d,
-                                  ym(db), ym(da), dz0, dz1))
+                up_fronts += leaf(xw + up_d - door_t, xw + up_d,
+                                  ym(db), ym(da), dz0, dz1, "doors")
 
     # ---- bath vanity ------------------------------------------------------
     van = next(i for i in fx["bath"]["items"] if i["id"] == "vanity")
+    fit = fx.get("bath_fittings")
     vh = van["h"]
     ya, yb = ym(van["y"] + van["d"]), ym(van["y"])
-    carcass.append((xw, xw + van["w"] - door_t, ya, yb, toe_h, vh - top_t))
+    # The vanity carcass needs the same cavity the kitchen sink base got. Left
+    # solid, it swallows the basin and the render shows cabinet through the
+    # bowl -- which is what happened here first time, and which none of the
+    # gates caught: they check the basin against the TOE KICK, not against the
+    # carcass top. Rule 10 the other way round for once, a defect only a render
+    # would show.
+    vcx = xw + van["w"] - door_t
+    if fit:
+        bowl = fit["basin"]["bowl"]
+        b = fit["basin"]
+        v_bottom = vh - top_t - b["depth"]["ft"] - b["wall"]["ft"]
+        bx0, bx1 = xw + bowl["cx"] - bowl["ax"], xw + bowl["cx"] + bowl["ax"]
+        bya, byb = ym(bowl["cy"] + bowl["ay"]), ym(bowl["cy"] - bowl["ay"])
+        carcass += [
+            (xw, vcx, ya, yb, toe_h, v_bottom),          # below the bowl
+            (xw, bx0, ya, yb, v_bottom, vh - top_t),     # behind it
+            (bx1, vcx, ya, yb, v_bottom, vh - top_t),    # in front of it
+            (bx0, bx1, ya, bya, v_bottom, vh - top_t),   # south of it
+            (bx0, bx1, byb, yb, v_bottom, vh - top_t),   # north of it
+        ]
+    else:
+        carcass.append((xw, vcx, ya, yb, toe_h, vh - top_t))
     toes.append((xw, xw + van["w"] - toe_recess, ya, yb, 0.0, toe_h))
     for a, b, z0, z1 in door_bands(van["y"], van["y"] + van["d"], toe_h,
                                    vh - top_t, "doors"):
-        fronts.append((xw + van["w"] - door_t, xw + van["w"], ym(b), ym(a), z0, z1))
-    tops.append((xw, xw + van["w"] + overhang, ya, yb, vh - top_t, vh))
+        fronts += leaf(xw + van["w"] - door_t, xw + van["w"],
+                       ym(b), ym(a), z0, z1, "doors")
+    # The vanity top gets the same treatment the kitchen counter got in #62:
+    # a frame of four boxes around the basin opening, not a boolean. The
+    # opening is the bowl ellipse's bounding box, so the rim laps it on every
+    # side and no gap can open between top and basin.
+    vx1 = xw + van["w"] + overhang
+    if fit:
+        bowl = fit["basin"]["bowl"]
+        ox0, ox1 = xw + bowl["cx"] - bowl["ax"], xw + bowl["cx"] + bowl["ax"]
+        oy0, oy1 = ym(bowl["cy"] + bowl["ay"]), ym(bowl["cy"] - bowl["ay"])
+        tops += [
+            (xw, vx1, oy1, yb, vh - top_t, vh),
+            (xw, vx1, ya, oy0, vh - top_t, vh),
+            (xw, ox0, oy0, oy1, vh - top_t, vh),
+            (ox1, vx1, oy0, oy1, vh - top_t, vh),
+        ]
+    else:
+        tops.append((xw, vx1, ya, yb, vh - top_t, vh))
+
+    # ---- vanity basin and tap ---------------------------------------------
+    if fit:
+        b = fit["basin"]
+        rim, bowl = b["rim"], b["bowl"]
+        rt, bw = b["rim_thickness"]["ft"], b["wall"]["ft"]
+        bd, tf = b["depth"]["ft"], b["taper"]["factor"]
+        z_bot = vh - bd
+
+        # ONE closed profile: across the rim, down the inside, over the floor,
+        # back up the outside. loft() skins it into a solid with no open
+        # boundary, so glTF backface culling has nothing to punch a hole in.
+        rings = [
+            ellipse_ring(xw + bowl["cx"], ym(bowl["cy"]),
+                         bowl["ax"] * tf, bowl["ay"] * tf, z_bot),
+            ellipse_ring(xw + bowl["cx"], ym(bowl["cy"]), bowl["ax"], bowl["ay"], vh),
+            ellipse_ring(xw + rim["cx"], ym(rim["cy"]), rim["ax"], rim["ay"], vh),
+            ellipse_ring(xw + rim["cx"], ym(rim["cy"]), rim["ax"], rim["ay"], vh - rt),
+            ellipse_ring(xw + bowl["cx"], ym(bowl["cy"]),
+                         bowl["ax"] * tf, bowl["ay"] * tf, z_bot - bw),
+        ]
+        loft("Cab_basin_bath", rings, coll, cap_first=True, cap_last=True)
+
+        # ---- mirror over the vanity ---------------------------------
+        # Frame and glass are separate objects so they take different
+        # materials: Cab_mirror_* falls through to cab_wood, while
+        # Cab_mirror_glass is matched first and gets the mirror material.
+        mi = fit.get("mirror")
+        if mi:
+            mw, mh = mi["w"]["ft"], mi["h"]["ft"]
+            fw, mdep = mi["frame_w"]["ft"], mi["depth"]["ft"]
+            rec = mi["glass_recess"]["ft"]
+            z0 = vh + splash_h + mi["gap_above_splash"]["ft"]
+            z1 = z0 + mh
+            cy = fit["basin"]["rim"]["cy"]
+            my0, my1 = ym(cy + mw / 2.0), ym(cy - mw / 2.0)
+            mx0, mx1 = xw, xw + mdep
+            multibox("Cab_mirror_frame", [
+                (mx0, mx1, my0, my1, z0, z0 + fw),            # bottom rail
+                (mx0, mx1, my0, my1, z1 - fw, z1),            # top rail
+                (mx0, mx1, my0, my0 + fw, z0 + fw, z1 - fw),  # one stile
+                (mx0, mx1, my1 - fw, my1, z0 + fw, z1 - fw),  # the other
+            ], coll)
+            box("Cab_mirror_glass", mx0, mx1 - rec,
+                my0 + fw, my1 - fw, z0 + fw, z1 - fw, coll)
+
+        f = fit["faucet"]
+        fr, fh = f["radius"]["ft"], f["height"]["ft"]
+        sp, arc_r = f["spout"], f["reach"]["ft"] / 2.0
+        sx, sy = xw + sp["x"], ym(sp["y"])
+        path = [(sx, sy, vh), (sx, sy, vh + fh - arc_r)]
+        # arc_points() includes its start point, which is the top of the column
+        # -- appending it whole repeats that point and hands tube() a
+        # zero-length segment. #62 shipped eight twisted slivers that way.
+        path += [tuple(pt) for pt in arc_points((sx + arc_r, sy, vh + fh - arc_r),
+                                                arc_r, "y", 180, 0, n=6)[1:]]
+        tube("Cab_faucet_bath", path, fr, coll)
+        for i, h in enumerate(f["handles"]):
+            hx, hy = xw + h["x"], ym(h["y"])
+            tube(f"Cab_faucet_bath_handle_{i}",
+                 [(hx, hy, vh), (hx, hy, vh + f["handle_height"]["ft"])],
+                 f["handle_radius"]["ft"], coll, sides=6)
     splashes.append((xw, xw + splash_t, ya, yb, vh, vh + splash_h))
 
     # ---- hood -------------------------------------------------------------
@@ -992,6 +1176,13 @@ def build_casework(spec, geo, coll):
                 for s in kit["runs"]["counter"])
     solid += abs(van["w"] + overhang) * van["d"] * top_t
     hole = ((cut["x1"] - cut["x0"]) * (cut["y1"] - cut["y0"]) * top_t) if cut else 0.0
+    if fit:
+        # The vanity top is now cut too, so the expectation has to lose that
+        # hole as well. This gate FAILED when the cutout landed and the
+        # expectation still assumed a solid vanity slab — which is the gate
+        # doing its job: it caught a real change in what the counter is.
+        bowl = fit["basin"]["bowl"]
+        hole += (2 * bowl["ax"]) * (2 * bowl["ay"]) * top_t
     geo["counter_expected"] = solid - hole
 
 
