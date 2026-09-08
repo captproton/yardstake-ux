@@ -402,6 +402,43 @@ def main():
              "toilet foot is narrower than its bowl",
              f"scale {bowl['foot_scale']['factor']}")
 
+    # 14. Appliance forms against their MEASURED footprints. Same shape of
+    #     check as the toilet: the footprint is the measured thing, every
+    #     proportion is a stock assumption, so the assumptions are what get
+    #     tested against the measurement.
+    af = fx.get("appliance_form")
+    if af:
+        fr = find([i for _, i in items], "refrigerator", "kitchen fixture")
+        rg = find([i for _, i in items], "range", "kitchen fixture")
+        dw = find([i for _, i in items], "dishwasher", "kitchen fixture")
+        pp = af["panel_proud"]["ft"]
+
+        if fr:
+            share = af["refrigerator"]["freezer_share"]["fraction"]
+            gate(0.2 < share < 0.5, "refrigerator freezer share is plausible",
+                 f"{share:.0%} of {ftin(fr['h'])} = {ftin(fr['h'] * share)} freezer")
+        if rg:
+            g = af["range"]
+            stack = (g["door_bottom"]["ft"] + g["handle_h"]["ft"]
+                     + g["control_h"]["ft"] + g["cooktop_thk"]["ft"])
+            gate(stack < rg["h"], "range front elements fit its height",
+                 f"drawer+handle+controls+cooktop {ftin(stack)} in {ftin(rg['h'])}")
+            counter_h = fx["kitchen"]["counter_h"]["ft"]
+            gate(abs(rg["h"] - counter_h) < 0.05,
+                 "range is flush with the counter (slide-in)",
+                 f"range {ftin(rg['h'])}, counter {ftin(counter_h)}")
+        if dw:
+            counter_h = fx["kitchen"]["counter_h"]["ft"]
+            top_t = fx["kitchen"]["counter_thk"]["ft"]
+            gate(dw["h"] <= counter_h - top_t + 0.01,
+                 "dishwasher fits under the counter",
+                 f"{ftin(dw['h'])} under {ftin(counter_h - top_t)}")
+            gate(af["dishwasher"]["handle_h"]["ft"] < dw["h"] * 0.2,
+                 "dishwasher handle strip is a minority of its face",
+                 f"{ftin(af['dishwasher']['handle_h']['ft'])} of {ftin(dw['h'])}")
+        gate(0.0 < pp < 0.15, "appliance doors stand proud by a plausible amount",
+             f"{ftin(pp)}")
+
     print("=" * 96)
     if MISSING:
         print("spec entries the gates expected but could not find:")

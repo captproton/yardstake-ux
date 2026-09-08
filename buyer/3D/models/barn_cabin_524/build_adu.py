@@ -1017,6 +1017,63 @@ def build_casework(spec, geo, coll):
                 up_fronts += leaf(xw + up_d - door_t, xw + up_d,
                                   ym(db), ym(da), dz0, dz1, "doors")
 
+    # ---- appliances -------------------------------------------------------
+    # The BUILD answer for the last three "must be bought" fixtures. All are
+    # boxes with door lines; footprints measured in Tier 3a, proportions stock.
+    # Grouped into three meshes by MATERIAL rather than by appliance, so the
+    # object count stays flat and Appl_dark can take the black glass.
+    af = fx.get("appliance_form")
+    if af:
+        pp, dg = af["panel_proud"]["ft"], af["door_gap"]["ft"]
+        bodies, fronts_a, darks = [], [], []
+
+        def span(fid):
+            it = find_item(kit["items"], fid)
+            return (xw, xw + it["w"], ym(it["y"] + it["d"]), ym(it["y"]), it["h"])
+
+        # Refrigerator: one body, two doors split by the freezer share.
+        rx0, rx1, ry0, ry1, rh = span("refrigerator")
+        split = rh * (1.0 - af["refrigerator"]["freezer_share"]["fraction"])
+        bodies.append((rx0, rx1 - pp, ry0, ry1, 0.0, rh))
+        fronts_a += [
+            (rx1 - pp, rx1, ry0, ry1, 0.0, split - dg / 2.0),      # fridge door
+            (rx1 - pp, rx1, ry0, ry1, split + dg / 2.0, rh),       # freezer door
+        ]
+
+        # Range: slide-in, so the cooktop is the full depth and flush on top.
+        g = af["range"]
+        gx0, gx1, gy0, gy1, gh = span("range")
+        ct, ctl = g["cooktop_thk"]["ft"], g["control_h"]["ft"]
+        db, hh, hp = g["door_bottom"]["ft"], g["handle_h"]["ft"], g["handle_proud"]["ft"]
+        bodies.append((gx0, gx1 - pp, gy0, gy1, 0.0, gh - ct))
+        darks += [
+            (gx0, gx1, gy0, gy1, gh - ct, gh),                     # cooktop
+            (gx1 - pp, gx1, gy0, gy1, db, gh - ct - ctl - hh),      # oven glass
+        ]
+        fronts_a += [
+            (gx1 - pp, gx1, gy0, gy1, 0.0, db),                    # storage drawer
+            (gx1 - pp, gx1, gy0, gy1, gh - ct - ctl, gh - ct),     # control strip
+            (gx1, gx1 + hp, gy0, gy1, gh - ct - ctl - hh,
+             gh - ct - ctl),                                       # handle bar
+        ]
+
+        # Dishwasher: flat panel with a recessed handle strip at the top.
+        dw = af["dishwasher"]
+        dx0, dx1, dy0, dy1, dh = span("dishwasher")
+        dhh = dw["handle_h"]["ft"]
+        bodies.append((dx0, dx1 - pp, dy0, dy1, 0.0, dh))
+        # Panel only. The handle recess needs NO geometry: the panel stops
+        # short of the top, leaving the body's own front face exposed and
+        # already set back by `panel_proud` — which is exactly a recess.
+        # An extra box there put a small face on the same plane as the body's
+        # front, same normal, and z-fights. Rule 16, one PR after writing it.
+        fronts_a.append((dx1 - pp, dx1, dy0, dy1, 0.0, dh - dhh))
+
+        multibox("Appl_body", bodies, coll)
+        multibox("Appl_front", fronts_a, coll)
+        multibox("Appl_dark", darks, coll)
+        geo["appliance_boxes"] = len(bodies) + len(fronts_a) + len(darks)
+
     # ---- bath vanity ------------------------------------------------------
     van = next(i for i in fx["bath"]["items"] if i["id"] == "vanity")
     fit = fx.get("bath_fittings")
