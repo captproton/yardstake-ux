@@ -1028,6 +1028,41 @@ fixtures:
     # part of what the buyer gets, and must not disappear with the staging.
     plumbing: "Fix_"
 
+  appliance_form:
+    # All three are BOXES WITH DOOR LINES, which is what the plan predicted
+    # when it said to test the appliances before reaching for a licensing
+    # decision. Confirmed in the video:
+    #   refrigerator  2:27, 2:29 — apartment-style top-freezer, one door line
+    #   range         2:33, 2:37 — slide-in, cooktop flush with the counter,
+    #                              black glass oven door, stainless handle bar
+    #   dishwasher    2:21, 2:25 — flat panel with a recessed handle strip
+    #
+    # Footprints are MEASURED (Tier 3a). Everything below is stock proportion,
+    # marked assumed, and none of it needs a third-party asset.
+    panel_proud: {ft: 0.042, raw: "1/2\"", confidence: assumed,
+                  note: "how far a door stands off its body"}
+    door_gap:    {ft: 0.021, raw: "1/4\"", confidence: assumed}
+    refrigerator:
+      freezer_share: {fraction: 0.34, confidence: assumed,
+                      source: "video 2:29 — top-freezer, split about a third down"}
+    range:
+      cooktop_thk: {ft: 0.06,  raw: "3/4\"",   confidence: assumed}
+      control_h:   {ft: 0.17,  raw: "2\"",     confidence: assumed,
+                    note: "front control strip, below the cooktop lip"}
+      door_bottom: {ft: 0.33,  raw: "4\"",     confidence: assumed,
+                    note: "storage drawer below the oven door"}
+      handle_h:    {ft: 0.12,  raw: "1-1/2\"", confidence: assumed}
+      handle_proud: {ft: 0.06,  raw: "3/4\"",   confidence: assumed}
+    dishwasher:
+      handle_h:    {ft: 0.15,  raw: "1-3/4\"", confidence: assumed}
+    finish_note: >
+      The two filmed units DIFFER — white at 2:11, stainless at 2:27 — so the
+      appliance finish is a configurator choice, not a fact, exactly like the
+      countertop and the taps. Modelled stainless as the default, with the
+      bodies and fronts on one material so a variant set can drive them later.
+    disclosure: >
+      Appliances are SHOWN BUT NOT INCLUDED (TIER-3 §4), which is why they take
+      the declared Appl_ prefix and toggle with the furniture.
   toilet_form:
     # Two-piece floor-mount, confirmed at video 2:51 — the only clear frame of
     # it in the tour (2:35-3:25 otherwise shows it cropped or occluded).
@@ -1291,6 +1326,14 @@ materials:
       roughness: 0.12
       metallic: 0.0
       source: "Bath mirror glass — video 3:03."
+    appliance_dark:
+      # Cooktop and oven-door glass. Near-black and glossy, NOT the `glass`
+      # material — that carries transmission and would render the oven door as
+      # a window into the cabinet run.
+      base_color_linear: [0.045, 0.047, 0.050]
+      roughness: 0.15
+      metallic: 0.0
+      source: "video 2:33 — black glass cooktop and oven door."
     steel:
       base_color_linear: [0.560, 0.570, 0.580]
       roughness: 0.30
@@ -1331,6 +1374,9 @@ materials:
     Cab_hood: steel
     # Cab_basin_bath MUST precede Cab_basin: first match wins, and the bath
     # basin is glazed porcelain where the kitchen's is stainless.
+    # Appl_dark must precede Appl_: first match wins.
+    Appl_dark: appliance_dark
+    Appl_: steel
     Fix_toilet: porcelain
     Cab_mirror_glass: mirror
     Cab_basin_bath: porcelain
