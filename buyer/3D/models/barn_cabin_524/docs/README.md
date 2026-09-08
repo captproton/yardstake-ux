@@ -19,12 +19,13 @@ Phases P1–P4 are complete and gated:
 | **Tier 2b** | Interior textures, neutral albedos, configurator manifest | **done**, 5/5 + 4/4 gates |
 | **Tier 3a** | Fixture footprints measured from A1.1 | **done**, 16/16 gates |
 | **Tier 3b** | Casework, both sinks, both taps, mirror | **done**, 29/29 fixture gates |
-| **Tier 3c** | Toilet and appliances | **not started** — see the toilet note below before assuming these must be bought |
+| **Tier 3c** | Toilet | **done** ([#66](https://github.com/captproton/yardstake-ux/pull/66)) — built, not bought |
+| **Tier 3d** | Appliances | **not started** — the only work still needing third-party assets |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
-[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64) and [#65](https://github.com/captproton/yardstake-ux/pull/65). The placement
-developer is unblocked — `lod2` and their handoff are on `main`, and
-**byte-identical at 24.1 KB through all eight**. That is the constraint the
+[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65) and [#66](https://github.com/captproton/yardstake-ux/pull/66). The
+placement developer is unblocked — `lod2` and their handoff are on `main`, and
+**byte-identical at 24.1 KB through all nine**. That is the constraint the
 whole ladder was designed around, and it has never moved.
 
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
@@ -35,9 +36,14 @@ ceiling.
 
 **The model has three primitives now**, not one. `box`/`multibox` for
 architecture, `tube()` for swept round stock (taps), and `loft()` +
-`ellipse_ring()` for revolved forms (the oval basin). `loft()` was built
-deliberately generic because **the toilet bowl needs the same primitive** —
-which is why 3c's scope should be re-tested rather than assumed, see below.
+`ellipse_ring()` for revolved forms. Building `loft()` generic **paid for
+itself**: the toilet used it unchanged, and the buy list shrank from four items
+to three.
+
+**Three "this must be bought" assumptions have now been wrong in a row** — the
+basin, the tub, and the toilet. Each was buildable once someone checked. Apply
+that scepticism to the appliances before treating them as settled: a
+refrigerator is a box with a door line, and a dishwasher is a panel.
 
 What remains of Tier 3 is the *buy* half — appliances and the toilet — plus two
 small omissions listed under [What remains](#what-remains).
@@ -216,10 +222,9 @@ measurements. In order of value:
 
 | Work | Notes |
 |---|---|
-| **T3:** re-test the toilet | **Do this before the licensing decision, not after.** `loft()` exists now and is generic. Check whether it makes the toilet buildable rather than assuming it does not — that assumption was wrong twice, for the basin and the tub, and left both behind a licensing gate for no reason. If it holds, the buy list is appliances only |
+| **T3:** appliances | Fridge, range, dishwasher — the whole remaining buy list. **Test each against the existing primitives first.** A fridge is a box with a door line; a range is a box with a cooktop; a dishwasher is a panel. The three fixtures assumed unbuildable so far were all buildable |
+| **T3:** licensing decision | Only if the appliances genuinely need bought assets after that test. Sourcing is researched: poly.pizza's CC0 filter (`?lic=1`) has a fridge from Quaternius, and Poly Haven has an Electric Stove — both CC0, both unbranded |
 | **Foundation:** read A2.0 | `spec.discrepancies.crawl-hole-implies-crawlspace-not-slab`. A crawl hole exists because there is a void to reach, but the model slabs the whole footprint using a thickness taken from A2.0's callout for the **porch**. This is the only open question that could **invalidate** existing geometry rather than add to it. Worth its own issue |
-| **T3:** licensing decision | **Now scoped to two items only** — the toilet and the appliances. Everything else turned out to be buildable once §2's split was corrected from *by trade* to *by shape*. Sourcing is researched: poly.pizza's CC0 filter (`?lic=1`) has a toilet, tub, bathroom sink and fridge from Kenney and Quaternius, all unbranded. Not yet recorded in the spec |
-| **T3:** appliances and toilet | Decimate to ~2-5k triangles each; ship as a separate on-demand `.glb`. Gated by the decision above |
 | **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 872 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
 
@@ -312,3 +317,14 @@ Keep these — they caught real errors:
     doors with no division, and a texture blotch — were a washed-out reveal and
     a patch of daylight. One flat-shaded render settled both. Rule 3 applies to
     your own observations, not only to other people's.
+15. **"This must be bought" has been wrong every time it was tested.** The
+    basin, the tub and the toilet were each assumed to need a third-party
+    asset; each turned out to be buildable from the primitives already here.
+    The pattern is that *organic* is confused with *unfamiliar*. Test before
+    accepting a licensing dependency — it is the most expensive kind to take on
+    and the easiest to assume.
+16. **Coplanar capped faces z-fight, and no gate sees them.** The toilet lid
+    started exactly at the bowl's rim: identical centre, identical area,
+    opposite normals. Every gate passed. When two lofted or capped solids meet
+    at a shared plane, offset them by something physically meaningful — the
+    seat ring, in that case — rather than leaving them coincident.

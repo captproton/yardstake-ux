@@ -32,10 +32,18 @@ measured. Cutting it surfaced a foundation question recorded as
 using a thickness taken from A2.0's callout for the *porch*, while a crawl hole
 implies a void beneath. Recorded, not guessed at.
 
-**Re-test the toilet against `loft()` before treating it as a purchase.** The
-same "this must be bought" assumption was made about the basin and the tub and
-was wrong both times. `loft()` was built generic precisely so this question
-could be asked.
+**The toilet is built** ([#66](https://github.com/captproton/yardstake-ux/pull/66)), not bought. `loft()` took it unchanged.
+
+Thin footage turned out not to be the binding constraint. Video 2:35–3:25 gives
+**one** clear frame of it (2:51), but that frame's only job was to establish the
+*type* — an ordinary two-piece floor-mount. The footprint was already measured,
+heights are standard, and the primitive existed. **Once the type is known, the
+rest is stock.**
+
+**That is three "must be bought" assumptions wrong in a row** — the basin, the
+tub, the toilet. §2's build/buy split, once corrected from *by trade* to *by
+shape*, keeps returning the same answer. Apply the same scepticism to the
+appliances before treating them as settled.
 
 **Step 1 of 2 is done.** Fixture footprints are measured and in
 `spec.fixtures` — 9 footprints, 10/10 gates, verified against the sheet.
