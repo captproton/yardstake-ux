@@ -829,6 +829,14 @@ def build(spec, cut_openings=True):
 # ---------------------------------------------------------------------------
 # Tier 3 casework
 # ---------------------------------------------------------------------------
+def find_item(seq, fid):
+    """Look up a fixture by id, failing with the id rather than StopIteration."""
+    for it in seq:
+        if it.get("id") == fid:
+            return it
+    raise SystemExit(f"[spec] no fixture with id {fid!r}")
+
+
 def build_casework(spec, geo, coll):
     """Kitchen and bath casework, entirely from spec.fixtures.
 
@@ -1103,6 +1111,61 @@ def build_casework(spec, geo, coll):
             ], coll)
             box("Cab_mirror_glass", mx0, mx1 - rec,
                 my0 + fw, my1 - fw, z0 + fw, z1 - fw, coll)
+
+        # ---- toilet ---------------------------------------------------
+        # The BUILD answer to "must this be bought?". loft() was made generic
+        # for exactly this: an elliptical bowl tapering to a narrower foot is
+        # the same profile trick the basin uses. Footprint measured, type from
+        # video 2:51, proportions stock.
+        tf = fx.get("toilet_form")
+        if tf:
+            # find_item raises rather than returning None, so it must not run
+            # unless the form is actually present -- otherwise a spec without a
+            # toilet hard-exits instead of skipping.
+            wc = find_item(fx["bath"]["items"], "toilet")
+            tk, bw_, ld = tf["tank"], tf["bowl"], tf["lid"]
+            tx0, tx1 = xw + wc["x"], xw + wc["x"] + wc["w"]
+            cy = ym(wc["y"] + wc["d"] / 2.0)
+            seat = wc["seat_h"]["ft"]
+
+            # Tank: against the wall, from its own bottom to the measured
+            # overall height.
+            box("Fix_toilet_tank",
+                tx0, tx0 + tk["depth"]["ft"],
+                cy - tk["width"]["ft"] / 2.0, cy + tk["width"]["ft"] / 2.0,
+                tk["bottom"]["ft"], wc["h"], coll)
+
+            # Bowl: from just inside the tank face out to the measured front.
+            bx0 = tx0 + tk["depth"]["ft"] - bw_["tank_overlap"]["ft"]
+            bcx, bax = (bx0 + tx1) / 2.0, (tx1 - bx0) / 2.0
+            bay = bw_["half_width"]["ft"]
+            sc_ = bw_["foot_scale"]["factor"]
+            fx_c = bcx - bw_["foot_setback"]["ft"]
+            loft("Fix_toilet_bowl", [
+                ellipse_ring(fx_c, cy, bax * sc_, bay * sc_, 0.0),
+                ellipse_ring(fx_c + (bcx - fx_c) * 0.6, cy,
+                             bax * 0.72, bay * 0.78, seat * 0.55),
+                ellipse_ring(bcx, cy, bax, bay, seat),
+            ], coll, cap_first=True, cap_last=True)
+
+            # Rear riser: the tank's footprint carried to the floor, slightly
+            # inset so the tank reads as sitting on it rather than merging.
+            ri = tf["riser"]["inset"]["ft"]
+            box("Fix_toilet_riser",
+                tx0, tx0 + tk["depth"]["ft"] - ri,
+                cy - tk["width"]["ft"] / 2.0 + ri,
+                cy + tk["width"]["ft"] / 2.0 - ri,
+                0.0, seat, coll)
+
+            # Lid, sitting PROUD of the rim by the seat-ring thickness. Not
+            # cosmetic: starting it exactly at `seat` put its capped underside
+            # coplanar with the bowl's capped top, identical centre and area
+            # with opposite normals, which z-fights in any renderer.
+            lt, lr = ld["thickness"]["ft"], ld["rise"]["ft"]
+            loft("Fix_toilet_lid", [
+                ellipse_ring(bcx, cy, bax, bay, seat + lr),
+                ellipse_ring(bcx, cy, bax, bay, seat + lr + lt),
+            ], coll, cap_first=True, cap_last=True)
 
         f = fit["faucet"]
         fr, fh = f["radius"]["ft"], f["height"]["ft"]

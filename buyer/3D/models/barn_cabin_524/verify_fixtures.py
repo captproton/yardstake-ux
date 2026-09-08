@@ -373,6 +373,35 @@ def main():
                  + (f" — OVERLAP {ftin(overlap)}" if overlap > 0.01
                     else f", clear by {ftin(-overlap)}"))
 
+    # 13. The toilet's ASSUMED proportions against its MEASURED footprint.
+    #     This script reads spec numbers and never opens Blender, so nothing
+    #     here inspects built geometry -- the earlier wording said "built form"
+    #     and would have misled anyone looking for a mesh check.
+    #     The footprint is the only measured thing about this fixture; every
+    #     proportion below it is a stock assumption, so the assumptions are
+    #     what get checked against the measurement rather than the reverse.
+    tf = fx.get("toilet_form")
+    wc = find([i for _, i in items], "toilet", "bath fixture")
+    if tf and wc:
+        tank, bowl = tf["tank"], tf["bowl"]
+        gate(tank["width"]["ft"] <= wc["d"] + 0.01,
+             "toilet tank fits the measured width",
+             f"tank {ftin(tank['width']['ft'])} in {ftin(wc['d'])}")
+        gate(2 * bowl["half_width"]["ft"] < tank["width"]["ft"],
+             "toilet bowl is narrower than its tank",
+             f"bowl {ftin(2 * bowl['half_width']['ft'])}, "
+             f"tank {ftin(tank['width']['ft'])}")
+        gate(tank["depth"]["ft"] < wc["w"] * 0.5,
+             "toilet tank is a minority of the projection",
+             f"tank {ftin(tank['depth']['ft'])} of {ftin(wc['w'])}")
+        gate(tank["bottom"]["ft"] < wc["seat_h"]["ft"] < wc["h"],
+             "toilet tank spans the seat height",
+             f"tank {ftin(tank['bottom']['ft'])}..{ftin(wc['h'])}, "
+             f"seat {ftin(wc['seat_h']['ft'])}")
+        gate(0.0 < bowl["foot_scale"]["factor"] < 1.0,
+             "toilet foot is narrower than its bowl",
+             f"scale {bowl['foot_scale']['factor']}")
+
     print("=" * 96)
     if MISSING:
         print("spec entries the gates expected but could not find:")
