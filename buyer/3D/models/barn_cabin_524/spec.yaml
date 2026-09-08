@@ -1497,20 +1497,67 @@ foundation:
       tolerance. 1'-6" leaves 6" of stemwall below the vents, which is what a
       vent needs in order not to take water.
   venting:
-    count: 4
-    width:  {ft: 1.333, raw: "1'-4\"", confidence: assumed}
-    height: {ft: 0.667, raw: "8\"",    confidence: assumed}
-    recess: {ft: 0.083, raw: "1\"",    confidence: assumed}
+    source: >
+      A2.0 FOUNDATION PLAN DRAWS THE VENTS. They are the X-in-a-box symbols in
+      the stemwall hatch, and they were MEASURED, not assumed: the sheet is
+      1/4"=1'-0" rasterised at 200 dpi, and a vent reads as a run of pure-white
+      columns across the grey concrete hatch.
+    calibration: >
+      Anchored on INTERIOR faces, because the drawn band is line-weight
+      inflated the same way tools/tier3/frame.py documents for A1.1. Interior
+      north face y=375 to interior south face y=1511 is 1136 px over
+      24'-0" less two 8" stemwalls = 22'-8", giving 50.119 px/ft against the
+      50.0 that 1/4"=1'-0" at 200 dpi must be. Cross-checks that did NOT feed
+      the calibration: the east stemwall band measures 7.2" against its 8"
+      callout, and the outer width measures 21.9' against 22'-0".
+    width:
+      ft: 1.333
+      raw: "1'-4\""
+      measured_as: >
+        Every one of the eight boxes measures 17.2-17.5" as drawn. Read as a
+        nominal 16" vent plus the same ~1" of line weight this set adds
+        everywhere. The 1'-4" was ASSUMED before this measurement and is now
+        CORROBORATED by it.
+    height: {ft: 0.667, raw: "8\"", confidence: assumed}
     below_foundation: {ft: 0.333, raw: "4\"", confidence: assumed}
-    corner_setback: {ft: 2.0, raw: "2'-0\"", confidence: assumed}
+    recess: {ft: 0.083, raw: "1\"", confidence: assumed}
+    height_note: >
+      NEITHER THE HEIGHT NOR THE VERTICAL POSITION IS IN THE SET. A2.0 is a
+      plan and cannot give them; A1.1's elevations draw NO vents at all and
+      show only 5-3/4" of exposed concrete, which is schematic since an 8" vent
+      does not fit in it. Both remain assumptions.
+    openings:
+      # Centres. x measured EAST from the west outer face; y measured SOUTH
+      # from the north outer face. Each is the midpoint of a measured box, so
+      # the nominal 1'-4" is centred on it rather than the inflated 17.2".
+      - {wall: north, at: {ft: 7.04},  measured: "6.32..7.76 ft"}
+      - {wall: north, at: {ft: 14.87}, measured: "14.15..15.58 ft"}
+      - {wall: west,  at: {ft: 4.94},  measured: "4.22..5.66 ft"}
+      - {wall: west,  at: {ft: 10.67}, measured: "9.94..11.40 ft"}
+      - {wall: west,  at: {ft: 17.91}, measured: "17.19..18.62 ft"}
+      - {wall: east,  at: {ft: 4.94},  measured: "4.22..5.66 ft"}
+      - {wall: east,  at: {ft: 11.92}, measured: "11.20..12.64 ft"}
+      - {wall: east,  at: {ft: 17.91}, measured: "17.19..18.62 ft"}
+    south_wall_note: >
+      THE SOUTH WALL HAS NONE, and that is drawn, not inferred. It is the wall
+      behind the covered porch, so a vent there would breathe into the porch
+      void rather than outdoors. An earlier version of this model put two vents
+      on it.
+    corner_rule_discrepancy: >
+      THE DRAWN LAYOUT DOES NOT SATISFY A0.0'S OWN CORNER NOTE. A0.0 requires
+      one opening within 3 feet of each corner; the nearest drawn vent to any
+      corner is 4.22 ft, and the south wall has no vent at all. This is
+      recorded, NOT corrected: the model reproduces what A2.0 draws. An earlier
+      version of this spec invented a 2'-0" corner setback to satisfy the note
+      and, in doing so, put vents where the plan does not have them.
     calculation: >
-      Under-floor area is 486.7 sf (21'-1" x 23'-1", our own measured
-      interior). A4.0 details 1 and 3 both specify a 6 mil vapor barrier, which
-      is a Class 1 vapor retarder, so A0.0's reduced rate applies: 1 sf per
-      1500 sf = 0.32 sf = 46.7 sq in of net free area. Four vents this size are
-      far above that, so THE CORNER RULE GOVERNS, NOT THE AREA — A0.0 requires
-      one opening within 3 ft of each corner, which sets the count at four.
-    source: "A0.0 FOUNDATION VENTING note"
+      Under-floor area is 486.7 sf (our own measured interior). Eight 16" x 8"
+      vents are 7.11 sf GROSS. A0.0's unreduced rate, 1 per 150, needs 3.24 sf
+      of NET FREE area, and a screened vent delivers roughly half its gross, so
+      eight vents meet the unreduced rate with little to spare. THAT IS WHAT
+      SETS THE COUNT. An earlier version of this spec claimed the corner rule
+      governed and the vapor-retarder-reduced 1-per-1500 rate applied; the
+      drawn count of eight is only explained by the unreduced rate.
   lod2_change: >
     Floor_slab was built into the PORCH collection, which finish_adu ships in
     EVERY level — so the wrong-variant slab was in lod2, the placement

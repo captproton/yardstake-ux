@@ -45,6 +45,55 @@ def gate(name, ok, detail=""):
         FAILED.append(name)
 
 
+def vents_built(spec):
+    """Every vent A2.0 draws must exist as geometry where A2.0 draws it.
+
+    Tested by POSITION, like everything else here: is there a mesh face inside
+    the measured opening, at the vent's own height band? Naming Found_vent
+    would prove nothing -- the whole point of this file is that one shared mesh
+    can satisfy a check for eight things that are not all there.
+    """
+    fd = spec["foundation"]
+    fb = fd["floor_buildup"]
+    vt = fd["venting"]
+    z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
+    z1 = z_found - vt["below_foundation"]["ft"]
+    z0 = z1 - vt["height"]["ft"]
+    vw = vt["width"]["ft"]
+
+    env, con = spec["envelope"], spec["construction"]
+    W = env["main_body_width"]["ft"]
+    P = env["porch_depth"]["ft"]
+    SY, NY = P, P + env["main_body_depth"]["ft"]
+    st = fd["stemwall"]["thickness"]["ft"]
+
+    missing = []
+    for o in vt["openings"]:
+        wall, c = o["wall"], o["at"]["ft"]
+        if wall in ("north", "south"):
+            bx = (c - vw / 2, c + vw / 2)
+            by = (NY - st, NY) if wall == "north" else (SY, SY + st)
+        else:
+            by = (NY - c - vw / 2, NY - c + vw / 2)
+            bx = (0.0, st) if wall == "west" else (W - st, W)
+
+        hit = False
+        for ob in bpy.data.objects:
+            if ob.type != "MESH":
+                continue
+            for poly in ob.data.polygons:
+                q = ob.matrix_world @ poly.center
+                if (bx[0] <= q.x <= bx[1] and by[0] <= q.y <= by[1]
+                        and z0 - 0.01 <= q.z <= z1 + 0.01):
+                    hit = True
+                    break
+            if hit:
+                break
+        if not hit:
+            missing.append(f"{wall}@{c:.2f}")
+    return missing
+
+
 def envelope_gap(spec, probes=24):
     """The tallest vertical gap in the perimeter, from footing to finished floor.
 
@@ -171,6 +220,12 @@ def main():
                  if found else "MEASURED BUT NEVER BUILT")
 
     gate("every measured fixture was checked", checked > 0, f"{checked} fixtures")
+
+    missing = vents_built(spec)
+    n = len(spec["foundation"]["venting"]["openings"])
+    gate("every vent A2.0 draws exists as geometry", not missing,
+         f"{n - len(missing)}/{n} found by position"
+         + (f" — MISSING {', '.join(missing)}" if missing else ""))
 
     gap, where = envelope_gap(spec)
     if where:

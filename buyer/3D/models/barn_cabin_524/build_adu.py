@@ -586,28 +586,55 @@ def build(spec, cut_openings=True):
     vw, vh_, vrec = vt["width"]["ft"], vt["height"]["ft"], vt["recess"]["ft"]
     vz1 = z_found - vt["below_foundation"]["ft"]
     vz0 = vz1 - vh_
-    setb = vt["corner_setback"]["ft"]
 
-    # One vent within 3 ft of each corner (A0.0). Two per long wall.
-    vent_x = [(setb, setb + vw), (W - setb - vw, W - setb)]
+    # THE VENTS ARE MEASURED OFF A2.0, NOT INVENTED. A2.0's FOUNDATION PLAN
+    # draws them, and spec.foundation.venting.openings carries the eight
+    # centres read off that sheet: two north, three each side, NONE on the
+    # south wall, which sits behind the covered porch. An earlier version put
+    # four vents at an invented 2'-0" corner setback in order to satisfy
+    # A0.0's corner note — a note the drawn layout does not actually meet.
+    # See spec.foundation.venting.corner_rule_discrepancy.
+    def centres(wall):
+        return sorted(o["at"]["ft"] for o in vt["openings"] if o["wall"] == wall)
 
-    def banded(y0, y1, holes):
-        """A stemwall run along X, broken by vent openings. Boxes, not a
-        boolean — the counters' reasoning applies here too."""
-        out, prev = [], 0.0
-        for a, b in holes:
-            out.append((prev, a, y0, y1, z_foot, z_found))
-            out.append((a, b, y0, y1, z_foot, vz0))          # under the vent
-            out.append((a, b, y0, y1, vz1, z_found))         # over the vent
+    def spans(wall, to_model):
+        """Vent openings on one wall as (lo, hi) in model coordinates."""
+        return [(to_model(c) - vw / 2, to_model(c) + vw / 2) for c in centres(wall)]
+
+    # x is measured EAST from the west outer face, so it is already model X.
+    # y is measured SOUTH from the north outer face, so model Y is NY - y.
+    holes = {
+        "north": spans("north", lambda c: c),
+        "south": spans("south", lambda c: c),
+        "west": spans("west", lambda c: NY - c),
+        "east": spans("east", lambda c: NY - c),
+    }
+
+    def banded(sweep0, sweep1, band0, band1, wall, along):
+        """One stemwall run, broken by its vent openings.
+
+        Boxes rather than a boolean — the counters' reasoning applies here too.
+        `along` is the axis the run sweeps; the other pair is the 8" band.
+        """
+        def box6(a, b, z0, z1):
+            return (a, b, band0, band1, z0, z1) if along == "x" else \
+                   (band0, band1, a, b, z0, z1)
+
+        out, prev = [], sweep0
+        for a, b in sorted(holes[wall]):
+            out.append(box6(prev, a, z_foot, z_found))
+            out.append(box6(a, b, z_foot, vz0))              # under the vent
+            out.append(box6(a, b, vz1, z_found))             # over the vent
             prev = b
-        out.append((prev, W, y0, y1, z_foot, z_found))
+        out.append(box6(prev, sweep1, z_foot, z_found))
         return out
 
-    stem = banded(SY, SY + st, vent_x) + banded(NY - st, NY, vent_x)
-    stem += [
-        (0.0, st, SY + st, NY - st, z_foot, z_found),        # west
-        (W - st, W, SY + st, NY - st, z_foot, z_found),      # east
-    ]
+    # North and south sweep the full width; the sides sweep between them so no
+    # corner is built twice.
+    stem = (banded(0.0, W, SY, SY + st, "south", "x")
+            + banded(0.0, W, NY - st, NY, "north", "x")
+            + banded(SY + st, NY - st, 0.0, st, "west", "y")
+            + banded(SY + st, NY - st, W - st, W, "east", "y"))
     multibox("Found_stemwall", stem, porchc)
 
     # The floor build-up itself. Without this the building floats: the walls
@@ -655,11 +682,17 @@ def build(spec, cut_openings=True):
     ], found)
     box("Found_grade", st, W - st, SY + st, NY - st, z_foot, z_foot + 0.05, found)
 
-    # Vent inserts, set back from the face so nothing is coplanar (rule 16).
+    # Vent inserts, set back from the OUTER face so nothing is coplanar
+    # (rule 16). Each sits in the opening its own wall's schedule cut.
     vents = []
-    for a, b in vent_x:
+    for a, b in holes["south"]:
         vents.append((a, b, SY + vrec, SY + st, vz0, vz1))
+    for a, b in holes["north"]:
         vents.append((a, b, NY - st, NY - vrec, vz0, vz1))
+    for a, b in holes["west"]:
+        vents.append((vrec, st, a, b, vz0, vz1))
+    for a, b in holes["east"]:
+        vents.append((W - st, W - vrec, a, b, vz0, vz1))
     multibox("Found_vent", vents, found)
 
     # ---- interior partitions, from the measured layout ---------------------

@@ -477,29 +477,54 @@ def main():
     if fd:
         env, con = spec["envelope"], spec["construction"]
         t = con["exterior_wall_thickness"]["ft"]
-        area = ((env["main_body_width"]["ft"] - 2 * t)
-                * (env["main_body_depth"]["ft"] - 2 * t))
+        W = env["main_body_width"]["ft"]
+        D_body = env["main_body_depth"]["ft"]
+        area = (W - 2 * t) * (D_body - 2 * t)
         v = fd["venting"]
+        # The vents are MEASURED off A2.0, which draws them. These gates check
+        # the schedule against the sheet and against A0.0's area rule -- they
+        # do NOT check A0.0's corner note, because the drawn layout does not
+        # meet it. See the discrepancy gate below.
+        ov = v["openings"]
+        by_wall = {}
+        for o in ov:
+            by_wall.setdefault(o["wall"], []).append(o["at"]["ft"])
+
+        gate(len(ov) == 8, "A2.0 draws eight foundation vents",
+             f"{len(ov)} in the schedule")
+        gate({k: len(w) for k, w in by_wall.items()} ==
+             {"north": 2, "west": 3, "east": 3},
+             "vents are on the walls A2.0 draws them on",
+             f"{ {k: len(w) for k, w in sorted(by_wall.items())} }; "
+             f"the south wall is behind the porch and has none")
+
+        # Every centre must leave the vent inside its own wall.
+        span = {"north": W, "south": W, "west": D_body, "east": D_body}
+        half = v["width"]["ft"] / 2
+        ok = all(half <= c <= span[o["wall"]] - half
+                 for o in ov for c in [o["at"]["ft"]])
+        gate(ok, "every vent falls inside the wall it sits on",
+             f"width {ftin(v['width']['ft'])} centred on eight measured points")
+
         # GROSS, not net free area: these are modelled openings with no screen
         # or louver, and a real vent's mesh cuts the free area roughly in half.
-        # A0.0 asks for NET free area, so this gate is the weaker test. It
-        # still passes by an order of magnitude, which is why it holds.
-        gross = v["count"] * v["width"]["ft"] * v["height"]["ft"]
-        need = area / 1500.0
-        gate(gross >= need,
-             "foundation vent GROSS area clears A0.0's net-free requirement",
-             f"{gross:.2f} sf gross across {v['count']} vents vs {need:.2f} sf "
-             f"net free required — {gross / need:.0f}x, so screen loss is moot")
-        gate(v["count"] >= 4, "one vent per corner, per A0.0",
-             f"{v['count']} vents; A0.0 wants one within 3 ft of each corner")
-        # A0.0: "one such ventilating opening shall be WITHIN 3 FEET of each
-        # corner". That locates the opening, not its far edge — a 1'-4" vent
-        # starting 2'-0" out is within 3 ft even though it ends at 3'-4". The
-        # first version of this gate tested setback + width and failed
-        # correct geometry.
-        gate(v["corner_setback"]["ft"] <= 3.0 + 0.01,
-             "each vent is within 3 ft of its corner",
-             f"near edge at {ftin(v['corner_setback']['ft'])}, limit 3'-0\"")
+        gross = len(ov) * v["width"]["ft"] * v["height"]["ft"]
+        need_150 = area / 150.0
+        gate(gross >= need_150,
+             "vent GROSS area meets A0.0's UNREDUCED 1-per-150 rate",
+             f"{gross:.2f} sf gross vs {need_150:.2f} sf net free required "
+             f"({gross / need_150:.2f}x -- a screened vent passes about half "
+             f"its gross, so eight is the count this rate asks for)")
+
+        # The discrepancy, asserted as a fact about the drawing rather than
+        # quietly fixed. A0.0 wants one opening within 3 ft of each corner;
+        # A2.0 draws nothing closer than 4.22 ft and none at all on the south.
+        nearest = min(min(c, span[o["wall"]] - c)
+                      for o in ov for c in [o["at"]["ft"]])
+        gate(nearest > 3.0,
+             "RECORDED: A2.0's drawn vents do NOT meet A0.0's 3 ft corner note",
+             f"nearest vent centre is {ftin(nearest)} from a corner; the model "
+             f"reproduces the sheet rather than the note")
 
         fb = fd["floor_buildup"]
         z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])

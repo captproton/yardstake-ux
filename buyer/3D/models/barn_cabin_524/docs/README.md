@@ -153,7 +153,7 @@ Their scope is placement in the buildable envelope, and nothing else. They take
 the exported `.glb`; nothing in tiers 1–3 may break it. All figures verified
 against the current export.
 
-**Use `barn_cabin_524_lod2.glb`** (27.5 KB). It is the massing: no openings, no
+**Use `barn_cabin_524_lod2.glb`** (28.4 KB). It is the massing: no openings, no
 glazing, no interior. A gate in `finish_adu.py` fails the build if it exceeds
 200 KB — which has already caught one regression, when texturing took it to
 239 KB.
@@ -163,7 +163,9 @@ glazing, no interior. A gate in `finish_adu.py` fails the build if it exceeds
 > foundations and this model is the **crawlspace** one, so that slab was the
 > wrong variant. It is replaced by `Found_stemwall`: the building now stands on
 > a **2'-0" stemwall** carrying a rim band for the floor build-up, not flat on
-> a slab. The porch slab, which used to float, now bears on four piers.
+> a slab. The porch slab, which used to float, now bears on four piers, and
+> the stemwall carries the **eight foundation vents A2.0 draws** (two north,
+> three each side, none on the porch wall) as openings through it.
 >
 > **The bbox floor moves from −0.101 m to −0.972 m.** If you were treating the
 > bottom of the model as the bearing plane, that plane has dropped 0.871 m.
