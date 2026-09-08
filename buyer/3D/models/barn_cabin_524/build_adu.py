@@ -1062,10 +1062,12 @@ def build_casework(spec, geo, coll):
         dx0, dx1, dy0, dy1, dh = span("dishwasher")
         dhh = dw["handle_h"]["ft"]
         bodies.append((dx0, dx1 - pp, dy0, dy1, 0.0, dh))
-        fronts_a += [
-            (dx1 - pp, dx1, dy0, dy1, 0.0, dh - dhh),              # panel
-            (dx1 - pp * 2, dx1 - pp, dy0, dy1, dh - dhh, dh),      # handle recess
-        ]
+        # Panel only. The handle recess needs NO geometry: the panel stops
+        # short of the top, leaving the body's own front face exposed and
+        # already set back by `panel_proud` — which is exactly a recess.
+        # An extra box there put a small face on the same plane as the body's
+        # front, same normal, and z-fights. Rule 16, one PR after writing it.
+        fronts_a.append((dx1 - pp, dx1, dy0, dy1, 0.0, dh - dhh))
 
         multibox("Appl_body", bodies, coll)
         multibox("Appl_front", fronts_a, coll)
