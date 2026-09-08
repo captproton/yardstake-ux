@@ -1055,6 +1055,17 @@ fixtures:
       handle_proud: {ft: 0.06,  raw: "3/4\"",   confidence: assumed}
     dishwasher:
       handle_h:    {ft: 0.15,  raw: "1-3/4\"", confidence: assumed}
+    stacked_wd:
+      # Found by verify_geometry.py on its very first run, alongside the
+      # tub/shower: measured in Tier 3a and never built. Same failure, same
+      # cause — it was on nobody's list.
+      #
+      # Fronts face EAST: the closet is entered through D-CLOSET in
+      # P_bedroom_W, a north-south wall at x_int 8.86, so the bedroom side is
+      # east of the unit.
+      split_share: {fraction: 0.5, confidence: assumed,
+                    note: "washer below, dryer above, roughly equal on a stack"}
+      source: "A1.1 box labelled STACK W/D; visible at video 2:29"
     finish_note: >
       The two filmed units DIFFER — white at 2:11, stainless at 2:27 — so the
       appliance finish is a configurator choice, not a fact, exactly like the
@@ -1063,6 +1074,53 @@ fixtures:
     disclosure: >
       Appliances are SHOWN BUT NOT INCLUDED (TIER-3 §4), which is why they take
       the declared Appl_ prefix and toggle with the furniture.
+  tub_form:
+    # One-piece alcove tub/shower, confirmed at video 3:03-3:21: a white
+    # surround of three walls with a moulded shelf, a rolled rim, a shower head
+    # and valve on the end wall, and a curtain rod across the open front.
+    #
+    # Footprint MEASURED in Tier 3a and reproducing its callout better than
+    # almost anything in the spec — 5'-0" exactly on the long axis, 1/2" on the
+    # short. Heights below are stock and marked assumed, as everywhere else.
+    #
+    # WHY THIS WAS MISSED: §2 originally put "tub/shower" on the BUY side under
+    # "Plumbing". Correcting the split from by-trade to by-shape moved it to
+    # BUILD, and the basin was then built and the tub was not. Every close-out
+    # after that said the buy list was "the toilet and the appliances" — so the
+    # tub was neither bought nor built and fell out of both lists. A gate now
+    # asserts that every measured fixture has geometry.
+    surround:
+      height:    {ft: 6.0,   raw: "6'-0\"",  confidence: assumed}
+      thickness: {ft: 0.083, raw: "1\"",     confidence: assumed}
+      shelf:
+        height: {ft: 3.0,  raw: "3'-0\"",     confidence: assumed}
+        depth:  {ft: 0.33, raw: "4\"",        confidence: assumed}
+        width:  {ft: 1.25, raw: "1'-3\"",     confidence: assumed}
+        source: "video 3:09 — moulded shelf in the back wall, left of centre"
+    basin:
+      floor: {ft: 0.17,  raw: "2\"",     confidence: assumed}
+      inset:
+        ft: 0.17
+        raw: "2\""
+        confidence: assumed
+        note: >
+          Rolled rim: the basin is inset from the unit's outer face, and this
+          doubles as the apron thickness. A separate `wall` entry was here and
+          unused — a dead spec value is worse than a dead local, because it
+          implies a dimension is in play when nothing reads it.
+    fittings:
+      rod_h:    {ft: 6.0,   raw: "6'-0\"",   confidence: assumed}
+      rod_r:    {ft: 0.042, raw: "1/2\"",    confidence: assumed}
+      head_h:   {ft: 5.75,  raw: "5'-9\"",   confidence: assumed}
+      valve_h:  {ft: 3.5,   raw: "3'-6\"",   confidence: assumed}
+      spout_h:  {ft: 2.17,  raw: "2'-2\"",   confidence: assumed}
+      fitting_r: {ft: 0.06, raw: "3/4\"",    confidence: assumed}
+      source: "video 3:09, 3:18 — head high on the end wall, valve and spout below it"
+    open_side: south
+    note: >
+      The alcove is closed on north, west and east; the open side faces south
+      into the room, which is where the curtain rod runs. That follows from the
+      measured footprint sitting against three walls, not from a choice.
   toilet_form:
     # Two-piece floor-mount, confirmed at video 2:51 — the only clear frame of
     # it in the tour (2:35-3:25 otherwise shows it cropped or occluded).
@@ -1377,6 +1435,11 @@ materials:
     # Appl_dark must precede Appl_: first match wins.
     Appl_dark: appliance_dark
     Appl_: steel
+    # Steel fittings must precede the porcelain Fix_tub catch-all.
+    Fix_tub_rod: steel
+    Fix_tub_head: steel
+    Fix_tub_valve: steel
+    Fix_tub: porcelain
     Fix_toilet: porcelain
     Cab_mirror_glass: mirror
     Cab_basin_bath: porcelain

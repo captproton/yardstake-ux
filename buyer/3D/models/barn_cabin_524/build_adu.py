@@ -1069,6 +1069,19 @@ def build_casework(spec, geo, coll):
         # front, same normal, and z-fights. Rule 16, one PR after writing it.
         fronts_a.append((dx1 - pp, dx1, dy0, dy1, 0.0, dh - dhh))
 
+        # Stacked washer/dryer, in the closet, opening EAST toward the bedroom.
+        wd_cfg = af.get("stacked_wd")
+        if wd_cfg:
+            wd = find_item(fx["laundry"]["items"], "stacked_wd")
+            wx0, wx1 = xw + wd["x"], xw + wd["x"] + wd["w"]
+            wy0, wy1 = ym(wd["y"] + wd["d"]), ym(wd["y"])
+            wsplit = wd["h"] * wd_cfg["split_share"]["fraction"]
+            bodies.append((wx0, wx1 - pp, wy0, wy1, 0.0, wd["h"]))
+            fronts_a += [
+                (wx1 - pp, wx1, wy0, wy1, 0.0, wsplit - dg / 2.0),   # washer
+                (wx1 - pp, wx1, wy0, wy1, wsplit + dg / 2.0, wd["h"]),  # dryer
+            ]
+
         multibox("Appl_body", bodies, coll)
         multibox("Appl_front", fronts_a, coll)
         multibox("Appl_dark", darks, coll)
@@ -1168,6 +1181,65 @@ def build_casework(spec, geo, coll):
             ], coll)
             box("Cab_mirror_glass", mx0, mx1 - rec,
                 my0 + fw, my1 - fw, z0 + fw, z1 - fw, coll)
+
+        # ---- tub / shower ----------------------------------------------
+        # Alcove unit: closed north, west and east; open to the south. Basin is
+        # a box frame (floor plus four walls) rather than a loft — an alcove tub
+        # is rectangular, and a frame of boxes cannot produce the coplanar
+        # faces a capped loft would meet the surround with.
+        tb = fx.get("tub_form")
+        if tb:
+            tu = find_item(fx["bath"]["items"], "tub_shower")
+            sr, bs, ft_ = tb["surround"], tb["basin"], tb["fittings"]
+            st, sh = sr["thickness"]["ft"], sr["height"]["ft"]
+            bfloor, bins = bs["floor"]["ft"], bs["inset"]["ft"]
+            tx0, tx1 = xw + tu["x"], xw + tu["x"] + tu["w"]
+            ty0, ty1 = ym(tu["y"] + tu["d"]), ym(tu["y"])      # ty1 = north wall
+            rim = tu["h"]
+
+            # Basin: open-topped box, inset from the unit's outer face.
+            ix0, ix1 = tx0 + bins, tx1 - bins
+            iy0, iy1 = ty0 + bins, ty1 - bins
+            multibox("Fix_tub_basin", [
+                (tx0, tx1, ty0, ty1, 0.0, bfloor),                  # floor
+                (tx0, ix0, ty0, ty1, bfloor, rim),                  # west apron
+                (ix1, tx1, ty0, ty1, bfloor, rim),                  # east apron
+                (ix0, ix1, ty0, iy0, bfloor, rim),                  # south apron
+                (ix0, ix1, iy1, ty1, bfloor, rim),                  # north side
+            ], coll)
+
+            # Surround: three walls, from the rim to the top.
+            multibox("Fix_tub_surround", [
+                (tx0, tx1, ty1 - st, ty1, rim, sh),                 # back (north)
+                (tx0, tx0 + st, ty0, ty1, rim, sh),                 # west end
+                (tx1 - st, tx1, ty0, ty1, rim, sh),                 # east end
+            ], coll)
+
+            # Moulded shelf in the back wall.
+            sc_ = sr["shelf"]
+            shx = tx0 + (tx1 - tx0) * 0.32
+            box("Fix_tub_shelf", shx, shx + sc_["width"]["ft"],
+                ty1 - st - sc_["depth"]["ft"], ty1 - st,
+                sc_["height"]["ft"], sc_["height"]["ft"] + 0.06, coll)
+
+            # Curtain rod across the open south side.
+            tube("Fix_tub_rod",
+                 [(tx0, ty0 + st, ft_["rod_h"]["ft"]),
+                  (tx1, ty0 + st, ft_["rod_h"]["ft"])],
+                 ft_["rod_r"]["ft"], coll, sides=8)
+
+            # Head, valve and spout on the east end wall, per the video.
+            fr_ = ft_["fitting_r"]["ft"]
+            ey = (ty0 + ty1) / 2.0
+            tube("Fix_tub_head",
+                 [(tx1 - st, ey, ft_["head_h"]["ft"]),
+                  (tx1 - st - 0.42, ey, ft_["head_h"]["ft"] - 0.17)],
+                 fr_, coll, sides=8)
+            for nm, hgt in (("valve", ft_["valve_h"]["ft"]),
+                            ("spout", ft_["spout_h"]["ft"])):
+                tube(f"Fix_tub_valve_{nm}",
+                     [(tx1 - st, ey, hgt), (tx1 - st - 0.25, ey, hgt)],
+                     fr_, coll, sides=8)
 
         # ---- toilet ---------------------------------------------------
         # The BUILD answer to "must this be bought?". loft() was made generic
