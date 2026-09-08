@@ -364,6 +364,7 @@ def main():
             keep += list(colls["interior"].objects)
             keep += list(colls["finish"].objects)   # Tier 1: ceilings, floors, doors
             keep += list(colls["casework"].objects)  # Tier 3: cabinets, counter
+            keep += list(colls["foundation"].objects)  # footing, crawl grade, vents
         if lod != "lod2":
             keep += [o for o in glaz.objects]
 

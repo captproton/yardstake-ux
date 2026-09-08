@@ -59,6 +59,34 @@ def find(seq, fid, what):
     return None
 
 
+def duplicate_keys(text):
+    """Mapping keys that appear twice in the spec.
+
+    PyYAML keeps the LAST of a duplicated key and says nothing, so a duplicate
+    is a value that is visibly in the file and is not the value the build uses.
+    This gate exists because exactly that happened: a second `note:` was added
+    under `foundation.grade` and silently shadowed the first.
+    """
+    class Loader(yaml.SafeLoader):
+        pass
+
+    found = []
+
+    def mapping(loader, node, deep=False):
+        seen = set()
+        for k, _ in node.value:
+            key = loader.construct_object(k, deep=deep)
+            if key in seen:
+                found.append((k.start_mark.line + 1, key))
+            seen.add(key)
+        return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+    Loader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
+    yaml.load(text, Loader=Loader)
+    return found
+
+
 def all_items(fx):
     for group in ("kitchen", "bath", "laundry", "access"):
         for it in fx[group].get("items", []):
@@ -67,7 +95,12 @@ def all_items(fx):
 
 
 def main():
-    spec = yaml.safe_load((HERE / "spec.yaml").read_text())
+    raw = (HERE / "spec.yaml").read_text()
+    dups = duplicate_keys(raw)
+    gate(not dups, "no duplicate keys in spec.yaml",
+         "; ".join(f"line {ln}: {k!r}" for ln, k in dups) or
+         "PyYAML would silently keep the last of any pair")
+    spec = yaml.safe_load(raw)
     fx = spec["fixtures"]
     lay = spec["interior_partitions"]["layout"]
     part = {p["id"]: p for p in lay["partitions"]}
@@ -438,6 +471,83 @@ def main():
                  f"{ftin(af['dishwasher']['handle_h']['ft'])} of {ftin(dw['h'])}")
         gate(0.0 < pp < 0.15, "appliance doors stand proud by a plausible amount",
              f"{ftin(pp)}")
+
+    # 15. Foundation venting against A0.0's own note, and the stemwall stack.
+    fd = spec.get("foundation")
+    if fd:
+        env, con = spec["envelope"], spec["construction"]
+        t = con["exterior_wall_thickness"]["ft"]
+        W = env["main_body_width"]["ft"]
+        D_body = env["main_body_depth"]["ft"]
+        area = (W - 2 * t) * (D_body - 2 * t)
+        v = fd["venting"]
+        # The vents are MEASURED off A2.0, which draws them. These gates check
+        # the schedule against the sheet and against A0.0's area rule -- they
+        # do NOT check A0.0's corner note, because the drawn layout does not
+        # meet it. See the discrepancy gate below.
+        ov = v["openings"]
+        by_wall = {}
+        for o in ov:
+            by_wall.setdefault(o["wall"], []).append(o["at"]["ft"])
+
+        gate(len(ov) == 8, "A2.0 draws eight foundation vents",
+             f"{len(ov)} in the schedule")
+        gate({k: len(w) for k, w in by_wall.items()} ==
+             {"north": 2, "west": 3, "east": 3},
+             "vents are on the walls A2.0 draws them on",
+             f"{ {k: len(w) for k, w in sorted(by_wall.items())} }; "
+             f"the south wall is behind the porch and has none")
+
+        # Every centre must leave the vent inside its own wall.
+        span = {"north": W, "south": W, "west": D_body, "east": D_body}
+        half = v["width"]["ft"] / 2
+        ok = all(half <= c <= span[o["wall"]] - half
+                 for o in ov for c in [o["at"]["ft"]])
+        gate(ok, "every vent falls inside the wall it sits on",
+             f"width {ftin(v['width']['ft'])} centred on eight measured points")
+
+        # GROSS, not net free area: these are modelled openings with no screen
+        # or louver, and a real vent's mesh cuts the free area roughly in half.
+        gross = len(ov) * v["width"]["ft"] * v["height"]["ft"]
+        need_150 = area / 150.0
+        gate(gross >= need_150,
+             "vent GROSS area meets A0.0's UNREDUCED 1-per-150 rate",
+             f"{gross:.2f} sf gross vs {need_150:.2f} sf net free required "
+             f"({gross / need_150:.2f}x -- a screened vent passes about half "
+             f"its gross, so eight is the count this rate asks for)")
+
+        # The discrepancy, asserted as a fact about the drawing rather than
+        # quietly fixed. A0.0 wants one opening within 3 ft of each corner;
+        # A2.0 draws nothing closer than 4.22 ft and none at all on the south.
+        nearest = min(min(c, span[o["wall"]] - c)
+                      for o in ov for c in [o["at"]["ft"]])
+        gate(nearest > 3.0,
+             "RECORDED: A2.0's drawn vents do NOT meet A0.0's 3 ft corner note",
+             f"nearest vent centre is {ftin(nearest)} from a corner; the model "
+             f"reproduces the sheet rather than the note")
+
+        fb = fd["floor_buildup"]
+        z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
+        z_foot = z_found - fd["stemwall"]["height"]["ft"]
+        z_grade = z_found - fd["grade"]["exposed_stemwall"]["ft"]
+        gate(z_foot < z_grade < z_found,
+             "grade sits between footing and top of foundation",
+             f"footing {ftin(z_foot)}, grade {ftin(z_grade)}, "
+             f"top of foundation {ftin(z_found)}")
+        vz1 = z_found - v["below_foundation"]["ft"]
+        # Real clearance, not "at or above": the first version of this gate
+        # allowed equality and passed on geometry whose vent bottom sat
+        # EXACTLY on grade, which would take water. 4" is a modelling sanity
+        # margin, not a code figure -- grade itself is assumed.
+        clear = (vz1 - v["height"]["ft"]) - z_grade
+        gate(clear >= 4.0 / 12.0,
+             "vents clear grade by a real margin",
+             f"vent bottom {ftin(vz1 - v['height']['ft'])}, grade "
+             f"{ftin(z_grade)}, clearance {ftin(clear)} (want 4\" min)")
+        gate(fd["footing"]["width"]["ft"] > fd["stemwall"]["thickness"]["ft"],
+             "footing is wider than the stemwall it carries",
+             f"{ftin(fd['footing']['width']['ft'])} under "
+             f"{ftin(fd['stemwall']['thickness']['ft'])}")
 
     print("=" * 96)
     if MISSING:

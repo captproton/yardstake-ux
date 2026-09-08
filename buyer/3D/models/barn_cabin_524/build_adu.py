@@ -418,6 +418,7 @@ def build(spec, cut_openings=True):
     shell = collection("Shell")
     roofc = collection("Roof")
     porchc = collection("Porch")
+    found = collection("Foundation")
     interior = collection("Interior_approx")
     finish = collection("Finish")
 
@@ -563,7 +564,136 @@ def build(spec, cut_openings=True):
     for i, px in enumerate((setback, W - setback)):
         box(f"Porch_post_{i+1}", px - post / 2, px + post / 2,
             0, post, 0, plate, porchc)
-    box("Floor_slab", 0, W, SY, NY, -slab_t, 0, porchc)
+    # ---- foundation: crawlspace, not slab ---------------------------------
+    # A2.0 draws two variants and this model is the CRAWLSPACE one. The slab
+    # that used to sit here was the other variant, built from a thickness
+    # sourced off A2.0's PORCH callout.
+    #
+    # The stemwall goes in the PORCH collection deliberately: that collection
+    # ships in every LOD, so the placement developer's lod2 keeps something at
+    # grade. Replacing the slab there rather than deleting it was agreed
+    # explicitly — see spec.foundation.lod2_change. Footing, crawl grade and
+    # vents are detail and stay in lod0.
+    fd = spec["foundation"]
+    fb = fd["floor_buildup"]
+    st = fd["stemwall"]["thickness"]["ft"]
+    z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
+    z_foot = z_found - fd["stemwall"]["height"]["ft"]
+    # Exterior grade is NOT built. spec.foundation.grade exists so verify can
+    # sanity-check that the vents clear it; nothing here renders a ground
+    # plane, and the handoff doc says so.
+    vt = fd["venting"]
+    vw, vh_, vrec = vt["width"]["ft"], vt["height"]["ft"], vt["recess"]["ft"]
+    vz1 = z_found - vt["below_foundation"]["ft"]
+    vz0 = vz1 - vh_
+
+    # THE VENTS ARE MEASURED OFF A2.0, NOT INVENTED. A2.0's FOUNDATION PLAN
+    # draws them, and spec.foundation.venting.openings carries the eight
+    # centres read off that sheet: two north, three each side, NONE on the
+    # south wall, which sits behind the covered porch. An earlier version put
+    # four vents at an invented 2'-0" corner setback in order to satisfy
+    # A0.0's corner note — a note the drawn layout does not actually meet.
+    # See spec.foundation.venting.corner_rule_discrepancy.
+    def centres(wall):
+        return sorted(o["at"]["ft"] for o in vt["openings"] if o["wall"] == wall)
+
+    def spans(wall, to_model):
+        """Vent openings on one wall as (lo, hi) in model coordinates."""
+        return [(to_model(c) - vw / 2, to_model(c) + vw / 2) for c in centres(wall)]
+
+    # x is measured EAST from the west outer face, so it is already model X.
+    # y is measured SOUTH from the north outer face, so model Y is NY - y.
+    holes = {
+        "north": spans("north", lambda c: c),
+        "south": spans("south", lambda c: c),
+        "west": spans("west", lambda c: NY - c),
+        "east": spans("east", lambda c: NY - c),
+    }
+
+    def banded(sweep0, sweep1, band0, band1, wall, along):
+        """One stemwall run, broken by its vent openings.
+
+        Boxes rather than a boolean — the counters' reasoning applies here too.
+        `along` is the axis the run sweeps; the other pair is the 8" band.
+        """
+        def box6(a, b, z0, z1):
+            return (a, b, band0, band1, z0, z1) if along == "x" else \
+                   (band0, band1, a, b, z0, z1)
+
+        out, prev = [], sweep0
+        for a, b in sorted(holes[wall]):
+            out.append(box6(prev, a, z_foot, z_found))
+            out.append(box6(a, b, z_foot, vz0))              # under the vent
+            out.append(box6(a, b, vz1, z_found))             # over the vent
+            prev = b
+        out.append(box6(prev, sweep1, z_foot, z_found))
+        return out
+
+    # North and south sweep the full width; the sides sweep between them so no
+    # corner is built twice.
+    stem = (banded(0.0, W, SY, SY + st, "south", "x")
+            + banded(0.0, W, NY - st, NY, "north", "x")
+            + banded(SY + st, NY - st, 0.0, st, "west", "y")
+            + banded(SY + st, NY - st, W - st, W, "east", "y"))
+    multibox("Found_stemwall", stem, porchc)
+
+    # The floor build-up itself. Without this the building floats: the walls
+    # start at Z=0 and the stemwall tops out at the TOP OF FOUNDATION, leaving
+    # the subfloor + joists + mud sill as an empty band. Floor_slab used to
+    # hide that gap by being only slab_t deep and sitting right under the
+    # floor; replacing it with a real foundation exposed the omission.
+    #
+    # A perimeter band, not a solid deck: a solid one would put a face at Z=0
+    # coplanar with the underside of every Floor_* finish (rule 16). It reads
+    # as the rim joist, which is what is actually visible from outside. Porch
+    # collection, so lod2 sees the building meet its foundation too.
+    multibox("Found_rim", [
+        (0.0, W, SY, SY + t, z_found, 0.0),                  # south
+        (0.0, W, NY - t, NY, z_found, 0.0),                  # north
+        (0.0, t, SY + t, NY - t, z_found, 0.0),              # west
+        (W - t, W, SY + t, NY - t, z_found, 0.0),            # east
+    ], porchc)
+
+    # The porch slab was floating too. It is 4" of concrete whose underside sat
+    # at -4" with three feet of air below it — invisible while the building
+    # also floated, obvious the moment the building stopped.
+    #
+    # PIERS, NOT A CURB. A continuous curb would close the porch void and seal
+    # the two south vents into a dead pocket, which would quietly make the
+    # A0.0 venting gates meaningless. Piers carry the outer edge, the house
+    # carries the inner, and the crawlspace still breathes through the south
+    # wall. Sized and placed off the porch posts they sit under, so nothing new
+    # is invented: only the pier is new, and it is DEMONSTRATION, like grade.
+    piers = []
+    for px in (post / 2, setback, W - setback, W - post / 2):
+        piers.append((px - post / 2, px + post / 2,
+                      0.0, post, z_foot, -slab_t))
+    multibox("Found_pier", piers, porchc)
+
+    # Footing, crawl grade and vents: lod0 detail only.
+    fw = fd["footing"]["width"]["ft"]
+    fdp = fd["footing"]["depth"]["ft"]
+    o = (fw - st) / 2.0
+    multibox("Found_footing", [
+        (-o, W + o, SY - o, SY + st + o, z_foot - fdp, z_foot),
+        (-o, W + o, NY - st - o, NY + o, z_foot - fdp, z_foot),
+        (-o, st + o, SY + st + o, NY - st - o, z_foot - fdp, z_foot),
+        (W - st - o, W + o, SY + st + o, NY - st - o, z_foot - fdp, z_foot),
+    ], found)
+    box("Found_grade", st, W - st, SY + st, NY - st, z_foot, z_foot + 0.05, found)
+
+    # Vent inserts, set back from the OUTER face so nothing is coplanar
+    # (rule 16). Each sits in the opening its own wall's schedule cut.
+    vents = []
+    for a, b in holes["south"]:
+        vents.append((a, b, SY + vrec, SY + st, vz0, vz1))
+    for a, b in holes["north"]:
+        vents.append((a, b, NY - st, NY - vrec, vz0, vz1))
+    for a, b in holes["west"]:
+        vents.append((vrec, st, a, b, vz0, vz1))
+    for a, b in holes["east"]:
+        vents.append((W - st, W - vrec, a, b, vz0, vz1))
+    multibox("Found_vent", vents, found)
 
     # ---- interior partitions, from the measured layout ---------------------
     # Positions come from spec.interior_partitions.layout, measured on A1.1.
@@ -823,7 +953,8 @@ def build(spec, cut_openings=True):
     geo["tile_ft"] = tile_ft
 
     return geo, dict(shell=shell, roof=roofc, porch=porchc,
-                     interior=interior, finish=finish, casework=casework)
+                     interior=interior, finish=finish, casework=casework,
+                     foundation=found)
 
 
 # ---------------------------------------------------------------------------

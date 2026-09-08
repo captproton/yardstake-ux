@@ -45,6 +45,117 @@ def gate(name, ok, detail=""):
         FAILED.append(name)
 
 
+def vents_built(spec):
+    """Every vent A2.0 draws must exist as geometry where A2.0 draws it.
+
+    Tested by POSITION, like everything else here: is there a mesh face inside
+    the measured opening, at the vent's own height band? Naming Found_vent
+    would prove nothing -- the whole point of this file is that one shared mesh
+    can satisfy a check for eight things that are not all there.
+    """
+    fd = spec["foundation"]
+    fb = fd["floor_buildup"]
+    vt = fd["venting"]
+    z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
+    z1 = z_found - vt["below_foundation"]["ft"]
+    z0 = z1 - vt["height"]["ft"]
+    vw = vt["width"]["ft"]
+
+    env, con = spec["envelope"], spec["construction"]
+    W = env["main_body_width"]["ft"]
+    P = env["porch_depth"]["ft"]
+    SY, NY = P, P + env["main_body_depth"]["ft"]
+    st = fd["stemwall"]["thickness"]["ft"]
+
+    missing = []
+    for o in vt["openings"]:
+        wall, c = o["wall"], o["at"]["ft"]
+        if wall in ("north", "south"):
+            bx = (c - vw / 2, c + vw / 2)
+            by = (NY - st, NY) if wall == "north" else (SY, SY + st)
+        else:
+            by = (NY - c - vw / 2, NY - c + vw / 2)
+            bx = (0.0, st) if wall == "west" else (W - st, W)
+
+        hit = False
+        for ob in bpy.data.objects:
+            if ob.type != "MESH":
+                continue
+            for poly in ob.data.polygons:
+                q = ob.matrix_world @ poly.center
+                if (bx[0] <= q.x <= bx[1] and by[0] <= q.y <= by[1]
+                        and z0 - 0.01 <= q.z <= z1 + 0.01):
+                    hit = True
+                    break
+            if hit:
+                break
+        if not hit:
+            missing.append(f"{wall}@{c:.2f}")
+    return missing
+
+
+def envelope_gap(spec, probes=24):
+    """The tallest vertical gap in the perimeter, from footing to finished floor.
+
+    Replacing Floor_slab with a real foundation left the whole floor build-up
+    -- subfloor, joists and mud sill -- as EMPTY AIR: walls started at Z=0, the
+    stemwall stopped at the top of foundation, and the building floated over
+    its own footing. Every gate passed. Spec gates could not see it, because
+    every number was right, and the fixture gate could not see it, because
+    nothing was missing from a fixture footprint.
+
+    So walk the perimeter, and at each probe collect the Z spans of every
+    structural box that covers that point. Merge them. Any gap between the top
+    of the footing and the finished floor is a hole in the building.
+    """
+    fd = spec["foundation"]
+    fb = fd["floor_buildup"]
+    z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
+    z_foot = z_found - fd["stemwall"]["height"]["ft"]
+
+    env, con = spec["envelope"], spec["construction"]
+    W = env["main_body_width"]["ft"]
+    P = env["porch_depth"]["ft"]
+    SY, NY = P, P + env["main_body_depth"]["ft"]
+    t = con["exterior_wall_thickness"]["ft"]
+    inset = t / 2.0                       # mid-thickness, inside every face
+
+    pts = []
+    for i in range(probes):
+        f = (i + 0.5) / probes
+        pts.append((W * f, SY + inset))   # south wall line
+        pts.append((W * f, NY - inset))   # north wall line
+        pts.append((inset, SY + (NY - SY) * f))
+        pts.append((W - inset, SY + (NY - SY) * f))
+
+    boxes = []
+    for ob in bpy.data.objects:
+        if ob.type != "MESH" or ob.name.startswith(("Fix_", "Cab_", "Appl_")):
+            continue
+        cs = [ob.matrix_world @ v.co for v in ob.data.vertices]
+        if not cs:
+            continue
+        boxes.append((min(c.x for c in cs), max(c.x for c in cs),
+                      min(c.y for c in cs), max(c.y for c in cs),
+                      min(c.z for c in cs), max(c.z for c in cs)))
+
+    worst, where = 0.0, None
+    for px, py in pts:
+        spans = sorted((z0, z1) for x0, x1, y0, y1, z0, z1 in boxes
+                       if x0 <= px <= x1 and y0 <= py <= y1
+                       and z1 > z_foot and z0 < 0.0)
+        cursor, gap = z_foot, 0.0
+        for z0, z1 in spans:
+            if z0 - cursor > gap:
+                gap, hole = z0 - cursor, (cursor, z0)
+            cursor = max(cursor, z1)
+        if 0.0 - cursor > gap:
+            gap, hole = 0.0 - cursor, (cursor, 0.0)
+        if gap > worst:
+            worst, where = gap, (px, py, hole)
+    return worst, where
+
+
 def main():
     spec = load_spec(HERE / "spec.yaml")
     fx = spec["fixtures"]
@@ -109,6 +220,21 @@ def main():
                  if found else "MEASURED BUT NEVER BUILT")
 
     gate("every measured fixture was checked", checked > 0, f"{checked} fixtures")
+
+    missing = vents_built(spec)
+    n = len(spec["foundation"]["venting"]["openings"])
+    gate("every vent A2.0 draws exists as geometry", not missing,
+         f"{n - len(missing)}/{n} found by position"
+         + (f" — MISSING {', '.join(missing)}" if missing else ""))
+
+    gap, where = envelope_gap(spec)
+    if where:
+        px, py, (h0, h1) = where
+        detail = (f"worst {gap * 12:.2f}\" at x={px:.2f} y={py:.2f}, "
+                  f"z {h0:.3f}..{h1:.3f}")
+    else:
+        detail = "no probe found a gap"
+    gate("no vertical gap from footing to finished floor", gap < 0.01, detail)
 
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
