@@ -22,18 +22,25 @@ Phases P1–P4 are complete and gated:
 | **Tier 3c** | Toilet | **done** ([#66](https://github.com/captproton/yardstake-ux/pull/66)) — built, not bought |
 | **Tier 3d** | Appliances | **done** ([#67](https://github.com/captproton/yardstake-ux/pull/67)) — built, not bought |
 | **Tier 3e** | Tub/shower, stacked W/D, geometry gate | **done** ([#68](https://github.com/captproton/yardstake-ux/pull/68)) — both were measured and never built |
+| **Foundation** | Crawlspace stemwall, footing, rim, piers, the eight vents A2.0 draws | **done** ([#70](https://github.com/captproton/yardstake-ux/pull/70)) — the first `lod2` change in twelve PRs |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
-[#67](https://github.com/captproton/yardstake-ux/pull/67) and [#68](https://github.com/captproton/yardstake-ux/pull/68). The placement developer is unblocked — `lod2`
-and their handoff are on `main`, and **byte-identical at 24.1 KB through all
-eleven**. That is the constraint the whole ladder was designed around, and it
-has never moved.
+[#67](https://github.com/captproton/yardstake-ux/pull/67), [#68](https://github.com/captproton/yardstake-ux/pull/68) and [#70](https://github.com/captproton/yardstake-ux/pull/70). The placement developer is
+unblocked — `lod2` and their handoff are on `main`.
+
+**`lod2` was byte-identical at 24.1 KB through eleven PRs, and changed in the
+twelfth.** [#70](https://github.com/captproton/yardstake-ux/pull/70) replaced the wrong-variant `Floor_slab` with the
+crawlspace stemwall, so `lod2` is now **28.4 KB** and its bbox floor moved from
+−0.101 m to −0.972 m. That was a conversation before it was a commit, which is
+what the stability guarantee actually asks for. Origin, axes and units have
+still never moved.
 
 **Tier 3's build half is complete** — casework, both sinks, both taps, the
 mirror, the toilet, the tub/shower, the crawl hole, the stacked W/D and all
-three appliances. 93 meshes, `lod0` **889.5 KB** against a 4 MB ceiling,
-40/40 fixture gates and 10/10 geometry gates.
+three appliances — **and the building now stands on a real foundation.**
+98 meshes, `lod0` **897.6 KB** against a 4 MB ceiling, 49/49 fixture gates and
+12/12 geometry gates.
 
 **That claim was made once before and was wrong.** After [#67](https://github.com/captproton/yardstake-ux/pull/67) the plan
 said the build half was complete while the tub/shower and the stacked washer/
@@ -44,7 +51,7 @@ again.**
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
 rather than necessity. Tier 3's *build* half is done: cabinets, counters,
 backsplash, uppers, hood, the kitchen sink and tap, and the bath vanity with
-its basin, three-hole tap and mirror. `lod0` is now **870 KB** against a 4 MB
+its basin, three-hole tap and mirror. `lod0` is now **897.6 KB** against a 4 MB
 ceiling.
 
 **The model has three primitives now**, not one. `box`/`multibox` for
@@ -62,8 +69,10 @@ had to be made. The model contains **no third-party content at all**: textures
 are procedural, geometry is spec-driven. That is worth protecting — it is a
 property that is easy to lose and hard to recover.
 
-What remains of Tier 3 is the *buy* half — appliances and the toilet — plus two
-small omissions listed under [What remains](#what-remains).
+**Nothing in Tier 3 was ever bought.** The appliances and the toilet, once
+listed here as the *buy* half, were built from the same primitives as
+everything else. What is left is furniture and an appliance-finish variant —
+see [What remains](#what-remains).
 
 The **exterior is finished work**. Silhouette, both pitches, ridge height,
 overhangs, and every opening are validated against the sheet. Nothing in this
@@ -257,14 +266,16 @@ hand — 5/4×4 clear vertical grain Douglas fir, 20° heel cut, flange-bolted
 ## What remains
 
 Tiers 1 and 2 are complete bar one optimisation. **Tier 3's build half is
-done** and verified by `verify_geometry.py`. In order of value:
+done** and verified by `verify_geometry.py`, and the foundation is built and
+measured ([#70](https://github.com/captproton/yardstake-ux/pull/70)). In order of value:
 
 | Work | Notes |
 |---|---|
 | **T3:** furniture | The last unbuilt item in the tier, and the only one with `status: not_yet_placed`. Architectural fill-in-the-space per §4 — schematic masses, no licensing exposure |
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
-| **Foundation:** fix the variant mix | **[#69](https://github.com/captproton/yardstake-ux/issues/69)** — A2.0 has been read and the question is settled. It draws TWO foundations, as A1.0/A1.1 draw two roofs: a crawlspace (stem walls, centre girder, **the crawl hole**) and a slab (no crawl hole). The MAIN FLOOR FRAMING plan and A1.1 both carry the crawl hole, so this model is the **crawlspace** variant — and `Floor_slab` is slabbing the main body from a callout that applies to the **porch**. The crawl hole is right; the slab is wrong. Still the only open item that could **invalidate** geometry rather than add to it |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 889.5 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 897.6 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
+| **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 28.4 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
 
 Two prerequisites are long discharged: **texel density is fixed at 128 px/ft**

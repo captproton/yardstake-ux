@@ -18,8 +18,10 @@ Tier 1 is complete, so nothing here is blocked; we set the pace.
 
 **Do not break the handoff.** `lod2` is the placement developer's model. This
 already bit once: texturing took it from 17 KB to 239 KB, past its ceiling. It
-now ships flat-shaded at 24.1 KB, and the budgets are gated in `finish_adu.py`
-rather than left to inspection.
+now ships flat-shaded at **28.4 KB**, and the budgets are gated in
+`finish_adu.py` rather than left to inspection. (It sat at 24.1 KB through
+eleven PRs; [#70](https://github.com/captproton/yardstake-ux/pull/70) replaced the wrong-variant slab with the crawlspace
+stemwall — see the handoff section of the [plan](README.md).)
 
 **Does not depend on:** Tier 3.
 
@@ -169,9 +171,12 @@ treat the Blender `.glb` as an intermediate.
 
 | Level | Shipped | Ceiling | |
 |---|---|---|---|
-| `lod0` | **419.1 KB** | 4 MB | textured, interior included |
-| `lod1` | **227.1 KB** | 1.5 MB | textured, no interior |
-| `lod2` | **24.1 KB** | 200 KB | flat, deliberately untextured |
+| `lod0` | **897.6 KB** | 4 MB | textured, interior included |
+| `lod1` | **231.4 KB** | 1.5 MB | textured, no interior |
+| `lod2` | **28.4 KB** | 200 KB | flat, deliberately untextured |
+
+Sizes as of [#70](https://github.com/captproton/yardstake-ux/pull/70). `lod0`
+grew with Tier 3's contents and the foundation; the ceilings have not moved.
 
 Texture directory: **332 KB** across 7 materials. Making six albedos neutral
 took it from 435 KB, since a map carrying no colour compresses better.
