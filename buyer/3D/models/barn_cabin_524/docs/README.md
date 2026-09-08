@@ -181,8 +181,9 @@ at 1 unit = 1 foot and converted on export; do not apply a further scale.
 
 The building extends toward **−Z**. Overhangs and the foundation go negative
 on several axes, so the bbox is `min (−0.457, −0.972, −9.601)` to
-`max (7.163, 5.428, 0.457)` m — **0.972 m of that is stemwall below the
-finished floor.**
+`max (7.163, 5.428, 0.457)` m. **0.972 m of that sits below the finished
+floor: 0.362 m of floor build-up (subfloor + joists + mud sill) resting on a
+0.610 m stemwall.**
 
 **Dimensions for envelope maths:**
 
@@ -202,10 +203,11 @@ finished floor.**
 **Grade is still not modelled, and the plan set declines to fix it.** `Y = 0`
 is the finished floor. A4.0's pony wall detail dimensions the below-floor zone
 as *"VARIES WITH GRADE, 18" MIN"* — there is no plan dimension to hand you.
-`lod0` shows 1'-0" of exposed stemwall **for demonstration only**
-(`spec.foundation.grade`, `confidence: assumed`); do not read it as measured.
-**Placement still owns the grade-to-floor offset**, and now has a real stemwall
-to bed into the ground.
+**No LOD draws a ground plane.** `spec.foundation.grade` assumes 1'-6" of
+exposed stemwall (`confidence: assumed`), but it exists only so verification can
+check that the vents clear grade — no geometry expresses it, so do not read a
+bearing plane off the model. **Placement still owns the grade-to-floor offset**,
+and now has a real 2'-0" stemwall to bed into the ground.
 
 **Stability guarantee.** Origin, axes and units are frozen and have never
 moved. `lod2` contents changed **once**, in [#69](https://github.com/captproton/yardstake-ux/issues/69), for the foundation

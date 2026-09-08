@@ -579,10 +579,12 @@ def build(spec, cut_openings=True):
     st = fd["stemwall"]["thickness"]["ft"]
     z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
     z_foot = z_found - fd["stemwall"]["height"]["ft"]
-    z_grade = z_found - fd["grade"]["exposed_stemwall"]["ft"]
+    # Exterior grade is NOT built. spec.foundation.grade exists so verify can
+    # sanity-check that the vents clear it; nothing here renders a ground
+    # plane, and the handoff doc says so.
     vt = fd["venting"]
     vw, vh_, vrec = vt["width"]["ft"], vt["height"]["ft"], vt["recess"]["ft"]
-    vz1 = z_found - 0.333
+    vz1 = z_found - vt["below_foundation"]["ft"]
     vz0 = vz1 - vh_
     setb = vt["corner_setback"]["ft"]
 

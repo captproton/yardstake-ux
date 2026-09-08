@@ -1482,18 +1482,24 @@ foundation:
     joist:    {ft: 0.99,  raw: "11-7/8\"",  source: "A2.0 MAIN FLOOR FRAMING, 11-7/8\" BCI"}
     mud_sill: {ft: 0.125, raw: "1-1/2\"",   source: "A4.0 detail 1, 2x6 PT MUD SILL"}
   grade:
-    exposed_stemwall: {ft: 1.0, raw: "1'-0\"", confidence: assumed}
+    exposed_stemwall: {ft: 1.5, raw: "1'-6\"", confidence: assumed}
     note: >
       NOT A PLAN DIMENSION. A4.0's pony wall detail dimensions this zone as
       "VARIES WITH GRADE, 18" MIN" — the set deliberately declines to fix it,
       and docs/README already tells the placement developer that grade is
-      theirs. 1'-0" of exposed stemwall is chosen FOR DEMONSTRATION, consistent
-      with the tour footage, and must never be read as measured.
+      theirs. 1'-6" of exposed stemwall is chosen FOR DEMONSTRATION and must
+      never be read as measured. Nothing is BUILT from it: no LOD draws a
+      ground plane, and it exists so verification can check the vents clear
+      grade. The first value tried was 1'-0", which put the bottom of the vents
+      EXACTLY on grade — the clearance gate passed only through its own
+      tolerance. 1'-6" leaves 6" of stemwall below the vents, which is what a
+      vent needs in order not to take water.
   venting:
     count: 4
     width:  {ft: 1.333, raw: "1'-4\"", confidence: assumed}
     height: {ft: 0.667, raw: "8\"",    confidence: assumed}
     recess: {ft: 0.083, raw: "1\"",    confidence: assumed}
+    below_foundation: {ft: 0.333, raw: "4\"", confidence: assumed}
     corner_setback: {ft: 2.0, raw: "2'-0\"", confidence: assumed}
     calculation: >
       Under-floor area is 486.7 sf (21'-1" x 23'-1", our own measured

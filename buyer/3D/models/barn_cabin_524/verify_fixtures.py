@@ -59,6 +59,34 @@ def find(seq, fid, what):
     return None
 
 
+def duplicate_keys(text):
+    """Mapping keys that appear twice in the spec.
+
+    PyYAML keeps the LAST of a duplicated key and says nothing, so a duplicate
+    is a value that is visibly in the file and is not the value the build uses.
+    This gate exists because exactly that happened: a second `note:` was added
+    under `foundation.grade` and silently shadowed the first.
+    """
+    class Loader(yaml.SafeLoader):
+        pass
+
+    found = []
+
+    def mapping(loader, node, deep=False):
+        seen = set()
+        for k, _ in node.value:
+            key = loader.construct_object(k, deep=deep)
+            if key in seen:
+                found.append((k.start_mark.line + 1, key))
+            seen.add(key)
+        return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+    Loader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, mapping)
+    yaml.load(text, Loader=Loader)
+    return found
+
+
 def all_items(fx):
     for group in ("kitchen", "bath", "laundry", "access"):
         for it in fx[group].get("items", []):
@@ -67,7 +95,12 @@ def all_items(fx):
 
 
 def main():
-    spec = yaml.safe_load((HERE / "spec.yaml").read_text())
+    raw = (HERE / "spec.yaml").read_text()
+    dups = duplicate_keys(raw)
+    gate(not dups, "no duplicate keys in spec.yaml",
+         "; ".join(f"line {ln}: {k!r}" for ln, k in dups) or
+         "PyYAML would silently keep the last of any pair")
+    spec = yaml.safe_load(raw)
     fx = spec["fixtures"]
     lay = spec["interior_partitions"]["layout"]
     part = {p["id"]: p for p in lay["partitions"]}
@@ -447,12 +480,16 @@ def main():
         area = ((env["main_body_width"]["ft"] - 2 * t)
                 * (env["main_body_depth"]["ft"] - 2 * t))
         v = fd["venting"]
-        net = v["count"] * v["width"]["ft"] * v["height"]["ft"]
-        # 6 mil poly is a Class 1 vapor retarder (A4.0 details 1 and 3), so
-        # A0.0's reduced 1-per-1500 rate applies.
+        # GROSS, not net free area: these are modelled openings with no screen
+        # or louver, and a real vent's mesh cuts the free area roughly in half.
+        # A0.0 asks for NET free area, so this gate is the weaker test. It
+        # still passes by an order of magnitude, which is why it holds.
+        gross = v["count"] * v["width"]["ft"] * v["height"]["ft"]
         need = area / 1500.0
-        gate(net >= need, "foundation vent area meets A0.0 with a vapor retarder",
-             f"{net:.2f} sf gross across {v['count']} vents vs {need:.2f} sf required")
+        gate(gross >= need,
+             "foundation vent GROSS area clears A0.0's net-free requirement",
+             f"{gross:.2f} sf gross across {v['count']} vents vs {need:.2f} sf "
+             f"net free required — {gross / need:.0f}x, so screen loss is moot")
         gate(v["count"] >= 4, "one vent per corner, per A0.0",
              f"{v['count']} vents; A0.0 wants one within 3 ft of each corner")
         # A0.0: "one such ventilating opening shall be WITHIN 3 FEET of each
@@ -472,10 +509,16 @@ def main():
              "grade sits between footing and top of foundation",
              f"footing {ftin(z_foot)}, grade {ftin(z_grade)}, "
              f"top of foundation {ftin(z_found)}")
-        vz1 = z_found - 0.333
-        gate(vz1 - v["height"]["ft"] >= z_grade - 0.01,
-             "vents sit at or above grade",
-             f"vent bottom {ftin(vz1 - v['height']['ft'])}, grade {ftin(z_grade)}")
+        vz1 = z_found - v["below_foundation"]["ft"]
+        # Real clearance, not "at or above": the first version of this gate
+        # allowed equality and passed on geometry whose vent bottom sat
+        # EXACTLY on grade, which would take water. 4" is a modelling sanity
+        # margin, not a code figure -- grade itself is assumed.
+        clear = (vz1 - v["height"]["ft"]) - z_grade
+        gate(clear >= 4.0 / 12.0,
+             "vents clear grade by a real margin",
+             f"vent bottom {ftin(vz1 - v['height']['ft'])}, grade "
+             f"{ftin(z_grade)}, clearance {ftin(clear)} (want 4\" min)")
         gate(fd["footing"]["width"]["ft"] > fd["stemwall"]["thickness"]["ft"],
              "footing is wider than the stemwall it carries",
              f"{ftin(fd['footing']['width']['ft'])} under "
