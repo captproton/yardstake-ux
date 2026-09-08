@@ -1022,6 +1022,52 @@ fixtures:
     disclosure_required: "Furniture and appliances shown for scale; not included. This is a UI requirement — no part of the model can enforce it."
     prefixes: {furniture: "Furn_", appliances: "Appl_"}
 
+  prefixes:
+    # Plumbing fixtures SUPPLIED WITH THE UNIT. Deliberately not Furn_/Appl_,
+    # which are shown-but-not-included and toggle off together — a toilet is
+    # part of what the buyer gets, and must not disappear with the staging.
+    plumbing: "Fix_"
+
+  toilet_form:
+    # Two-piece floor-mount, confirmed at video 2:51 — the only clear frame of
+    # it in the tour (2:35-3:25 otherwise shows it cropped or occluded).
+    #
+    # That frame's job is only to establish the TYPE. The footprint is measured
+    # (2'-5-3/4" projection x 1'-10-1/8" wide) and the heights are standard, so
+    # once you know it is an ordinary two-piece the remaining form is stock.
+    # This is why thin footage was not the binding constraint.
+    tank:
+      depth:  {ft: 0.63,  raw: "7-1/2\"",      confidence: assumed}
+      width:  {ft: 1.67,  raw: "1'-8\"",       confidence: assumed}
+      bottom: {ft: 1.19,  raw: "1'-2-1/4\"",   confidence: assumed}
+    bowl:
+      half_width: {ft: 0.58, raw: "6-15/16\"", confidence: assumed,
+                   note: "An elongated bowl is ~14\" across — narrower than the 22\" tank, which is what the measured ink bbox actually caught."}
+      foot_scale: {factor: 0.42, confidence: assumed}
+      foot_setback: {ft: 0.15, raw: "1-3/4\"", confidence: assumed,
+                     note: "Foot sits behind the bowl centre, as a real pedestal does."}
+    riser:
+      # The rear pedestal a two-piece bowl rises into, and the shelf the tank
+      # actually bolts onto. Without it the tank FLOATS: the bowl is an
+      # ellipse, so its rear tapers to almost nothing and met the tank across
+      # three vertices. Every gate passed and the render showed a shelf stuck
+      # to the wall.
+      #
+      # Dimensions are derived from the tank and the seat height rather than
+      # invented — it is the tank's own footprint carried down to the floor.
+      inset: {ft: 0.06, raw: "3/4\"", confidence: assumed,
+              note: "narrower than the tank on each side, so the tank reads as sitting ON it"}
+      confidence: derived
+    lid:
+      thickness: {ft: 0.042, raw: "1/2\"", confidence: assumed}
+    schematic_note: >
+      Loft rings give a good silhouette and no rim detail, no bolt caps, no
+      trapway moulding. That is the right trade at configurator distance and is
+      consistent with the basin and taps already shipped. If photoreal
+      sanitaryware is ever wanted, a CC0 asset is genuinely better — that is a
+      fidelity decision, not a capability one.
+    source: "footprint A1.1 (measured); type video 2:51; proportions industry standard"
+
 # ---------------------------------------------------------------------------
 texturing:
   # DECIDED 2026-09-06, per docs/TIER-2-materials-and-textures.md §2. Fixed
@@ -1273,6 +1319,7 @@ materials:
     Cab_hood: steel
     # Cab_basin_bath MUST precede Cab_basin: first match wins, and the bath
     # basin is glazed porcelain where the kitchen's is stainless.
+    Fix_toilet: porcelain
     Cab_mirror_glass: mirror
     Cab_basin_bath: porcelain
     Cab_basin: steel
