@@ -1470,7 +1470,37 @@ areas_declared:
 # ---------------------------------------------------------------------------
 discrepancies:
   - id: crawl-hole-implies-crawlspace-not-slab
-    finding: >
+    status: RESOLVED — A2.0 read 2026-09-08; the question is answered, the fix is not yet made
+    resolution: >
+      A2.0 draws TWO foundation options, exactly as A1.0/A1.1 draw two roof
+      options.
+
+        FOUNDATION PLAN        — perimeter stem wall, a girder line on posts
+                                 down the middle, 4" foundation drain, and the
+                                 24" X 24" CRAWL HOLE. Slab appears ONLY in the
+                                 6'-0" porch strip.
+        FOUNDATION PLAN - SLAB — 4" CONC #4 on a 3' grid with a 16" x 1'-6"
+                                 footing and 4" rigid insulation under. NO
+                                 crawl hole anywhere on it.
+
+      A2.0's MAIN FLOOR FRAMING plan settles which one this model follows: it
+      shows 11-7/8" BCI joists at 24" o.c. over foundation bearing walls, with
+      the crawl hole — i.e. the CRAWLSPACE option. A1.1, the Option B floor
+      plan every dimension here comes from, carries that same crawl hole.
+
+      So the crawl hole is right and the slab is wrong. `Floor_slab` spans the
+      MAIN BODY (Y 6..30) using a thickness sourced from A2.0's porch callout,
+      which belongs to neither the crawlspace option's main body nor anything
+      else. The model is currently a mix of the two variants.
+    fix_required: >
+      Main body: no slab. It wants a crawlspace — stem walls at the perimeter,
+      a centre girder on posts, and joists carrying the floor. Porch_slab
+      (Y 0..6) is correct and stays. Whatever replaces Floor_slab must give the
+      crawl hole something to look down at, or the opening reveals a void.
+    not_done_here: >
+      Reading A2.0 answered the question; changing the foundation is its own
+      piece of work and touches geometry every other tier sits on.
+    superseded_finding: >
       A1.1 calls out a 24" x 24" CRAWL HOLE in the main floor, which implies a
       crawl space beneath it. The model puts a slab under the whole footprint,
       and that slab's thickness is taken from A2.0's '4" CONC SLAB #4, 18"

@@ -241,7 +241,7 @@ done** and verified by `verify_geometry.py`. In order of value:
 |---|---|
 | **T3:** furniture | The last unbuilt item in the tier, and the only one with `status: not_yet_placed`. Architectural fill-in-the-space per §4 — schematic masses, no licensing exposure |
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
-| **Foundation:** read A2.0 | `spec.discrepancies.crawl-hole-implies-crawlspace-not-slab`. A crawl hole exists because there is a void to reach, but the model slabs the whole footprint using a thickness taken from A2.0's callout for the **porch**. This is the only open question that could **invalidate** existing geometry rather than add to it. Worth its own issue |
+| **Foundation:** fix the variant mix | **[#69](https://github.com/captproton/yardstake-ux/issues/69)** — A2.0 has been read and the question is settled. It draws TWO foundations, as A1.0/A1.1 draw two roofs: a crawlspace (stem walls, centre girder, **the crawl hole**) and a slab (no crawl hole). The MAIN FLOOR FRAMING plan and A1.1 both carry the crawl hole, so this model is the **crawlspace** variant — and `Floor_slab` is slabbing the main body from a callout that applies to the **porch**. The crawl hole is right; the slab is wrong. Still the only open item that could **invalidate** geometry rather than add to it |
 | **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 889.5 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
 
