@@ -21,16 +21,25 @@ Phases P1–P4 are complete and gated:
 | **Tier 3b** | Casework, both sinks, both taps, mirror | **done**, 29/29 fixture gates |
 | **Tier 3c** | Toilet | **done** ([#66](https://github.com/captproton/yardstake-ux/pull/66)) — built, not bought |
 | **Tier 3d** | Appliances | **done** ([#67](https://github.com/captproton/yardstake-ux/pull/67)) — built, not bought |
+| **Tier 3e** | Tub/shower, stacked W/D, geometry gate | **done** ([#68](https://github.com/captproton/yardstake-ux/pull/68)) — both were measured and never built |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
-[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66) and
-[#67](https://github.com/captproton/yardstake-ux/pull/67). The placement developer is unblocked — `lod2` and their handoff
-are on `main`, and **byte-identical at 24.1 KB through all ten**. That is the
-constraint the whole ladder was designed around, and it has never moved.
+[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
+[#67](https://github.com/captproton/yardstake-ux/pull/67) and [#68](https://github.com/captproton/yardstake-ux/pull/68). The placement developer is unblocked — `lod2`
+and their handoff are on `main`, and **byte-identical at 24.1 KB through all
+eleven**. That is the constraint the whole ladder was designed around, and it
+has never moved.
 
-**Tier 3 is complete.** Casework, both sinks, both taps, the mirror, the
-toilet, the crawl hole and all three appliances are built. `lod0` is **881 KB**
-against a 4 MB ceiling, at 40/40 fixture gates.
+**Tier 3's build half is complete** — casework, both sinks, both taps, the
+mirror, the toilet, the tub/shower, the crawl hole, the stacked W/D and all
+three appliances. 93 meshes, `lod0` **889.5 KB** against a 4 MB ceiling,
+40/40 fixture gates and 10/10 geometry gates.
+
+**That claim was made once before and was wrong.** After [#67](https://github.com/captproton/yardstake-ux/pull/67) the plan
+said the build half was complete while the tub/shower and the stacked washer/
+dryer were both measured and unbuilt. `verify_geometry.py` exists so the claim
+is checkable rather than asserted — **run it before ever saying "complete"
+again.**
 
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
 rather than necessity. Tier 3's *build* half is done: cabinets, counters,
@@ -225,16 +234,15 @@ hand — 5/4×4 clear vertical grain Douglas fir, 20° heel cut, flange-bolted
 
 ## What remains
 
-Tiers 1 and 2 are complete bar one optimisation, and Tier 3 has its
-measurements. In order of value:
+Tiers 1 and 2 are complete bar one optimisation. **Tier 3's build half is
+done** and verified by `verify_geometry.py`. In order of value:
 
 | Work | Notes |
 |---|---|
-| **Foundation:** read A2.0 | `spec.discrepancies.crawl-hole-implies-crawlspace-not-slab`. The only open question that could **invalidate** existing geometry rather than add to it. Worth its own issue |
 | **T3:** furniture | The last unbuilt item in the tier, and the only one with `status: not_yet_placed`. Architectural fill-in-the-space per §4 — schematic masses, no licensing exposure |
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
 | **Foundation:** read A2.0 | `spec.discrepancies.crawl-hole-implies-crawlspace-not-slab`. A crawl hole exists because there is a void to reach, but the model slabs the whole footprint using a thickness taken from A2.0's callout for the **porch**. This is the only open question that could **invalidate** existing geometry rather than add to it. Worth its own issue |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 872 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 889.5 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
 
 Two prerequisites are long discharged: **texel density is fixed at 128 px/ft**
@@ -248,12 +256,16 @@ display modes address objects by name prefix. Renaming one breaks the picker,
 so both are gated: `finish_adu.py` fails the build if a manifest target names a
 material that does not exist.
 
-Asset licensing, flagged earlier as the long-lead item, is moot for everything
-built so far: **all seven textures are procedural**, generated by
-`make_textures.py`, with no third-party assets anywhere in the model. It
-**becomes real now**, in Tier 3, where appliances and fittings get downloaded.
-It has lead time and it gates the appliance work, so it is the thing to start
-before any more modelling.
+**Asset licensing never became real, and that is the headline.** It was
+flagged as the long-lead item and sat in the critical path for most of this
+work. Every fixture it gated — the basin, the tub, the toilet, the fridge, the
+range, the dishwasher — turned out to be buildable from `box`, `tube` and
+`loft`. Nothing was ever downloaded.
+
+**The model contains no third-party content at all.** Textures are procedural,
+generated by `make_textures.py`; geometry is spec-driven. That property is easy
+to lose and hard to recover, so protect it: before accepting a licensing
+dependency, try the primitives first.
 
 **Fixture heights are assumed, and that is permanent.** The plan set contains
 no interior elevations on any sheet, so every height in `spec.fixtures` is an
@@ -343,3 +355,18 @@ Keep these — they caught real errors:
     it returned CLEAR because it required the two faces to have equal *area*.
     They do not need equal area: a small face lying on a large one overlaps
     just as badly. Test coplanar + same normal, and nothing else.
+17. **A gate keyed to a NAME can be theatre.** `verify_geometry` first mapped
+    each fixture to an object-name prefix, but appliances share `Appl_body` /
+    `Appl_front` / `Appl_dark`, so four fixtures passed on the same three
+    meshes — six of ten checks would have passed with one appliance built.
+    That is the defect the gate exists to catch, reproduced inside the gate.
+    Test POSITION: is there geometry inside this fixture's measured footprint,
+    within its own height?
+18. **A box's vertices all lie ON its boundary.** Shrinking a test volume
+    inward to exclude neighbours excluded the stacked W/D's own geometry and
+    failed a correctly built fixture. Test FACE CENTRES — a box's top and
+    bottom centres are strictly inside its footprint, a neighbour's are not.
+19. **A red test that moves the spec proves nothing.** Perturbing a fixture's
+    position moves the build with it, so the gate passes and the test is a
+    tautology. To prove a build-completeness gate, disable the BUILD and leave
+    the spec intact — that is the actual defect being simulated.

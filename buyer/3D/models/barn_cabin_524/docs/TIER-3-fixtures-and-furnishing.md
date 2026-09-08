@@ -32,8 +32,16 @@ measured. Cutting it surfaced a foundation question recorded as
 using a thickness taken from A2.0's callout for the *porch*, while a crawl hole
 implies a void beneath. Recorded, not guessed at.
 
-**Tier 3's build half is COMPLETE.** The toilet ([#66](https://github.com/captproton/yardstake-ux/pull/66)) and all three
-appliances ([#67](https://github.com/captproton/yardstake-ux/pull/67)) are built, not bought.
+**Tier 3's build half is COMPLETE**, and this time it is verified rather than
+asserted. The toilet ([#66](https://github.com/captproton/yardstake-ux/pull/66)), the appliances ([#67](https://github.com/captproton/yardstake-ux/pull/67)), and the
+tub/shower and stacked W/D ([#68](https://github.com/captproton/yardstake-ux/pull/68)) are all built, not bought.
+
+**The previous claim of completeness was wrong.** After #67 this document said
+the build half was done while the tub/shower and the stacked washer/dryer were
+both measured and unbuilt. The tub had slipped between the buy list and the
+build list when §2's split was corrected, and nothing tracked that moving it
+had left it undone. `verify_geometry.py` now checks every measured fixture has
+geometry inside its own footprint — **run it before claiming completeness.**
 
 **Nothing in this tier needed a third-party asset.** The buy list emptied
 itself: every item assumed unbuildable turned out to be a box, a swept tube or
