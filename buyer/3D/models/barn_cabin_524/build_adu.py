@@ -418,6 +418,7 @@ def build(spec, cut_openings=True):
     shell = collection("Shell")
     roofc = collection("Roof")
     porchc = collection("Porch")
+    found = collection("Foundation")
     interior = collection("Interior_approx")
     finish = collection("Finish")
 
@@ -563,7 +564,68 @@ def build(spec, cut_openings=True):
     for i, px in enumerate((setback, W - setback)):
         box(f"Porch_post_{i+1}", px - post / 2, px + post / 2,
             0, post, 0, plate, porchc)
-    box("Floor_slab", 0, W, SY, NY, -slab_t, 0, porchc)
+    # ---- foundation: crawlspace, not slab ---------------------------------
+    # A2.0 draws two variants and this model is the CRAWLSPACE one. The slab
+    # that used to sit here was the other variant, built from a thickness
+    # sourced off A2.0's PORCH callout.
+    #
+    # The stemwall goes in the PORCH collection deliberately: that collection
+    # ships in every LOD, so the placement developer's lod2 keeps something at
+    # grade. Replacing the slab there rather than deleting it was agreed
+    # explicitly — see spec.foundation.lod2_change. Footing, crawl grade and
+    # vents are detail and stay in lod0.
+    fd = spec["foundation"]
+    fb = fd["floor_buildup"]
+    st = fd["stemwall"]["thickness"]["ft"]
+    z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
+    z_foot = z_found - fd["stemwall"]["height"]["ft"]
+    z_grade = z_found - fd["grade"]["exposed_stemwall"]["ft"]
+    vt = fd["venting"]
+    vw, vh_, vrec = vt["width"]["ft"], vt["height"]["ft"], vt["recess"]["ft"]
+    vz1 = z_found - 0.333
+    vz0 = vz1 - vh_
+    setb = vt["corner_setback"]["ft"]
+
+    # One vent within 3 ft of each corner (A0.0). Two per long wall.
+    vent_x = [(setb, setb + vw), (W - setb - vw, W - setb)]
+
+    def banded(y0, y1, holes):
+        """A stemwall run along X, broken by vent openings. Boxes, not a
+        boolean — the counters' reasoning applies here too."""
+        out, prev = [], 0.0
+        for a, b in holes:
+            out.append((prev, a, y0, y1, z_foot, z_found))
+            out.append((a, b, y0, y1, z_foot, vz0))          # under the vent
+            out.append((a, b, y0, y1, vz1, z_found))         # over the vent
+            prev = b
+        out.append((prev, W, y0, y1, z_foot, z_found))
+        return out
+
+    stem = banded(SY, SY + st, vent_x) + banded(NY - st, NY, vent_x)
+    stem += [
+        (0.0, st, SY + st, NY - st, z_foot, z_found),        # west
+        (W - st, W, SY + st, NY - st, z_foot, z_found),      # east
+    ]
+    multibox("Found_stemwall", stem, porchc)
+
+    # Footing, crawl grade and vents: lod0 detail only.
+    fw = fd["footing"]["width"]["ft"]
+    fdp = fd["footing"]["depth"]["ft"]
+    o = (fw - st) / 2.0
+    multibox("Found_footing", [
+        (-o, W + o, SY - o, SY + st + o, z_foot - fdp, z_foot),
+        (-o, W + o, NY - st - o, NY + o, z_foot - fdp, z_foot),
+        (-o, st + o, SY + st + o, NY - st - o, z_foot - fdp, z_foot),
+        (W - st - o, W + o, SY + st + o, NY - st - o, z_foot - fdp, z_foot),
+    ], found)
+    box("Found_grade", st, W - st, SY + st, NY - st, z_foot, z_foot + 0.05, found)
+
+    # Vent inserts, set back from the face so nothing is coplanar (rule 16).
+    vents = []
+    for a, b in vent_x:
+        vents.append((a, b, SY + vrec, SY + st, vz0, vz1))
+        vents.append((a, b, NY - st, NY - vrec, vz0, vz1))
+    multibox("Found_vent", vents, found)
 
     # ---- interior partitions, from the measured layout ---------------------
     # Positions come from spec.interior_partitions.layout, measured on A1.1.
@@ -823,7 +885,8 @@ def build(spec, cut_openings=True):
     geo["tile_ft"] = tile_ft
 
     return geo, dict(shell=shell, roof=roofc, porch=porchc,
-                     interior=interior, finish=finish, casework=casework)
+                     interior=interior, finish=finish, casework=casework,
+                     foundation=found)
 
 
 # ---------------------------------------------------------------------------

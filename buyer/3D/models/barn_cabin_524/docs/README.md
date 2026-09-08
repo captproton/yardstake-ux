@@ -153,10 +153,20 @@ Their scope is placement in the buildable envelope, and nothing else. They take
 the exported `.glb`; nothing in tiers 1–3 may break it. All figures verified
 against the current export.
 
-**Use `barn_cabin_524_lod2.glb`** (24.1 KB). It is the massing: no openings, no
-glazing, no interior. Nothing in tiers 1–3 lands in it, and a gate in
-`finish_adu.py` fails the build if it exceeds 200 KB — which has already caught
-one regression, when texturing took it to 239 KB.
+**Use `barn_cabin_524_lod2.glb`** (25.3 KB). It is the massing: no openings, no
+glazing, no interior. A gate in `finish_adu.py` fails the build if it exceeds
+200 KB — which has already caught one regression, when texturing took it to
+239 KB.
+
+> ⚠️ **CHANGED — the first time in twelve merged PRs.** `lod2` used to carry
+> `Floor_slab`, a concrete slab under the whole building. A2.0 draws **two**
+> foundations and this model is the **crawlspace** one, so that slab was the
+> wrong variant. It is replaced by `Found_stemwall`: the building now stands on
+> a **2'-0" stemwall**, not flat on a slab.
+>
+> **The bbox floor moves from −0.101 m to −0.972 m.** If you were treating the
+> bottom of the model as the bearing plane, that plane has dropped 0.871 m.
+> Everything above finished floor is unchanged. See [#69](https://github.com/captproton/yardstake-ux/issues/69).
 
 **Units and axes.** glTF standard — **metres**, **Y-up**. The scene is authored
 at 1 unit = 1 foot and converted on export; do not apply a further scale.
@@ -169,9 +179,10 @@ at 1 unit = 1 foot and converted on export; do not apply a further scale.
 | `Y = 0` | main finished floor |
 | `Z = 0` | porch outer (south) edge |
 
-The building extends toward **−Z**. Overhangs and the slab go negative on
-several axes, so the bbox is `min (−0.457, −0.101, −9.601)` to
-`max (7.163, 5.428, 0.457)` m.
+The building extends toward **−Z**. Overhangs and the foundation go negative
+on several axes, so the bbox is `min (−0.457, −0.972, −9.601)` to
+`max (7.163, 5.428, 0.457)` m — **0.972 m of that is stemwall below the
+finished floor.**
 
 **Dimensions for envelope maths:**
 
@@ -188,12 +199,18 @@ several axes, so the bbox is `min (−0.457, −0.101, −9.601)` to
 > over-constrain siting; using 22' × 30' everywhere may under-report the
 > encroachment.
 
-**Grade is not modelled.** `Y = 0` is the finished floor, not grade. The
-stemwall reveal is not in the plan set and the slab bottom sits at −0.101 m.
-Placement owns the grade-to-floor offset.
+**Grade is still not modelled, and the plan set declines to fix it.** `Y = 0`
+is the finished floor. A4.0's pony wall detail dimensions the below-floor zone
+as *"VARIES WITH GRADE, 18" MIN"* — there is no plan dimension to hand you.
+`lod0` shows 1'-0" of exposed stemwall **for demonstration only**
+(`spec.foundation.grade`, `confidence: assumed`); do not read it as measured.
+**Placement still owns the grade-to-floor offset**, and now has a real stemwall
+to bed into the ground.
 
-**Stability guarantee.** Origin, axes, units and `lod2` contents are frozen. If
-any tier needs to change them, that is a conversation with them, not a commit.
+**Stability guarantee.** Origin, axes and units are frozen and have never
+moved. `lod2` contents changed **once**, in [#69](https://github.com/captproton/yardstake-ux/issues/69), for the foundation
+variant above — and that was a conversation first and a commit second, which is
+what this guarantee asks for.
 
 ---
 

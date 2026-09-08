@@ -1326,6 +1326,13 @@ materials:
         Deliberately untextured. A normal map for orange-peel relief cost
         1.36 MB and is invisible at any distance this model is viewed from.
         Flat colour is correct here, as it already is for trim.
+    soil:
+      # The crawlspace ground, seen through the crawl hole. Deliberately dull:
+      # it exists so the opening reveals something rather than a void.
+      base_color_linear: [0.115, 0.098, 0.082]
+      roughness: 0.95
+      metallic: 0.0
+      source: "A4.0 details 1 and 3 — 6 mil vapor barrier over undisturbed native soil."
     soffit:
       base_color_linear: [0.800, 0.795, 0.780]
       roughness: 0.70
@@ -1421,6 +1428,9 @@ materials:
     Floor_main: floor_oak
     Floor_bath: slate_bath
     Floor_loft: carpet_loft
+    Found_vent: appliance_dark
+    Found_grade: soil
+    Found_: concrete
     Floor_slab: concrete
     Part_: trim
     Glazing_: glass
@@ -1446,6 +1456,62 @@ materials:
     Cab_basin: steel
     Cab_faucet: steel
     Cab_: cab_wood
+
+# ---------------------------------------------------------------------------
+foundation:
+  # A2.0 draws TWO foundations. This model is the CRAWLSPACE variant — four
+  # independent confirmations are recorded in
+  # discrepancies.crawl-hole-implies-crawlspace-not-slab.
+  variant: crawlspace
+  stemwall:
+    height:    {ft: 2.0,   raw: "2'-0\"", source: "A4.0 CROSS SECTION A/B - STEMWALL"}
+    thickness: {ft: 0.667, raw: "8\"",    confidence: assumed}
+    reading_note: >
+      The 2'-0" ties a tick labelled BOTH "TOP OF FOUNDATION" and "TOP OF
+      SUBFLOOR" down to "TOP OF FOOTING", so it is ambiguous whether it
+      measures the foundation wall or the whole below-floor zone. Read here as
+      the FOUNDATION WALL: at 2'-0" of wall the crawl has working height and
+      the vents sit above grade, where the other reading leaves under 10" of
+      stemwall and nowhere to put a vent. This is an INTERPRETATION, not a
+      transcription, and is flagged as such.
+  footing:
+    depth: {ft: 0.667, raw: "8\"",    source: "A4.0 details 1 and 3, '8\" MIN'"}
+    width: {ft: 1.333, raw: "1'-4\"", source: "A4.0 details 1 and 3, '1'-4\" MIN'"}
+  floor_buildup:
+    subfloor: {ft: 0.073, raw: "7/8\"",     source: "A4.0 detail 3, 7/8\" T&G SUB-FLOOR"}
+    joist:    {ft: 0.99,  raw: "11-7/8\"",  source: "A2.0 MAIN FLOOR FRAMING, 11-7/8\" BCI"}
+    mud_sill: {ft: 0.125, raw: "1-1/2\"",   source: "A4.0 detail 1, 2x6 PT MUD SILL"}
+  grade:
+    exposed_stemwall: {ft: 1.0, raw: "1'-0\"", confidence: assumed}
+    note: >
+      NOT A PLAN DIMENSION. A4.0's pony wall detail dimensions this zone as
+      "VARIES WITH GRADE, 18" MIN" — the set deliberately declines to fix it,
+      and docs/README already tells the placement developer that grade is
+      theirs. 1'-0" of exposed stemwall is chosen FOR DEMONSTRATION, consistent
+      with the tour footage, and must never be read as measured.
+  venting:
+    count: 4
+    width:  {ft: 1.333, raw: "1'-4\"", confidence: assumed}
+    height: {ft: 0.667, raw: "8\"",    confidence: assumed}
+    recess: {ft: 0.083, raw: "1\"",    confidence: assumed}
+    corner_setback: {ft: 2.0, raw: "2'-0\"", confidence: assumed}
+    calculation: >
+      Under-floor area is 486.7 sf (21'-1" x 23'-1", our own measured
+      interior). A4.0 details 1 and 3 both specify a 6 mil vapor barrier, which
+      is a Class 1 vapor retarder, so A0.0's reduced rate applies: 1 sf per
+      1500 sf = 0.32 sf = 46.7 sq in of net free area. Four vents this size are
+      far above that, so THE CORNER RULE GOVERNS, NOT THE AREA — A0.0 requires
+      one opening within 3 ft of each corner, which sets the count at four.
+    source: "A0.0 FOUNDATION VENTING note"
+  lod2_change: >
+    Floor_slab was built into the PORCH collection, which finish_adu ships in
+    EVERY level — so the wrong-variant slab was in lod2, the placement
+    developer's model. Issue #69 claimed this fix was invisible to lod2 and was
+    wrong. Per that conversation the stemwall replaces it IN lod2, so the
+    siting model still has something at grade and now shows the building
+    standing on a 2'-0" wall rather than flat on a slab. Footing, crawl grade
+    and vents are lod0 only. THIS IS A HANDOFF CHANGE and was agreed, not
+    slipped through.
 
 # ---------------------------------------------------------------------------
 lod:

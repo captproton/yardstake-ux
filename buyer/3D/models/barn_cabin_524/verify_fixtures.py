@@ -439,6 +439,48 @@ def main():
         gate(0.0 < pp < 0.15, "appliance doors stand proud by a plausible amount",
              f"{ftin(pp)}")
 
+    # 15. Foundation venting against A0.0's own note, and the stemwall stack.
+    fd = spec.get("foundation")
+    if fd:
+        env, con = spec["envelope"], spec["construction"]
+        t = con["exterior_wall_thickness"]["ft"]
+        area = ((env["main_body_width"]["ft"] - 2 * t)
+                * (env["main_body_depth"]["ft"] - 2 * t))
+        v = fd["venting"]
+        net = v["count"] * v["width"]["ft"] * v["height"]["ft"]
+        # 6 mil poly is a Class 1 vapor retarder (A4.0 details 1 and 3), so
+        # A0.0's reduced 1-per-1500 rate applies.
+        need = area / 1500.0
+        gate(net >= need, "foundation vent area meets A0.0 with a vapor retarder",
+             f"{net:.2f} sf gross across {v['count']} vents vs {need:.2f} sf required")
+        gate(v["count"] >= 4, "one vent per corner, per A0.0",
+             f"{v['count']} vents; A0.0 wants one within 3 ft of each corner")
+        # A0.0: "one such ventilating opening shall be WITHIN 3 FEET of each
+        # corner". That locates the opening, not its far edge — a 1'-4" vent
+        # starting 2'-0" out is within 3 ft even though it ends at 3'-4". The
+        # first version of this gate tested setback + width and failed
+        # correct geometry.
+        gate(v["corner_setback"]["ft"] <= 3.0 + 0.01,
+             "each vent is within 3 ft of its corner",
+             f"near edge at {ftin(v['corner_setback']['ft'])}, limit 3'-0\"")
+
+        fb = fd["floor_buildup"]
+        z_found = -(fb["subfloor"]["ft"] + fb["joist"]["ft"] + fb["mud_sill"]["ft"])
+        z_foot = z_found - fd["stemwall"]["height"]["ft"]
+        z_grade = z_found - fd["grade"]["exposed_stemwall"]["ft"]
+        gate(z_foot < z_grade < z_found,
+             "grade sits between footing and top of foundation",
+             f"footing {ftin(z_foot)}, grade {ftin(z_grade)}, "
+             f"top of foundation {ftin(z_found)}")
+        vz1 = z_found - 0.333
+        gate(vz1 - v["height"]["ft"] >= z_grade - 0.01,
+             "vents sit at or above grade",
+             f"vent bottom {ftin(vz1 - v['height']['ft'])}, grade {ftin(z_grade)}")
+        gate(fd["footing"]["width"]["ft"] > fd["stemwall"]["thickness"]["ft"],
+             "footing is wider than the stemwall it carries",
+             f"{ftin(fd['footing']['width']['ft'])} under "
+             f"{ftin(fd['stemwall']['thickness']['ft'])}")
+
     print("=" * 96)
     if MISSING:
         print("spec entries the gates expected but could not find:")
