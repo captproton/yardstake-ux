@@ -1098,10 +1098,16 @@ fixtures:
         width:  {ft: 1.25, raw: "1'-3\"",     confidence: assumed}
         source: "video 3:09 — moulded shelf in the back wall, left of centre"
     basin:
-      wall:  {ft: 0.083, raw: "1\"",     confidence: assumed}
       floor: {ft: 0.17,  raw: "2\"",     confidence: assumed}
-      inset: {ft: 0.17,  raw: "2\"",     confidence: assumed,
-              note: "rolled rim: the basin is inset from the unit's outer face"}
+      inset:
+        ft: 0.17
+        raw: "2\""
+        confidence: assumed
+        note: >
+          Rolled rim: the basin is inset from the unit's outer face, and this
+          doubles as the apron thickness. A separate `wall` entry was here and
+          unused — a dead spec value is worse than a dead local, because it
+          implies a dimension is in play when nothing reads it.
     fittings:
       rod_h:    {ft: 6.0,   raw: "6'-0\"",   confidence: assumed}
       rod_r:    {ft: 0.042, raw: "1/2\"",    confidence: assumed}

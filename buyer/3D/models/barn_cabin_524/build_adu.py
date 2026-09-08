@@ -1192,7 +1192,7 @@ def build_casework(spec, geo, coll):
             tu = find_item(fx["bath"]["items"], "tub_shower")
             sr, bs, ft_ = tb["surround"], tb["basin"], tb["fittings"]
             st, sh = sr["thickness"]["ft"], sr["height"]["ft"]
-            bwall, bfloor, bins = bs["wall"]["ft"], bs["floor"]["ft"], bs["inset"]["ft"]
+            bfloor, bins = bs["floor"]["ft"], bs["inset"]["ft"]
             tx0, tx1 = xw + tu["x"], xw + tu["x"] + tu["w"]
             ty0, ty1 = ym(tu["y"] + tu["d"]), ym(tu["y"])      # ty1 = north wall
             rim = tu["h"]
