@@ -32,7 +32,15 @@ measured. Cutting it surfaced a foundation question recorded as
 using a thickness taken from A2.0's callout for the *porch*, while a crawl hole
 implies a void beneath. Recorded, not guessed at.
 
-**The toilet is built** ([#66](https://github.com/captproton/yardstake-ux/pull/66)), not bought. `loft()` took it unchanged.
+**Tier 3's build half is COMPLETE.** The toilet ([#66](https://github.com/captproton/yardstake-ux/pull/66)) and all three
+appliances ([#67](https://github.com/captproton/yardstake-ux/pull/67)) are built, not bought.
+
+**Nothing in this tier needed a third-party asset.** The buy list emptied
+itself: every item assumed unbuildable turned out to be a box, a swept tube or
+a lofted ellipse. `box()` and `multibox()` alone covered the fridge, range and
+dishwasher.
+
+The toilet is the clearest case of the pattern. `loft()` took it unchanged.
 
 Thin footage turned out not to be the binding constraint. Video 2:35–3:25 gives
 **one** clear frame of it (2:51), but that frame's only job was to establish the
@@ -40,10 +48,15 @@ Thin footage turned out not to be the binding constraint. Video 2:35–3:25 give
 heights are standard, and the primitive existed. **Once the type is known, the
 rest is stock.**
 
-**That is three "must be bought" assumptions wrong in a row** — the basin, the
-tub, the toilet. §2's build/buy split, once corrected from *by trade* to *by
-shape*, keeps returning the same answer. Apply the same scepticism to the
-appliances before treating them as settled.
+**Every "must be bought" assumption was wrong** — the basin, the tub, the
+toilet, and all three appliances. §2's build/buy split, once corrected from *by
+trade* to *by shape*, returned the same answer every time it was asked.
+
+The remaining lesson is about the *shape* of the error: **organic was being
+confused with unfamiliar.** A toilet looks organic and is a lofted ellipse. A
+refrigerator looks like an appliance and is a box with a door line. The test
+that settles it is cheap — try the primitives — and it was skipped for months
+in favour of an assumption that carried a licensing dependency.
 
 **Step 1 of 2 is done.** Fixture footprints are measured and in
 `spec.fixtures` — 9 footprints, 10/10 gates, verified against the sheet.

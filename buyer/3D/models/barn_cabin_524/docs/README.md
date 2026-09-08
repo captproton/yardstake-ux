@@ -20,13 +20,17 @@ Phases P1–P4 are complete and gated:
 | **Tier 3a** | Fixture footprints measured from A1.1 | **done**, 16/16 gates |
 | **Tier 3b** | Casework, both sinks, both taps, mirror | **done**, 29/29 fixture gates |
 | **Tier 3c** | Toilet | **done** ([#66](https://github.com/captproton/yardstake-ux/pull/66)) — built, not bought |
-| **Tier 3d** | Appliances | **not started** — the only work still needing third-party assets |
+| **Tier 3d** | Appliances | **done** ([#67](https://github.com/captproton/yardstake-ux/pull/67)) — built, not bought |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
-[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65) and [#66](https://github.com/captproton/yardstake-ux/pull/66). The
-placement developer is unblocked — `lod2` and their handoff are on `main`, and
-**byte-identical at 24.1 KB through all nine**. That is the constraint the
-whole ladder was designed around, and it has never moved.
+[#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66) and
+[#67](https://github.com/captproton/yardstake-ux/pull/67). The placement developer is unblocked — `lod2` and their handoff
+are on `main`, and **byte-identical at 24.1 KB through all ten**. That is the
+constraint the whole ladder was designed around, and it has never moved.
+
+**Tier 3 is complete.** Casework, both sinks, both taps, the mirror, the
+toilet, the crawl hole and all three appliances are built. `lod0` is **881 KB**
+against a 4 MB ceiling, at 40/40 fixture gates.
 
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
 rather than necessity. Tier 3's *build* half is done: cabinets, counters,
@@ -40,10 +44,14 @@ architecture, `tube()` for swept round stock (taps), and `loft()` +
 itself**: the toilet used it unchanged, and the buy list shrank from four items
 to three.
 
-**Three "this must be bought" assumptions have now been wrong in a row** — the
-basin, the tub, and the toilet. Each was buildable once someone checked. Apply
-that scepticism to the appliances before treating them as settled: a
-refrigerator is a box with a door line, and a dishwasher is a panel.
+**Every "this must be bought" assumption turned out to be wrong** — the basin,
+the tub, the toilet, and all three appliances. Each was buildable from the
+primitives already here, and **nothing in Tier 3 needed a third-party asset**.
+
+The licensing decision sat in the critical path for most of this work and never
+had to be made. The model contains **no third-party content at all**: textures
+are procedural, geometry is spec-driven. That is worth protecting — it is a
+property that is easy to lose and hard to recover.
 
 What remains of Tier 3 is the *buy* half — appliances and the toilet — plus two
 small omissions listed under [What remains](#what-remains).
@@ -222,8 +230,9 @@ measurements. In order of value:
 
 | Work | Notes |
 |---|---|
-| **T3:** appliances | Fridge, range, dishwasher — the whole remaining buy list. **Test each against the existing primitives first.** A fridge is a box with a door line; a range is a box with a cooktop; a dishwasher is a panel. The three fixtures assumed unbuildable so far were all buildable |
-| **T3:** licensing decision | Only if the appliances genuinely need bought assets after that test. Sourcing is researched: poly.pizza's CC0 filter (`?lic=1`) has a fridge from Quaternius, and Poly Haven has an Electric Stove — both CC0, both unbranded |
+| **Foundation:** read A2.0 | `spec.discrepancies.crawl-hole-implies-crawlspace-not-slab`. The only open question that could **invalidate** existing geometry rather than add to it. Worth its own issue |
+| **T3:** furniture | The last unbuilt item in the tier, and the only one with `status: not_yet_placed`. Architectural fill-in-the-space per §4 — schematic masses, no licensing exposure |
+| **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
 | **Foundation:** read A2.0 | `spec.discrepancies.crawl-hole-implies-crawlspace-not-slab`. A crawl hole exists because there is a void to reach, but the model slabs the whole footprint using a thickness taken from A2.0's callout for the **porch**. This is the only open question that could **invalidate** existing geometry rather than add to it. Worth its own issue |
 | **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 872 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
@@ -328,3 +337,9 @@ Keep these — they caught real errors:
     opposite normals. Every gate passed. When two lofted or capped solids meet
     at a shared plane, offset them by something physically meaningful — the
     seat ring, in that case — rather than leaving them coincident.
+
+    **Writing this rule did not stop it happening again.** The dishwasher's
+    handle recess reintroduced the same defect one PR later, and a check for
+    it returned CLEAR because it required the two faces to have equal *area*.
+    They do not need equal area: a small face lying on a large one overlaps
+    just as badly. Test coplanar + same normal, and nothing else.
