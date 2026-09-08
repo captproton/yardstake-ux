@@ -1046,6 +1046,8 @@ fixtures:
       foot_scale: {factor: 0.42, confidence: assumed}
       foot_setback: {ft: 0.15, raw: "1-3/4\"", confidence: assumed,
                      note: "Foot sits behind the bowl centre, as a real pedestal does."}
+      tank_overlap: {ft: 0.09, raw: "1-1/8\"", confidence: assumed,
+                     note: "How far the bowl's rear reaches back INSIDE the tank face, so the two read as one piece rather than meeting exactly."}
     riser:
       # The rear pedestal a two-piece bowl rises into, and the shelf the tank
       # actually bolts onto. Without it the tank FLOATS: the bowl is an
@@ -1060,6 +1062,16 @@ fixtures:
       confidence: derived
     lid:
       thickness: {ft: 0.042, raw: "1/2\"", confidence: assumed}
+      rise:
+        ft: 0.021
+        raw: "1/4\""
+        confidence: assumed
+        note: >
+          The lid sits this far PROUD of the rim, standing in for the seat ring
+          between them. Not cosmetic: starting the lid exactly at the rim put
+          its capped underside coplanar with the bowl's capped top — identical
+          centre, identical area, opposite normals — which z-fights in any
+          renderer.
     schematic_note: >
       Loft rings give a good silhouette and no rim detail, no bolt caps, no
       trapway moulding. That is the right trade at configurator distance and is

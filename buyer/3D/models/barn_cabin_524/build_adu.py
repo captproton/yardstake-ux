@@ -1118,8 +1118,11 @@ def build_casework(spec, geo, coll):
         # the same profile trick the basin uses. Footprint measured, type from
         # video 2:51, proportions stock.
         tf = fx.get("toilet_form")
-        wc = find_item(fx["bath"]["items"], "toilet")
-        if tf and wc:
+        if tf:
+            # find_item raises rather than returning None, so it must not run
+            # unless the form is actually present -- otherwise a spec without a
+            # toilet hard-exits instead of skipping.
+            wc = find_item(fx["bath"]["items"], "toilet")
             tk, bw_, ld = tf["tank"], tf["bowl"], tf["lid"]
             tx0, tx1 = xw + wc["x"], xw + wc["x"] + wc["w"]
             cy = ym(wc["y"] + wc["d"] / 2.0)
@@ -1133,7 +1136,7 @@ def build_casework(spec, geo, coll):
                 tk["bottom"]["ft"], wc["h"], coll)
 
             # Bowl: from just inside the tank face out to the measured front.
-            bx0 = tx0 + tk["depth"]["ft"] - 0.09
+            bx0 = tx0 + tk["depth"]["ft"] - bw_["tank_overlap"]["ft"]
             bcx, bax = (bx0 + tx1) / 2.0, (tx1 - bx0) / 2.0
             bay = bw_["half_width"]["ft"]
             sc_ = bw_["foot_scale"]["factor"]
@@ -1154,11 +1157,14 @@ def build_casework(spec, geo, coll):
                 cy + tk["width"]["ft"] / 2.0 - ri,
                 0.0, seat, coll)
 
-            # Lid, sitting on the rim.
-            lt = ld["thickness"]["ft"]
+            # Lid, sitting PROUD of the rim by the seat-ring thickness. Not
+            # cosmetic: starting it exactly at `seat` put its capped underside
+            # coplanar with the bowl's capped top, identical centre and area
+            # with opposite normals, which z-fights in any renderer.
+            lt, lr = ld["thickness"]["ft"], ld["rise"]["ft"]
             loft("Fix_toilet_lid", [
-                ellipse_ring(bcx, cy, bax, bay, seat),
-                ellipse_ring(bcx, cy, bax, bay, seat + lt),
+                ellipse_ring(bcx, cy, bax, bay, seat + lr),
+                ellipse_ring(bcx, cy, bax, bay, seat + lr + lt),
             ], coll, cap_first=True, cap_last=True)
 
         f = fit["faucet"]

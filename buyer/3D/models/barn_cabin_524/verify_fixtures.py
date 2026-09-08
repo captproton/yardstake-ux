@@ -373,7 +373,10 @@ def main():
                  + (f" — OVERLAP {ftin(overlap)}" if overlap > 0.01
                     else f", clear by {ftin(-overlap)}"))
 
-    # 13. The toilet's built form must stay inside its MEASURED footprint.
+    # 13. The toilet's ASSUMED proportions against its MEASURED footprint.
+    #     This script reads spec numbers and never opens Blender, so nothing
+    #     here inspects built geometry -- the earlier wording said "built form"
+    #     and would have misled anyone looking for a mesh check.
     #     The footprint is the only measured thing about this fixture; every
     #     proportion below it is a stock assumption, so the assumptions are
     #     what get checked against the measurement rather than the reverse.
