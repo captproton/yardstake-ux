@@ -1428,6 +1428,8 @@ materials:
     Floor_main: floor_oak
     Floor_bath: slate_bath
     Floor_loft: carpet_loft
+    Found_rim: siding
+    Found_pier: concrete
     Found_vent: appliance_dark
     Found_grade: soil
     Found_: concrete

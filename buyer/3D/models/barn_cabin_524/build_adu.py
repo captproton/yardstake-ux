@@ -610,6 +610,39 @@ def build(spec, cut_openings=True):
     ]
     multibox("Found_stemwall", stem, porchc)
 
+    # The floor build-up itself. Without this the building floats: the walls
+    # start at Z=0 and the stemwall tops out at the TOP OF FOUNDATION, leaving
+    # the subfloor + joists + mud sill as an empty band. Floor_slab used to
+    # hide that gap by being only slab_t deep and sitting right under the
+    # floor; replacing it with a real foundation exposed the omission.
+    #
+    # A perimeter band, not a solid deck: a solid one would put a face at Z=0
+    # coplanar with the underside of every Floor_* finish (rule 16). It reads
+    # as the rim joist, which is what is actually visible from outside. Porch
+    # collection, so lod2 sees the building meet its foundation too.
+    multibox("Found_rim", [
+        (0.0, W, SY, SY + t, z_found, 0.0),                  # south
+        (0.0, W, NY - t, NY, z_found, 0.0),                  # north
+        (0.0, t, SY + t, NY - t, z_found, 0.0),              # west
+        (W - t, W, SY + t, NY - t, z_found, 0.0),            # east
+    ], porchc)
+
+    # The porch slab was floating too. It is 4" of concrete whose underside sat
+    # at -4" with three feet of air below it — invisible while the building
+    # also floated, obvious the moment the building stopped.
+    #
+    # PIERS, NOT A CURB. A continuous curb would close the porch void and seal
+    # the two south vents into a dead pocket, which would quietly make the
+    # A0.0 venting gates meaningless. Piers carry the outer edge, the house
+    # carries the inner, and the crawlspace still breathes through the south
+    # wall. Sized and placed off the porch posts they sit under, so nothing new
+    # is invented: only the pier is new, and it is DEMONSTRATION, like grade.
+    piers = []
+    for px in (post / 2, setback, W - setback, W - post / 2):
+        piers.append((px - post / 2, px + post / 2,
+                      0.0, post, z_foot, -slab_t))
+    multibox("Found_pier", piers, porchc)
+
     # Footing, crawl grade and vents: lod0 detail only.
     fw = fd["footing"]["width"]["ft"]
     fdp = fd["footing"]["depth"]["ft"]
