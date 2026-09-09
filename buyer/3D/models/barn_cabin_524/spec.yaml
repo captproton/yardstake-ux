@@ -275,7 +275,28 @@ openings:
       - {id: D-FRONT, w: 3.0, h: 6.667, raw: "3'-0\" HL", type: half_lite_entry_door,
          offset: 9.40, centre: 11.00, sill: 0.0, head: 6.667,
          source: "A1.1 plan callout + measured",
-         note: "Centre lands on 11.00 ft = the exact centreline of the 22'-0\" wall, under the gable peak."}
+         note: "Centre lands on 11.00 ft = the exact centreline of the 22'-0\" wall, under the gable peak.",
+         construction: {
+           source: "A1.1 FRONT ELEVATION - OPTION B, read by tools/tier3/front_elev.py at 50.0 px/ft",
+           confirmed: "The leaf reads 36.00 in wide and its centre lands on x 11.000 ft — the callout and the plan position, from a sheet that fed neither.",
+           stile: {ft: 0.396, raw: "4 3/4\"", measured_as: "leaf 36.00 in less a 26.5 in lite grid, halved"},
+           top_rail: {ft: 0.380, raw: "4 9/16\"", note: "reads a shade under the stile; within line weight of the same 4 3/4\" stock"},
+           lock_rail: {ft: 0.592, raw: "7 1/8\""},
+           bottom_rail: {ft: 0.700, raw: "8 3/8\""},
+           lites: {cols: 2, rows: 3,
+                   note: "SIX lites, and the count is the point. A gate phrased as 'the door has glazing' passes on one sheet of glass, which is what a half-lite door is NOT."},
+           lite_grid: {w: 2.210, h: 2.978, bottom_z: 3.322, top_z: 6.300,
+                       raw: "2'-6 1/2\" x 2'-11 3/4\"",
+                       note: "Rows measure 49.5, 48.5 and 50.9 px — equal to within a pixel, so the grid divides evenly."},
+           muntin_width: {ft: 0.073, raw: "7/8\"", confidence: assumed,
+                          note: "NOT MEASURABLE. The sheet draws every muntin as a 1-2 px hairline, which is line weight and not a width. 7/8\" is the standard bar."},
+           panel: {w: 2.060, h: 2.030, bottom_z: 0.700, top_z: 2.730,
+                   raw: "2'-0 3/4\" x 2'-0 3/8\""},
+           panel_bevel: {ft: 0.185, raw: "2 1/4\"", confidence: measured_approx,
+                         note: "Reads 2.4 in across and 2.0 in up; the mitre is drawn, not dimensioned."},
+           panel_recess: {ft: 0.021, raw: "1/4\"", confidence: assumed,
+                          note: "DEPTH IS NOT IN AN ELEVATION. Matches fixtures.casework_detail.shaker.panel_recess, which is the same joinery move on the cabinet doors."},
+           arithmetic_check: "4.56 top rail + 35.7 lite grid + 7.1 lock rail + 24.4 panel + 8.4 bottom rail = 80.16 in, against a 6'-8\" leaf of 80 in."}}
       - {id: W-LIVING-S2, w: 3.0, h: 5.0, raw: "3'-0\" x 5'-0\" S.H.", type: single_hung,
          offset: 15.54, centre: 17.01, sill: 2.0, head: 7.0, source: "A1.1 plan callout + measured"}
     west_wall:
@@ -306,7 +327,40 @@ openings:
       - {id: W-LOFT-2, w: 4.0, h: 2.0, raw: "4'-0\" x 2'-0\" X/O", type: slider_XO,
          offset: 6.25, centre: 8.25, source: "A1.1 loft plan string; measured 3.98 ft wide"}
     spacing_verified: "1'-9\" + 4'-0\" + 6\" + 4'-0\" + 1'-9\" = 12'-0\" — measured 1.72 | 3.98 | 0.52 | 3.98 | 1.72"
-    sill_height: {value: null, note: "Not measured — the left elevation's datum could not be isolated from the siding courses. Derive from the 7'-0\" dormer wall in P2, or measure against the dormer plate."}
+    south_gable:
+      datum: "offsets from the WEST corner; heights above main FF"
+      source: >
+        A1.1 FRONT ELEVATION - OPTION B draws a single-hung centred in the
+        shingled gable, with head casing, side casing, and a sill with apron.
+        The tour confirms it built (6:17). The model had NOTHING there, which
+        is what made our front gable read as a blank shingle field.
+        Measured by tools/tier3/front_elev.py at 50.0 px/ft.
+      windows:
+        - id: W-GABLE-S
+          w: 2.0
+          h: 3.0
+          raw: "2'-0\" x 3'-0\" S.H."
+          type: single_hung
+          offset: 10.0
+          centre: 11.0
+          sill: 10.760
+          head: 13.760
+          source: "A1.1 front elevation, measured by tools/tier3/front_elev.py"
+          note: >
+            Reads 2.020 x 3.000 ft. The 0.020 is one pixel of line weight and
+            appears on every width this sheet gives up, including both
+            living-room windows whose callouts are already known — so the
+            callout is 2'-0" x 3'-0". The centre lands on x 11.010, the
+            building centreline, directly above D-FRONT.
+          sill_note: >
+            The sill is NOT a round number in any datum: 1'-10 7/8" above the
+            loft subfloor, 2'-9 1/8" above the main plate. It is recorded as
+            measured rather than rounded to the 2'-0" it nearly is, because
+            rounding it would be inventing a dimension the sheet does not give.
+          head_note: >
+            The head at 13.760 sits 0.57 ft ABOVE the loft knee-wall plate.
+            That is correct for a gable end, where the wall carries on up to
+            the ridge.
 
   interior_doors:
     - {id: D-POCKET-DBL, w: 5.0, raw: "5'-0\" P", type: double_pocket, between: [living_kitchen, bedroom], source: "A1.1 plan; video 4:00"}
@@ -455,6 +509,44 @@ trim:
     source: "Measured: a horizontal band at z 7.00-7.38 ft, sitting on the 7'-0\" head"
     confidence: measured
   baseboard_height: {ft: 0.292, raw: "3 1/2\"", confidence: assumed, note: "not drawn on any sheet"}
+  projecting_ridge_beam:
+    source: >
+      A1.1 draws a narrow capped rectangle at the apex of the FRONT gable, OVER
+      the shingle coursing — which is how something standing proud of the siding
+      is drawn, rather than an opening cut into it. The tour photo shows a
+      light-painted timber cantilevering forward out of the peak.
+    front_only: >
+      THE REAR ELEVATION SETTLES THE READING. That gable has no shingles, no
+      window and nothing at the apex — plain lap siding to the ridge. All three
+      of this issue's items are deliberate front-only decoration.
+    identification: >
+      This is RB01 from the A3.0 beam schedule, and the sheet says so twice
+      without being asked. The shaft measures 5.28" between its drawn edges
+      against RB01's 5-1/2", and 16.8" between the cap lines against RB01's
+      16-1/2". Neither figure fed the other and neither came from the schedule.
+    width:  {ft: 0.458, raw: "5 1/2\"",  source: "A3.0 beam schedule RB01; corroborated at 5.28\" on A1.1"}
+    depth:  {ft: 1.375, raw: "1'-4 1/2\"", source: "A3.0 beam schedule RB01; corroborated at 16.8\" on A1.1"}
+    top_z:    {ft: 16.410, source: "A1.1 front elevation, measured"}
+    bottom_z: {ft: 15.010, derived: "top_z - depth"}
+    cap:
+      thickness: {ft: 0.100, raw: "1 3/16\"", confidence: measured_approx,
+                  note: "A band above and below the beam; drawn, not dimensioned. Overall the item spans z 14.790 to 16.510."}
+    projection:
+      ft: 1.0
+      raw: "1'-0\""
+      confidence: assumed
+      note: >
+        NOT MEASURABLE. An elevation is orthographic, so a cantilever toward the
+        viewer has no length in it, and the plan set draws this member nowhere
+        else. The tour photo shows it standing well proud of the shingles. 1'-0"
+        is a plausible tail; it is an ASSUMPTION and must not inherit the
+        credibility of the width and depth above, both of which are corroborated.
+    centre_x: {ft: 11.0, source: "measured at col 696 = the building centreline, exactly"}
+    coherence_check: >
+      The beam's top at 16.410 sits just under the gable WALL peak at about
+      16.73 — the roof, sheathing and rafter depth in between. A ridge beam
+      emerging through the gable wall below the sheathing is exactly where this
+      lands, which is a third agreement neither measurement was aimed at.
   reveal_material: trim
   reveal_note: >
     Window and door reveals (jamb, head and sill faces inside each opening) take
@@ -1796,6 +1888,8 @@ materials:
     Porch_slab: concrete
     Ceil_: drywall
     Trim_: trim
+    # Exterior, and deliberately not Trim_ — see build_adu.
+    Ridge_beam: trim
     Ladder_: fir_ladder
     Rail_: fir_ladder
     # The hatch is a flush panel in the main floor, so it takes the same oak.

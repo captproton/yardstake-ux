@@ -486,7 +486,19 @@ def build(spec, cut_openings=True):
     gable_plain = [(0, plate), (0, main_under_wall), (ridge_x, ridge_under),
                    (W, main_under_wall), (W, plate)]
     mark_reveals(prism_xz("Gable_N", gable_dormered, NY - t, NY, shell), 1, +1)
-    mark_reveals(prism_xz("Gable_S_porch", gable_plain, 0, t, shell), 1, -1)
+    # The SOUTH gable carries a window that the model went eleven PRs without.
+    # It is cut here rather than with the main-floor openings because it is not
+    # in a wall: `Gable_S_porch` is a prism, and the wall cutters above are keyed
+    # by wall name. Same machinery, different host.
+    gable_s = prism_xz("Gable_S_porch", gable_plain, 0, t, shell)
+    if cut_openings:
+        pad = 0.05
+        gcuts = [box(f"cut_{o['id']}", o["offset"], o["offset"] + o["w"],
+                     -pad, t + pad, o["sill"], o["sill"] + o["h"], shell)
+                 for o in spec["openings"]["loft"]["south_gable"]["windows"]]
+        if gcuts:
+            difference(gable_s, gcuts)
+    mark_reveals(gable_s, 1, -1)
 
     # ---- loft floor and dormer face walls ---------------------------------
     box("Loft_floor", t, W - t, yn(dorm_len), NY - t, plate, loft_sf, shell)
@@ -547,6 +559,29 @@ def build(spec, cut_openings=True):
         # Runs out to the rear rake: past the dormers the roof surface IS the
         # 4:12 plane, so the rear overhang follows it, not the 9:12 main plane.
         prism_xz(f"Roof_dormer_{side}", prof, yn(dorm_len), NY + rake, roofc)
+
+    # ---- the projecting ridge beam at the front apex -----------------------
+    # RB01's tail, cantilevering forward out of the peak. It goes in the ROOF
+    # collection rather than the shell so it travels with the roof through every
+    # LOD -- it is part of the silhouette a homeowner sees in views.front(), and
+    # the front gable is the face they look at first.
+    #
+    # NOT named Trim_, even though the tour shows it painted the trim colour.
+    # `Trim_` means Tier 1 INTERIOR finish in this project, and verify_tier1
+    # gates that every such object lives in the Finish collection -- which is
+    # lod0 only. Borrowing the prefix for an exterior member broke that gate on
+    # the first run. It gets its own assignment rule instead.
+    rb = spec["trim"]["projecting_ridge_beam"]
+    rb_hw = rb["width"]["ft"] / 2
+    rb_cx = rb["centre_x"]["ft"]
+    rb_z0, rb_z1 = rb["bottom_z"]["ft"], rb["top_z"]["ft"]
+    rb_cap = rb["cap"]["thickness"]["ft"]
+    rb_out = -rb["projection"]["ft"]           # forward is -Y
+    multibox("Ridge_beam", [
+        (rb_cx - rb_hw, rb_cx + rb_hw, rb_out, t, rb_z0, rb_z1),
+        (rb_cx - rb_hw, rb_cx + rb_hw, rb_out, t, rb_z1, rb_z1 + rb_cap),
+        (rb_cx - rb_hw, rb_cx + rb_hw, rb_out, t, rb_z0 - rb_cap, rb_z0),
+    ], roofc)
 
     # ---- eave / raised-heel band on the side walls -------------------------
     # Between the 8'-0" top of plate and the main roof underside. This is the 9"
@@ -747,13 +782,81 @@ def build(spec, cut_openings=True):
     def leaf(name, x0, x1, y0, y1, z0, z1):
         box(name, x0, x1, y0, y1, z0, z1, finish)
 
+    def half_lite(name, o, y0, y1):
+        """The entry door, built the way the CABINET doors are already built.
+
+        There are two functions called `leaf` in this file. The other one, in
+        the casework, returns rails, stiles and a recessed panel, and its
+        docstring already made the argument that applies here word for word:
+        "A door modelled as a flat slab is geometrically correct and visually
+        nothing." It was never applied to the front door, which stayed a box.
+
+        Note what is NOT here: glass. The lite openings are left EMPTY and the
+        six panes are set by finish_adu.add_glazing, because glass is a finish
+        and the frame is geometry. Building the panes here would put them in
+        lod2, where there is no glazing at all.
+        """
+        cn = o["construction"]
+        st = cn["stile"]["ft"]
+        br, lr = cn["bottom_rail"]["ft"], cn["lock_rail"]["ft"]
+        mw = cn["muntin_width"]["ft"]
+        rec = cn["panel_recess"]["ft"]
+        x0, x1 = o["offset"], o["offset"] + o["w"]
+        z0, z1 = o["sill"], o["sill"] + o["h"]
+
+        # The LITE GRID is placed from its own measured levels, and everything
+        # that touches it is then derived so the parts cannot leave a gap. The
+        # panel height and the top rail come out as remainders rather than being
+        # read a second time -- spec records both, and a part built from two
+        # independent measurements meets its neighbour only by luck.
+        # spec's `top_rail` and `panel` are the CHECK on this arithmetic, in
+        # verify_openings.py, not a second source for it.
+        gx0, gx1 = x0 + st, x1 - st
+        gz0 = z0 + cn["lite_grid"]["bottom_z"]
+        gz1 = z0 + cn["lite_grid"]["top_z"]
+        parts = [
+            (x0, x1, y0, y1, z0, z0 + br),                  # bottom rail
+            (x0, x1, y0, y1, gz1, z1),                      # top rail
+            (x0, x0 + st, y0, y1, z0 + br, gz1),            # left stile
+            (x1 - st, x1, y0, y1, z0 + br, gz1),            # right stile
+            (gx0, gx1, y0, y1, gz0 - lr, gz0),              # lock rail
+            # The recessed panel sits back from the OUTSIDE face, which is -Y.
+            (gx0, gx1, y0 + rec, y1, z0 + br, gz0 - lr),
+        ]
+
+        # Muntin bars: one fewer than the lite count, in each direction.
+        cols, rows = cn["lites"]["cols"], cn["lites"]["rows"]
+        for i in range(1, cols):
+            c = gx0 + (gx1 - gx0) * i / cols
+            parts.append((c - mw / 2, c + mw / 2, y0, y1, gz0, gz1))
+        for j in range(1, rows):
+            c = gz0 + (gz1 - gz0) * j / rows
+            parts.append((gx0, gx1, y0, y1, c - mw / 2, c + mw / 2))
+        multibox(name, parts, finish)
+
     # exterior entry door, in the south wall
     for o in spec["openings"]["main_floor"]["south_wall"]["openings"]:
         if not o["type"].endswith("door"):
             continue
         c = SY + t / 2
-        leaf(f"Door_{o['id']}", o["offset"], o["offset"] + o["w"],
-             c - lt / 2, c + lt / 2, o["sill"], o["sill"] + o["h"])
+        # DISPATCH ON THE DECLARED TYPE, not on which keys happen to be present.
+        # `type: half_lite_entry_door` has been in the spec the whole time; the
+        # defect this PR fixes was the build IGNORING it. Branching on whether a
+        # `construction` block exists would repeat that in a quieter form: the
+        # geometry would then follow the metadata's shape, and the next opening
+        # to gain a construction or provenance block would silently change what
+        # gets built. A type that says half-lite and no construction to build it
+        # from is a SPEC ERROR and says so, rather than falling back to a slab.
+        if o["type"].startswith("half_lite"):
+            if "construction" not in o:
+                raise SystemExit(
+                    f"{o['id']} is typed {o['type']} but carries no "
+                    "`construction` block. A half-lite door cannot be built "
+                    "from a type alone -- add the block or change the type.")
+            half_lite(f"Door_{o['id']}", o, c - lt / 2, c + lt / 2)
+        else:
+            leaf(f"Door_{o['id']}", o["offset"], o["offset"] + o["w"],
+                 c - lt / 2, c + lt / 2, o["sill"], o["sill"] + o["h"])
 
     # interior leaves, one per door in the measured layout
     for d in lay["doors"]:

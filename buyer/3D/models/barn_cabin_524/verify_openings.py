@@ -80,6 +80,9 @@ def main():
     dorm_h = dorm_under_wall - lv["loft_top_of_subfloor"]["ft"]
     loft_sf = lv["loft_top_of_subfloor"]["ft"]
     dsill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
+    mp_v = rt / math.cos(math.atan(mp))
+    main_under_wall = (ridge_top - mp * (W / 2.0)) - mp_v
+    ridge_under = ridge_top - mp_v
     op = spec["openings"]["main_floor"]
 
     # wall -> (gross volume, [openings], corner builder)
@@ -100,6 +103,17 @@ def main():
         "Dormer_face_E": (t * dorm_len * dorm_h, spec["openings"]["loft"]["windows"],
                           lambda o: [(W, yn(o["offset"] + dy * o["w"]), dsill + dz * o["h"])
                                      for dy in (0, 1) for dz in (0, 1)], t),
+        # The south gable, which is a PRISM and not a wall -- so its gross
+        # volume is the profile area times the thickness, not W x t x plate.
+        # These three levels are re-derived here rather than imported for the
+        # same reason `dorm_under_wall` above is: a gate that reads the number
+        # the build used cannot catch the build using the wrong number.
+        "Gable_S_porch": (
+            (W * (main_under_wall - plate)
+             + W * (ridge_under - main_under_wall) / 2.0) * t,
+            spec["openings"]["loft"]["south_gable"]["windows"],
+            lambda o: [(o["offset"] + dx * o["w"], 0.0, o["sill"] + dz * o["h"])
+                       for dx in (0, 1) for dz in (0, 1)], t),
     }
 
     # interior partitions: same volume test, driven by the measured layout

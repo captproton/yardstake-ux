@@ -29,6 +29,7 @@ Phases P1–P4 are complete and gated:
 | **Tooling** | Camera presets + ADU sidebar panel, framing gated | **done** ([#71](https://github.com/captproton/yardstake-ux/pull/71)) — tooling only, cannot reach a `.glb` |
 | **Tooling** | `views.py` honours `presence`; manifest treated as untrusted | **done** ([#81](https://github.com/captproton/yardstake-ux/pull/81)) — our own panel put the desk through the bed; seven review findings across three passes |
 | **Tooling** | `inside_mesh` deduped into `verify_lib.py`, with a known-answer gate | **done** ([#82](https://github.com/captproton/yardstake-ux/pull/82)) — one bug that had to be fixed twice, and two dead leftovers the extraction itself created |
+| **Front elevation** | Gable window, half-lite entry door, projecting ridge beam | **in review** ([#83](https://github.com/captproton/yardstake-ux/pull/83)) — the sheet's third calibration attempt, and a door that had glazing all along |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -362,12 +363,19 @@ on its third review:
    because `__import__("mathutils").Vector` contains the string — it took
    parsing the file to see that no bare name was referenced. When a symbol
    looks alive, check what is actually referencing it.
-2. **[#80](https://github.com/captproton/yardstake-ux/issues/80) — the front
-   elevation**: gable window, front-door glazing, ridge beam. Starts with the
-   measurement that has already been got wrong twice, so take it from the
-   sheet, not from the model. Carries the `Door_`/`Glazing_` ternary fix, which
-   belongs there because that conditional-on-type is what shipped the defect.
-
+2. ~~**[#80](https://github.com/captproton/yardstake-ux/issues/80) — the front
+   elevation.**~~ In review. The measurement that had failed twice landed on
+   50.000 px/ft at the third attempt, and the reason it kept failing is worth
+   more than the number: every opening on that sheet is drawn as a NEST of
+   symmetric rectangles, and WHICH one is the size callout depends on the
+   type. A window's callout is the second level in; a door's is the third,
+   because a 3'-0" leaf sits inside a 3'-3" frame inside the casing. Reading
+   the door by the window rule gives 39", and one level further out gives 46"
+   — which is 44.3 px/ft, the exact figure the earlier attempt published. The
+   two readers are now deliberately opposite and say so.
+   The door turned out not to be missing a feature: it had a working glazing
+   slot that a single ternary blanked by renaming the pane. And the front
+   gable, the face `views.front()` frames, had no window in it for eleven PRs.
 **Deferred, with the reason recorded so it stays a decision rather than an
 omission:** the `main()` split in the verify scripts and a `Box` value object.
 Both are genuine improvements to code that will be read for a long time, but
