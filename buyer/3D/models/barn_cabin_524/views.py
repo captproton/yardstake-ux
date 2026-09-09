@@ -87,23 +87,38 @@ MANIFEST = "export/variants.json"
 _layout = {}          # set id -> chosen option id, for this session
 
 
+_warned = set()
+
+
+def _warn_once(key, message):
+    if key not in _warned:
+        _warned.add(key)
+        print(f"[view] {message}")
+
+
 def _manifest():
     """The exported manifest, or None if there is not one yet.
 
     views.py has to keep working on a .blend alone: a fresh build_adu.py run
     has no export. A missing manifest degrades to the old behaviour rather
-    than raising, and says so once.
+    than raising, and says so ONCE -- _show() calls this on every mode change,
+    so a per-call message would bury the console in a loop the user cannot
+    see the start of.
     """
     blend = bpy.data.filepath
     if not blend:
+        _warn_once("unsaved", "unsaved .blend; furniture arrangements not applied")
         return None
     path = Path(blend).parent / MANIFEST
     if not path.exists():
+        _warn_once("missing", f"no {MANIFEST}; run finish_adu.py to get "
+                              f"furniture arrangements")
         return None
     try:
         return json.loads(path.read_text())
     except (OSError, ValueError) as exc:              # noqa: BLE001
-        print(f"[view] manifest unreadable ({exc}); arrangements not applied")
+        _warn_once("unreadable",
+                   f"{MANIFEST} unreadable ({exc}); arrangements not applied")
         return None
 
 
@@ -138,10 +153,21 @@ def _apply_layouts():
 
 
 def layout(set_id, option_id):
-    """Choose one furniture arrangement, exactly as the runtime would."""
-    ids = [st["id"] for st in _presence()]
-    if set_id not in ids:
-        raise ValueError(f"no such layout set: {set_id!r} (have {ids})")
+    """Choose one furniture arrangement, exactly as the runtime would.
+
+    BOTH ids are validated. An unknown option used to be accepted here and
+    then silently replaced by the default inside _apply_layouts(), while this
+    function cheerfully printed the option that had NOT been applied -- a
+    wrong answer reported as a right one.
+    """
+    st = next((x for x in _presence() if x["id"] == set_id), None)
+    if st is None:
+        have = [x["id"] for x in _presence()]
+        raise ValueError(f"no such layout set: {set_id!r} (have {have})")
+    if option_id not in [o["id"] for o in st["options"]]:
+        have = [o["id"] for o in st["options"]]
+        raise ValueError(
+            f"no such option in {set_id!r}: {option_id!r} (have {have})")
     _layout[set_id] = option_id
     _apply_layouts()
     print(f"[view] layout {set_id} -> {option_id}")

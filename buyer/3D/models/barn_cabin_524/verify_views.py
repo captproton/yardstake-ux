@@ -204,17 +204,23 @@ def main():
             views.VISIBILITY[mode]()
             visible = {n for n in controlled
                        if (o := bpy.data.objects.get(n)) and not o.hide_get()}
+            # MATCH ON THE EXACT SET, not on containment. The first version
+            # asked which options were a SUBSET of what is visible, and had to
+            # skip empty options because the empty set is a subset of
+            # everything. That made "Unfurnished" untestable and, worse, made
+            # the gate FAIL on correct behaviour the moment anyone chose it --
+            # no option would match and the count would be zero.
             per_set = []
             for st in sets:
+                owned = {n for o in st["options"] for n in o["show"]}
+                shown = owned & visible
                 on = [o["id"] for o in st["options"]
-                      if o["show"] and set(o["show"]) <= visible]
-                extra = [n for o in st["options"] for n in o["show"]
-                         if n in visible and o["id"] not in on]
-                per_set.append((st["id"], on, extra))
-            bad = [f"{sid}:{on}" for sid, on, extra in per_set
-                   if len(on) != 1 or extra]
+                      if set(o["show"]) == shown]
+                per_set.append((st["id"], on, sorted(shown)))
+            bad = [f"{sid}:{on or 'no option matches ' + str(shown)}"
+                   for sid, on, shown in per_set if len(on) != 1]
             gate(f"{mode}(): exactly one arrangement visible per set", not bad,
-                 ", ".join(f"{sid}={on[0] if on else None}"
+                 ", ".join(f"{sid}={on[0] if len(on) == 1 else '?'}"
                            for sid, on, _ in per_set)
                  + (f" — WRONG {bad}" if bad else ""))
 
@@ -237,6 +243,17 @@ def main():
         gate("a visibility mode preserves the chosen arrangement",
              set(alt["show"]) <= after,
              f"{alt['id']} still visible after full()")
+
+        # The empty option is the one the first gate could not see. Choose it
+        # explicitly and require the set to go dark.
+        empty = next((o for o in st["options"] if not o["show"]), None)
+        if empty is not None:
+            views.layout(st["id"], empty["id"])
+            dark = {n for o in st["options"] for n in o["show"]
+                    if (ob := bpy.data.objects.get(n)) and not ob.hide_get()}
+            gate("an empty arrangement hides everything its set controls",
+                 not dark, f"{st['id']} -> {empty['id']}"
+                 + (f" — STILL VISIBLE {sorted(dark)[:3]}" if dark else ""))
 
         views.layout(st["id"], next(o["id"] for o in st["options"] if o["default"]))
 
