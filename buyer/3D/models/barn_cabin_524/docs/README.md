@@ -28,6 +28,7 @@ Phases P1–P4 are complete and gated:
 | **Configurator** | Presence-swap variants — bedroom / office / unfurnished | **done** ([#78](https://github.com/captproton/yardstake-ux/pull/78)) — a sibling of `sets`, purely additive |
 | **Tooling** | Camera presets + ADU sidebar panel, framing gated | **done** ([#71](https://github.com/captproton/yardstake-ux/pull/71)) — tooling only, cannot reach a `.glb` |
 | **Tooling** | `views.py` honours `presence`; manifest treated as untrusted | **done** ([#81](https://github.com/captproton/yardstake-ux/pull/81)) — our own panel put the desk through the bed; seven review findings across three passes |
+| **Tooling** | `inside_mesh` deduped into `verify_lib.py`, with a known-answer gate | **done** ([#82](https://github.com/captproton/yardstake-ux/pull/82)) — one bug that had to be fixed twice, and two dead leftovers the extraction itself created |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -350,10 +351,17 @@ and unbuilt. It is safe to write now only because `verify_geometry.py` and
 and were deliberately held out of it rather than widening a PR that was already
 on its third review:
 
-1. **Dedupe `inside_mesh`.** Two copies, one bug, two fixes — the only case
-   this session where the *structure* manufactured a second defect rather than
-   merely failing to prevent one. Its own small PR, now unblocked because
-   `verify_views.py` is free.
+1. ~~**Dedupe `inside_mesh`.**~~ Shipped in
+   [#82](https://github.com/captproton/yardstake-ux/pull/82). Two copies, one
+   bug, two fixes — the only case this session where the *structure*
+   manufactured a second defect rather than merely failing to prevent one. The
+   extraction then manufactured two more of its own, both dead: an import the
+   move had orphaned, and a parameter the table never read. Neither was caught
+   by running anything; both were caught by reading, once by a peer session and
+   once by the reviewer. **`grep` reported the orphaned import as used**,
+   because `__import__("mathutils").Vector` contains the string — it took
+   parsing the file to see that no bare name was referenced. When a symbol
+   looks alive, check what is actually referencing it.
 2. **[#80](https://github.com/captproton/yardstake-ux/issues/80) — the front
    elevation**: gable window, front-door glazing, ridge beam. Starts with the
    measurement that has already been got wrong twice, so take it from the
