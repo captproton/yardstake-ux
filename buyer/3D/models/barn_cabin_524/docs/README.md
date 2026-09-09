@@ -30,6 +30,7 @@ Phases P1–P4 are complete and gated:
 | **Tooling** | `views.py` honours `presence`; manifest treated as untrusted | **done** ([#81](https://github.com/captproton/yardstake-ux/pull/81)) — our own panel put the desk through the bed; seven review findings across three passes |
 | **Tooling** | `inside_mesh` deduped into `verify_lib.py`, with a known-answer gate | **done** ([#82](https://github.com/captproton/yardstake-ux/pull/82)) — one bug that had to be fixed twice, and two dead leftovers the extraction itself created |
 | **Front elevation** | Gable window, half-lite entry door, projecting ridge beam | **done** ([#83](https://github.com/captproton/yardstake-ux/pull/83)) — the sheet's third calibration attempt, and a door that had glazing all along |
+| **Gates** | UV gate says which meshes may skip UVs, and why | **done** ([#86](https://github.com/captproton/yardstake-ux/pull/86)) — the obvious fix would have silently dropped 74 meshes out of the gate |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -387,13 +388,43 @@ on its third review:
 found while building [#83](https://github.com/captproton/yardstake-ux/pull/83)
 and deliberately left out of it:
 
-- **`verify_tier2`'s UV gate has been failing on `main`.** Sixteen glazing
-  meshes carry no UV layer. This was NOT introduced by #83: it was checked by
-  stashing the branch and rebuilding, where it failed the same way on ten. It
-  matters because glass is the one material with no texture, so the gate has
-  been red for something that may not need fixing at all — and a suite that is
-  always red is a suite nobody reads. Decide whether glazing is exempt or
-  whether it needs UVs, and make the gate say which.
+- ~~**`verify_tier2`'s UV gate has been failing on `main`.**~~ Fixed in
+  [#86](https://github.com/captproton/yardstake-ux/pull/86), and **the entry
+  above was wrong in three ways** — worth recording, because each error came
+  from describing a gate rather than running it.
+  It never failed in its **documented invocation**: `verify_tier2.py` says to
+  run against `barn_cabin_524.blend`, and that passes on 105 meshes. It failed
+  only against a scene carrying glazing, which `finish_adu.py` adds. So the
+  gate was not chronically red — it was **pointed at a file holding none of the
+  objects it trips on**, which is a coverage hole and a worse problem. It was
+  **11 meshes, not sixteen**; that figure reproduces in neither file. And
+  nothing was hiding behind the red: no mesh lacked UVs while carrying a
+  texture.
+  **The obvious fix was a trap, and this is the part worth keeping.** "Exempt
+  anything untextured" is the natural repair. Eleven meshes lack UVs — and
+  **74 meshes carry UVs while using untextured materials**, so that rule drops
+  all 74 out of the gate. A visible false alarm traded for invisible lost
+  coverage. Only checking the INVERSE case showed it.
+  One gate is now three, and the exemption is declared in
+  `spec.texturing.uv_exempt_materials` rather than inferred: every
+  image-textured mesh must carry UVs; a mesh may skip them only if every
+  material on it is listed; and the list must name real `materials.library`
+  keys. Naming the **material** rather than the `Glazing_` prefix is the point
+  — the exemption ends the day glass gains a texture.
+- **`verify_fixtures.py` cannot run in Blender at all.** Line 21 does a bare
+  `import yaml`, and Blender's bundled Python has no PyYAML —
+  `build_adu.load_spec()` exists precisely to work around that, and this file
+  bypasses it. So a **49-gate suite is currently unrunnable**, and has been
+  reported as passing. Found while running the whole suite for
+  [#86](https://github.com/captproton/yardstake-ux/pull/86) rather than the one
+  file that PR touched. The fix is to import `load_spec` like every other gate
+  file does. **Next in the queue.**
+- **`verify_front_elevation` only passes against a scene with glazing.** On
+  `barn_cabin_524.blend` it reports `Glazing_D-FRONT_lites missing`; confirmed
+  pre-existing by stashing. Same shape as the UV gate above — a gate aimed at a
+  file that cannot contain what it tests. Decide which scene each verify script
+  targets and say so in its docstring, rather than leaving it to whoever runs
+  it next.
 - **Exterior casing is modelled on no window at all, and on no door either.**
   A1.1 draws head casing, side casing and a sill with apron around the gable
   window, around the others, and around `D-FRONT`. `Trim_` today is INTERIOR
@@ -646,3 +677,30 @@ Keep these — they caught real errors:
     *A false claim in a comment is worse than no comment.* "Validated, not
     assumed" is what the next reader trusts instead of re-checking. If the
     docstring makes a promise, the gate must be able to break it.
+27. **When you relax a gate, measure what the relaxation excuses — not what it
+    was going to fix.** `verify_tier2`'s UV gate was red on eleven glazing
+    meshes, and the natural repair was *exempt anything untextured*. Correct
+    for those eleven, and it would have dropped **74 more** out of the gate,
+    because 74 meshes carry UVs while using untextured materials. A visible
+    false alarm traded for invisible lost coverage — strictly the worse of the
+    two, since nobody comes back to check a gate that went green. **Count the
+    inverse set before you widen a predicate**; the number that matters is not
+    how many failures the change silences but how many passes it stops
+    testing. Then declare the exemption where a reader will find it
+    ([#86](https://github.com/captproton/yardstake-ux/pull/86) puts it in
+    `spec.texturing`) and tie it to the MATERIAL rather than the name prefix,
+    so the exemption expires the day its premise does.
+28. **A gate aimed at a scene that cannot contain its subject passes
+    vacuously.** Two of these on `main` at once. `verify_tier2`'s UV gate was
+    described in this plan as "failing on `main`", but in its documented
+    invocation — against `barn_cabin_524.blend` — it PASSED, because glazing is
+    added later by `finish_adu.py`; it only failed when pointed at a different
+    file. `verify_front_elevation` has the mirror problem: it can only pass
+    against a scene *with* glazing, and reports `Glazing_D-FRONT_lites missing`
+    on the base `.blend`. Neither is a wrong predicate; both are right
+    questions asked of the wrong file. **Every verify script must name the
+    scene it targets in its docstring, and a gate whose subject is absent
+    should say ABSENT rather than pass or fail** — an empty subject is the same
+    trap as the empty set in rule 24. Related: three of the numbers in this
+    plan's own backlog were wrong because the entry was written from reading
+    the gate instead of running it.
