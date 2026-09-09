@@ -18,7 +18,7 @@ then one of these VISIBILITY modes:
 or one of these CAMERA presets, which move the view instead:
 
     kitchen()     standing in the living area, looking down the kitchen run
-    bathroom()    just inside the bath door, looking at vanity, WC and tub
+    bathroom()    beside the tub, looking back down the west wall
     front()       outside the south elevation, whole building in frame
 
 Nothing here changes geometry or materials -- only visibility, the viewport
@@ -167,14 +167,20 @@ def _bounds(objects):
     return lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]
 
 
-def _place_camera(eye, target, lens):
-    """A scene camera, so a preset can be rendered as well as looked through."""
+def _place_camera(eye, target, lens, near):
+    """A scene camera, so a preset can be rendered as well as looked through.
+
+    `near` is the caller's, not a constant. It used to be hardcoded at 0.01
+    here while `_look` applied the caller's value to the viewport, so a preset
+    rendered through this camera did not match what the viewport showed --
+    front() asks for 0.1 and was silently getting 0.01.
+    """
     cam = bpy.data.objects.get("View_preset")
     if cam is None:
         cam = bpy.data.objects.new("View_preset", bpy.data.cameras.new("View_preset"))
         bpy.context.scene.collection.objects.link(cam)
     cam.data.lens = lens
-    cam.data.clip_start = 0.01
+    cam.data.clip_start = near
     cam.location = eye
     cam.rotation_euler = (target - eye).to_track_quat("-Z", "Y").to_euler()
     bpy.context.scene.camera = cam
@@ -189,7 +195,7 @@ def _place_camera(eye, target, lens):
 def _look(eye, target, lens=35.0, near=0.01):
     """Point every 3D viewport at `target` from `eye`, and set a scene camera."""
     eye, target = Vector(eye), Vector(target)
-    _place_camera(eye, target, lens)
+    _place_camera(eye, target, lens, near)
     offset = eye - target
     for win in bpy.context.window_manager.windows:
         for area in win.screen.areas:
@@ -246,7 +252,11 @@ def kitchen():
 
 
 def bathroom():
-    """Just inside the bath door, looking at vanity, WC and tub in one frame."""
+    """Beside the tub, looking back down the west wall at vanity and WC.
+
+    Not "just inside the door", which is what this said while the code did
+    something else. The reasoning for the actual position is below.
+    """
     x0, x1, y0, y1, _, _ = _bounds([bpy.data.objects[BATH_FLOOR]])
     w, d = x1 - x0, y1 - y0
     # LOOK BACK FROM BESIDE THE TUB, SOUTH-WEST TOWARD THE VANITY.
