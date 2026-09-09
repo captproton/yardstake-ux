@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 import bpy
+from mathutils import Vector
 from bpy_extras.object_utils import world_to_camera_view
 
 HERE = Path(__file__).resolve().parent
@@ -47,16 +48,25 @@ def inside(p, box, pad=0.0):
 
 
 def inside_mesh(ob, p):
-    """Is `p` actually within this object's surface?
+    """Is p within ob's surface?
 
-    NOT a bounding-box test. `Appl_body` is one merged mesh holding the fridge,
-    the range, the dishwasher and the stacked washer/dryer, so its bbox is an
-    8 x 21 ft slab covering most of the building; a bbox test reported the
-    bathroom camera as being "inside the appliances" when the nearest appliance
-    was in another room. Asking the nearest SURFACE which side we are on gets
-    the right answer for a merged mesh, because the nearest surface is the one
-    actually next to us.
+    TWO TESTS, AND BOTH ARE NEEDED.
+
+    The bounding box alone is useless against this model's merged meshes --
+    Appl_body's box covers most of the building. But the nearest-surface test
+    alone is ALSO wrong: closest_point_on_mesh gives a meaningless answer for a
+    point far outside an open or lofted shell, and the first version of this
+    gate duly reported a sofa in the living room as being inside a toilet eight
+    feet away in the bathroom.
+
+    Inside implies inside the bounding box, so the box is a sound prefilter,
+    and the surface test then does the real work.
     """
+    cs = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
+    if not (min(c.x for c in cs) <= p.x <= max(c.x for c in cs)
+            and min(c.y for c in cs) <= p.y <= max(c.y for c in cs)
+            and min(c.z for c in cs) <= p.z <= max(c.z for c in cs)):
+        return False
     local = ob.matrix_world.inverted() @ p
     ok, loc, nor, _ = ob.closest_point_on_mesh(local)
     return bool(ok) and (local - loc).dot(nor) < 0

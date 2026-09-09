@@ -115,6 +115,19 @@ def make_materials(spec, textured=True):
     return out
 
 
+def default_furniture(spec, coll):
+    """Only the arrangements flagged `default`, one per room.
+
+    All of them are BUILT -- the presence-swap work can only toggle what
+    already exists -- but two of them share the bedroom floor and are
+    alternatives, so exporting both puts a desk through a bed. Until switching
+    exists there is nothing to do the choosing, and this flag is the choice.
+    """
+    fx = spec["fixtures"]["furniture"]["arrangements"]
+    wanted = tuple(f"Furn_{a['id']}_" for a in fx if a.get("default"))
+    return [o for o in coll.objects if o.name.startswith(wanted)]
+
+
 def assign(spec, mats):
     """Apply spec.materials.assignment by object-name prefix. First match wins."""
     rules = list(spec["materials"]["assignment"].items())
@@ -355,6 +368,19 @@ def save_viewable_blend(spec, dest):
     mats = make_materials(spec, textured=True)
     add_glazing(spec, geo, collection("Glazing"))
     assign(spec, mats)
+
+    # Non-default arrangements are BUILT but hidden, so this file shows what
+    # lod0 actually ships. Two arrangements share the bedroom floor and are
+    # alternatives; without this, opening the .blend shows a desk growing
+    # through a bed and looks like a placement bug. They stay in the file so
+    # the presence-swap work has something to switch, and so views.py can
+    # reveal them.
+    keep = {o.name for o in default_furniture(spec, colls["furniture"])}
+    for ob in colls["furniture"].objects:
+        hidden = ob.name not in keep
+        ob.hide_set(hidden)
+        ob.hide_render = hidden
+
     bpy.ops.file.make_paths_relative()
     bpy.ops.wm.save_as_mainfile(filepath=str(dest))
     return dest
@@ -387,6 +413,7 @@ def main():
             keep += list(colls["finish"].objects)   # Tier 1: ceilings, floors, doors
             keep += list(colls["casework"].objects)  # Tier 3: cabinets, counter
             keep += list(colls["foundation"].objects)  # footing, crawl grade, vents
+            keep += default_furniture(spec, colls["furniture"])
             keep += list(colls["lighting"].objects)  # Tier 3: exterior sconce
         if lod != "lod2":
             keep += [o for o in glaz.objects]
