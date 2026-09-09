@@ -22,14 +22,15 @@ Phases P1–P4 are complete and gated:
 | **Tier 3c** | Toilet | **done** ([#66](https://github.com/captproton/yardstake-ux/pull/66)) — built, not bought |
 | **Tier 3d** | Appliances | **done** ([#67](https://github.com/captproton/yardstake-ux/pull/67)) — built, not bought |
 | **Tier 3e** | Tub/shower, stacked W/D, geometry gate | **done** ([#68](https://github.com/captproton/yardstake-ux/pull/68)) — both were measured and never built |
-| **Tier 3f** | Porch sconce, `fixtures.mounted` anchor, `verify_mounted` | **done** ([#73](https://github.com/captproton/yardstake-ux/issues/73)) — the first position taken from footage, because there is no electrical sheet |
+| **Tier 3f** | Porch sconce, `fixtures.mounted` anchor, `verify_mounted` | **done** ([#74](https://github.com/captproton/yardstake-ux/pull/74)) — the first position taken from footage, because there is no electrical sheet |
 | **Foundation** | Crawlspace stemwall, footing, rim, piers, the eight vents A2.0 draws | **done** ([#70](https://github.com/captproton/yardstake-ux/pull/70)) — the first `lod2` change in twelve PRs |
 | **Tooling** | Camera presets + ADU sidebar panel, framing gated | **done** ([#71](https://github.com/captproton/yardstake-ux/pull/71)) — tooling only, cannot reach a `.glb` |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
-[#67](https://github.com/captproton/yardstake-ux/pull/67), [#68](https://github.com/captproton/yardstake-ux/pull/68) and [#70](https://github.com/captproton/yardstake-ux/pull/70). The placement developer is
-unblocked — `lod2` and their handoff are on `main`.
+[#67](https://github.com/captproton/yardstake-ux/pull/67), [#68](https://github.com/captproton/yardstake-ux/pull/68), [#70](https://github.com/captproton/yardstake-ux/pull/70), [#71](https://github.com/captproton/yardstake-ux/pull/71) and
+[#74](https://github.com/captproton/yardstake-ux/pull/74). The placement developer is unblocked — `lod2` and their
+handoff are on `main`.
 
 **`lod2` was byte-identical at 24.1 KB through eleven PRs, and changed in the
 twelfth.** [#70](https://github.com/captproton/yardstake-ux/pull/70) replaced the wrong-variant `Floor_slab` with the
@@ -43,6 +44,15 @@ mirror, the toilet, the tub/shower, the crawl hole, the stacked W/D and all
 three appliances — **and the building now stands on a real foundation.**
 102 meshes, `lod0` **907.2 KB** against a 4 MB ceiling, 49/49 fixture gates and
 12/12 geometry gates.
+
+**A gate that has never failed is a claim, not a check.** [#74](https://github.com/captproton/yardstake-ux/pull/74) shipped
+`verify_mounted.py` with two checks that **could not fail** — one compared the
+declared height against the fixture's whole bounding box, a span of nearly a
+foot; the other tested the lens against a set that already contained the lens.
+Review caught both. They are now bounded against the canopy mesh and the shade
+mouth, and the repair was **proved by perturbation**: a canopy moved 4" and a
+lens dropped a foot both pass the old gates and fail the new ones. Do that to
+any gate you are tempted to trust.
 
 **That claim was made once before and was wrong.** After [#67](https://github.com/captproton/yardstake-ux/pull/67) the plan
 said the build half was complete while the tub/shower and the stacked washer/
@@ -295,7 +305,8 @@ measured ([#70](https://github.com/captproton/yardstake-ux/pull/70)). In order o
 |---|---|
 | **T3:** furniture | The last unbuilt item in the tier, and the only one with `status: not_yet_placed`. Architectural fill-in-the-space per §4 — schematic masses, no licensing exposure |
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
-| **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#73](https://github.com/captproton/yardstake-ux/issues/73)). The mini-split head, meter panel and tankless heater are all wall-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but none of them is drawn with a height |
+| **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#74](https://github.com/captproton/yardstake-ux/pull/74)). The mini-split head, meter panel, tankless heater and heat pump are all wall- or ground-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but not one of them is drawn with a height |
+| **Export:** mesh instancing | `lod0` is 102 nodes and **102 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2` and the closet door pair are each paid for twice. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
 | **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 907.2 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
 | **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 28.4 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
