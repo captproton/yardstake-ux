@@ -1162,8 +1162,14 @@ def build(spec, cut_openings=True):
         for side, pl in (("W", t / 2 - sd_), ("E", W - t / 2)):
             sash(f"Win_{o['id']}_{side}", o, "y", pl,
                  yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"])
+    # THE GABLE IS A PRISM AT y 0..t, NOT THE WALL AT y SY..SY+t. The first
+    # version of this line used the wall datum and put the gable sash six feet
+    # north of its own glass, floating inside the porch -- and the sash gate
+    # passed it, because that gate mirrors these call sites and inherited the
+    # same wrong plane. finish_adu.add_glazing already carried the warning in
+    # a comment: "its pane is placed from the gable's own depth".
     for o in spec["openings"]["loft"]["south_gable"]["windows"]:
-        sash(f"Win_{o['id']}", o, "x", SY + t / 2 - sd_,
+        sash(f"Win_{o['id']}", o, "x", t / 2 - sd_,
              o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"])
 
     # baseboard: one welded mesh around the main interior perimeter

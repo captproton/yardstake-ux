@@ -184,7 +184,7 @@ def sash_gates(spec):
     print()
     ok = True
     rows = []
-    for name, o, axis, a0, a1, z0, z1 in sash_targets(spec):
+    for name, o, axis, a0, a1, z0, z1, host_name in sash_targets(spec):
         obj = bpy.data.objects.get(name)
         if obj is None:
             rows.append((name, o["type"], "MISSING", ""))
@@ -220,9 +220,30 @@ def sash_gates(spec):
         for b, z in want_air:
             if solid_at(obj, axis, b, z):
                 bad.append(f"solid where a light belongs ({b:.2f},{z:.2f})")
+        # IS THE SASH EVEN IN ITS OWN WALL? The composition checks above are
+        # blind to this: they sample at the object's OWN mid-depth, so a sash
+        # built on the wrong datum is internally perfect and six feet from its
+        # glass. That shipped -- the gable sash was placed on the wall plane
+        # when its gable is a prism at y 0..t -- and every member gate passed.
+        # A gate that only asks "is this well-formed" cannot ask "is this in
+        # the right place", so the depth is checked against the host solid.
+        host = bpy.data.objects.get(host_name)
+        if host is None:
+            bad.append(f"host {host_name} missing")
+        else:
+            i = 1 if axis == "x" else 0        # the depth axis of this wall
+            sv = [obj.matrix_world @ v.co for v in obj.data.vertices]
+            hv = [host.matrix_world @ v.co for v in host.data.vertices]
+            s0, s1 = min(v[i] for v in sv), max(v[i] for v in sv)
+            h0, h1 = min(v[i] for v in hv), max(v[i] for v in hv)
+            if s1 < h0 - 0.1 or s0 > h1 + 0.1:
+                bad.append(f"sits at {s0:.2f}..{s1:.2f} but {host_name} "
+                           f"spans {h0:.2f}..{h1:.2f}")
+
         rows.append((name, o["type"],
                      "PASS" if not bad else "FAIL",
-                     f"{len(want_solid)} members, {len(want_air)} lights"
+                     f"{len(want_solid)} members, {len(want_air)} lights, "
+                     f"in {host_name}"
                      if not bad else "; ".join(bad[:2])))
         ok &= not bad
 
@@ -235,7 +256,7 @@ def sash_gates(spec):
 
 
 def sash_targets(spec):
-    """(object, opening, axis, a0, a1, z0, z1) for every window, as built.
+    """(object, opening, axis, a0, a1, z0, z1, host) for every window, as built.
 
     Mirrors build_adu's own call sites rather than re-deriving them, so a
     window that moves cannot leave the gate testing empty air.
@@ -254,18 +275,19 @@ def sash_targets(spec):
         if o["type"].endswith("door"):
             continue
         out.append((f"Win_{o['id']}", o, "x", o["offset"], o["offset"] + o["w"],
-                    o["sill"], o["sill"] + o["h"]))
+                    o["sill"], o["sill"] + o["h"],
+                    "Wall_N" if o in op["north_wall"]["openings"] else "Wall_S"))
     for o in spec["openings"]["loft"]["south_gable"]["windows"]:
         out.append((f"Win_{o['id']}", o, "x", o["offset"], o["offset"] + o["w"],
-                    o["sill"], o["sill"] + o["h"]))
+                    o["sill"], o["sill"] + o["h"], "Gable_S_porch"))
     for o in op["west_wall"]["openings"]:
         out.append((f"Win_{o['id']}", o, "y", yn(o["offset"] + o["w"]),
-                    yn(o["offset"]), o["sill"], o["sill"] + o["h"]))
+                    yn(o["offset"]), o["sill"], o["sill"] + o["h"], "Wall_W"))
     for o in spec["openings"]["loft"]["windows"]:
         for side in ("W", "E"):
             out.append((f"Win_{o['id']}_{side}", o, "y",
                         yn(o["offset"] + o["w"]), yn(o["offset"]),
-                        dsill, dsill + o["h"]))
+                        dsill, dsill + o["h"], f"Dormer_face_{side}"))
     return out
 
 
