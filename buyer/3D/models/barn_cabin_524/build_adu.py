@@ -949,6 +949,12 @@ def build(spec, cut_openings=True):
     lighting = collection("Lighting")
     geo["mounted"] = build_mounted(spec, geo, lighting)
 
+    # ---- Tier 3: furniture -------------------------------------------------
+    # Its own collection: furniture is lod0 detail, and it is the one group a
+    # buyer may want switched off entirely.
+    furniture = collection("Furniture")
+    geo["furniture"] = build_furniture(spec, furniture)
+
     # ---- Tier 2 prerequisite: UVs, generated LAST -------------------------
     # After the booleans, per TIER-2 §3 — openings create faces no earlier
     # layout accounts for. Also after the casework, or it ships unwrapped and
@@ -961,7 +967,8 @@ def build(spec, cut_openings=True):
 
     return geo, dict(shell=shell, roof=roofc, porch=porchc,
                      interior=interior, finish=finish, casework=casework,
-                     foundation=found, lighting=lighting)
+                     foundation=found, lighting=lighting,
+                     furniture=furniture)
 
 
 # ---------------------------------------------------------------------------
@@ -974,6 +981,47 @@ def find_item(seq, fid):
             return it
     raise SystemExit(f"[spec] no fixture with id {fid!r}")
 
+
+
+# ---------------------------------------------------------------------------
+def build_furniture(spec, coll):
+    """Furniture, one merged mesh per (arrangement, material).
+
+    MERGING STOPS AT THE ARRANGEMENT BOUNDARY, and that is the whole design.
+    Everywhere else this file merges by material across the entire building --
+    multibox("Appl_body", ...) is a single mesh holding the fridge, the range,
+    the dishwasher and the bedroom-closet washer/dryer. Furniture built that
+    way could never be switched, because you cannot hide half a mesh, and the
+    presence-swap work would have to rebuild it. So an arrangement owns its
+    objects and merging happens only inside one.
+
+    That same shared-mesh property has now cost this project three times: it
+    made the first verify_geometry.py a tautology, it stretched the kitchen
+    camera across three rooms, and it would have made furniture unswitchable.
+
+    Nothing here is measured. Every dimension comes from
+    spec.fixtures.furniture, which says so at length.
+    """
+    fx = spec["fixtures"]["furniture"]
+    built = {}
+    for arr in fx["arrangements"]:
+        by_mat = {}
+        for pc in arr["pieces"]:
+            box6 = (pc["x0"], pc["x1"], pc["y0"], pc["y1"], pc["z0"], pc["z1"])
+            for lo, hi, axis in ((pc["x0"], pc["x1"], "x"),
+                                 (pc["y0"], pc["y1"], "y"),
+                                 (pc["z0"], pc["z1"], "z")):
+                if hi <= lo:
+                    raise ValueError(
+                        f"{arr['id']}.{pc['id']}: {axis} runs backwards "
+                        f"({lo} .. {hi})")
+            by_mat.setdefault(pc["material"], []).append(box6)
+
+        for mat, boxes in sorted(by_mat.items()):
+            name = f"Furn_{arr['id']}_{mat.removeprefix('furn_')}"
+            multibox(name, boxes, coll)
+            built[name] = len(boxes)
+    return built
 
 def build_casework(spec, geo, coll):
     """Kitchen and bath casework, entirely from spec.fixtures.

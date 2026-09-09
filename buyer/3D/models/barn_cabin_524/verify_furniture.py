@@ -1,0 +1,202 @@
+"""
+verify_furniture.py — furniture is not measured, so it needs different gates.
+
+Every other verify file asks "does the model match the sheet?". That question
+is meaningless here: the plan set specifies no furniture at all, and
+spec.fixtures.furniture says so at length. What CAN be checked is that the
+furniture does not lie about itself and does not foul the things that ARE
+measured.
+
+THE GATE THAT MATTERS MOST IS `arrangements are separate meshes`. build_adu
+merges by material across the whole building -- multibox("Appl_body", ...) is
+one mesh holding the fridge, the range, the dishwasher and the bedroom-closet
+washer/dryer. Furniture merged that way could never be switched, because you
+cannot hide half a mesh, and the presence-swap work (#76) would have to rebuild
+it. That property is invisible in a render and cheap to lose in a refactor.
+
+    blender --background barn_cabin_524.blend --python verify_furniture.py
+"""
+import sys
+from pathlib import Path
+
+import bpy
+from mathutils import Vector
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from build_adu import load_spec  # noqa: E402
+
+FAILED = []
+
+# Things furniture must not be inside. Deliberately excludes Furn_ itself:
+# two bedroom arrangements share the floor on purpose.
+STRUCTURAL = ("Wall_", "Part_", "Cab_", "Appl_", "Fix_", "Ladder_", "Rail_",
+              "Porch_post", "Found_", "Trim_")
+
+
+def gate(name, ok, detail=""):
+    print(f"  [{'PASS' if ok else 'FAIL'}] {name:56s} {detail}")
+    if not ok:
+        FAILED.append(name)
+
+
+def inside_mesh(ob, p):
+    """Is p within ob's surface?
+
+    TWO TESTS, AND BOTH ARE NEEDED.
+
+    The bounding box alone is useless against this model's merged meshes --
+    Appl_body's box covers most of the building. But the nearest-surface test
+    alone is ALSO wrong: closest_point_on_mesh gives a meaningless answer for a
+    point far outside an open or lofted shell, and the first version of this
+    gate duly reported a sofa in the living room as being inside a toilet eight
+    feet away in the bathroom.
+
+    Inside implies inside the bounding box, so the box is a sound prefilter,
+    and the surface test then does the real work.
+    """
+    cs = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
+    if not (min(c.x for c in cs) <= p.x <= max(c.x for c in cs)
+            and min(c.y for c in cs) <= p.y <= max(c.y for c in cs)
+            and min(c.z for c in cs) <= p.z <= max(c.z for c in cs)):
+        return False
+    local = ob.matrix_world.inverted() @ p
+    ok, loc, nor, _ = ob.closest_point_on_mesh(local)
+    return bool(ok) and (local - loc).dot(nor) < 0
+
+
+def piece_box(pc):
+    return (pc["x0"], pc["x1"], pc["y0"], pc["y1"], pc["z0"], pc["z1"])
+
+
+def samples(box, inset=0.03):
+    """Centre plus the eight corners, pulled just inside the surface."""
+    x0, x1, y0, y1, z0, z1 = box
+    xs = (x0 + inset, x1 - inset)
+    ys = (y0 + inset, y1 - inset)
+    zs = (z0 + inset, z1 - inset)
+    pts = [Vector(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2))]
+    pts += [Vector((x, y, z)) for x in xs for y in ys for z in zs]
+    return pts
+
+
+def plan_overlap(a, b, pad=0.0):
+    return (a[0] < b[1] + pad and b[0] < a[1] + pad
+            and a[2] < b[3] + pad and b[2] < a[3] + pad)
+
+
+def main():
+    spec = load_spec(HERE / "spec.yaml")
+    fx = spec["fixtures"]["furniture"]
+    arrs = fx["arrangements"]
+
+    print("=" * 100)
+    print("FURNITURE — not measured, so gated on self-consistency and clearance")
+    print("=" * 100)
+
+    furn = [o for o in bpy.data.objects
+            if o.type == "MESH" and o.name.startswith("Furn_")]
+    gate("furniture was built at all", bool(furn), f"{len(furn)} meshes")
+
+    # ---- 1. one default per room -----------------------------------------
+    rooms = {}
+    for a in arrs:
+        rooms.setdefault(a["room"], []).append(bool(a.get("default")))
+    bad = {r: sum(d) for r, d in rooms.items() if sum(d) != 1}
+    gate("exactly one default arrangement per room", not bad,
+         ", ".join(f"{r}={sum(d)}" for r, d in sorted(rooms.items()))
+         + (f" — WRONG {bad}" if bad else ""))
+
+    # ---- 2. arrangements are separate meshes ------------------------------
+    # For each object, every polygon must fall inside one of ITS OWN
+    # arrangement's declared pieces. A mesh that merged two arrangements would
+    # have polygons outside its own boxes, and this is what protects #76.
+    strays = []
+    for a in arrs:
+        boxes = [piece_box(pc) for pc in a["pieces"]]
+        pref = f"Furn_{a['id']}_"
+        for ob in (o for o in furn if o.name.startswith(pref)):
+            for poly in ob.data.polygons:
+                c = ob.matrix_world @ poly.center
+                if not any(x0 - 0.01 <= c.x <= x1 + 0.01
+                           and y0 - 0.01 <= c.y <= y1 + 0.01
+                           and z0 - 0.01 <= c.z <= z1 + 0.01
+                           for x0, x1, y0, y1, z0, z1 in boxes):
+                    strays.append(f"{ob.name} @ {tuple(round(v, 2) for v in c)}")
+                    break
+    gate("arrangements are separate meshes, none merged across", not strays,
+         f"{len(furn)} meshes, each inside its own arrangement"
+         + (f" — STRAY {strays[:2]}" if strays else ""))
+
+    # ---- 3. every arrangement exists as geometry, by position -------------
+    missing = []
+    for a in arrs:
+        found = False
+        for pc in a["pieces"]:
+            c = Vector(((pc["x0"] + pc["x1"]) / 2, (pc["y0"] + pc["y1"]) / 2,
+                        (pc["z0"] + pc["z1"]) / 2))
+            for ob in furn:
+                if any((ob.matrix_world @ p.center - c).length < 0.6
+                       for p in ob.data.polygons):
+                    found = True
+                    break
+            if found:
+                break
+        if not found:
+            missing.append(a["id"])
+    gate("every arrangement exists as geometry", not missing,
+         f"{len(arrs)} arrangements"
+         + (f" — MISSING {missing}" if missing else ""))
+
+    # ---- 4. nothing is inside a fixture or a wall -------------------------
+    solids = [o for o in bpy.data.objects
+              if o.type == "MESH" and o.name.startswith(STRUCTURAL)]
+    clashes = []
+    for a in arrs:
+        for pc in a["pieces"]:
+            for p in samples(piece_box(pc)):
+                for ob in solids:
+                    if inside_mesh(ob, p):
+                        clashes.append(f"{a['id']}.{pc['id']} in {ob.name}")
+                        break
+                else:
+                    continue
+                break
+    gate("no furniture is inside a fixture, wall or partition", not clashes,
+         f"{sum(len(a['pieces']) for a in arrs)} pieces checked"
+         + (f" — {len(clashes)} CLASH: {clashes[:3]}" if clashes else ""))
+
+    # ---- 5. no doorway is blocked -----------------------------------------
+    doors = [o for o in bpy.data.objects
+             if o.type == "MESH" and o.name.startswith("Door_")]
+    blocked = []
+    for d in doors:
+        cs = [d.matrix_world @ v.co for v in d.data.vertices]
+        db = (min(c.x for c in cs), max(c.x for c in cs),
+              min(c.y for c in cs), max(c.y for c in cs), 0, 0)
+        for a in arrs:
+            for pc in a["pieces"]:
+                if pc["z0"] > 3.0:        # above head height cannot block
+                    continue
+                if plan_overlap(piece_box(pc), db):
+                    blocked.append(f"{a['id']}.{pc['id']} across {d.name}")
+    gate("no furniture stands in a doorway", not blocked,
+         f"{len(doors)} doors"
+         + (f" — BLOCKED {blocked[:3]}" if blocked else ""))
+
+    # ---- 6. everything rests on the floor and clears the ceiling ----------
+    off = [f"{a['id']}.{pc['id']}"
+           for a in arrs for pc in a["pieces"]
+           if pc["z0"] < -0.01 or pc["z1"] > 8.0]
+    gate("furniture sits between floor and ceiling", not off,
+         "0 ft to 8 ft" + (f" — OUTSIDE {off[:3]}" if off else ""))
+
+    print("=" * 100)
+    print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
+    print("=" * 100)
+    if FAILED:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

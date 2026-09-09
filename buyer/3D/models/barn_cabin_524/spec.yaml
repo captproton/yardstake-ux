@@ -1152,9 +1152,129 @@ fixtures:
     #
     # It is NOT ON THE PLAN. Nothing below is measured, and nothing below should
     # be verified against A1.1, because the sheet says nothing about it.
-    status: not_yet_placed
+    status: placed
     disclosure_required: "Furniture and appliances shown for scale; not included. This is a UI requirement — no part of the model can enforce it."
     prefixes: {furniture: "Furn_", appliances: "Appl_"}
+    datum: >
+      WORLD FEET IN THE MODEL FRAME — x east from the west exterior face, y
+      north from the porch outer edge, z above finished floor. NOT the
+      fixtures datum, which measures from interior faces, because furniture is
+      placed in a room rather than measured off a sheet.
+    provenance: >
+      NOTHING HERE IS A PLAN DIMENSION. The sheet set specifies no furniture at
+      all. Sizes are typical-product figures and the pieces are read off frames
+      of the builder's tour video, cited per arrangement. Positions are chosen
+      to clear the fixtures and doors that ARE measured. Every entry is
+      confidence: assumed, and a furniture guess must never inherit the
+      credibility of a measured fixture.
+    grouping: >
+      ONE OBJECT GROUP PER SWITCHABLE ARRANGEMENT, NOT ONE PER MATERIAL.
+      build_adu otherwise merges by material across the whole building --
+      multibox("Appl_body", ...) puts the fridge, the range, the dishwasher and
+      the bedroom-closet washer/dryer in a SINGLE mesh. Furniture built that
+      way could never be switched, because you cannot hide half a mesh, and
+      #76 would have to rebuild it. So each arrangement owns its objects and
+      merging happens only WITHIN one. This deliberately breaks the house
+      convention; the reason is the whole point.
+    default_note: >
+      TWO ARRANGEMENTS SHARE THE BEDROOM AND THEY OCCUPY THE SAME FLOOR. They
+      are alternatives, not companions — the tour video stages that room as a
+      bedroom at 4:13 and as an office at 4:10, twenty seconds apart, which is
+      the whole reason both are built. So an intersection gate must NOT treat
+      bed-through-desk as a defect; only furniture against a FIXTURE or a wall
+      is one.
+
+      Both are built, because the presence-swap work can only toggle what
+      already exists. But `lod0` ships ONE PER ROOM, chosen by `default: true`,
+      because until that work lands there is nothing to do the choosing and a
+      viewer would see a desk growing through a bed. When switching exists,
+      `lod0` carries all of them and this flag becomes the initial state.
+    arrangements:
+    - id: living_sofa
+      room: living
+      default: true
+      source: "tour video 2:38-2:45 — rust sofa, back to the kitchen, round tufted cushion"
+      confidence: assumed
+      clearance_note: >
+        Back stands 2'-11" off the counter front (x 2.54), which is the
+        walkway. Clear of the loft ladder (x 10.11) and of the front-door path
+        (x 9.40-12.40).
+      pieces:
+      - {id: seat,     x0: 5.50, x1: 8.40, y0: 9.80, y1: 16.80, z0: 0.60, z1: 1.30, material: furn_fabric}
+      - {id: base,     x0: 5.70, x1: 8.20, y0: 10.00, y1: 16.60, z0: 0.00, z1: 0.60, material: furn_fabric}
+      - {id: back,     x0: 5.50, x1: 6.25, y0: 9.80, y1: 16.80, z0: 0.60, z1: 2.45, material: furn_fabric}
+      - {id: arm_s,    x0: 6.25, x1: 8.40, y0: 9.80, y1: 10.55, z0: 1.30, z1: 1.95, material: furn_fabric}
+      - {id: arm_n,    x0: 6.25, x1: 8.40, y0: 16.05, y1: 16.80, z0: 1.30, z1: 1.95, material: furn_fabric}
+      - {id: cushion,  x0: 6.35, x1: 7.35, y0: 10.75, y1: 11.75, z0: 1.30, z1: 1.75, material: furn_linen}
+    - id: bedroom_bed
+      room: bedroom
+      default: true
+      source: "tour video 4:13 — queen bed, terracotta linens, nightstand with lamp"
+      confidence: assumed
+      clearance_note: >
+        Head against the north wall under the egress window (x 12.71-18.29).
+        Leaves 2'-10" between the foot and the bedroom's south partition, and
+        clears both pocket doors (x 10.76-13.26 and 18.26-20.76).
+      pieces:
+      - {id: base,      x0: 14.00, x1: 19.00, y0: 22.87, y1: 29.30, z0: 0.15, z1: 1.35, material: furn_wood}
+      - {id: duvet,     x0: 13.85, x1: 19.15, y0: 22.75, y1: 28.60, z0: 1.35, z1: 1.75, material: furn_linen}
+      - {id: headboard, x0: 14.00, x1: 19.00, y0: 29.30, y1: 29.52, z0: 0.15, z1: 3.20, material: furn_wood}
+      - {id: pillow_w,  x0: 14.35, x1: 16.35, y0: 28.60, y1: 29.30, z0: 1.35, z1: 1.90, material: furn_linen}
+      - {id: pillow_e,  x0: 16.65, x1: 18.65, y0: 28.60, y1: 29.30, z0: 1.35, z1: 1.90, material: furn_linen}
+      - {id: stand,     x0: 19.60, x1: 21.10, y0: 28.00, y1: 29.50, z0: 0.00, z1: 1.90, material: furn_wood}
+      - {id: lamp_base, x0: 20.15, x1: 20.55, y0: 28.55, y1: 28.95, z0: 1.90, z1: 2.05, material: furn_metal}
+      - {id: lamp_stem,  x0: 20.29, x1: 20.41, y0: 28.69, y1: 28.81, z0: 2.05, z1: 2.42, material: furn_metal}
+      - {id: lamp_shade,x0: 19.95, x1: 20.75, y0: 28.35, y1: 29.15, z0: 2.35, z1: 3.00, material: furn_linen}
+    - id: bedroom_office
+      room: bedroom
+      default: false
+      source: "tour video 4:10 — drop-leaf desk, ladder-back chair, brass floor lamp, rug, plant"
+      confidence: assumed
+      clearance_note: >
+        Desk under the same north window. Chair pulled out 1'-6". Rug clear of
+        both pocket doors so neither is blocked when open.
+      pieces:
+      - {id: rug,        x0: 13.20, x1: 19.80, y0: 22.20, y1: 28.40, z0: 0.00, z1: 0.04, material: furn_linen}
+      - {id: desk_top,   x0: 14.60, x1: 18.60, y0: 27.00, y1: 29.40, z0: 2.30, z1: 2.45, material: furn_wood}
+      - {id: desk_leg_a, x0: 14.75, x1: 15.00, y0: 27.15, y1: 27.40, z0: 0.00, z1: 2.30, material: furn_wood}
+      - {id: desk_leg_b, x0: 18.20, x1: 18.45, y0: 27.15, y1: 27.40, z0: 0.00, z1: 2.30, material: furn_wood}
+      - {id: desk_leg_c, x0: 14.75, x1: 15.00, y0: 29.00, y1: 29.25, z0: 0.00, z1: 2.30, material: furn_wood}
+      - {id: desk_leg_d, x0: 18.20, x1: 18.45, y0: 29.00, y1: 29.25, z0: 0.00, z1: 2.30, material: furn_wood}
+      - {id: chair_seat, x0: 15.95, x1: 17.35, y0: 25.20, y1: 26.60, z0: 1.45, z1: 1.60, material: furn_wood}
+      - {id: chair_back, x0: 15.95, x1: 17.35, y0: 26.40, y1: 26.60, z0: 1.60, z1: 3.30, material: furn_wood}
+      - {id: chair_leg_a,x0: 16.05, x1: 16.20, y0: 25.30, y1: 25.45, z0: 0.00, z1: 1.45, material: furn_wood}
+      - {id: chair_leg_b,x0: 17.10, x1: 17.25, y0: 25.30, y1: 25.45, z0: 0.00, z1: 1.45, material: furn_wood}
+      - {id: chair_leg_c,x0: 16.05, x1: 16.20, y0: 26.40, y1: 26.55, z0: 0.00, z1: 1.45, material: furn_wood}
+      - {id: chair_leg_d,x0: 17.10, x1: 17.25, y0: 26.40, y1: 26.55, z0: 0.00, z1: 1.45, material: furn_wood}
+      - {id: lamp_foot,  x0: 19.15, x1: 19.85, y0: 28.55, y1: 29.25, z0: 0.00, z1: 0.10, material: furn_metal}
+      - {id: lamp_pole,  x0: 19.44, x1: 19.56, y0: 28.84, y1: 28.96, z0: 0.10, z1: 4.60, material: furn_metal}
+      - {id: lamp_head,  x0: 19.10, x1: 19.90, y0: 28.50, y1: 29.30, z0: 4.60, z1: 5.05, material: furn_metal}
+      - {id: pot,        x0: 20.20, x1: 21.10, y0: 26.30, y1: 27.20, z0: 0.00, z1: 1.10, material: furn_wood}
+      - {id: foliage,    x0: 19.90, x1: 21.40, y0: 26.00, y1: 27.50, z0: 1.10, z1: 3.60, material: furn_plant}
+    - id: porch_chairs
+      room: porch
+      default: true
+      source: "tour video 1:40 — two teak lounge chairs, white cushions, throw pillows"
+      confidence: assumed
+      clearance_note: >
+        Both west of the front-door path (x 9.40-12.40) and clear of
+        Porch_post_1 (x 1.75-2.25). Backs stand off the house wall at y 6.00.
+      pieces:
+      - {id: a_seat,   x0: 3.00, x1: 5.30, y0: 2.60, y1: 4.90, z0: 1.05, z1: 1.35, material: furn_linen}
+      - {id: a_back,   x0: 3.00, x1: 5.30, y0: 4.90, y1: 5.20, z0: 1.05, z1: 3.05, material: furn_wood}
+      - {id: a_leg_w,  x0: 3.00, x1: 3.25, y0: 2.60, y1: 5.20, z0: 0.00, z1: 1.05, material: furn_wood}
+      - {id: a_leg_e,  x0: 5.05, x1: 5.30, y0: 2.60, y1: 5.20, z0: 0.00, z1: 1.05, material: furn_wood}
+      - {id: b_seat,   x0: 6.10, x1: 8.40, y0: 2.60, y1: 4.90, z0: 1.05, z1: 1.35, material: furn_linen}
+      - {id: b_back,   x0: 6.10, x1: 8.40, y0: 4.90, y1: 5.20, z0: 1.05, z1: 3.05, material: furn_wood}
+      - {id: b_leg_w,  x0: 6.10, x1: 6.35, y0: 2.60, y1: 5.20, z0: 0.00, z1: 1.05, material: furn_wood}
+      - {id: b_leg_e,  x0: 8.15, x1: 8.40, y0: 2.60, y1: 5.20, z0: 0.00, z1: 1.05, material: furn_wood}
+    not_furnished:
+      loft: >
+        EMPTY IN EVERY SHOT of the tour video — carpet and guardrail only,
+        consistent with A1.1 labelling it STORAGE. Deliberately not furnished.
+      bathroom: >
+        The video dresses it with a shower curtain, a plant and a towel. Those
+        are styling, not furniture, and none of them is modelled.
 
   prefixes:
     # Plumbing fixtures SUPPLIED WITH THE UNIT. Deliberately not Furn_/Appl_,
@@ -1578,6 +1698,36 @@ materials:
       roughness: 0.15
       metallic: 0.0
       source: "video 2:33 — black glass cooktop and oven door."
+    furn_fabric:
+      base_color_linear: [0.36, 0.13, 0.09]
+      roughness: 0.85
+      metallic: 0.0
+      source: "video 2:38-2:45 — rust upholstered sofa"
+      confidence: "hue from video, luminance plausible-not-measured"
+    furn_linen:
+      base_color_linear: [0.72, 0.66, 0.58]
+      roughness: 0.9
+      metallic: 0.0
+      source: "video 2:42 cushion, 4:13 bedding, 1:40 porch cushions — one warm off-white"
+      confidence: assumed
+    furn_wood:
+      base_color_linear: [0.33, 0.21, 0.12]
+      roughness: 0.5
+      metallic: 0.0
+      source: "video 1:40 teak porch chairs, 4:10 desk and ladder-back chair"
+      confidence: assumed
+    furn_metal:
+      base_color_linear: [0.42, 0.31, 0.13]
+      roughness: 0.3
+      metallic: 0.9
+      source: "video 4:10 brass floor lamp, 4:13 table lamp base"
+      confidence: assumed
+    furn_plant:
+      base_color_linear: [0.09, 0.19, 0.08]
+      roughness: 0.7
+      metallic: 0.0
+      source: "video 4:10 — monstera"
+      confidence: assumed
     steel:
       base_color_linear: [0.560, 0.570, 0.580]
       roughness: 0.30
@@ -1607,6 +1757,23 @@ materials:
     Floor_main: floor_oak
     Floor_bath: slate_bath
     Floor_loft: carpet_loft
+    # Furniture. One rule per (arrangement, material) pair, because assignment
+    # matches a PREFIX and furniture objects are named arrangement-first --
+    # the arrangement has to lead so #76 can hide one without hiding the rest.
+    # Generated from fixtures.furniture.arrangements, so a new piece in a new
+    # material fails the "every object matched a material" export gate rather
+    # than silently shipping untextured.
+    Furn_living_sofa_fabric: furn_fabric
+    Furn_living_sofa_linen: furn_linen
+    Furn_bedroom_bed_linen: furn_linen
+    Furn_bedroom_bed_metal: furn_metal
+    Furn_bedroom_bed_wood: furn_wood
+    Furn_bedroom_office_linen: furn_linen
+    Furn_bedroom_office_metal: furn_metal
+    Furn_bedroom_office_plant: furn_plant
+    Furn_bedroom_office_wood: furn_wood
+    Furn_porch_chairs_linen: furn_linen
+    Furn_porch_chairs_wood: furn_wood
     Found_rim: siding
     Found_pier: concrete
     Found_vent: appliance_dark
