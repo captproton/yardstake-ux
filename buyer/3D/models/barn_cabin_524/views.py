@@ -51,6 +51,9 @@ Visibility keys off the object-name prefixes declared in spec.yaml, the same
 convention the display modes and the glTF export rely on. New prefixes must be
 declared there or these modes silently stop covering them.
 """
+import json
+from pathlib import Path
+
 import bpy
 from mathutils import Vector
 
@@ -62,6 +65,87 @@ SOUTH = ("Wall_S", "Porch_", "Gable_S")
 SHELL = ("Wall_", "Gable_", "Dormer_", "Eave_", "Roof_", "Porch_", "Glazing_")
 
 
+
+# ---------------------------------------------------------------------------
+# Furniture arrangements
+# ---------------------------------------------------------------------------
+# TWO BEDROOM ARRANGEMENTS SHARE THE FLOOR and are alternatives -- a bed and a
+# home office. lod0 ships both, because a runtime can only toggle what is in
+# the file, and `presence` in the configurator manifest says which is visible.
+#
+# _show() used to blanket-unhide every mesh it was not told to hide, which
+# undid that and put the desk through the bed the moment anyone pressed Full.
+# So the visibility modes now honour the manifest.
+#
+# WHY THE MANIFEST AND NOT THE SPEC. The browser reads variants.json; reading
+# the same file here makes this panel a reference implementation of the same
+# contract, so Blender and the browser cannot quietly disagree. It also means a
+# malformed manifest shows up in the viewport before it shows up in front of a
+# homeowner.
+MANIFEST = "export/variants.json"
+
+_layout = {}          # set id -> chosen option id, for this session
+
+
+def _manifest():
+    """The exported manifest, or None if there is not one yet.
+
+    views.py has to keep working on a .blend alone: a fresh build_adu.py run
+    has no export. A missing manifest degrades to the old behaviour rather
+    than raising, and says so once.
+    """
+    blend = bpy.data.filepath
+    if not blend:
+        return None
+    path = Path(blend).parent / MANIFEST
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError) as exc:              # noqa: BLE001
+        print(f"[view] manifest unreadable ({exc}); arrangements not applied")
+        return None
+
+
+def _presence():
+    man = _manifest()
+    return (man or {}).get("presence", [])
+
+
+def _controlled():
+    """Every object name any presence option can show."""
+    return {n for st in _presence() for o in st["options"] for n in o["show"]}
+
+
+def _apply_layouts():
+    """Show one option per presence set; hide everything else it controls."""
+    sets = _presence()
+    if not sets:
+        return
+    shown = set()
+    for st in sets:
+        want = _layout.get(st["id"])
+        opt = next((o for o in st["options"] if o["id"] == want), None)
+        if opt is None:
+            opt = next(o for o in st["options"] if o["default"])
+            _layout[st["id"]] = opt["id"]
+        shown |= set(opt["show"])
+    for name in _controlled():
+        ob = bpy.data.objects.get(name)
+        if ob is not None:
+            ob.hide_set(name not in shown)
+            ob.hide_render = name not in shown
+
+
+def layout(set_id, option_id):
+    """Choose one furniture arrangement, exactly as the runtime would."""
+    ids = [st["id"] for st in _presence()]
+    if set_id not in ids:
+        raise ValueError(f"no such layout set: {set_id!r} (have {ids})")
+    _layout[set_id] = option_id
+    _apply_layouts()
+    print(f"[view] layout {set_id} -> {option_id}")
+
 def _matches(ob, prefixes):
     return any(ob.name.startswith(p) for p in prefixes)
 
@@ -72,12 +156,20 @@ def _show(hide=()):
     There was an unused `prefixes` parameter here, which read as a
     half-built "show only these" feature. There is no such feature: every
     mode is expressed as what to hide.
+
+    Objects a presence set controls are left alone here and settled by
+    _apply_layouts(), because "show everything not hidden" is the wrong rule
+    for a set of alternatives -- it showed the bed AND the desk.
     """
+    controlled = _controlled()
     for ob in bpy.data.objects:
         if ob.type != "MESH":
             continue
+        if ob.name in controlled:
+            continue          # a presence set owns this one; see _apply_layouts
         ob.hide_set(_matches(ob, hide))
         ob.hide_render = _matches(ob, hide)
+    _apply_layouts()
 
 
 def _viewport(near=None, shading="MATERIAL"):
@@ -369,6 +461,25 @@ class ADU_OT_view(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ADU_OT_layout(bpy.types.Operator):
+    """Choose a furniture arrangement, as the configurator would"""
+
+    bl_idname = "adu.layout"
+    bl_label = "ADU layout"
+    bl_options = {"REGISTER", "UNDO"}
+
+    set_id: bpy.props.StringProperty(name="Set")
+    option_id: bpy.props.StringProperty(name="Option")
+
+    def execute(self, context):
+        try:
+            layout(self.set_id, self.option_id)
+        except ValueError as exc:                      # noqa: BLE001
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
 class ADU_PT_views(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -392,11 +503,31 @@ class ADU_PT_views(bpy.types.Panel):
         for key in VISIBILITY:
             col.operator("adu.view", text=LABELS[key]).view = key
 
+        sets = _presence()
+        if sets:
+            lay.separator()
+            lay.label(text="Furniture", icon="OUTLINER_OB_GROUP_INSTANCE")
+            for st in sets:
+                box = lay.box()
+                box.label(text=st["label"])
+                col = box.column(align=True)
+                for o in st["options"]:
+                    cur = _layout.get(st["id"])
+                    if cur is None:
+                        cur = next(x["id"] for x in st["options"] if x["default"])
+                    op = col.operator("adu.layout", text=o["label"],
+                                      depress=(o["id"] == cur))
+                    op.set_id = st["id"]
+                    op.option_id = o["id"]
+        else:
+            lay.separator()
+            lay.label(text="No variants.json — run finish_adu.py", icon="INFO")
+
         lay.separator()
         lay.label(text="Numpad 0 looks through the preset", icon="INFO")
 
 
-_CLASSES = (ADU_OT_view, ADU_PT_views)
+_CLASSES = (ADU_OT_view, ADU_OT_layout, ADU_PT_views)
 
 
 def register():

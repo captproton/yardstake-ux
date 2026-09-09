@@ -187,6 +187,59 @@ def main():
     gate("panel: re-running the file re-registers cleanly", again,
          "register() called twice without error")
 
+    # ---- the visibility modes must not fight the arrangements -------------
+    # This is the defect that prompted the gate: _show() blanket-unhid every
+    # mesh it was not told to hide, so pressing Full put the office desk
+    # through the bed -- exactly the state the manifest warns runtimes about,
+    # reproduced by a button in our own panel.
+    sets = views._presence()
+    gate("presence sets reach views.py", bool(sets),
+         f"{len(sets)} sets from {views.MANIFEST}"
+         if sets else "no manifest — run finish_adu.py first")
+
+    if sets:
+        controlled = views._controlled()
+        for mode in ("full", "dollhouse", "cutaway", "walkthrough",
+                     "interior_only"):
+            views.VISIBILITY[mode]()
+            visible = {n for n in controlled
+                       if (o := bpy.data.objects.get(n)) and not o.hide_get()}
+            per_set = []
+            for st in sets:
+                on = [o["id"] for o in st["options"]
+                      if o["show"] and set(o["show"]) <= visible]
+                extra = [n for o in st["options"] for n in o["show"]
+                         if n in visible and o["id"] not in on]
+                per_set.append((st["id"], on, extra))
+            bad = [f"{sid}:{on}" for sid, on, extra in per_set
+                   if len(on) != 1 or extra]
+            gate(f"{mode}(): exactly one arrangement visible per set", not bad,
+                 ", ".join(f"{sid}={on[0] if on else None}"
+                           for sid, on, _ in per_set)
+                 + (f" — WRONG {bad}" if bad else ""))
+
+        # Switching must actually switch, through the operator the panel uses.
+        st = sets[0]
+        alt = next(o for o in st["options"] if not o["default"] and o["show"])
+        bpy.ops.adu.layout(set_id=st["id"], option_id=alt["id"])
+        now = {n for n in views._controlled()
+               if (o := bpy.data.objects.get(n)) and not o.hide_get()}
+        gate("choosing an arrangement shows it and hides the others",
+             set(alt["show"]) <= now
+             and not any(n in now for o in st["options"] if o["id"] != alt["id"]
+                         for n in o["show"]),
+             f"{st['id']} -> {alt['id']}")
+
+        # And a visibility mode must not undo that choice.
+        views.full()
+        after = {n for n in views._controlled()
+                 if (o := bpy.data.objects.get(n)) and not o.hide_get()}
+        gate("a visibility mode preserves the chosen arrangement",
+             set(alt["show"]) <= after,
+             f"{alt['id']} still visible after full()")
+
+        views.layout(st["id"], next(o["id"] for o in st["options"] if o["default"]))
+
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
     print("=" * 96)
