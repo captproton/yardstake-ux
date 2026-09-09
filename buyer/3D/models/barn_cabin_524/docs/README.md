@@ -29,7 +29,7 @@ Phases P1–P4 are complete and gated:
 | **Tooling** | Camera presets + ADU sidebar panel, framing gated | **done** ([#71](https://github.com/captproton/yardstake-ux/pull/71)) — tooling only, cannot reach a `.glb` |
 | **Tooling** | `views.py` honours `presence`; manifest treated as untrusted | **done** ([#81](https://github.com/captproton/yardstake-ux/pull/81)) — our own panel put the desk through the bed; seven review findings across three passes |
 | **Tooling** | `inside_mesh` deduped into `verify_lib.py`, with a known-answer gate | **done** ([#82](https://github.com/captproton/yardstake-ux/pull/82)) — one bug that had to be fixed twice, and two dead leftovers the extraction itself created |
-| **Front elevation** | Gable window, half-lite entry door, projecting ridge beam | **in review** ([#83](https://github.com/captproton/yardstake-ux/pull/83)) — the sheet's third calibration attempt, and a door that had glazing all along |
+| **Front elevation** | Gable window, half-lite entry door, projecting ridge beam | **done** ([#83](https://github.com/captproton/yardstake-ux/pull/83)) — the sheet's third calibration attempt, and a door that had glazing all along |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -364,7 +364,8 @@ on its third review:
    parsing the file to see that no bare name was referenced. When a symbol
    looks alive, check what is actually referencing it.
 2. ~~**[#80](https://github.com/captproton/yardstake-ux/issues/80) — the front
-   elevation.**~~ In review. The measurement that had failed twice landed on
+   elevation.**~~ Shipped in
+   [#83](https://github.com/captproton/yardstake-ux/pull/83). The measurement that had failed twice landed on
    50.000 px/ft at the third attempt, and the reason it kept failing is worth
    more than the number: every opening on that sheet is drawn as a NEST of
    symmetric rectangles, and WHICH one is the size callout depends on the
@@ -376,6 +377,34 @@ on its third review:
    The door turned out not to be missing a feature: it had a working glazing
    slot that a single ternary blanked by renaming the pane. And the front
    gable, the face `views.front()` frames, had no window in it for eleven PRs.
+   Review then caught the same mistake being made a second time, quieter: the
+   new code chose the half-lite builder by asking whether a `construction`
+   block was PRESENT rather than what the opening's `type` SAID. Both call
+   sites now dispatch on the declared type, and a half-lite typed with nothing
+   to build it from raises instead of falling back to a slab — a silent
+   fallback is how that door spent eleven PRs as two flat boxes.
+**Both are shipped, so the queue is now the backlog below** — with three items
+found while building [#83](https://github.com/captproton/yardstake-ux/pull/83)
+and deliberately left out of it:
+
+- **`verify_tier2`'s UV gate has been failing on `main`.** Sixteen glazing
+  meshes carry no UV layer. This was NOT introduced by #83: it was checked by
+  stashing the branch and rebuilding, where it failed the same way on ten. It
+  matters because glass is the one material with no texture, so the gate has
+  been red for something that may not need fixing at all — and a suite that is
+  always red is a suite nobody reads. Decide whether glazing is exempt or
+  whether it needs UVs, and make the gate say which.
+- **Exterior casing is modelled on no window at all.** A1.1 draws head casing,
+  side casing and a sill with apron around the gable window, and around the
+  others. `Trim_` today is INTERIOR casing only. Adding it to the new window
+  alone would have been inconsistent, so it was left for a pass that does every
+  opening at once.
+- **The sheet contradicts itself at the ridge, and the model is right.** A1.1's
+  dash-dot "TOP OF ROOF" leader sits at z 17.32 while its own drawn apex is at
+  z 17.91 — seven inches apart. P3 chose the apex on independent evidence and
+  the build follows it. Recorded in `tools/tier3/front_elev.py` so the next
+  reader does not re-derive it as a defect. **No action wanted.**
+
 **Deferred, with the reason recorded so it stays a decision rather than an
 omission:** the `main()` split in the verify scripts and a `Box` value object.
 Both are genuine improvements to code that will be read for a long time, but
