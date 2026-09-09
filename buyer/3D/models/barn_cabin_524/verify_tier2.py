@@ -48,31 +48,36 @@ def main():
     # split from the thing that actually breaks a render.
     exempt = {f"adu_{k}" for k in tx.get("uv_exempt_materials", [])}
 
-    def mats(o):
-        return [ms.material for ms in o.material_slots if ms.material]
+    # Walked ONCE per mesh. Both gates below need the material list and the
+    # textured subset, and node-tree traversal is the expensive part.
+    def image_textured(m):
+        return m.use_nodes and any(n.type == "TEX_IMAGE"
+                                   for n in m.node_tree.nodes)
 
-    def textured(o):
-        return [m for m in mats(o)
-                if m.use_nodes
-                and any(n.type == "TEX_IMAGE" for n in m.node_tree.nodes)]
+    survey = []
+    for o in meshes:
+        ms = [s.material for s in o.material_slots if s.material]
+        survey.append((o, ms, [m for m in ms if image_textured(m)],
+                       bool(o.data.uv_layers)))
 
     # 1. THE FAILURE MODE. A texture with no UVs samples garbage. This is what
     #    the old gate was reaching for, and it never tested it directly.
-    bad = [f"{o.name} ({', '.join(m.name for m in textured(o))})"
-           for o in meshes if textured(o) and not o.data.uv_layers]
+    bad = [f"{o.name} ({', '.join(m.name for m in tex)})"
+           for o, _, tex, has_uv in survey if tex and not has_uv]
     gate("every image-textured mesh carries a UV layer", not bad,
          ", ".join(bad) or
-         f"{sum(1 for o in meshes if textured(o))} textured meshes")
+         f"{sum(1 for _, _, tex, _ in survey if tex)} textured meshes")
 
     # 2. Nothing skips UVs without saying so. A mesh may go without only if
     #    EVERY material on it is declared exempt -- so an untextured material
     #    that is not on the list still fails, and the list stays the record.
-    undeclared = [f"{o.name} ({', '.join(m.name for m in mats(o)) or 'no material'})"
-                  for o in meshes if not o.data.uv_layers
-                  and not (mats(o) and all(m.name in exempt for m in mats(o)))]
+    undeclared = [f"{o.name} ({', '.join(m.name for m in ms) or 'no material'})"
+                  for o, ms, _, has_uv in survey
+                  if not has_uv and not (ms and all(m.name in exempt
+                                                    for m in ms))]
     gate("only declared-exempt materials skip UVs", not undeclared,
          ", ".join(undeclared) or
-         f"{sum(1 for o in meshes if not o.data.uv_layers)} exempt, "
+         f"{sum(1 for _, _, _, has_uv in survey if not has_uv)} exempt, "
          f"all on {sorted(exempt) or ['nothing']}")
 
     # 3. The list must name real materials. Same discipline finish_adu.py
