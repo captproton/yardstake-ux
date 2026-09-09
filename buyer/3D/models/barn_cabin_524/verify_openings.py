@@ -190,7 +190,18 @@ def sash_gates(spec):
             rows.append((name, o["type"], "MISSING", ""))
             ok = False
             continue
-        typ = ws["types"][o["type"]]
+        # A TYPE THE SPEC DOES NOT DEFINE IS A FINDING, NOT A CRASH. Indexing
+        # straight into types[] would raise a KeyError out of the whole run,
+        # so the suite would abort without naming the window that caused it --
+        # a traceback where a readable gate failure belongs. build_adu already
+        # refuses this case with a clear message; the gate should report it.
+        typ = ws["types"].get(o["type"])
+        if typ is None:
+            rows.append((name, o["type"], "FAIL",
+                         f"no such type in spec.windows.types "
+                         f"(have {sorted(ws['types'])})"))
+            ok = False
+            continue
         units, rail = typ["units"], typ["meeting_rail"]
         zc = z0 + (z1 - z0) * mr_r
         step = (a1 - a0) / units

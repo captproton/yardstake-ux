@@ -529,10 +529,17 @@ trim:
     raw: "3 5/8\""
     confidence: measured_approx
     source: >
-      The band between the sill board and the second line below it: 3.60",
-      3.60" and 3.84" on the same three windows. Narrower than the 3 1/2"
-      casing on two of the three and wider on the gable, so it is recorded as
-      approximate rather than snapped to the casing stock.
+      The band between the sill board and the second line below it. The sheet
+      gives the two EDGES -- the sill board's underside at 1.92", 1.92" and
+      2.16" below the unit, and the apron's at 5.52", 5.52" and 6.00" -- so
+      the band itself is the difference: 3.60", 3.60" and 3.84". Recording
+      both edges here because reading the lower edge alone as the apron's
+      height is an easy and wrong subtraction to skip.
+      All three land just WIDER than the 3 1/2" casing rather than narrower,
+      by between a tenth and a third of an inch. That is inside a line weight
+      at this scale, which is why it is `measured_approx` and why it is NOT
+      snapped to the casing stock: the sheet does not say they are the same
+      section, and 3 5/8" is the honest mean of what it draws.
   exterior_sill_projection:
     ft: 0.125
     raw: "1 1/2\""
