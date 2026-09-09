@@ -25,6 +25,7 @@ from mathutils import Vector
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from build_adu import load_spec  # noqa: E402
+from verify_lib import inside_mesh, inside_mesh_cases  # noqa: E402
 
 FAILED = []
 
@@ -38,31 +39,6 @@ def gate(name, ok, detail=""):
     print(f"  [{'PASS' if ok else 'FAIL'}] {name:56s} {detail}")
     if not ok:
         FAILED.append(name)
-
-
-def inside_mesh(ob, p):
-    """Is p within ob's surface?
-
-    TWO TESTS, AND BOTH ARE NEEDED.
-
-    The bounding box alone is useless against this model's merged meshes --
-    Appl_body's box covers most of the building. But the nearest-surface test
-    alone is ALSO wrong: closest_point_on_mesh gives a meaningless answer for a
-    point far outside an open or lofted shell, and the first version of this
-    gate duly reported a sofa in the living room as being inside a toilet eight
-    feet away in the bathroom.
-
-    Inside implies inside the bounding box, so the box is a sound prefilter,
-    and the surface test then does the real work.
-    """
-    cs = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
-    if not (min(c.x for c in cs) <= p.x <= max(c.x for c in cs)
-            and min(c.y for c in cs) <= p.y <= max(c.y for c in cs)
-            and min(c.z for c in cs) <= p.z <= max(c.z for c in cs)):
-        return False
-    local = ob.matrix_world.inverted() @ p
-    ok, loc, nor, _ = ob.closest_point_on_mesh(local)
-    return bool(ok) and (local - loc).dot(nor) < 0
 
 
 def piece_box(pc):
@@ -106,6 +82,25 @@ def main():
     gate("exactly one default arrangement per room", not bad,
          ", ".join(f"{r}={sum(d)}" for r, d in sorted(rooms.items()))
          + (f" — WRONG {bad}" if bad else ""))
+
+    # ---- 1a. the shared helper, against known answers --------------------
+    # inside_mesh is now in verify_lib and used by two gate files. A shared
+    # helper with one home needs a test with one home: these cases pin the
+    # behaviour that a bounding box alone gets wrong (a point inside a merged
+    # mesh's box but in open floor) and the behaviour that a nearest-surface
+    # test alone gets wrong (a point far outside an open shell).
+    wrong = []
+    for name, pt, expect, why in inside_mesh_cases(bpy.data.objects):
+        ob = bpy.data.objects.get(name)
+        if ob is None:
+            wrong.append(f"{name} missing")
+            continue
+        if inside_mesh(ob, pt) != expect:
+            wrong.append(f"{name} @ {tuple(round(v, 2) for v in pt)}: "
+                         f"expected {expect} ({why})")
+    gate("inside_mesh agrees with its known answers", not wrong,
+         f"{len(inside_mesh_cases(bpy.data.objects))} cases"
+         + (f" — WRONG {wrong}" if wrong else ""))
 
     # ---- 1b. the two declarations of "default" must agree ----------------
     # There are now two: fixtures.furniture.arrangements[].default decides what
