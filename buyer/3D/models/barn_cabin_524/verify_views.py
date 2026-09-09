@@ -134,6 +134,49 @@ def main():
          min(worst_u, worst_v) < 0.25,
          "it fills enough of the frame to be worth looking at")
 
+    # ---- the sidebar panel -----------------------------------------------
+    gate("panel: the operator and panel are registered",
+         hasattr(bpy.types, "ADU_OT_view") and hasattr(bpy.types, "ADU_PT_views"),
+         "adu.view + Barn Cabin 524 panel")
+
+    # A button that names a view which does not exist is a dead button, and
+    # the panel builds its buttons straight from these dicts.
+    missing = [k for k, v in views.ALL.items() if not callable(v)]
+    unlabelled = [k for k in views.ALL if k not in views.LABELS]
+    gate("panel: every button maps to a callable view",
+         not missing and not unlabelled,
+         f"{len(views.ALL)} views"
+         + (f" — NOT CALLABLE {missing}" if missing else "")
+         + (f" — NO LABEL {unlabelled}" if unlabelled else ""))
+
+    gate("panel: camera presets and visibility modes do not collide",
+         set(views.PRESETS).isdisjoint(views.VISIBILITY),
+         f"{len(views.PRESETS)} camera + {len(views.VISIBILITY)} visibility")
+
+    # END TO END: the button must actually move the camera, not merely exist.
+    # Start from a DIFFERENT camera preset. The first version of this gate
+    # used full(), which only changes visibility -- the camera never moved, so
+    # "before == after" and the gate failed on correct behaviour.
+    views.kitchen()
+    before = tuple(bpy.data.objects["View_preset"].location)
+    bpy.ops.adu.view(view="front")
+    after = tuple(bpy.data.objects["View_preset"].location)
+    gate("panel: pressing a button actually moves the camera",
+         before != after and after[1] < model[2],
+         f"camera now at y {after[1]:.1f}, south of the building at {model[2]:.1f}")
+
+    # Running the file twice is normal with exec(open(...)); a plain
+    # register_class would raise the second time and half-install the panel.
+    try:
+        views.register()
+        views.register()
+        again = True
+    except Exception as exc:                                  # noqa: BLE001
+        again = False
+        print(f"        re-register raised: {exc}")
+    gate("panel: re-running the file re-registers cleanly", again,
+         "register() called twice without error")
+
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
     print("=" * 96)

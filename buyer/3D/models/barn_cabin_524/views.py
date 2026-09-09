@@ -5,6 +5,13 @@ Run from Blender's Text Editor (Open -> views.py -> Run Script), or from the
 Python Console:
 
     exec(open("/full/path/to/views.py").read())
+
+That registers a **sidebar panel**: press N in the 3D viewport and pick the
+"ADU" tab. Every mode below is a button there, which is the intended way to
+move between them -- the console is for scripting, not for clicking.
+
+The functions stay callable by hand:
+
     dollhouse()
 
 then one of these VISIBILITY modes:
@@ -311,6 +318,116 @@ def front():
 
 
 PRESETS = {"kitchen": kitchen, "bathroom": bathroom, "front": front}
+
+
+# ---------------------------------------------------------------------------
+# Sidebar panel
+# ---------------------------------------------------------------------------
+# Everything above is callable from the Python Console, which is fine for
+# scripting and poor for looking. Switching view meant retyping a name or
+# hunting through console history, so the modes are buttons: N in the 3D
+# viewport, "Views" tab.
+VISIBILITY = {
+    "full": full,
+    "dollhouse": dollhouse,
+    "cutaway": cutaway,
+    "walkthrough": walkthrough,
+    "interior_only": interior_only,
+}
+
+# One lookup for both kinds, so the panel and the operator cannot disagree
+# about what exists. A gate in verify_views.py asserts every entry is callable.
+ALL = dict(PRESETS, **VISIBILITY)
+
+LABELS = {
+    "kitchen": "Kitchen",
+    "bathroom": "Bathroom",
+    "front": "Front elevation",
+    "full": "Full",
+    "dollhouse": "Dollhouse",
+    "cutaway": "Cutaway",
+    "walkthrough": "Walkthrough",
+    "interior_only": "Interior only",
+}
+
+
+class ADU_OT_view(bpy.types.Operator):
+    """Jump to one of the Barn Cabin 524 views"""
+
+    bl_idname = "adu.view"
+    bl_label = "ADU view"
+    bl_options = {"REGISTER", "UNDO"}
+
+    view: bpy.props.StringProperty(name="View", default="full")
+
+    def execute(self, context):
+        fn = ALL.get(self.view)
+        if fn is None:
+            self.report({"ERROR"}, f"no such view: {self.view!r}")
+            return {"CANCELLED"}
+        fn()
+        return {"FINISHED"}
+
+
+class ADU_PT_views(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    # NOT "Views": Blender ships a built-in "View" tab in this same sidebar,
+    # and the two sit next to each other in the tab strip. "ADU" cannot be
+    # confused with anything Blender provides.
+    bl_category = "ADU"
+    bl_label = "Barn Cabin 524"
+
+    def draw(self, context):
+        lay = self.layout
+
+        lay.label(text="Camera", icon="CAMERA_DATA")
+        col = lay.column(align=True)
+        for key in PRESETS:
+            col.operator("adu.view", text=LABELS[key]).view = key
+
+        lay.separator()
+        lay.label(text="Visibility", icon="HIDE_OFF")
+        col = lay.column(align=True)
+        for key in VISIBILITY:
+            col.operator("adu.view", text=LABELS[key]).view = key
+
+        lay.separator()
+        lay.label(text="Numpad 0 looks through the preset", icon="INFO")
+
+
+_CLASSES = (ADU_OT_view, ADU_PT_views)
+
+
+def register():
+    """Idempotent on purpose.
+
+    This file is normally run with `exec(open(...).read())`, which people do
+    more than once in a session. A plain register_class would raise
+    "already registered" the second time and leave the panel half-installed,
+    so anything already there is removed first.
+    """
+    for cls in _CLASSES:
+        old = getattr(bpy.types, cls.__name__, None)
+        if old is not None:
+            try:
+                bpy.utils.unregister_class(old)
+            except RuntimeError:
+                pass
+        bpy.utils.register_class(cls)
+
+
+def unregister():
+    for cls in reversed(_CLASSES):
+        old = getattr(bpy.types, cls.__name__, None)
+        if old is not None:
+            try:
+                bpy.utils.unregister_class(old)
+            except RuntimeError:
+                pass
+
+
+register()
 
 
 if __name__ == "__main__":
