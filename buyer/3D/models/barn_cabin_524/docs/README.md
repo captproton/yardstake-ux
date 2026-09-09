@@ -27,6 +27,7 @@ Phases P1–P4 are complete and gated:
 | **Tier 3g** | Furniture, in switchable arrangements | **done** ([#77](https://github.com/captproton/yardstake-ux/pull/77)) — Tier 3's last unbuilt item; merging deliberately stops at the arrangement boundary |
 | **Configurator** | Presence-swap variants — bedroom / office / unfurnished | **done** ([#78](https://github.com/captproton/yardstake-ux/pull/78)) — a sibling of `sets`, purely additive |
 | **Tooling** | Camera presets + ADU sidebar panel, framing gated | **done** ([#71](https://github.com/captproton/yardstake-ux/pull/71)) — tooling only, cannot reach a `.glb` |
+| **Tooling** | `views.py` honours `presence`; manifest treated as untrusted | **done** ([#81](https://github.com/captproton/yardstake-ux/pull/81)) — our own panel put the desk through the bed; seven review findings across three passes |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -56,6 +57,22 @@ unfurnished. A runtime can only toggle what is in the file, so **`lod0` carries
 the bedroom twice**, and a viewer that ignores `presence` renders a desk through
 a bed. That obligation is spelled out in
 [TIER-2 §presence](TIER-2-materials-and-textures.md#presence--a-second-block-not-a-second-meaning-for-sets).
+
+**The viewer obligation was one we were failing ourselves.** `presence` tells
+runtimes that `lod0` carries the bedroom twice and that ignoring the block
+renders a desk through a bed — and our own sidebar did exactly that, because
+`_show()` blanket-unhid every mesh it was not told to hide. [#81](https://github.com/captproton/yardstake-ux/pull/81)
+made `views.py` read the manifest and honour it, and now gates that **exactly
+one arrangement is visible per set** in all five visibility modes. The warning
+we wrote for other people's runtimes was reproduced by a button in our own
+panel, which is the cheapest possible place to have found it.
+
+**That PR took three review passes and produced seven findings, all ours.**
+Every one was a version of the same thing — the manifest might not be what I
+expect — and the last was the sharpest: `_presence()` claimed *"validated, not
+assumed"* while still indexing two keys it never checked. Rules 24, 25 and 26
+below all come out of it. It is the most-reviewed PR in this ladder and the one
+worth reading before writing the next gate.
 
 **A gate can be right and still not cover the failure.** The office rug
 shipped **invisible** — 1/2" thick, resting at zero, under a 3/4" floor finish,
@@ -329,6 +346,28 @@ That sentence has been wrong before. After [#67](https://github.com/captproton/y
 was done while the tub/shower and the stacked washer/dryer were both measured
 and unbuilt. It is safe to write now only because `verify_geometry.py` and
 `verify_furniture.py` both pass, and both test POSITION rather than names.
+**Next, in order.** Two small items came out of [#81](https://github.com/captproton/yardstake-ux/pull/81)
+and were deliberately held out of it rather than widening a PR that was already
+on its third review:
+
+1. **Dedupe `inside_mesh`.** Two copies, one bug, two fixes — the only case
+   this session where the *structure* manufactured a second defect rather than
+   merely failing to prevent one. Its own small PR, now unblocked because
+   `verify_views.py` is free.
+2. **[#80](https://github.com/captproton/yardstake-ux/issues/80) — the front
+   elevation**: gable window, front-door glazing, ridge beam. Starts with the
+   measurement that has already been got wrong twice, so take it from the
+   sheet, not from the model. Carries the `Door_`/`Glazing_` ternary fix, which
+   belongs there because that conditional-on-type is what shipped the defect.
+
+**Deferred, with the reason recorded so it stays a decision rather than an
+omission:** the `main()` split in the verify scripts and a `Box` value object.
+Both are genuine improvements to code that will be read for a long time, but
+classifying this session's twenty-five defects put only three in the
+duplication bucket — neither refactor would have prevented what actually bit
+us, and doing them now means a large no-behaviour-change diff across every
+verify file. Revisit when a third caller needs one of them.
+
 In order of value:
 
 | Work | Notes |
@@ -512,6 +551,12 @@ Keep these — they caught real errors:
     aimed at the wrong line is indistinguishable from a gate that cannot fail,
     and one of those in [#81](https://github.com/captproton/yardstake-ux/pull/81)
     reported ALL PASS on code written to be broken.
+    *Applies to the gate's own fixtures too.* The schema gate manufactures
+    malformed manifests, and its duplicate-id case was built by copying an
+    option — which copies the `default` flag as well, so the case was caught by
+    the exactly-one-default rule while the duplicate-id rule it was named for
+    never ran. **A fixture broken in two ways only tests the first.** Break one
+    property at a time, or the gate reports on a rule it never reached.
 25. **Anything read from disk is untrusted input, including files this project
     writes.** `views.py` reads `export/variants.json`, which `finish_adu.py`
     produces — and every one of six findings in
@@ -523,3 +568,24 @@ Keep these — they caught real errors:
     shape, degrade WHOLE rather than partially — a half-applied config is worse
     than none — and treat "we generated this file ourselves" as no guarantee at
     all.
+26. **Derive the schema from what the code indexes; do not list the keys you
+    happen to think of.** Rule 25 was applied and still got this wrong one
+    level down: `_presence()` validated `id`, `options` and `show`, carried the
+    comment **"VALIDATED, NOT ASSUMED"**, and left `label` and `default`
+    subscripted unconditionally — so a manifest missing either raised out of
+    the panel's `draw()` and left the sidebar blank. The fix was mechanical
+    rather than clever: grep every unconditional subscript across the consumers
+    and require exactly that set. Three things follow.
+    *A key can carry an invariant, not just a type.* Three call sites did
+    `next(o for o in options if o["default"])` with a bare `next()`; zero
+    defaults raises `StopIteration` mid-redraw and two silently take whichever
+    came first. Checking **exactly one** once, in the validator, is what makes
+    all three safe — cardinality belongs with the schema, not at each use.
+    *The silent malformations are the dangerous ones.* Of twelve cases, the
+    nine that raise are the benign half: a blank sidebar is loud and gets
+    fixed. Two defaults, or duplicate ids, raise nothing at all and simply
+    apply one arrangement while reporting another — the wrong-answer-reported-
+    as-right failure this file had already shipped once.
+    *A false claim in a comment is worse than no comment.* "Validated, not
+    assumed" is what the next reader trusts instead of re-checking. If the
+    docstring makes a promise, the gate must be able to break it.
