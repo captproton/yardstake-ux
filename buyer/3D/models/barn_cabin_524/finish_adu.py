@@ -182,7 +182,7 @@ def add_glazing(spec, geo, coll):
              c - d / 2, c + d / 2, o["sill"], o["sill"] + o["h"])
     for o in op["south_wall"]["openings"]:
         c = SY + t / 2
-        if "construction" in o:
+        if o["type"].startswith("half_lite"):
             # A HALF-LITE DOOR GETS SIX PANES, NOT ONE SHEET.
             #
             # This line used to read
@@ -197,6 +197,12 @@ def add_glazing(spec, geo, coll):
             # Replacing it with one pane would have been the other wrong answer:
             # a single sheet across the upper half is a windscreen, not the door
             # A1.1 draws. The lites are placed in the grid the leaf leaves open.
+            #
+            # The discriminator is the DECLARED TYPE. Keying on whether a
+            # `construction` block exists would make the glazing follow the
+            # metadata's shape instead of the opening's identity -- the same
+            # mistake as the ternary above, one level quieter. build_adu.py
+            # raises on a half-lite typed without one, so by here it exists.
             cn = o["construction"]
             st, mw = cn["stile"]["ft"], cn["muntin_width"]["ft"]
             gx0, gx1 = o["offset"] + st, o["offset"] + o["w"] - st

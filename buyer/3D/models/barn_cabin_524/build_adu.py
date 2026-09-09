@@ -839,7 +839,20 @@ def build(spec, cut_openings=True):
         if not o["type"].endswith("door"):
             continue
         c = SY + t / 2
-        if "construction" in o:
+        # DISPATCH ON THE DECLARED TYPE, not on which keys happen to be present.
+        # `type: half_lite_entry_door` has been in the spec the whole time; the
+        # defect this PR fixes was the build IGNORING it. Branching on whether a
+        # `construction` block exists would repeat that in a quieter form: the
+        # geometry would then follow the metadata's shape, and the next opening
+        # to gain a construction or provenance block would silently change what
+        # gets built. A type that says half-lite and no construction to build it
+        # from is a SPEC ERROR and says so, rather than falling back to a slab.
+        if o["type"].startswith("half_lite"):
+            if "construction" not in o:
+                raise SystemExit(
+                    f"{o['id']} is typed {o['type']} but carries no "
+                    "`construction` block. A half-lite door cannot be built "
+                    "from a type alone -- add the block or change the type.")
             half_lite(f"Door_{o['id']}", o, c - lt / 2, c + lt / 2)
         else:
             leaf(f"Door_{o['id']}", o["offset"], o["offset"] + o["w"],
