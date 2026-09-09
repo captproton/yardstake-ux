@@ -580,6 +580,20 @@ variants:
         - {id: tan_granite,   label: Tan granite,   value: [0.520, 0.450, 0.360],
            source: "video 1:13 and 2:14 — the tan/beige unit"}
         - {id: charcoal,      label: Charcoal quartz, value: [0.140, 0.140, 0.145]}
+    - id: sconce_finish
+      label: Exterior light finish
+      targets: [adu_fixture_galv]
+      note: >
+        The as-built fixture is galvanized (SHOPPING-GUIDE.pdf p9), so that is
+        the default. The other two are the finishes the same fixture family is
+        stocked in, and they cost nothing: fixture_galv carries no texture map,
+        so its colour IS its base colour and a swap is three floats. Matte black
+        is what the competitor configurators default to.
+      options:
+        - {id: galvanized, label: Galvanized, value: [0.340, 0.352, 0.362], default: true,
+           source: "SHOPPING-GUIDE.pdf p9 — Westinghouse Galvanized Steel Finish"}
+        - {id: matte_black, label: Matte black, value: [0.030, 0.031, 0.033]}
+        - {id: bronze,      label: Oil-rubbed bronze, value: [0.062, 0.048, 0.038]}
   not_yet:
     - "Roof MATERIAL (metal vs shingle) — a colour swap cannot do it; needs a second texture."
     - "Styles and floor-plan variants — those are geometry, not materials."
@@ -1010,6 +1024,126 @@ fixtures:
     - {id: elec_meter_panel, reason: "EXTERIOR, north-east corner"}
     - {id: smoke_co_detectors, reason: "ceiling items, tagged SD and SD/CO; no footprint"}
     - {id: upper_cabinets, reason: "not drawn in plan at all — see kitchen.upper_cab.note"}
+  mounted:
+    # WALL-MOUNTED FIXTURES. A DIFFERENT ANCHOR FROM EVERYTHING ABOVE.
+    #
+    # Every fixture in this section so far stands on a floor inside a measured
+    # footprint: x, y, w, d. A sconce does not. It hangs on a named wall, a
+    # distance along it, at a height, facing out. Forcing it into the footprint
+    # datum would mean inventing a footprint it does not have, so this
+    # subsection carries its own.
+    datum: >
+      `surface` names a wall object from build_adu. `along` is measured from the
+      WEST exterior corner — the same datum as openings.main_floor, so a sconce
+      and a door can be compared directly. `height_aff` is to the CENTRE OF THE
+      WALL CANOPY above main finished floor. `facing` is the outward normal in
+      the model frame (east=+X, north=+Y, up=+Z).
+    source_rule: >
+      THE PLAN SET CANNOT SOURCE THIS AND NEVER COULD. The AUTHORITY RULE at the
+      top of this file says the PDF is the only geometry authority and video may
+      flag a discrepancy but never override a plan dimension. Nothing here
+      overrides anything: the sheet index runs A0.0, A1.0, A1.1, A2.0, A3.0,
+      A4.0, N-1 and there is NO ELECTRICAL SHEET — no sheet on which a light
+      fixture could be drawn. So the video is not a second opinion here, it is
+      the only opinion, and every number below is marked accordingly.
+      This is the first POSITION in this spec taken from footage rather than a
+      drawing. Earlier video use was confined to colour and to settling which
+      option was toured.
+    product_source:
+      doc: "example plans/thataduguy/SHOPPING-GUIDE.pdf, page 9"
+      heading: WALL-MOUNTED LIGHTS
+      item: "Westinghouse Galvanized Steel Finish Lighting Fixture"
+      ref_image: refs/shopping_guide_wall_sconce.png
+      gives: >
+        FAMILY AND FINISH, NOT DIMENSIONS. The guide names no size and carries no
+        spec sheet, so it settles what the fixture IS — a galvanized steel
+        gooseneck barn sconce — and proportions are read off its product photo.
+        It does not settle how big the installed one is; the video does that.
+    measurement:
+      frame: "video 1:37, front elevation of the porch — refs/video_porch_sconce_1-37.jpg"
+      px_per_ft_h: 47.94
+      px_per_ft_v: 48.45
+      calibration: >
+        HORIZONTAL, from the longest baseline the frame offers: the west edge of
+        W-LIVING-S1 (offset 3.04) to the east edge of W-LIVING-S2 (offset 18.54)
+        is 743 px for 15.50 ft. Checked against openings that were NOT used to
+        set it: the front door's west jamb predicts px 556.9 and measures 556
+        (-0.23"), its east jamb predicts 700.7 and measures 695 (-1.4").
+        VERTICAL, from the front door leaf: 246 px (head, 6.667 ft) to 569 px
+        (threshold, 0.0 ft) is 48.45 px/ft. The two scales differ by 1.1%, which
+        is lens distortion in a 1280x720 action-camera frame, not a real
+        anisotropy. Cross-check: the porch ceiling reads 8.13 ft against a
+        8'-0" plate, +1.6".
+      tolerance_in: 2.0
+      why_tolerance_is_coarse: >
+        The fixture is about 50 px wide in the only frame that shows it square
+        on. Every edge is two or three pixels of blur. 1" precision is not
+        available here and claiming it would be the same error the fixture
+        footprints avoided by measuring drawn lines instead of ink boxes.
+    items:
+    - id: SCONCE_PORCH
+      surface: Wall_S
+      side: exterior
+      facing: [0, -1, 0]
+      along: {ft: 8.26, raw: "8'-3\"", source: "video 1:37, canopy centre at px x=508"}
+      height_aff: {ft: 7.25, raw: "7'-3\"", source: "video 1:37, canopy centre at px y=210 reads 7.41; lowered 1.9\" to clear the porch ceiling — see discrepancies.sconce-does-not-fit-under-the-modelled-soffit"}
+      form: gooseneck_barn
+      material: fixture_galv
+      lit_lens: true
+      note: >
+        Sits in the 2.36 ft of blank wall between the east edge of W-LIVING-S1
+        (7.04) and the west jamb of D-FRONT (9.40). The centre of that gap is
+        8.22; the fixture measures 8.26, so it is centred in the gap to within
+        half an inch. That is a corroboration, not the source — it was measured
+        first and noticed after.
+      height_note: >
+        7'-5" is high for a sconce beside a door, where 66"-72" is usual. It is
+        not flanking the door, it is a downlight over the entry walk, mounted
+        above the door head (6'-8") and above the house numbers. The video shows
+        it clearly above a standing adult's head.
+      confidence: measured_from_video_single_frame
+      two_units_caveat: >
+        video_sources records that the tour intercuts at least two different
+        built units of this plan. The 1:37 frame is one exterior, so this sconce
+        describes THAT unit's entry, not a fact about the design. It is a
+        reasonable default and not a specification, which is the same footing
+        the finishes sampled from the video sit on.
+    forms:
+      gooseneck_barn:
+        # Proportions cross-checked two ways, and this is the reason the sizes
+        # below are trusted at all. The product photo gives an overall
+        # height-to-shade-width ratio of 0.927 (179 px by 193 px). The installed
+        # fixture in the video gives 0.930 (0.970 ft by 1.043 ft). Two different
+        # images of two different objects agreeing to 0.3% is what says the
+        # guide's fixture and the built fixture are the same thing.
+        shade_dia:    {ft: 1.00,  raw: "12\"",      source: "video, rim spans 50 px; a stock size, measured 12.5\""}
+        shade_height: {ft: 0.42,  raw: "5\"",       confidence: assumed, source: "product photo proportion"}
+        neck_dia:     {ft: 0.22,  raw: "2-5/8\"",   confidence: assumed, source: "product photo — the ribbed fitter is visible in the video too"}
+        neck_height:  {ft: 0.17,  raw: "2\"",       confidence: assumed}
+        canopy_dia:   {ft: 0.40,  raw: "4-3/4\"",   confidence: derived,
+                       source: "shade_dia divided by the product photo's 2.57 shade:canopy ratio. Measured directly off the video it reads 6.8\", but the canopy is half-hidden behind the shade there and its edge is the blurriest in the frame."}
+        canopy_depth: {ft: 0.15,  raw: "1-3/4\"",   confidence: assumed}
+        arm_dia:      {ft: 0.06,  raw: "3/4\"",     confidence: assumed, source: "nominal pipe"}
+        rise:         {ft: 0.60,  raw: "7-1/4\"",   source: "video, canopy centre y=210 to arm peak y=181"}
+        projection:   {ft: 0.79,  raw: "9-1/2\"",   confidence: estimated_from_parallax}
+        projection_method: >
+          A frontal frame cannot measure depth directly, so this comes from
+          parallax. The arm's two legs sit 13 px apart on screen at 140 px left
+          of frame centre; for a pinhole camera that separation is the arc's
+          depth times the offset over the camera distance. Camera distance is
+          itself derived: the man in frame measures 445 px where a 5'-10" adult
+          at the wall plane would measure 283 px, so he is magnified 1.57x, so
+          the camera is 2.75x his standoff. At a mid-porch standoff of 3 ft that
+          puts the camera 8.3 ft out and the projection at 9.5".
+          EVERY STEP OF THAT IS AN ESTIMATE. Treat it as +/- 3", and note the
+          check it does pass: with these numbers the shade rim lands at 7.03 ft
+          and the video measures 7.04.
+        clearance_note: >
+          The arm peaks at 8.01 ft. The porch ceiling is the 8'-0" plate. The
+          fixture therefore very nearly touches the soffit, which looks wrong
+          and is what the frame shows. verify_mounted.py gates it rather than
+          trusting it.
+
   furniture:
     # Settled in TIER-3 section 4: furniture and appliances are both SHOWN and
     # neither is included in the price, matching how Studio-Home presents its
@@ -1391,6 +1525,51 @@ materials:
       roughness: 0.12
       metallic: 0.0
       source: "Bath mirror glass — video 3:03."
+    fixture_galv:
+      # Weathered hot-dip galvanized steel. The exterior sconce, and the first
+      # material in this file whose SOURCE IS A DOCUMENT rather than a frame:
+      # SHOPPING-GUIDE.pdf p9 names "Westinghouse Galvanized Steel Finish".
+      #
+      # HUE COULD NOT BE SAMPLED, AND THE ATTEMPT IS WORTH RECORDING. The shade
+      # in shadow at video 1:37 samples linear [0.270, 0.194, 0.100], a hue of
+      # 1 : 0.717 : 0.369. The cream siding six inches to its left samples
+      # 1 : 0.723 : 0.367 — the same hue to three decimal places. That is not a
+      # warm fixture, it is a grey fixture full of bounce off a cream wall in
+      # late afternoon sun. The sunlit rim, which sees the sky instead, reads
+      # 1 : 0.932 : 0.706 and is nearly neutral. Sampling the shaded patch would
+      # have painted the sconce the colour of the siding and every render would
+      # have looked subtly wrong with nothing to point at. Same failure mode as
+      # the pollinator-garden patch in materials.provenance, caught earlier.
+      #
+      # So: near-neutral grey at a plausible albedo for weathered galvanizing,
+      # a hair cool, and the document trusted over the frame.
+      base_color_linear: [0.340, 0.352, 0.362]
+      roughness: 0.55
+      metallic: 0.35
+      neutral_albedo: false
+      source: "SHOPPING-GUIDE.pdf p9 WALL-MOUNTED LIGHTS; form confirmed at video 1:37"
+      metallic_note: >
+        Not metallic 0.9 like `steel`. That value is right for a stainless hood
+        indoors under even light; on an exterior fixture with no reflection
+        probe guaranteed in a web viewer, high metallic renders as a dark blob
+        because there is nothing for it to reflect. 0.35 keeps a diffuse base
+        that reads as galvanized in any renderer. Same reasoning as `mirror`:
+        correct beats literal.
+    lamp_glow:
+      # The LOOK of a lit lamp, not a light source. A disc inside the shade
+      # mouth, emissive. It illuminates nothing.
+      #
+      # Deliberately NOT KHR_lights_punctual. A real light is a viewer feature,
+      # it is expensive to make look right, and it is not needed for the fixture
+      # to read as switched on. Emission ships everywhere and costs one quad.
+      # Day and night are then an emissive_factor swap at runtime, the same
+      # trick the colour variants use.
+      base_color_linear: [0.95, 0.88, 0.72]
+      emissive_linear: [1.00, 0.86, 0.60]
+      emissive_strength: 2.5
+      roughness: 0.4
+      metallic: 0.0
+      source: "Warm 2700K lamp — the standard for an entry fixture. Not measured; the video is a daylight shot and the lamp is off in it."
     appliance_dark:
       # Cooktop and oven-door glass. Near-black and glossy, NOT the `glass`
       # material — that carries transmission and would render the oven door as
@@ -1458,6 +1637,10 @@ materials:
     Cab_basin: steel
     Cab_faucet: steel
     Cab_: cab_wood
+    # Mounted lighting. Light_lens must precede Light_: first match wins, and
+    # the lens is the one emissive surface on an otherwise galvanized fixture.
+    Light_lens: lamp_glow
+    Light_: fixture_galv
 
 # ---------------------------------------------------------------------------
 foundation:
@@ -1590,6 +1773,43 @@ areas_declared:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: sconce-does-not-fit-under-the-modelled-soffit
+    impact: >
+      Measured straight off video 1:37 the sconce needs 8.02 ft from finished floor
+      to the top of its arm: canopy centre 7.41, plus 0.60 of rise, plus the arm's
+      own 0.03 radius. The modelled porch ceiling starts at 7.90 (plate 8.00 less a
+      0.1 ft soffit, build_adu.py:563). The fixture therefore passed through the
+      ceiling by 1.4", which verify_mounted.py failed it for.
+    resolution: >
+      THE FRAME AND THE PLAN DISAGREE BY LESS THAN THIS SPEC'S OWN TOLERANCE, so
+      the fixture was moved rather than the ceiling.
+      Checked first, because "shift it until the gate goes green" is how a model
+      acquires a lie: the wall/soffit junction in the frame was measured directly,
+      by scanning columns of clear wall either side of the fixture. It falls at
+      px y=183, which is 7.97 ft — against the modelled 7.90. That is a 0.8"
+      disagreement, inside the 2" tolerance this section declares, and the plan is
+      the authority for the ceiling. So the frame is not evidence that the ceiling
+      is wrong; it is evidence that the frame cannot resolve an inch.
+      The fixture's INTERNAL proportions are the stronger measurement — its
+      height-to-width ratio reproduces the product photo's to 0.3% — so those were
+      kept intact and the whole assembly was dropped 1.9", to a canopy at 7.25.
+      The arm now clears the soffit by 1/4".
+    cost: >
+      The shade rim lands at 6.87 where the frame reads 7.04, so the fixture sits
+      2.1" lower than the single-frame measurement — a tenth of an inch outside
+      the declared tolerance. That is the price of a rigid body that has to fit,
+      and it is stated here rather than absorbed by quietly loosening the
+      tolerance until it fits.
+    what_would_settle_it: >
+      Any frame showing the fixture and a known vertical dimension in the SAME
+      part of the image — the door head is 4.7 ft away, across enough of a
+      1280x720 action-camera frame for lens distortion to cost about an inch.
+      Failing that, the manufacturer's dimensions: SHOPPING-GUIDE.pdf names the
+      fixture but carries no spec sheet.
+    not_done_here: >
+      Chasing a better frame. The tour is 8:31 long and the porch appears in
+      several shots; one of them may show the sconce beside something measurable.
+      Nothing downstream depends on the answer to within 2".
   - id: crawl-hole-implies-crawlspace-not-slab
     status: RESOLVED — A2.0 read 2026-09-08; the question is answered, the fix is not yet made
     resolution: >

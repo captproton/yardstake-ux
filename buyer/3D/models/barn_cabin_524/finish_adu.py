@@ -83,6 +83,28 @@ def make_materials(spec, textured=True):
                 nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
         bsdf.inputs["Roughness"].default_value = m.get("roughness", 0.8)
         bsdf.inputs["Metallic"].default_value = m.get("metallic", 0.0)
+        if m.get("emissive_linear"):
+            # The look of a lit lamp. Blender's glTF exporter turns Emission
+            # into emissiveFactor, and a strength above 1 into
+            # KHR_materials_emissive_strength — so day/night at runtime is the
+            # same kind of swap the colour variants already do, on a different
+            # property. No KHR_lights_punctual is written and none is wanted:
+            # see materials.lamp_glow.
+            # Socket name moved between Blender versions the same way
+            # Transmission did below — "Emission" in 3.x, "Emission Color" in
+            # 4.x and later. Probe rather than assume, so this does not become
+            # a silent no-emission material on an LTS build.
+            er, eg, eb = m["emissive_linear"]
+            for key in ("Emission Color", "Emission"):
+                if key in bsdf.inputs:
+                    bsdf.inputs[key].default_value = (er, eg, eb, 1.0)
+                    break
+            else:
+                raise SystemExit(f"[mat] {name}: no emission colour socket on "
+                                 "Principled BSDF; emissive_linear cannot be applied")
+            if "Emission Strength" in bsdf.inputs:
+                bsdf.inputs["Emission Strength"].default_value = m.get(
+                    "emissive_strength", 1.0)
         if m.get("transmission"):
             for key in ("Transmission Weight", "Transmission"):
                 if key in bsdf.inputs:
@@ -365,6 +387,7 @@ def main():
             keep += list(colls["finish"].objects)   # Tier 1: ceilings, floors, doors
             keep += list(colls["casework"].objects)  # Tier 3: cabinets, counter
             keep += list(colls["foundation"].objects)  # footing, crawl grade, vents
+            keep += list(colls["lighting"].objects)  # Tier 3: exterior sconce
         if lod != "lod2":
             keep += [o for o in glaz.objects]
 

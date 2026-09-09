@@ -294,6 +294,49 @@
           "default": false
         }
       ]
+    },
+    {
+      "id": "sconce_finish",
+      "label": "Exterior light finish",
+      "targets": [
+        "adu_fixture_galv"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "galvanized",
+          "label": "Galvanized",
+          "value": [
+            0.34,
+            0.352,
+            0.362,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "matte_black",
+          "label": "Matte black",
+          "value": [
+            0.03,
+            0.031,
+            0.033,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "bronze",
+          "label": "Oil-rubbed bronze",
+          "value": [
+            0.062,
+            0.048,
+            0.038,
+            1.0
+          ],
+          "default": false
+        }
+      ]
     }
   ]
 }

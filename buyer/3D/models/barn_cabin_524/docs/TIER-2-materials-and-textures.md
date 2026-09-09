@@ -171,7 +171,7 @@ treat the Blender `.glb` as an intermediate.
 
 | Level | Shipped | Ceiling | |
 |---|---|---|---|
-| `lod0` | **897.6 KB** | 4 MB | textured, interior included |
+| `lod0` | **907.2 KB** | 4 MB | textured, interior included |
 | `lod1` | **231.4 KB** | 1.5 MB | textured, no interior |
 | `lod2` | **28.4 KB** | 200 KB | flat, deliberately untextured |
 
