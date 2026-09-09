@@ -252,7 +252,101 @@ def sash_gates(spec):
         print(f"  [{verdict:4}] {name.ljust(w)}  {typ:20s} {detail}")
     print("A slider and a single-hung are both five boxes: this samples the")
     print("members' POSITIONS, because counting cannot tell them apart.")
+    return ok and casing_gates(spec)
+
+
+def casing_gates(spec):
+    """Exterior casing exists, and is on the side of the wall you can see.
+
+    THE FAILURE MODE IS BEING ON THE WRONG FACE, not being absent. Every
+    `Trim_` in this model was interior casing for the whole ladder --
+    Trim_D-FRONT at y 6.458..6.518 on a wall whose exterior face is 6.000 --
+    and #80's own table ticked exterior casing as done, pointing at exactly
+    that object. Nothing caught it because nothing asked which side.
+
+    So the gate is a signed comparison against the exterior face, and it would
+    have failed on day one. Presence is checked too, but presence is the weak
+    half: a casing on the wrong face is present.
+    """
+    print()
+    obj = bpy.data.objects.get("Trim_ext")
+    if obj is None:
+        print("  [FAIL] Trim_ext missing — no exterior casing at all")
+        return False
+
+    cw = spec["trim"]["casing_width"]["ft"]
+    rows, ok = [], True
+    for oid, host, face, out, sill, a0, a1, z0, z1 in casing_targets(spec):
+        # SAMPLED PER OPENING, not read off a bounding box. The casing is one
+        # welded mesh now, so a bbox says only where the whole run is -- it
+        # cannot tell that ONE window lost its casing, nor that one is on the
+        # wrong face. Two samples per jamb do both: outboard must be solid,
+        # and the mirror point inboard of the wall must be air.
+        i = 0 if out[0] else 1
+        sgn = out[i]
+        depth = 0.03
+        bad = []
+        for a in (a0 - cw / 2, a1 + cw / 2):          # both jambs
+            zc = (z0 + z1) / 2
+            p_out = [0.0, 0.0, zc]
+            p_in = [0.0, 0.0, zc]
+            j = 1 - i
+            p_out[j] = p_in[j] = a
+            p_out[i] = face + sgn * depth
+            p_in[i] = face - sgn * depth
+            if not inside_mesh(obj, Vector(p_out)):
+                bad.append(f"no casing outboard at {a:.2f}")
+            elif inside_mesh(obj, Vector(p_in)):
+                bad.append(f"casing INBOARD of the face at {a:.2f}")
+        rows.append((f"Trim_ext/{oid}", "PASS" if not bad else "FAIL",
+                     "; ".join(bad) or
+                     f"both jambs outboard of {face:.2f} on {host}"
+                     f"{'' if sill else ' (no sill: a door)'}"))
+        ok &= not bad
+
+    w = max(len(r[0]) for r in rows)
+    for name, verdict, detail in rows:
+        print(f"  [{verdict:4}] {name.ljust(w)}  {detail}")
+    print("Presence is the weak half: casing on the WRONG FACE is present.")
     return ok
+
+
+def casing_targets(spec):
+    """(id, host, exterior face, outward vector, has a sill, a0, a1, z0, z1)."""
+    env = spec["envelope"]
+    NY = env["porch_depth"]["ft"] + env["main_body_depth"]["ft"]
+    SY = env["porch_depth"]["ft"]
+    W = env["main_body_width"]["ft"]
+    op = spec["openings"]["main_floor"]
+    con = spec["construction"]
+    loft_sf = spec["levels"]["loft_top_of_subfloor"]["ft"]
+    dsill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
+
+    def yn(v):
+        return NY - v
+
+    out = []
+    for o in op["north_wall"]["openings"]:
+        out.append((o["id"], "Wall_N", NY, (0, +1), True,
+                    o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"]))
+    for o in op["south_wall"]["openings"]:
+        out.append((o["id"], "Wall_S", SY, (0, -1),
+                    not o["type"].endswith("door"),
+                    o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"]))
+    for o in op["west_wall"]["openings"]:
+        out.append((o["id"], "Wall_W", 0.0, (-1, 0), True,
+                    yn(o["offset"] + o["w"]), yn(o["offset"]),
+                    o["sill"], o["sill"] + o["h"]))
+    for o in spec["openings"]["loft"]["windows"]:
+        for side, face, vec, host in (("W", 0.0, (-1, 0), "Dormer_face_W"),
+                                      ("E", W, (+1, 0), "Dormer_face_E")):
+            out.append((f"{o['id']}_{side}", host, face, vec, True,
+                        yn(o["offset"] + o["w"]), yn(o["offset"]),
+                        dsill, dsill + o["h"]))
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        out.append((o["id"], "Gable_S_porch", 0.0, (0, -1), True,
+                    o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"]))
+    return out
 
 
 def sash_targets(spec):

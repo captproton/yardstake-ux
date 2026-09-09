@@ -1061,6 +1061,54 @@ def build(spec, cut_openings=True):
                      (plane, plane + cd_, a0 - cw, a1 + cw, z1, z1 + hh)]
         multibox(name, specs, finish)
 
+    def ext_casing(axis, plane, out, a0, a1, z0, z1, sill=True):
+        """Head, jambs, sill and apron on the OUTSIDE face of an opening.
+
+        Every `Trim_` in this model was interior casing and nothing else --
+        checked, not assumed: Trim_D-FRONT sat at y 6.458..6.518 on a wall
+        whose exterior face is 6.000, so the casing A1.1 draws around every
+        opening was modelled on the far side of the wall from the viewer.
+        #80's own table ticked this as done and pointed at that object.
+
+        `out` is +1 or -1: the direction the exterior lies in along the wall's
+        depth axis. Passing the face and the direction separately, rather than
+        a signed plane, is what keeps the four walls from each needing their
+        own sign convention at the call site.
+
+        The head cap PROJECTS past the jambs on both sides, which is what the
+        sheet draws and what the tour frame shows -- a plain rectangle reads as
+        a picture frame rather than as trim.
+        """
+        p0, p1 = min(plane, plane + out * cd_), max(plane, plane + out * cd_)
+        # The cap is proud of the casing face as well as wider than it.
+        q0, q1 = min(plane, plane + out * cd_ * 1.6), max(plane, plane + out * cd_ * 1.6)
+        cap = cw * 0.5                       # cap overhang each side
+        sill_p = spec["trim"]["exterior_sill_projection"]["ft"]
+        s0, s1 = min(plane, plane + out * sill_p), max(plane, plane + out * sill_p)
+        st_ = spec["trim"]["exterior_sill_thickness"]["ft"]
+        ap = spec["trim"]["exterior_apron_height"]["ft"]
+
+        def bx(b0, b1, d0, d1, c0, c1):
+            return ((b0, b1, d0, d1, c0, c1) if axis == "x"
+                    else (d0, d1, b0, b1, c0, c1))
+
+        parts = [
+            bx(a0 - cw, a0, p0, p1, z0, z1),                     # left jamb
+            bx(a1, a1 + cw, p0, p1, z0, z1),                     # right jamb
+            bx(a0 - cw - cap, a1 + cw + cap, q0, q1, z1, z1 + hh),   # head cap
+        ]
+        # A DOOR HAS A THRESHOLD, NOT A SILL. The first version gave every
+        # opening the same treatment and put a sill board and apron on
+        # D-FRONT, running to z -0.47 -- buried in the porch slab, below the
+        # floor the door opens onto. Casing is shared between doors and
+        # windows; what sits under the opening is not.
+        if sill:
+            parts += [
+                bx(a0 - cw - cap, a1 + cw + cap, s0, s1, z0 - st_, z0),
+                bx(a0 - cw, a1 + cw, p0, p1, z0 - st_ - ap, z0 - st_),
+            ]
+        return parts
+
     # ---- window sash: the type is built, not merely declared ---------------
     ws = spec["windows"]
     f2g = ws["frame_to_glass"]["ft"]
@@ -1142,6 +1190,36 @@ def build(spec, cut_openings=True):
         for side, pl in (("W", xw), ("E", xe - cd_)):
             casing(f"Trim_{o['id']}_{side}", "y", pl,
                    yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"])
+
+    # EXTERIOR casing, on every opening at once. Doing one and stopping looks
+    # worse than doing none -- a single cased window reads as an error rather
+    # than as trim -- so the door is included here with the windows.
+    # ONE WELDED MESH, not eleven objects. The lod0 mesh cap of 120 was set in
+    # this model's first commit and has held for twelve PRs; #84 kept a
+    # doorknob inside it by welding sweeps rather than by raising it, and
+    # eleven casings would have blown it outright. Trim_baseboard is already a
+    # single welded run around the interior for the same reason.
+    ext = []
+    for o in op["north_wall"]["openings"]:
+        ext += ext_casing("x", NY, +1, o["offset"], o["offset"] + o["w"],
+                          o["sill"], o["sill"] + o["h"])
+    for o in op["south_wall"]["openings"]:
+        ext += ext_casing("x", SY, -1, o["offset"], o["offset"] + o["w"],
+                          o["sill"], o["sill"] + o["h"],
+                          sill=not o["type"].endswith("door"))
+    for o in op["west_wall"]["openings"]:
+        ext += ext_casing("y", 0.0, -1, yn(o["offset"] + o["w"]), yn(o["offset"]),
+                          o["sill"], o["sill"] + o["h"])
+    for o in spec["openings"]["loft"]["windows"]:
+        for side, pl, sgn in (("W", 0.0, -1), ("E", W, +1)):
+            ext += ext_casing("y", pl, sgn, yn(o["offset"] + o["w"]),
+                              yn(o["offset"]), dsill, dsill + o["h"])
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        # The gable is the prism at y 0..t, not the wall -- the same datum
+        # that put the sash six feet from its glass one commit ago.
+        ext += ext_casing("x", 0.0, -1, o["offset"], o["offset"] + o["w"],
+                          o["sill"], o["sill"] + o["h"])
+    multibox("Trim_ext", ext, finish)
 
     # Sash, one per window, on the OUTBOARD side of each glazing plane. The
     # planes are taken from the same expressions finish_adu.add_glazing uses,

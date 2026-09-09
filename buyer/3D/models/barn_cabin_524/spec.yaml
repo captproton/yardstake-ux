@@ -509,6 +509,43 @@ trim:
     source: "Measured: a horizontal band at z 7.00-7.38 ft, sitting on the 7'-0\" head"
     confidence: measured
   baseboard_height: {ft: 0.292, raw: "3 1/2\"", confidence: assumed, note: "not drawn on any sheet"}
+  # EXTERIOR casing, added in #88. Until then every Trim_ in this model was
+  # INTERIOR casing and nothing else -- checked, not assumed: Trim_D-FRONT sat
+  # at y 6.458..6.518 on a wall whose exterior face is 6.000, so the casing
+  # A1.1 draws around every opening was modelled on the far side of the wall
+  # from the viewer. `casing_width` and `head_casing_height` above are shared
+  # with the interior run; the sill and apron below are exterior-only.
+  exterior_sill_thickness:
+    ft: 0.167
+    raw: "2\""
+    confidence: measured
+    source: >
+      A1.1 front elevation at 50.000 px/ft. Three windows agree: the first
+      line below the unit sits 1.92", 1.92" and 2.16" down on W-LIVING-S1,
+      W-LIVING-S2 and W-GABLE-S. The gable's extra quarter-inch is line weight
+      at a smaller opening.
+  exterior_apron_height:
+    ft: 0.302
+    raw: "3 5/8\""
+    confidence: measured_approx
+    source: >
+      The band between the sill board and the second line below it: 3.60",
+      3.60" and 3.84" on the same three windows. Narrower than the 3 1/2"
+      casing on two of the three and wider on the gable, so it is recorded as
+      approximate rather than snapped to the casing stock.
+  exterior_sill_projection:
+    ft: 0.125
+    raw: "1 1/2\""
+    confidence: assumed
+    note: >
+      NOT MEASURABLE IN AN ELEVATION, and saying so rather than inventing
+      precision. A projection points at the viewer, so an elevation
+      foreshortens it to nothing -- the sheet can give the sill's THICKNESS
+      and its width, which are measured above, but not how far it stands out.
+      1 1/2" is stock sill nosing.
+    what_would_settle_it: >
+      A section through any window head or sill. None of the sheets read so far
+      carries one.
   projecting_ridge_beam:
     source: >
       A1.1 draws a narrow capped rectangle at the apex of the FRONT gable, OVER
