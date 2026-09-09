@@ -109,8 +109,23 @@ def multibox(name, specs, coll):
     return _new_obj(name, verts, faces, coll)
 
 
+def _check_path(name, path, which=""):
+    """A sweep needs two points, and the failure has to say WHICH sweep.
+
+    `tube_geom` is generic and has no name to report, so the check lives in
+    the wrappers, which do. Splitting the sweep out of `tube` quietly cost
+    that: the error went from naming the tube to "a tube needs at least two
+    points", which in a model with a doorknob, a tap and a gooseneck sconce
+    identifies nothing.
+    """
+    if len(path) < 2:
+        raise ValueError(f"{name}{which}: a tube needs at least two points, "
+                         f"got {len(path)}")
+
+
 def tube(name, path, radius, coll, sides=8, caps=True):
     """One swept n-gon as its own object. See `tube_geom` for the sweep."""
+    _check_path(name, path)
     v, f = tube_geom(path, radius, sides, caps)
     return _new_obj(name, v, f, coll)
 
@@ -127,7 +142,10 @@ def multitube(name, specs, coll, sides=8):
     `specs` is a sequence of (path, radius).
     """
     verts, faces = [], []
-    for path, radius in specs:
+    for i, (path, radius) in enumerate(specs):
+        # The index matters here: a multitube is several sweeps under ONE name,
+        # so the name alone would not say which of them was malformed.
+        _check_path(name, path, f" sweep {i}")
         v, f = tube_geom(path, radius, sides, True)
         off = len(verts)
         verts.extend(v)
