@@ -581,6 +581,92 @@ loft_access:
     post_section: {ft: 0.29, raw: "3 1/2\"", confidence: assumed}
 
 # ---------------------------------------------------------------------------
+windows:
+  # SASH GEOMETRY BELONGS TO THE TYPE, NOT THE INSTANCE.
+  #
+  # Every opening in this file already carries a `type` -- single_hung,
+  # double_single_hung, slider_XO -- and until #88 the build ignored all three
+  # and emitted one flat pane per opening. That is the same defect the front
+  # door carried for eleven PRs, and the same fix applies: dispatch on the
+  # declared type, and refuse to guess when the type has nothing behind it.
+  #
+  # The numbers below are per-TYPE because they are properties of the window
+  # product, not of the hole it sits in. The meeting rail was read at 50% on
+  # three front-elevation windows of two different heights (36" and 60"),
+  # which is what makes it a measurement rather than a coincidence: an
+  # instance-level reading would have hidden that agreement.
+  source: >
+    A1.1 FRONT ELEVATION - OPTION B, read by tools/tier3/front_elev.py at the
+    calibrated 50.000 px/ft. The same reader, and the same nesting rule, that
+    measured the entry door in #83.
+  frame_to_glass:
+    ft: 0.22
+    raw: "2 5/8\""
+    confidence: measured_approx
+    note: >
+      Each unit nests an outer frame line and a sash line inside its edge, at
+      +6 and +11 px -- the signature unit_rows() already documents and relies
+      on. 11 px at 50 px/ft is 2.64". Read per-window the pair lands between
+      4 and 8 px on different jambs, which is line weight rather than a real
+      asymmetry, so the documented nesting is used rather than either jamb.
+  meeting_rail:
+    ratio: 0.5
+    thickness: {ft: 0.1, raw: "1 1/4\""}
+    confidence: measured
+    note: >
+      MEASURED, NOT ASSUMED -- and the issue that raised this predicted the
+      opposite. A photograph of the gable window read "nearer 60/40 than an
+      even split" by eye. The sheet draws the rail as a 5 px pair inside each
+      unit and it lands at 50.3%, 50.2% and 50.0% on W-LIVING-S1 (36" tall),
+      W-LIVING-S2 (60") and W-GABLE-S (36"). Three heights agreeing to within
+      a third of a percent is the evidence; the eyeball was wrong.
+  mullion:
+    ft: 0.3
+    raw: "3 5/8\""
+    confidence: measured_approx
+    note: >
+      The vertical between the two units of a D.S.H. Drawn as a cluster of
+      five lines spanning 15 px, so its centre is exact -- x 5.000 ft against
+      a unit centre of 5.040 -- while its width is only good to a line weight.
+  types:
+    single_hung:
+      units: 1
+      meeting_rail: true
+      confirmed_by: >
+        W-LIVING-S2 and W-GABLE-S show jamb lines and a meeting rail, and NO
+        vertical inside the unit. A sheet that did not set these types
+        reproduces them.
+      applies_off_the_front_elevation: >
+        W-BATH and W-KITCHEN are the same type on the WEST wall, which this
+        reader does not cover. They take the ratio because it is a property of
+        the window, measured on two heights -- the reason these numbers hang
+        off the type rather than the instance. If the west elevation is ever
+        read and disagrees, that is a discrepancy to record, not a surprise.
+    double_single_hung:
+      units: 2
+      meeting_rail: true
+      confirmed_by: >
+        W-LIVING-S1 shows the same jamb and rail lines PLUS a mullion cluster
+        at 45-53% across, centred on the unit centreline. Two single-hung
+        units side by side, which is what D.S.H. means and what the tour frame
+        shows as two-wide-by-two-high.
+    slider_XO:
+      units: 2
+      meeting_rail: false
+      confidence: assumed
+      note: >
+        NOT MEASURED, AND SAYING SO. No slider appears on the front elevation,
+        which is the only elevation tools/tier3/front_elev.py reads. X/O means
+        one sliding light beside one fixed one, so a centre mullion and no
+        meeting rail is the form the callout implies -- but the mullion
+        POSITION is inferred from the type, not read off a sheet. The three
+        sliders are W-BED-EGRESS (north wall) and W-LOFT-1/W-LOFT-2 (side
+        elevations); none is visible on the front.
+      what_would_settle_it: >
+        Extending the reader to the rear and side elevations. The calibration
+        method transfers; only the crop and the level anchors change.
+
+# ---------------------------------------------------------------------------
 doors:
   # Tier 1 leaf geometry. Sizes are plan callouts; positions come from
   # interior_partitions.layout.doors and openings.main_floor.
@@ -1987,6 +2073,10 @@ materials:
     Porch_slab: concrete
     Ceil_: drywall
     Trim_: trim
+    # Window sash. `trim` and not a material of its own: the frames read the
+    # same white as the casing in every tour frame, and inventing an
+    # `adu_sash` would add a configurator target nobody chose.
+    Win_: trim
     Hdw_: satin_nickel
     # Exterior, and deliberately not Trim_ — see build_adu.
     Ridge_beam: trim

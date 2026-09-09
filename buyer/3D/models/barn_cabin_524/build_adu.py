@@ -1061,6 +1061,72 @@ def build(spec, cut_openings=True):
                      (plane, plane + cd_, a0 - cw, a1 + cw, z1, z1 + hh)]
         multibox(name, specs, finish)
 
+    # ---- window sash: the type is built, not merely declared ---------------
+    ws = spec["windows"]
+    f2g = ws["frame_to_glass"]["ft"]
+    mr_t = ws["meeting_rail"]["thickness"]["ft"]
+    mr_r = ws["meeting_rail"]["ratio"]
+    mull = ws["mullion"]["ft"]
+    sd_ = 0.05                                  # sash proud of the glass plane
+
+    def sash(name, o, axis, plane, a0, a1, z0, z1):
+        """The frame, meeting rail and mullion a window's TYPE implies.
+
+        Every window in this model was one flat pane until #88, while
+        `spec.openings` typed all of them -- exactly the defect the front door
+        carried for eleven PRs (#83). The fix is the same one #83 settled on:
+        DISPATCH ON THE DECLARED TYPE and refuse to guess when the type has
+        nothing behind it, rather than branching on which keys happen to exist.
+
+        Like `half_lite`, this builds NO GLASS. The pane is a finish and stays
+        in finish_adu.add_glazing; these members sit proud of it, which is what
+        a window looks like and what keeps the frame out of lod2.
+
+        Proportions come from spec.windows and hang off the TYPE, not the
+        instance -- the meeting rail was read at 50% on two different window
+        heights, and an instance-level number would have hidden that agreement.
+        """
+        typ = ws["types"].get(o["type"])
+        if typ is None:
+            raise SystemExit(
+                f"{o['id']} is typed {o['type']!r}, which spec.windows.types "
+                f"does not define (have {sorted(ws['types'])}). A window "
+                "cannot be built from a type alone -- add the type or change "
+                "the opening.")
+
+        def member(b0, b1, c0, c1):
+            """One rectangle in the opening plane, spanning the wall axis."""
+            return ((b0, b1, plane, plane + sd_, c0, c1) if axis == "x"
+                    else (plane, plane + sd_, b0, b1, c0, c1))
+
+        parts = [
+            member(a0, a0 + f2g, z0, z1),                  # left jamb
+            member(a1 - f2g, a1, z0, z1),                  # right jamb
+            member(a0, a1, z0, z0 + f2g),                  # sill member
+            member(a0, a1, z1 - f2g, z1),                  # head member
+        ]
+
+        # A D.S.H. is two units side by side; the mullion divides them and the
+        # rail then runs in EACH unit, not across the whole opening.
+        units = typ["units"]
+        spans = []
+        if units == 1:
+            spans = [(a0, a1)]
+        else:
+            step = (a1 - a0) / units
+            for i in range(units):
+                spans.append((a0 + i * step, a0 + (i + 1) * step))
+            for i in range(1, units):
+                c = a0 + i * step
+                parts.append(member(c - mull / 2, c + mull / 2, z0, z1))
+
+        if typ["meeting_rail"]:
+            zc = z0 + (z1 - z0) * mr_r
+            for b0, b1 in spans:
+                parts.append(member(b0, b1, zc - mr_t / 2, zc + mr_t / 2))
+
+        multibox(name, parts, finish)
+
     op = spec["openings"]["main_floor"]
     for o in op["north_wall"]["openings"]:
         casing(f"Trim_{o['id']}", "x", ye - cd_, o["offset"], o["offset"] + o["w"],
@@ -1076,6 +1142,29 @@ def build(spec, cut_openings=True):
         for side, pl in (("W", xw), ("E", xe - cd_)):
             casing(f"Trim_{o['id']}_{side}", "y", pl,
                    yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"])
+
+    # Sash, one per window, on the OUTBOARD side of each glazing plane. The
+    # planes are taken from the same expressions finish_adu.add_glazing uses,
+    # so the frame cannot drift away from the glass it frames.
+    for o in op["north_wall"]["openings"]:
+        sash(f"Win_{o['id']}", o, "x", NY - t / 2,
+             o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"])
+    for o in op["south_wall"]["openings"]:
+        if o["type"].endswith("door"):
+            continue
+        sash(f"Win_{o['id']}", o, "x", SY + t / 2 - sd_,
+             o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"])
+    for o in op["west_wall"]["openings"]:
+        sash(f"Win_{o['id']}", o, "y", t / 2 - sd_,
+             yn(o["offset"] + o["w"]), yn(o["offset"]),
+             o["sill"], o["sill"] + o["h"])
+    for o in spec["openings"]["loft"]["windows"]:
+        for side, pl in (("W", t / 2 - sd_), ("E", W - t / 2)):
+            sash(f"Win_{o['id']}_{side}", o, "y", pl,
+                 yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"])
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        sash(f"Win_{o['id']}", o, "x", SY + t / 2 - sd_,
+             o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"])
 
     # baseboard: one welded mesh around the main interior perimeter
     bb = 0.05

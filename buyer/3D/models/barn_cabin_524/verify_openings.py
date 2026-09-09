@@ -32,6 +32,7 @@ from mathutils import Vector
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from build_adu import load_spec, ft  # noqa: E402
+from verify_lib import inside_mesh  # noqa: E402
 
 TOL = 0.02
 
@@ -154,10 +155,134 @@ def main():
     print("-" * 86)
     print("Volume is the strong test: it confirms the holes exist AND are the")
     print("right size. Corner test confirms they are in the right place.")
+
+    ok &= sash_gates(spec)
+
     print("=" * 86)
     print("RESULT:", "ALL PASS" if ok else "FAILURES PRESENT")
     if not ok:
         raise SystemExit(1)
+
+
+def sash_gates(spec):
+    """Every window carries the divisions its declared TYPE implies.
+
+    WRITTEN AGAINST THE FAILURE MODE (ground rule 24). The failure is a window
+    that went back to being one flat pane, or one built as the wrong type --
+    and the obvious gate, counting vertices, CANNOT SEE IT. A single_hung is
+    four frame members plus a rail; a slider_XO is four plus a mullion. Both
+    are five boxes and forty vertices. Counting passes on a slider built as a
+    single-hung and on a single-hung built as a slider.
+
+    So it samples POSITION. At the centre of every member the type implies the
+    point must be inside sash solid, and at the centre of every light it must
+    NOT be -- the second half being what fails when a window quietly becomes
+    the wrong type, since a missing rail leaves the light where the rail was.
+    """
+    ws = spec["windows"]
+    mr_r = ws["meeting_rail"]["ratio"]
+    print()
+    ok = True
+    rows = []
+    for name, o, axis, a0, a1, z0, z1 in sash_targets(spec):
+        obj = bpy.data.objects.get(name)
+        if obj is None:
+            rows.append((name, o["type"], "MISSING", ""))
+            ok = False
+            continue
+        typ = ws["types"][o["type"]]
+        units, rail = typ["units"], typ["meeting_rail"]
+        zc = z0 + (z1 - z0) * mr_r
+        step = (a1 - a0) / units
+
+        want_solid, want_air = [], []
+        for i in range(1, units):
+            # SAMPLE THE MULLION CLEAR OF THE RAIL, at quarter and
+            # three-quarter height. Mid-height is where a meeting rail crosses
+            # it, so a sample there is inside three boxes at once -- a
+            # degenerate point for a surface test, and worse, a point a rail
+            # alone could satisfy. Two samples in different sashes can only be
+            # explained by a full-height member.
+            for f in (0.25, 0.75):
+                want_solid.append((a0 + i * step, z0 + (z1 - z0) * f))
+        for i in range(units):                           # per-unit light centres
+            b = a0 + (i + 0.5) * step
+            if rail:
+                want_solid.append((b, zc))
+                want_air += [(b, (z0 + zc) / 2), (b, (zc + z1) / 2)]
+            else:
+                want_air.append((b, (z0 + z1) / 2))
+
+        bad = []
+        for b, z in want_solid:
+            if not solid_at(obj, axis, b, z):
+                bad.append(f"no solid at ({b:.2f},{z:.2f})")
+        for b, z in want_air:
+            if solid_at(obj, axis, b, z):
+                bad.append(f"solid where a light belongs ({b:.2f},{z:.2f})")
+        rows.append((name, o["type"],
+                     "PASS" if not bad else "FAIL",
+                     f"{len(want_solid)} members, {len(want_air)} lights"
+                     if not bad else "; ".join(bad[:2])))
+        ok &= not bad
+
+    w = max(len(r[0]) for r in rows)
+    for name, typ, verdict, detail in rows:
+        print(f"  [{verdict:4}] {name.ljust(w)}  {typ:20s} {detail}")
+    print("A slider and a single-hung are both five boxes: this samples the")
+    print("members' POSITIONS, because counting cannot tell them apart.")
+    return ok
+
+
+def sash_targets(spec):
+    """(object, opening, axis, a0, a1, z0, z1) for every window, as built.
+
+    Mirrors build_adu's own call sites rather than re-deriving them, so a
+    window that moves cannot leave the gate testing empty air.
+    """
+    env, con = spec["envelope"], spec["construction"]
+    NY = env["porch_depth"]["ft"] + env["main_body_depth"]["ft"]
+    op = spec["openings"]["main_floor"]
+    loft_sf = spec["levels"]["loft_top_of_subfloor"]["ft"]
+    dsill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
+
+    def yn(v):
+        return NY - v
+
+    out = []
+    for o in op["north_wall"]["openings"] + op["south_wall"]["openings"]:
+        if o["type"].endswith("door"):
+            continue
+        out.append((f"Win_{o['id']}", o, "x", o["offset"], o["offset"] + o["w"],
+                    o["sill"], o["sill"] + o["h"]))
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        out.append((f"Win_{o['id']}", o, "x", o["offset"], o["offset"] + o["w"],
+                    o["sill"], o["sill"] + o["h"]))
+    for o in op["west_wall"]["openings"]:
+        out.append((f"Win_{o['id']}", o, "y", yn(o["offset"] + o["w"]),
+                    yn(o["offset"]), o["sill"], o["sill"] + o["h"]))
+    for o in spec["openings"]["loft"]["windows"]:
+        for side in ("W", "E"):
+            out.append((f"Win_{o['id']}_{side}", o, "y",
+                        yn(o["offset"] + o["w"]), yn(o["offset"]),
+                        dsill, dsill + o["h"]))
+    return out
+
+
+def solid_at(obj, axis, b, z):
+    """Is (b, z) in the opening plane inside this sash object?
+
+    The sash is a thin plate, so the sample is taken at its own mid-depth
+    rather than at a wall plane -- a point on the face is neither in nor out.
+    """
+    vs = [obj.matrix_world @ v.co for v in obj.data.vertices]
+    if axis == "x":
+        mid = (min(v.y for v in vs) + max(v.y for v in vs)) / 2
+        p = Vector((b, mid, z))
+    else:
+        mid = (min(v.x for v in vs) + max(v.x for v in vs)) / 2
+        p = Vector((mid, b, z))
+    return inside_mesh(obj, p)
 
 
 if __name__ == "__main__":
