@@ -501,3 +501,25 @@ Keep these — they caught real errors:
     defect slips a suite, ask whether the existing gates were WRONG or merely
     aimed elsewhere; if elsewhere, the answer is a new gate written against the
     failure mode — here, thickness against the finish — not a looser old one.
+24. **Write the gate against the failure mode, not the healthy state.** These
+    all passed while the thing they named was broken: *has glazing* passes on a
+    single pane where six lites are drawn; *is a subset of what is visible*
+    passes on the empty set, and then FAILS on a correctly chosen "unfurnished";
+    *furniture sits above z=0* passes on a rug buried inside the floor finish.
+    Each predicate described **a** correct state rather than **the** thing that
+    could go wrong. Say aloud what breaking looks like, write the predicate to
+    reject exactly that, then break that exact line to prove it — a red test
+    aimed at the wrong line is indistinguishable from a gate that cannot fail,
+    and one of those in [#81](https://github.com/captproton/yardstake-ux/pull/81)
+    reported ALL PASS on code written to be broken.
+25. **Anything read from disk is untrusted input, including files this project
+    writes.** `views.py` reads `export/variants.json`, which `finish_adu.py`
+    produces — and every one of six findings in
+    [#81](https://github.com/captproton/yardstake-ux/pull/81) was some form of
+    "the manifest might not be what I expect": no schema check, no option-id
+    validation, a warning that fired on every redraw, a re-parse inside the UI
+    loop, an assumed `sets[0]`. The docstring said *degrades gracefully* while
+    the code handled only the failures its author had imagined. Validate the
+    shape, degrade WHOLE rather than partially — a half-applied config is worse
+    than none — and treat "we generated this file ourselves" as no guarantee at
+    all.
