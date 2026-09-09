@@ -171,7 +171,7 @@ treat the Blender `.glb` as an intermediate.
 
 | Level | Shipped | Ceiling | |
 |---|---|---|---|
-| `lod0` | **907.2 KB** | 4 MB | textured, interior included |
+| `lod0` | **922.0 KB** | 4 MB | textured, interior included |
 | `lod1` | **231.4 KB** | 1.5 MB | textured, no interior |
 | `lod2` | **28.4 KB** | 200 KB | flat, deliberately untextured |
 
@@ -293,11 +293,69 @@ Two things that will bite whoever wires the UI:
   of the same value, or the chip and the building disagree — which reads as a
   bug in the model rather than in the picker.
 
+### `presence` — a second block, not a second meaning for `sets`
+
+`sets` swaps **materials**. `presence` swaps **visibility**, and it is a
+sibling rather than an extension because the two need opposite shapes:
+`sets[].targets` sits at set level and names materials, while a presence option
+must name its own nodes — choosing *Home office* shows a different group than
+choosing *Bedroom*. Bent into `sets`, `targets` would come to mean "materials,
+unless the property is visible, in which case ignore this" — the kind of
+overload that later reads as a bug.
+
+It is **purely additive**: a runtime that only knows `sets` keeps working and
+simply never hides anything.
+
+```json
+"presence": [
+  { "id": "bedroom_layout", "label": "Bedroom", "room": "bedroom",
+    "property": "visible",
+    "options": [
+      { "id": "bed",    "label": "Bedroom",     "show": ["Furn_bedroom_bed_linen", "…"], "default": true  },
+      { "id": "office", "label": "Home office", "show": ["Furn_bedroom_office_wood", "…"], "default": false },
+      { "id": "empty",  "label": "Unfurnished", "show": [], "default": false }
+    ] }
+]
+```
+
+```js
+// Every node named anywhere in the block is hidden, then one option's are shown.
+const controlled = new Set(
+  manifest.presence.flatMap((s) => s.options.flatMap((o) => o.show)));
+
+function applyLayout(setId, optionId) {
+  const set = manifest.presence.find((s) => s.id === setId);
+  const show = new Set(set.options.find((o) => o.id === optionId).show);
+  model.traverse((o) => {
+    if (controlled.has(o.name)) o.visible = show.has(o.name);
+  });
+}
+```
+
+> ⚠️ **THE MODEL SHIPS EVERY ARRANGEMENT.** A runtime can only toggle what is
+> in the file, so `lod0` carries the bedroom **twice** — as a bed and as a home
+> office. **A viewer that ignores `presence` renders a desk through a bed.**
+> Honour each set's `default` on first load. This is the one place where
+> ignoring the manifest looks like a broken model rather than a plain one.
+
+`manifest.disclosure` carries *"Furniture and appliances shown for scale; not
+included"*. The model cannot enforce it; it is here so the UI has no excuse.
+
 ### Verification
 
-Gated in `finish_adu.py`: **every manifest target must name a material that
-exists in the export.** Renaming a material now breaks the build instead of
-silently breaking the picker in front of a homeowner.
+Gated in `finish_adu.py`:
+
+- **every manifest target must name a material that exists in the export** —
+  renaming a material breaks the build instead of silently breaking the picker
+  in front of a homeowner;
+- **every shipped furniture node is controlled by exactly one presence
+  option** — a new arrangement that nothing can hide fails the build, which is
+  precisely the state that would put a desk through a bed.
+
+`verify_furniture.py` adds the one that spans the two files: **the blend
+default and the runtime default must agree.** `fixtures.furniture` decides what
+the viewable `.blend` shows and `variants.presence` decides what the browser
+shows, and nothing else stops them drifting apart.
 
 That gate is necessary and not sufficient, so `variant_demo.py` re-imports the
 exported `.glb`, applies the manifest exactly as the runtime does, and renders

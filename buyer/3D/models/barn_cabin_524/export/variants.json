@@ -338,5 +338,90 @@
         }
       ]
     }
-  ]
+  ],
+  "presence": [
+    {
+      "id": "bedroom_layout",
+      "label": "Bedroom",
+      "room": "bedroom",
+      "property": "visible",
+      "options": [
+        {
+          "id": "bed",
+          "label": "Bedroom",
+          "show": [
+            "Furn_bedroom_bed_linen",
+            "Furn_bedroom_bed_metal",
+            "Furn_bedroom_bed_wood"
+          ],
+          "default": true
+        },
+        {
+          "id": "office",
+          "label": "Home office",
+          "show": [
+            "Furn_bedroom_office_linen",
+            "Furn_bedroom_office_metal",
+            "Furn_bedroom_office_plant",
+            "Furn_bedroom_office_wood"
+          ],
+          "default": false
+        },
+        {
+          "id": "empty",
+          "label": "Unfurnished",
+          "show": [],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "living_layout",
+      "label": "Living room",
+      "room": "living",
+      "property": "visible",
+      "options": [
+        {
+          "id": "sofa",
+          "label": "Furnished",
+          "show": [
+            "Furn_living_sofa_fabric",
+            "Furn_living_sofa_linen"
+          ],
+          "default": true
+        },
+        {
+          "id": "empty",
+          "label": "Unfurnished",
+          "show": [],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "porch_layout",
+      "label": "Porch",
+      "room": "porch",
+      "property": "visible",
+      "options": [
+        {
+          "id": "chairs",
+          "label": "Furnished",
+          "show": [
+            "Furn_porch_chairs_linen",
+            "Furn_porch_chairs_wood"
+          ],
+          "default": true
+        },
+        {
+          "id": "empty",
+          "label": "Unfurnished",
+          "show": [],
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presence_note": "Visibility swaps, and a SEPARATE mechanism from `sets`. Each option lists the glTF node names to show; every other node named anywhere in this block must be hidden. THE MODEL SHIPS ALL ARRANGEMENTS, so a runtime that ignores this block renders a bed and a desk through each other -- honour `default` on first load.",
+  "disclosure": "Furniture and appliances shown for scale; not included. THE MODEL CANNOT ENFORCE THIS -- it is carried here so the UI has no excuse for omitting it, and it is the reason presence exists at all: a buyer switching the bedroom to a home office is choosing a layout, not ordering a desk."
 }
