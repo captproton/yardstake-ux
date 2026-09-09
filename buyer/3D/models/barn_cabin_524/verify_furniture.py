@@ -125,15 +125,28 @@ def main():
              f"{spec_default}"
              + ("" if spec_default == run_default else f" vs runtime {run_default}"))
 
-        # A presence set that names a room with no arrangements, or an
-        # arrangement in the wrong room, is a manifest that cannot work.
+        # TWO DISTINCT FAULTS, REPORTED SEPARATELY. A first version folded
+        # them together and an unknown id read as "misplaced", because
+        # by_id.get() returns None and None never equals a room — so a typo
+        # was reported as a room mismatch and the real cause stayed hidden.
         by_id = {a["id"]: a["room"] for a in arrs}
-        wrong = [f"{st['id']}.{o['id']}->{o['arrangement']}"
-                 for st in pres["sets"] for o in st["options"]
-                 if o.get("arrangement") and by_id.get(o["arrangement"]) != st["room"]]
+        named = [(st, o) for st in pres["sets"] for o in st["options"]
+                 if o.get("arrangement")]
+
+        unknown = [f"{st['id']}.{o['id']}->{o['arrangement']}"
+                   for st, o in named if o["arrangement"] not in by_id]
+        gate("every presence option names an arrangement that exists",
+             not unknown, f"{len(named)} options naming an arrangement"
+             + (f" — UNKNOWN {unknown}" if unknown else ""))
+
+        misplaced = [f"{st['id']}({st['room']}).{o['id']}->{o['arrangement']}"
+                     f"[{by_id[o['arrangement']]}]"
+                     for st, o in named
+                     if o["arrangement"] in by_id
+                     and by_id[o["arrangement"]] != st["room"]]
         gate("every presence option names an arrangement in its own room",
-             not wrong, f"{len(pres['sets'])} sets"
-             + (f" — MISPLACED {wrong}" if wrong else ""))
+             not misplaced, f"{len(pres['sets'])} sets"
+             + (f" — MISPLACED {misplaced}" if misplaced else ""))
 
     # ---- 2. arrangements are separate meshes ------------------------------
     # For each object, every polygon must fall inside one of ITS OWN

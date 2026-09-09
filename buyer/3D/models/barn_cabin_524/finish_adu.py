@@ -373,7 +373,17 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
             "in this block must be hidden. THE MODEL SHIPS ALL ARRANGEMENTS, so "
             "a runtime that ignores this block renders a bed and a desk through "
             "each other -- honour `default` on first load.")
-        manifest["disclosure"] = pres_spec["disclosure"].strip()
+        # A missing or blank disclosure is a validation problem, not a
+        # KeyError: everything else here reports through `problems` and gets a
+        # readable gate line, and a crash mid-export would leave the caller
+        # guessing which of the manifest's many keys was wrong.
+        disc = (pres_spec.get("disclosure") or "").strip()
+        if disc:
+            manifest["disclosure"] = disc
+        else:
+            problems.append(
+                "presence block has no `disclosure` text — the UI obligation "
+                "is the reason presence exists, so it may not be dropped")
     path = out / v.get("emit", "variants.json")
     path.write_text(json.dumps(manifest, indent=2) + "\n")
     return path, problems
