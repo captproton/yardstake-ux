@@ -100,7 +100,7 @@ def main():
     # has ANY glazing: none means finish_adu.py never ran here and the question
     # cannot be asked; some, but not the door's, is a real finding and falls
     # through to the gates below.
-    if not [o for o in bpy.data.objects if o.name.startswith("Glazing_")]:
+    if not any(o.name.startswith("Glazing_") for o in bpy.data.objects):
         print("\n  [ABSENT] this scene carries no glazing at all, so the front"
               "\n           elevation cannot be tested here. finish_adu.py adds"
               "\n           glazing; run against the blend it saves:"
