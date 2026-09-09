@@ -34,9 +34,55 @@ def main():
     print("=" * 80)
 
     meshes = [o for o in bpy.data.objects if o.type == "MESH"]
-    no_uv = [o.name for o in meshes if not o.data.uv_layers]
-    gate("every mesh carries a UV layer", not no_uv,
-         ", ".join(no_uv) or f"{len(meshes)} meshes")
+
+    # ---- UVs: three gates where there used to be one ----------------------
+    # The old gate said "every mesh carries a UV layer" and had been red
+    # wherever glazing exists, because glass has no texture and needs no UVs.
+    # A gate that is always red is a gate nobody reads, but the obvious repair
+    # -- exempt anything untextured -- is worse than the disease: 74 meshes
+    # carry UVs while using untextured materials, and that rule would drop
+    # every one of them out of the gate. Visible false alarm traded for
+    # invisible lost coverage.
+    #
+    # So the exemption is DECLARED, in spec.texturing.uv_exempt_materials, and
+    # split from the thing that actually breaks a render.
+    exempt = {f"adu_{k}" for k in tx.get("uv_exempt_materials", [])}
+
+    def mats(o):
+        return [ms.material for ms in o.material_slots if ms.material]
+
+    def textured(o):
+        return [m for m in mats(o)
+                if m.use_nodes
+                and any(n.type == "TEX_IMAGE" for n in m.node_tree.nodes)]
+
+    # 1. THE FAILURE MODE. A texture with no UVs samples garbage. This is what
+    #    the old gate was reaching for, and it never tested it directly.
+    bad = [f"{o.name} ({', '.join(m.name for m in textured(o))})"
+           for o in meshes if textured(o) and not o.data.uv_layers]
+    gate("every image-textured mesh carries a UV layer", not bad,
+         ", ".join(bad) or
+         f"{sum(1 for o in meshes if textured(o))} textured meshes")
+
+    # 2. Nothing skips UVs without saying so. A mesh may go without only if
+    #    EVERY material on it is declared exempt -- so an untextured material
+    #    that is not on the list still fails, and the list stays the record.
+    undeclared = [f"{o.name} ({', '.join(m.name for m in mats(o)) or 'no material'})"
+                  for o in meshes if not o.data.uv_layers
+                  and not (mats(o) and all(m.name in exempt for m in mats(o)))]
+    gate("only declared-exempt materials skip UVs", not undeclared,
+         ", ".join(undeclared) or
+         f"{sum(1 for o in meshes if not o.data.uv_layers)} exempt, "
+         f"all on {sorted(exempt) or ['nothing']}")
+
+    # 3. The list must name real materials. Same discipline finish_adu.py
+    #    already applies to manifest targets: a typo here would silently
+    #    exempt nothing and read as if it exempted something.
+    lib = set(spec["materials"]["library"])
+    unknown = [k for k in tx.get("uv_exempt_materials", []) if k not in lib]
+    gate("the UV-exempt list names real materials", not unknown,
+         f"unknown in materials.library: {unknown}" if unknown
+         else f"{sorted(tx.get('uv_exempt_materials', []))} all declared")
 
     # per-edge texel density
     n = ok = 0

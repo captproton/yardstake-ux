@@ -1652,6 +1652,22 @@ texturing:
     At 128 px/ft that is 64 px per course — sharp at the 2-6 ft distance a
     walkthrough implies, and still legible at configurator orbit distance.
   tolerance_pct: 15           # verification gate: per-object px/ft within +/-15%
+  uv_exempt_materials: [glass]
+  uv_exemption_rationale: >
+    A mesh needs UVs only if something samples them. Glass is the one material
+    in the library with no image map — colour, roughness and transmission are
+    all constants — so a UV layer on it would be bytes in the .glb that nothing
+    reads. The eleven Glazing_ meshes therefore ship without one, ON PURPOSE.
+
+    Declared here rather than matched by name in the gate. "Skip anything
+    called Glazing_" would silently excuse a future textured mesh that happened
+    to carry the prefix; naming the MATERIAL means the exemption ends the day
+    glass gains a texture, and verify_tier2 fails at that moment.
+
+    Do NOT widen this to "any material without a texture". 74 meshes currently
+    carry UVs while using untextured materials, and that rule would drop every
+    one of them out of the gate — trading a visible false alarm for invisible
+    lost coverage. Keys are `materials.library` names, gated to exist.
 
 # ---------------------------------------------------------------------------
 ceilings:
