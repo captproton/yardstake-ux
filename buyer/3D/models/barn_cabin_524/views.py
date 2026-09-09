@@ -136,12 +136,63 @@ def _manifest():
     return man
 
 
+def _bad_set(st):
+    """Why this presence set cannot be trusted, or None if it can.
+
+    The schema is not a guess at what a manifest ought to contain. It is the
+    list of keys this project INDEXES UNCONDITIONALLY, read off the consumers:
+    _apply_layouts() and _controlled() below, the panel's draw(), and
+    verify_views.py. A key nothing indexes is not checked; a key something
+    indexes is, because the alternative is a KeyError out of draw(), and a
+    draw() that raises leaves the sidebar blank with no clue why.
+
+    `default` carries an invariant as well as a type. Three call sites do
+    `next(o for o in options if o["default"])` with a bare next(): zero
+    defaults raises StopIteration mid-redraw, two defaults silently take
+    whichever came first. Requiring exactly one is what makes those three
+    lines safe, so it is checked here rather than defended at each of them.
+
+    Ids must be unique for the same reason. `_layout` is keyed by set id and
+    option lookup is a first-match next(), so a duplicate id would apply one
+    arrangement while layout() printed the other -- a wrong answer reported as
+    a right one, which is a failure mode this file has already shipped once.
+    """
+    if not isinstance(st, dict):
+        return "not an object"
+    for key in ("id", "label"):
+        if not isinstance(st.get(key), str):
+            return f"set {key!r} missing or not a string"
+    opts = st.get("options")
+    if not isinstance(opts, list) or not opts:
+        return "'options' missing, not a list, or empty"
+    for o in opts:
+        if not isinstance(o, dict):
+            return "option is not an object"
+        for key in ("id", "label"):
+            if not isinstance(o.get(key), str):
+                return f"option {key!r} missing or not a string"
+        if not isinstance(o.get("show"), list) or not all(
+                isinstance(n, str) for n in o["show"]):
+            return f"option {o['id']!r}: 'show' is not a list of strings"
+        if not isinstance(o.get("default"), bool):
+            return f"option {o['id']!r}: 'default' missing or not a boolean"
+    n_default = sum(o["default"] for o in opts)
+    if n_default != 1:
+        return f"{n_default} options marked default, need exactly 1"
+    ids = [o["id"] for o in opts]
+    if len(set(ids)) != len(ids):
+        return f"duplicate option ids in {ids}"
+    return None
+
+
 def _presence():
     """The presence sets, or [] if the manifest cannot be trusted.
 
-    VALIDATED, NOT ASSUMED. `variants.json` can be valid JSON and still be the
-    wrong shape -- a top-level array, a set with no `options`, an option with
-    no `show`. Left unchecked those raise AttributeError or KeyError out of
+    VALIDATED, NOT ASSUMED -- and validated against what the code actually
+    indexes, which is what _bad_set() enumerates. `variants.json` can be valid
+    JSON and still be the wrong shape: a top-level array, a set with no
+    `options`, an option with no `label`, a set with no default. Left
+    unchecked those raise AttributeError, KeyError or StopIteration out of
     _show() and out of the panel's draw(), and a draw() that raises leaves the
     sidebar broken with no clue why.
 
@@ -157,20 +208,17 @@ def _presence():
         return []
     sets = man.get("presence", [])
     for st in sets:
-        ok = (isinstance(st, dict)
-              and isinstance(st.get("id"), str)
-              and isinstance(st.get("options"), list)
-              and st["options"]
-              and all(isinstance(o, dict)
-                      and isinstance(o.get("id"), str)
-                      and isinstance(o.get("show"), list)
-                      and all(isinstance(n, str) for n in o["show"])
-                      for o in st["options"]))
-        if not ok:
+        why = _bad_set(st)
+        if why is not None:
+            name = st.get("id", "?") if isinstance(st, dict) else repr(st)
             _warn_once("schema", f"{MANIFEST} presence block is malformed "
-                                 f"(set {st.get('id', '?') if isinstance(st, dict) else st!r}); "
-                                 f"arrangements not applied")
+                                 f"(set {name}: {why}); arrangements not applied")
             return []
+    ids = [st["id"] for st in sets]
+    if len(set(ids)) != len(ids):
+        _warn_once("schema", f"{MANIFEST} has duplicate presence set ids "
+                             f"({ids}); arrangements not applied")
+        return []
     return sets
 
 

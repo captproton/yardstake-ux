@@ -17,6 +17,7 @@ So each of those is now a gate.
 
     blender --background barn_cabin_524.blend --python verify_views.py
 """
+import copy
 import sys
 from pathlib import Path
 
@@ -33,6 +34,19 @@ FAILED = []
 # Anything a standing person would collide with. A camera inside one of these
 # is not a view of the room, it is a view of the inside of a cupboard.
 SOLID = ("Cab_", "Appl_", "Fix_", "Part_", "Wall_", "Door_", "Found_")
+
+
+def _drop(st, key, opt=None):
+    """A copy of presence set `st` with one key removed.
+
+    `opt` names an option index to remove the key from instead of the set
+    itself. Used only to manufacture the malformed manifests the schema gate
+    requires views._bad_set() to reject.
+    """
+    st = copy.deepcopy(st)
+    target = st if opt is None else st["options"][opt]
+    target.pop(key, None)
+    return st
 
 
 def gate(name, ok, detail=""):
@@ -196,6 +210,40 @@ def main():
     gate("presence sets reach views.py", bool(sets),
          f"{len(sets)} sets from {views.MANIFEST}"
          if sets else "no manifest — run finish_adu.py first")
+
+    if sets:
+        # A malformed manifest must be REJECTED, not survived. The failure
+        # mode is a KeyError or StopIteration raised out of the panel's
+        # draw(), which leaves the sidebar blank with no clue why -- so this
+        # gate breaks the real manifest one key at a time and requires
+        # _bad_set() to catch each. The list is every key the code indexes
+        # unconditionally; anything added to that list here must be added to
+        # the validator, and vice versa.
+        good = copy.deepcopy(sets[0])
+        broken = {}
+        for key in ("id", "label", "options"):
+            broken[f"set has no {key!r}"] = _drop(good, key)
+        for key in ("id", "label", "show", "default"):
+            broken[f"option has no {key!r}"] = _drop(good, key, opt=0)
+        broken["set has no options"] = {**good, "options": []}
+        broken["set is not an object"] = ["not", "a", "dict"]
+        broken["no option is default"] = {
+            **good, "options": [{**o, "default": False} for o in good["options"]]}
+        broken["two options are default"] = {
+            **good, "options": [{**o, "default": True} for o in good["options"]]}
+        # Append a non-default copy of the first option, so this manifest is
+        # malformed ONLY in the id. Duplicating the option outright also
+        # duplicates its `default`, and the gate would then pass on the
+        # exactly-one-default rule while the duplicate-id rule did nothing.
+        broken["duplicate option ids"] = {
+            **good, "options": [*good["options"],
+                                {**good["options"][0], "default": False}]}
+        survived = [why for why, bad in broken.items()
+                    if views._bad_set(bad) is None]
+        gate("a malformed presence set is rejected, not survived",
+             not survived and views._bad_set(good) is None,
+             f"{len(broken)} malformations, all caught"
+             if not survived else f"SURVIVED {survived}")
 
     if sets:
         controlled = views._controlled()
