@@ -182,6 +182,40 @@ def add_glazing(spec, geo, coll):
              c - d / 2, c + d / 2, o["sill"], o["sill"] + o["h"])
     for o in op["south_wall"]["openings"]:
         c = SY + t / 2
+        if "construction" in o:
+            # A HALF-LITE DOOR GETS SIX PANES, NOT ONE SHEET.
+            #
+            # This line used to read
+            #     nm = ("Door_" if o["type"].endswith("door") else "Glazing_") ...
+            # which built a full-height pane and then renamed it so the material
+            # map would make it opaque. Same geometry, same footprint; only the
+            # NAME differed, and the name is what picks the material. So the
+            # entry door had a working glazing slot that a single ternary
+            # deliberately blanked, and the model shipped a door that was two
+            # flat boxes.
+            #
+            # Replacing it with one pane would have been the other wrong answer:
+            # a single sheet across the upper half is a windscreen, not the door
+            # A1.1 draws. The lites are placed in the grid the leaf leaves open.
+            cn = o["construction"]
+            st, mw = cn["stile"]["ft"], cn["muntin_width"]["ft"]
+            gx0, gx1 = o["offset"] + st, o["offset"] + o["w"] - st
+            gz0 = o["sill"] + cn["lite_grid"]["bottom_z"]
+            gz1 = o["sill"] + cn["lite_grid"]["top_z"]
+            cols, rows = cn["lites"]["cols"], cn["lites"]["rows"]
+            for i in range(cols):
+                for j in range(rows):
+                    a = gx0 + (gx1 - gx0) * i / cols
+                    b = gx0 + (gx1 - gx0) * (i + 1) / cols
+                    p = gz0 + (gz1 - gz0) * j / rows
+                    q = gz0 + (gz1 - gz0) * (j + 1) / rows
+                    # Inset by half a muntin, so a lite meets its bar rather
+                    # than overlapping it.
+                    pane(f"Glazing_{o['id']}_lite_{j}{i}",
+                         a + (mw / 2 if i else 0), b - (mw / 2 if i < cols - 1 else 0),
+                         c - d / 2, c + d / 2,
+                         p + (mw / 2 if j else 0), q - (mw / 2 if j < rows - 1 else 0))
+            continue
         nm = ("Door_" if o["type"].endswith("door") else "Glazing_") + o["id"]
         pane(nm, o["offset"], o["offset"] + o["w"],
              c - d / 2, c + d / 2, o["sill"], o["sill"] + o["h"])
@@ -190,6 +224,12 @@ def add_glazing(spec, geo, coll):
         pane(f"Glazing_{o['id']}", c - d / 2, c + d / 2,
              yn(o["offset"] + o["w"]), yn(o["offset"]),
              o["sill"], o["sill"] + o["h"])
+    # The south gable window sits in a prism, not a wall, so its pane is placed
+    # from the gable's own depth (y 0..t) rather than from a wall datum.
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        c = t / 2
+        pane(f"Glazing_{o['id']}", o["offset"], o["offset"] + o["w"],
+             c - d / 2, c + d / 2, o["sill"], o["sill"] + o["h"])
     for o in spec["openings"]["loft"]["windows"]:
         for side, c in (("W", t / 2), ("E", W - t / 2)):
             pane(f"Glazing_{o['id']}_{side}", c - d / 2, c + d / 2,
