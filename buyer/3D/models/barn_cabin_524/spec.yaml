@@ -518,6 +518,50 @@ variants:
   # phone. finish_adu.py emits export/variants.json from this block.
   emit: variants.json
   property: baseColorFactor
+  presence:
+    # A SIBLING OF `sets`, NOT A SECOND MEANING FOR IT.
+    #
+    # `sets` swaps materials: `targets` sits at SET level and names materials,
+    # and each option carries a `value`. A presence swap needs the opposite
+    # shape -- the thing being named differs PER OPTION, because choosing "home
+    # office" shows a different group of objects than choosing "bedroom". Bent
+    # into `sets`, `targets` would come to mean "materials, unless the property
+    # is visible, in which case ignore this and read the options" -- the kind of
+    # overload that later reads as a bug.
+    #
+    # So presence is additive: a runtime that only knows `sets` keeps working
+    # unchanged and simply never hides anything.
+    #
+    # Options name an ARRANGEMENT, not object names. finish_adu resolves the
+    # arrangement to the node names it actually exported, so the manifest
+    # carries what the runtime needs while the spec stays semantic and cannot
+    # drift from the build.
+    property: visible
+    disclosure: >
+      Furniture and appliances shown for scale; not included. THE MODEL CANNOT
+      ENFORCE THIS -- it is carried here so the UI has no excuse for omitting
+      it, and it is the reason presence exists at all: a buyer switching the
+      bedroom to a home office is choosing a layout, not ordering a desk.
+    sets:
+    - id: bedroom_layout
+      label: "Bedroom"
+      room: bedroom
+      options:
+      - {id: bed,    label: "Bedroom",     arrangement: bedroom_bed, default: true}
+      - {id: office, label: "Home office", arrangement: bedroom_office}
+      - {id: empty,  label: "Unfurnished", arrangement: null}
+    - id: living_layout
+      label: "Living room"
+      room: living
+      options:
+      - {id: sofa,  label: "Furnished",   arrangement: living_sofa, default: true}
+      - {id: empty, label: "Unfurnished", arrangement: null}
+    - id: porch_layout
+      label: "Porch"
+      room: porch
+      options:
+      - {id: chairs, label: "Furnished",   arrangement: porch_chairs, default: true}
+      - {id: empty,  label: "Unfurnished", arrangement: null}
   sets:
     - id: color_theme
       label: Colour theme

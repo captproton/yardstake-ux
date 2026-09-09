@@ -276,7 +276,22 @@ def patch_base_color_factors(path, spec):
     return n
 
 
-def emit_variants(out, spec, materials_present):
+def arrangement_nodes(spec, arr_id):
+    """The object names build_furniture creates for one arrangement.
+
+    Derived the same way the builder derives them -- one mesh per
+    (arrangement, material) -- so the manifest cannot name a node the build
+    does not make. A gate then checks these against what lod0 actually
+    exported, which is the analogue of "manifest targets real materials".
+    """
+    for a in spec["fixtures"]["furniture"]["arrangements"]:
+        if a["id"] == arr_id:
+            mats = sorted({pc["material"] for pc in a["pieces"]})
+            return [f"Furn_{arr_id}_{m.removeprefix('furn_')}" for m in mats]
+    return None
+
+
+def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     """Write the configurator manifest the Three.js runtime reads.
 
     Every option is a baseColorFactor, so this file is the entire cost of the
@@ -302,6 +317,47 @@ def emit_variants(out, spec, materials_present):
                      "targets": st["targets"],
                      "property": v.get("property", "baseColorFactor"),
                      "options": opts})
+    # ---- presence: a SIBLING of sets, never an overload of it -------------
+    pres_spec = v.get("presence")
+    presence = []
+    if pres_spec:
+        for st in pres_spec["sets"]:
+            opts = []
+            for o in st["options"]:
+                arr = o.get("arrangement")
+                if arr is None:                       # the "unfurnished" option
+                    show = []
+                else:
+                    show = arrangement_nodes(spec, arr)
+                    if show is None:
+                        problems.append(
+                            f"{st['id']}.{o['id']} -> unknown arrangement {arr}")
+                        show = []
+                    else:
+                        missing = [n for n in show if n not in nodes_present]
+                        if missing:
+                            problems.append(
+                                f"{st['id']}.{o['id']} -> nodes not exported: "
+                                f"{missing}")
+                opts.append({"id": o["id"], "label": o["label"],
+                             "show": show, "default": bool(o.get("default"))})
+            if sum(o["default"] for o in opts) != 1:
+                problems.append(f"{st['id']} needs exactly one default")
+            presence.append({"id": st["id"], "label": st["label"],
+                             "room": st["room"],
+                             "property": pres_spec.get("property", "visible"),
+                             "options": opts})
+
+        # Every node named anywhere in presence must be hidden unless some
+        # option shows it. A runtime that ignores `presence` would otherwise
+        # render two bedroom arrangements through each other.
+        owned = sorted({n for st in presence for o in st["options"]
+                        for n in o["show"]})
+        stray = sorted(n for n in nodes_present
+                       if n.startswith("Furn_") and n not in owned)
+        if stray:
+            problems.append(f"furniture nodes no presence set controls: {stray}")
+
     manifest = {
         "model": "barn_cabin_524",
         "note": ("Runtime material swaps. Each option sets baseColorFactor on the "
@@ -309,6 +365,25 @@ def emit_variants(out, spec, materials_present):
                  "need loading and none ship per option."),
         "sets": sets,
     }
+    if presence:
+        manifest["presence"] = presence
+        manifest["presence_note"] = (
+            "Visibility swaps, and a SEPARATE mechanism from `sets`. Each option "
+            "lists the glTF node names to show; every other node named anywhere "
+            "in this block must be hidden. THE MODEL SHIPS ALL ARRANGEMENTS, so "
+            "a runtime that ignores this block renders a bed and a desk through "
+            "each other -- honour `default` on first load.")
+        # A missing or blank disclosure is a validation problem, not a
+        # KeyError: everything else here reports through `problems` and gets a
+        # readable gate line, and a crash mid-export would leave the caller
+        # guessing which of the manifest's many keys was wrong.
+        disc = (pres_spec.get("disclosure") or "").strip()
+        if disc:
+            manifest["disclosure"] = disc
+        else:
+            problems.append(
+                "presence block has no `disclosure` text — the UI obligation "
+                "is the reason presence exists, so it may not be dropped")
     path = out / v.get("emit", "variants.json")
     path.write_text(json.dumps(manifest, indent=2) + "\n")
     return path, problems
@@ -393,6 +468,7 @@ def main():
 
     spec = load_spec(HERE / "spec.yaml")
     results = {}
+    lod0_nodes = set()
 
     for lod in ("lod0", "lod1", "lod2"):
         geo, colls = build(spec, cut_openings=(lod != "lod2"))
@@ -413,7 +489,13 @@ def main():
             keep += list(colls["finish"].objects)   # Tier 1: ceilings, floors, doors
             keep += list(colls["casework"].objects)  # Tier 3: cabinets, counter
             keep += list(colls["foundation"].objects)  # footing, crawl grade, vents
-            keep += default_furniture(spec, colls["furniture"])
+            # ALL arrangements, not just the defaults. A runtime can only
+            # toggle what is in the file, so presence swapping requires every
+            # arrangement to ship. `default` in the manifest now carries what
+            # this filter used to: which arrangement is visible on first load.
+            # The viewable .blend still hides the rest, because nothing is
+            # doing the choosing when a person opens it in Blender.
+            keep += list(colls["furniture"].objects)
             keep += list(colls["lighting"].objects)  # Tier 3: exterior sconce
         if lod != "lod2":
             keep += [o for o in glaz.objects]
@@ -427,9 +509,11 @@ def main():
         info["unmatched_materials"] = unmatched
         info["textured"] = textured
         results[lod] = info
+        if lod == "lod0":
+            lod0_nodes = {o.name for o in keep}
 
     all_mats = sorted(m.name for m in bpy.data.materials)
-    vpath, vproblems = emit_variants(out, spec, set(all_mats))
+    vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes)
 
     # primary deliverable is a copy of lod0
     (out / "barn_cabin_524.glb").write_bytes((out / "barn_cabin_524_lod0.glb").read_bytes())
@@ -475,7 +559,27 @@ def main():
         for p_ in vproblems:
             print(f"  PROBLEM: {p_}")
         ok &= not vproblems
+
+    # ---- presence: every shipped furniture node is controlled -------------
+    # The manifest is read back from disk, not from the objects that wrote it,
+    # so this checks the artefact the runtime will actually load.
+    man = json.loads(vpath.read_text()) if vpath else {}
+    pres = man.get("presence", [])
+    shipped = {n for n in lod0_nodes if n.startswith("Furn_")}
+    owned = [n for st in pres for o in st["options"] for n in o["show"]]
+    uncontrolled = sorted(shipped - set(owned))
+    twice = sorted({n for n in owned if owned.count(n) > 1})
+    one_default = all(sum(o["default"] for o in st["options"]) == 1 for st in pres)
+    pres_ok = pres and not uncontrolled and not twice and one_default
+
     print(f"\n  [{'PASS' if not vproblems else 'FAIL'}] configurator manifest targets real materials")
+    print(f"  [{'PASS' if pres_ok else 'FAIL'}] every shipped furniture node is controlled "
+          f"by exactly one presence option"
+          + (f" — UNCONTROLLED {uncontrolled}" if uncontrolled else "")
+          + (f" — CLAIMED TWICE {twice}" if twice else "")
+          + (" — a set lacks exactly one default" if pres and not one_default else "")
+          + ("" if pres else " — no presence block emitted"))
+    ok &= bool(pres_ok)
     print(f"  [{'PASS' if not over else 'FAIL'}] every level within its size budget")
     print(f"  [{'PASS' if scale_ok else 'FAIL'}] glTF exported in metres at the right scale")
     print(f"  [{'PASS' if ok else 'FAIL'}] Draco applied and every object matched a material")

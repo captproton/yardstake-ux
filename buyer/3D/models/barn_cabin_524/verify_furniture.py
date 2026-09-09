@@ -107,6 +107,47 @@ def main():
          ", ".join(f"{r}={sum(d)}" for r, d in sorted(rooms.items()))
          + (f" — WRONG {bad}" if bad else ""))
 
+    # ---- 1b. the two declarations of "default" must agree ----------------
+    # There are now two: fixtures.furniture.arrangements[].default decides what
+    # the viewable .blend shows, and variants.presence options[].default is
+    # what the RUNTIME reads on first load. Nothing stops them drifting, and a
+    # drift would mean Blender and the browser disagree about the same model.
+    pres = spec.get("variants", {}).get("presence")
+    if pres:
+        spec_default = {a["room"]: a["id"] for a in arrs if a.get("default")}
+        run_default = {}
+        for st in pres["sets"]:
+            for o in st["options"]:
+                if o.get("default"):
+                    run_default[st["room"]] = o.get("arrangement")
+        gate("the blend default and the runtime default agree",
+             spec_default == run_default,
+             f"{spec_default}"
+             + ("" if spec_default == run_default else f" vs runtime {run_default}"))
+
+        # TWO DISTINCT FAULTS, REPORTED SEPARATELY. A first version folded
+        # them together and an unknown id read as "misplaced", because
+        # by_id.get() returns None and None never equals a room — so a typo
+        # was reported as a room mismatch and the real cause stayed hidden.
+        by_id = {a["id"]: a["room"] for a in arrs}
+        named = [(st, o) for st in pres["sets"] for o in st["options"]
+                 if o.get("arrangement")]
+
+        unknown = [f"{st['id']}.{o['id']}->{o['arrangement']}"
+                   for st, o in named if o["arrangement"] not in by_id]
+        gate("every presence option names an arrangement that exists",
+             not unknown, f"{len(named)} options naming an arrangement"
+             + (f" — UNKNOWN {unknown}" if unknown else ""))
+
+        misplaced = [f"{st['id']}({st['room']}).{o['id']}->{o['arrangement']}"
+                     f"[{by_id[o['arrangement']]}]"
+                     for st, o in named
+                     if o["arrangement"] in by_id
+                     and by_id[o["arrangement"]] != st["room"]]
+        gate("every presence option names an arrangement in its own room",
+             not misplaced, f"{len(pres['sets'])} sets"
+             + (f" — MISPLACED {misplaced}" if misplaced else ""))
+
     # ---- 2. arrangements are separate meshes ------------------------------
     # For each object, every polygon must fall inside one of ITS OWN
     # arrangement's declared pieces. A mesh that merged two arrangements would
