@@ -45,7 +45,7 @@ still never moved.
 toilet, the tub/shower, the crawl hole, the stacked W/D, all three appliances,
 the porch sconce and, last, the furniture — **and the building stands on a real
 foundation.** 113 meshes, all of them shipped in `lod0` at **922.0 KB** against
-a 4 MB ceiling, with 49/49 fixture gates, 12/12 geometry gates and 10/10
+a 4 MB ceiling, with 49/49 fixture gates, 12/12 geometry gates and 11/11
 furniture gates.
 
 **The model is also configurable in layout, not only in finish.** Two bedroom
@@ -56,6 +56,17 @@ unfurnished. A runtime can only toggle what is in the file, so **`lod0` carries
 the bedroom twice**, and a viewer that ignores `presence` renders a desk through
 a bed. That obligation is spelled out in
 [TIER-2 §presence](TIER-2-materials-and-textures.md#presence--a-second-block-not-a-second-meaning-for-sets).
+
+**A gate can be right and still not cover the failure.** The office rug
+shipped **invisible** — 1/2" thick, resting at zero, under a 3/4" floor finish,
+so the floor closed over it ([#79](https://github.com/captproton/yardstake-ux/pull/79)). Eleven gates missed it, and the two
+that look like they should have caught it were each correct: the clearance gate
+deliberately excludes `Floor_`, because every piece of furniture rests on the
+floor and treating that as a clash would fail all forty; and the
+floor-to-ceiling gate only asks whether `z0` is above zero, which `0.000` is.
+The real failure mode was narrower than either — a piece **thinner than the
+finish** — and needed its own gate rather than a widening of theirs. Found by
+opening Blender and noticing something was not there.
 
 **A gate that has never failed is a claim, not a check.** [#74](https://github.com/captproton/yardstake-ux/pull/74) shipped
 `verify_mounted.py` with two checks that **could not fail** — one compared the
@@ -481,3 +492,12 @@ Keep these — they caught real errors:
     shapes honest and made the change purely additive: a runtime that knows
     only `sets` still works ([#78](https://github.com/captproton/yardstake-ux/pull/78)). The cost of the sibling is one more
     concept; the cost of the overload is every future reader.
+23. **A correct gate can still leave the hole uncovered.** The office rug
+    shipped invisible, buried inside the floor finish, past ELEVEN furniture
+    gates ([#79](https://github.com/captproton/yardstake-ux/pull/79)). The two that look like they should have caught it were
+    each right to behave as they did — the clearance gate excludes `Floor_`
+    because everything rests on the floor, and the floor-to-ceiling gate only
+    asks whether `z0` clears zero. Widening either would have broken it. When a
+    defect slips a suite, ask whether the existing gates were WRONG or merely
+    aimed elsewhere; if elsewhere, the answer is a new gate written against the
+    failure mode — here, thickness against the finish — not a looser old one.
