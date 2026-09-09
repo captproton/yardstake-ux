@@ -394,11 +394,23 @@ and deliberately left out of it:
   been red for something that may not need fixing at all — and a suite that is
   always red is a suite nobody reads. Decide whether glazing is exempt or
   whether it needs UVs, and make the gate say which.
-- **Exterior casing is modelled on no window at all.** A1.1 draws head casing,
-  side casing and a sill with apron around the gable window, and around the
-  others. `Trim_` today is INTERIOR casing only. Adding it to the new window
-  alone would have been inconsistent, so it was left for a pass that does every
-  opening at once.
+- **Exterior casing is modelled on no window at all, and on no door either.**
+  A1.1 draws head casing, side casing and a sill with apron around the gable
+  window, around the others, and around `D-FRONT`. `Trim_` today is INTERIOR
+  casing only — checked, not assumed: `Trim_D-FRONT` sits at y 6.458..6.518,
+  on the far side of a wall whose exterior face is 6.000.
+  [#80](https://github.com/captproton/yardstake-ux/issues/80)'s own table ticked
+  this as done, and that tick is now corrected in a comment there. Adding it to
+  one opening while the other six have none would look worse than none at all,
+  so it belongs to a pass that does every opening at once.
+- **The drawn front door and the built one disagree.** A1.1 gives six lites in
+  two columns by three rows over one square panel; the tour shows three columns
+  by two rows over two tall panels, in mustard yellow. Same building — the 0:13
+  frame carries the shingled gable, the gable window, the porch and the sconce.
+  Filed as `discrepancies.front-door-face-differs-from-the-built-unit` and
+  resolved the way this project already resolved the bedroom door the plans do
+  not have: **model the plans**, keep the as-built face as a candidate
+  `presence` option. The gates test the DRAWN arrangement on purpose.
 - **The sheet contradicts itself at the ridge, and the model is right.** A1.1's
   dash-dot "TOP OF ROOF" leader sits at z 17.32 while its own drawn apex is at
   z 17.91 — seven inches apart. P3 chose the apex on independent evidence and

@@ -2295,6 +2295,42 @@ discrepancies:
       therefore departs from the published loft window schedule. The A1.1 loft plan
       even carries the "(18\" MIN-44\")" sill note next to that string.
     action: "Model the plan (4'-0\" x 2'-0\" X/O). Note the as-built alternative in P4 material/config notes."
+  - id: front-door-face-differs-from-the-built-unit
+    severity: medium
+    plan_says: >
+      A1.1 FRONT ELEVATION - OPTION B draws D-FRONT with SIX LITES IN TWO
+      COLUMNS BY THREE ROWS, filling the upper half of the leaf down to
+      mid-height, over a SINGLE square recessed panel. Re-read at high
+      magnification when the conflict surfaced, so this is not a transposition:
+      the grid is taller than it is wide and there is one panel, not two.
+    video_says: >
+      0:13 and 14.8s show the as-built door with SIX LITES IN THREE COLUMNS BY
+      TWO ROWS, clustered in a narrow band at the top of the leaf, over TWO
+      TALL VERTICAL PANELS. It is painted mustard yellow; the model paints
+      every door the trim colour. The deep rail between glass and panels is
+      also far deeper than the 7 1/8" lock rail the sheet gives.
+    analysis: >
+      SAME BUILDING, NOT THE OTHER UNIT. The 0:13 frame carries the shingled
+      front gable, the gable window, the porch, the sconce and both living-room
+      windows -- this floor plan, not the second unit the tour also films. So
+      this is a genuine plan-versus-as-built difference and not a mix-up over
+      which unit was shot.
+      BOTH ARE SIX-LITE HALF-LITE DOORS. The type callout "3'-0\" HL" holds
+      either way; what differs is the grid's orientation and the panel count.
+    resolved: true
+    finding: >
+      The sheet and the built house disagree, and neither is wrong. The plan set
+      is the free published Option B; the built unit is what the builder
+      actually hung.
+    action: >
+      MODEL THE PLANS -- the same resolution this file already reached for
+      `bedroom-exterior-door`, where the tour showed a door the published set
+      does not have. The model follows A1.1: two columns by three rows, one
+      panel. The as-built face is a candidate `variants.presence` option later,
+      alongside the door colour, if the as-built look is ever wanted.
+      Recorded so it is not re-derived as a modelling defect. The gates in
+      verify_front_elevation.py test the DRAWN arrangement on purpose.
+    ref_frames: ["video 0:13", "video 14.8s"]
   - id: bedroom-exterior-door
     severity: medium
     plan_says: "No exterior door shown on the bedroom's east wall. The 6'-0\" slider callout is the closet/laundry bypass door, on an interior wall."
