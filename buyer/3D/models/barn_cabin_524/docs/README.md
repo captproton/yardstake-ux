@@ -24,6 +24,7 @@ Phases P1–P4 are complete and gated:
 | **Tier 3e** | Tub/shower, stacked W/D, geometry gate | **done** ([#68](https://github.com/captproton/yardstake-ux/pull/68)) — both were measured and never built |
 | **Tier 3f** | Porch sconce, `fixtures.mounted` anchor, `verify_mounted` | **done** ([#74](https://github.com/captproton/yardstake-ux/pull/74)) — the first position taken from footage, because there is no electrical sheet |
 | **Foundation** | Crawlspace stemwall, footing, rim, piers, the eight vents A2.0 draws | **done** ([#70](https://github.com/captproton/yardstake-ux/pull/70)) — the first `lod2` change in twelve PRs |
+| **Tier 3g** | Furniture, in switchable arrangements | **done** ([#77](https://github.com/captproton/yardstake-ux/pull/77)) — Tier 3's last unbuilt item; merging deliberately stops at the arrangement boundary |
 | **Tooling** | Camera presets + ADU sidebar panel, framing gated | **done** ([#71](https://github.com/captproton/yardstake-ux/pull/71)) — tooling only, cannot reach a `.glb` |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
@@ -39,11 +40,18 @@ crawlspace stemwall, so `lod2` is now **28.4 KB** and its bbox floor moved from
 what the stability guarantee actually asks for. Origin, axes and units have
 still never moved.
 
-**Tier 3's build half is complete** — casework, both sinks, both taps, the
-mirror, the toilet, the tub/shower, the crawl hole, the stacked W/D and all
-three appliances — **and the building now stands on a real foundation.**
-102 meshes, `lod0` **907.2 KB** against a 4 MB ceiling, 49/49 fixture gates and
-12/12 geometry gates.
+**Tier 3 is complete** — casework, both sinks, both taps, the mirror, the
+toilet, the tub/shower, the crawl hole, the stacked W/D, all three appliances,
+the porch sconce and, last, the furniture — **and the building stands on a real
+foundation.** 113 meshes built; `lod0` ships 109 at **916.8 KB** against a 4 MB
+ceiling, with 49/49 fixture gates, 12/12 geometry gates and 7/7 furniture
+gates.
+
+`lod0` ships fewer meshes than are built because two bedroom arrangements share
+the floor and are alternatives — a bed and a home office, staged twenty seconds
+apart in the tour video. Both exist so the presence-swap work
+([#76](https://github.com/captproton/yardstake-ux/issues/76)) has something to
+switch; `default_furniture()` picks one until it does.
 
 **A gate that has never failed is a claim, not a check.** [#74](https://github.com/captproton/yardstake-ux/pull/74) shipped
 `verify_mounted.py` with two checks that **could not fail** — one compared the
@@ -297,17 +305,24 @@ hand — 5/4×4 clear vertical grain Douglas fir, 20° heel cut, flange-bolted
 
 ## What remains
 
-Tiers 1 and 2 are complete bar one optimisation. **Tier 3's build half is
-done** and verified by `verify_geometry.py`, and the foundation is built and
-measured ([#70](https://github.com/captproton/yardstake-ux/pull/70)). In order of value:
+Tiers 1 and 2 are complete bar one optimisation, the foundation is built and
+measured ([#70](https://github.com/captproton/yardstake-ux/pull/70)), and
+**TIER 3 IS COMPLETE** — furniture was the last unbuilt item and shipped in
+[#77](https://github.com/captproton/yardstake-ux/pull/77).
+
+That sentence has been wrong before. After [#67](https://github.com/captproton/yardstake-ux/pull/67) this plan said the build half
+was done while the tub/shower and the stacked washer/dryer were both measured
+and unbuilt. It is safe to write now only because `verify_geometry.py` and
+`verify_furniture.py` both pass, and both test POSITION rather than names.
+In order of value:
 
 | Work | Notes |
 |---|---|
-| **T3:** furniture | The last unbuilt item in the tier, and the only one with `status: not_yet_placed`. Architectural fill-in-the-space per §4 — schematic masses, no licensing exposure |
+| **Configurator:** presence-swap variants | **[#76](https://github.com/captproton/yardstake-ux/issues/76)** — the manifest can only recolour. Every option in `emit_variants` is a `baseColorFactor` on a named **material**, so `bedroom = bed \| office \| empty` cannot be expressed: that is a *presence* swap. Both bedroom arrangements are already built and named for it, and `default_furniture()` in `finish_adu.py` is the single place that decides what ships. A **contract decision** before it is code — it changes the schema the Three.js runtime reads, like the `lod2` change in [#70](https://github.com/captproton/yardstake-ux/pull/70) |
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
 | **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#74](https://github.com/captproton/yardstake-ux/pull/74)). The mini-split head, meter panel, tankless heater and heat pump are all wall- or ground-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but not one of them is drawn with a height |
-| **Export:** mesh instancing | `lod0` is 102 nodes and **102 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2` and the closet door pair are each paid for twice. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 907.2 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **Export:** mesh instancing | `lod0` is 109 nodes and **109 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2` and the closet door pair are each paid for twice. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 916.8 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
 | **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 28.4 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |
@@ -445,3 +460,13 @@ Keep these — they caught real errors:
     and failed on CORRECT behaviour: one trusted a merged mesh's bounding box,
     the other started from a mode that only changes visibility, so nothing
     moved. Write the gate, then make it fail on purpose.
+21. **A house convention can be the wrong answer.** `build_adu` merges by
+    material across the whole building, which is right for anything always
+    present and wrong for anything switchable: `Appl_body` is ONE mesh holding
+    the fridge, the range, the dishwasher and the bedroom-closet washer/dryer,
+    and furniture built that way could never be hidden one arrangement at a
+    time. Furniture therefore merges only WITHIN an arrangement ([#77](https://github.com/captproton/yardstake-ux/pull/77)).
+    That same shared-mesh property has now cost this project three times — a
+    tautological geometry gate, a camera framing three rooms, and nearly an
+    unswitchable furniture set. When a convention meets a requirement it cannot
+    serve, break it deliberately and gate the break.
