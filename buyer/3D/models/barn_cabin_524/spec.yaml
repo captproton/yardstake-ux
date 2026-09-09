@@ -1278,7 +1278,11 @@ fixtures:
         Desk under the same north window. Chair pulled out 1'-6". Rug clear of
         both pocket doors so neither is blocked when open.
       pieces:
-      - {id: rug,        x0: 13.20, x1: 19.80, y0: 22.20, y1: 28.40, z0: 0.00, z1: 0.04, material: furn_linen}
+      # Rests ON the floor finish, not in it. construction.floor_finish_thickness
+      # is 3/4", so a 1/2" rug starting at z=0 is entirely buried and renders
+      # as nothing at all. Everything else here is thick enough that sinking
+      # 3/4" only looks like contact.
+      - {id: rug,        x0: 13.20, x1: 19.80, y0: 22.20, y1: 28.40, z0: 0.0625, z1: 0.105, material: furn_linen}
       - {id: desk_top,   x0: 14.60, x1: 18.60, y0: 27.00, y1: 29.40, z0: 2.30, z1: 2.45, material: furn_wood}
       - {id: desk_leg_a, x0: 14.75, x1: 15.00, y0: 27.15, y1: 27.40, z0: 0.00, z1: 2.30, material: furn_wood}
       - {id: desk_leg_b, x0: 18.20, x1: 18.45, y0: 27.15, y1: 27.40, z0: 0.00, z1: 2.30, material: furn_wood}

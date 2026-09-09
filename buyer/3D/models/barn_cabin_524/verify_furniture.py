@@ -225,6 +225,26 @@ def main():
          f"{len(doors)} doors"
          + (f" — BLOCKED {blocked[:3]}" if blocked else ""))
 
+    # ---- 5b. nothing is buried in the floor finish ------------------------
+    # A piece thinner than the finish, starting at z=0, is INVISIBLE: the floor
+    # closes over it. That is how the office rug shipped as nothing at all --
+    # 1/2" thick, starting at 0, under a 3/4" finish. No other gate saw it,
+    # because Floor_ is not structural for clearance purposes and the
+    # floor-to-ceiling gate only asks whether z0 is above zero.
+    # The predicate is "does not CLEAR the finish", which includes the
+    # exactly-flush case -- a piece whose top sits precisely at the finish
+    # surface is coplanar with it and z-fights rather than showing. The
+    # message says "does not clear" for that reason: an earlier version read
+    # "top 0.0625 < finish 0.0625", which is false on its face and would send
+    # a reader looking for a rounding bug that is not there.
+    ff = spec["construction"]["floor_finish_thickness"]["ft"]
+    buried = [f"{a['id']}.{pc['id']} (top {pc['z1']:.4f} does not clear {ff:.4f})"
+              for a in arrs for pc in a["pieces"] if pc["z1"] <= ff + 1e-6]
+    gate("no piece is buried inside the floor finish", not buried,
+         f"finish is {ff * 12:.2f}\" thick"
+         + (f" — {len(buried)} BURIED: {buried[:3]}"
+            f"{'…' if len(buried) > 3 else ''}" if buried else ""))
+
     # ---- 6. everything rests on the floor and clears the ceiling ----------
     off = [f"{a['id']}.{pc['id']}"
            for a in arrs for pc in a["pieces"]
