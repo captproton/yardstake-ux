@@ -43,8 +43,17 @@ def inside_mesh(ob, p):
     return bool(ok) and (local - loc).dot(nor) < 0
 
 
-def inside_mesh_cases(objects):
+def inside_mesh_cases():
     """Known-answer cases for `inside_mesh`, as (name, point, expected, why).
+
+    Takes nothing: it is a table. An earlier version accepted an `objects`
+    argument it never read, and both call sites dutifully passed
+    `bpy.data.objects` to it. views.py has already had exactly this removed
+    once -- an unused `prefixes` parameter that "read as a half-built
+    'show only these' feature. There is no such feature."
+
+    Name resolution stays with the caller on purpose: a missing object is a
+    GATE failure with a message, not something a data table should decide.
 
     A shared helper with one home needs a test with one home too. These are
     checked by a gate in verify_furniture.py, because that is where the

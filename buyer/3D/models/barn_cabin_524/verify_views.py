@@ -122,8 +122,7 @@ def main():
     # the frame, and the footing was landing below 0.
     x0, x1, y0, y1, z0, z1 = model
     corners = [(x, y, z) for x in (x0, x1) for y in (y0, y1) for z in (z0, z1)]
-    uv = [world_to_camera_view(scene, cam, __import__("mathutils").Vector(c))
-          for c in corners]
+    uv = [world_to_camera_view(scene, cam, Vector(c)) for c in corners]
     worst_u = min(min(p.x for p in uv), 1 - max(p.x for p in uv))
     worst_v = min(min(p.y for p in uv), 1 - max(p.y for p in uv))
     gate("front: every corner of the model is inside the frame",

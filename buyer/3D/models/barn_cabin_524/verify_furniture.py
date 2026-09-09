@@ -89,8 +89,9 @@ def main():
     # behaviour that a bounding box alone gets wrong (a point inside a merged
     # mesh's box but in open floor) and the behaviour that a nearest-surface
     # test alone gets wrong (a point far outside an open shell).
+    cases = inside_mesh_cases()
     wrong = []
-    for name, pt, expect, why in inside_mesh_cases(bpy.data.objects):
+    for name, pt, expect, why in cases:
         ob = bpy.data.objects.get(name)
         if ob is None:
             wrong.append(f"{name} missing")
@@ -99,7 +100,7 @@ def main():
             wrong.append(f"{name} @ {tuple(round(v, 2) for v in pt)}: "
                          f"expected {expect} ({why})")
     gate("inside_mesh agrees with its known answers", not wrong,
-         f"{len(inside_mesh_cases(bpy.data.objects))} cases"
+         f"{len(cases)} cases"
          + (f" — WRONG {wrong}" if wrong else ""))
 
     # ---- 1b. the two declarations of "default" must agree ----------------
