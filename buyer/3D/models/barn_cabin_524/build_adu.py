@@ -942,6 +942,13 @@ def build(spec, cut_openings=True):
     casework = collection("Casework")
     build_casework(spec, geo, casework)
 
+    # ---- Tier 3: mounted lighting -----------------------------------------
+    # Its own collection so it can be hidden without touching the casework, and
+    # because an exterior fixture belongs to the shell's story, not the
+    # kitchen's.
+    lighting = collection("Lighting")
+    geo["mounted"] = build_mounted(spec, geo, lighting)
+
     # ---- Tier 2 prerequisite: UVs, generated LAST -------------------------
     # After the booleans, per TIER-2 §3 — openings create faces no earlier
     # layout accounts for. Also after the casework, or it ships unwrapped and
@@ -954,7 +961,7 @@ def build(spec, cut_openings=True):
 
     return geo, dict(shell=shell, roof=roofc, porch=porchc,
                      interior=interior, finish=finish, casework=casework,
-                     foundation=found)
+                     foundation=found, lighting=lighting)
 
 
 # ---------------------------------------------------------------------------
@@ -1532,6 +1539,167 @@ def build_casework(spec, geo, coll):
         bowl = fit["basin"]["bowl"]
         hole += (2 * bowl["ax"]) * (2 * bowl["ay"]) * top_t
     geo["counter_expected"] = solid - hole
+
+
+# ---------------------------------------------------------------------------
+# Mounted-fixture forms
+#
+# _LIB CANDIDATE. Nothing below knows anything about this building. It takes a
+# point, an outward normal and a bag of dimensions, and it is written that way
+# on purpose: a sconce is the first fixture whose SHAPE is a buyer's choice
+# rather than a plan fact, so the shape belongs in a library shared by every
+# model while only its position stays per-building. When models/_lib/ exists,
+# this function moves there unchanged.
+#
+# Built entirely from primitives that were already here — tube(), arc_points(),
+# ellipse_ring() and loft(). No new primitive was needed and no third-party
+# asset was bought, which keeps the licence position the model has held since
+# P1.
+# ---------------------------------------------------------------------------
+def gooseneck_sconce(name, coll, origin, normal, dims, lens_name=None):
+    """A galvanized barn-light wall sconce: canopy, gooseneck arm, flared shade.
+
+    `origin` is the centre of the wall canopy ON the wall face. `normal` is the
+    outward direction — a unit vector along -Y for a south wall, and only the
+    horizontal axes are meaningful. `dims` is spec.fixtures.mounted.forms.<form>,
+    so every number below is cited in the spec rather than typed here.
+
+    Returns the objects created, so the caller can report and a gate can find
+    them by name.
+    """
+    import mathutils
+
+    ft_ = lambda k: dims[k]["ft"]
+    n = mathutils.Vector(normal).normalized()
+    ox, oy, oz = origin
+
+    proj = ft_("projection")
+    rise = ft_("rise")
+    r_arc = proj / 2.0
+    straight = rise - r_arc
+    if straight < 0:
+        raise SystemExit(
+            f"{name}: rise {rise} is less than half the projection {proj}; "
+            "the arm cannot arc over without leaning back into the wall")
+
+    # The arm's plane. arc_points turns about 'x' (a YZ arc) or 'y' (an XZ arc),
+    # so pick whichever the wall's normal lies in — a north/south wall needs the
+    # YZ arc, an east/west wall the XZ one. Anything else is a wall this form
+    # has never been asked for, and guessing would be worse than stopping.
+    if abs(n.y) > abs(n.x):
+        axis, sign = "x", (1.0 if n.y > 0 else -1.0)
+    else:
+        axis, sign = "y", (1.0 if n.x > 0 else -1.0)
+
+    objs = []
+
+    # ---- canopy: a short cylinder lying on the wall ------------------------
+    # tube() with a two-point path is a capped cylinder about any axis, which
+    # is exactly a canopy and avoids a fourth primitive.
+    depth = ft_("canopy_depth")
+    objs.append(tube(f"{name}_canopy",
+                     [(ox, oy, oz), (ox + n.x * depth, oy + n.y * depth, oz)],
+                     ft_("canopy_dia") / 2.0, coll, sides=12))
+
+    # ---- arm: straight up the wall, then a half-turn out over the top ------
+    # Modelled as the fixture is actually bent: it leaves the canopy going up,
+    # rolls through 180 degrees, and arrives pointing straight down at the
+    # shade. The arc's radius IS half the projection, so projection and rise
+    # are not independent — which is why `straight` is checked above.
+    # Off the canopy's outer face, not off the wall plane. tube() rings a
+    # VERTICAL segment in the XY plane, so an arm rooted at y = wall face puts
+    # half its own radius inside the wall — 0.36" of galvanized steel buried in
+    # the siding, invisible in every render and caught only by asking where the
+    # geometry actually is. verify_mounted found it.
+    ax = ox + n.x * depth
+    ay = oy + n.y * depth
+    start = (ax, ay, oz)
+    top_of_straight = (ax, ay, oz + straight)
+    if axis == "x":
+        centre = (ax, ay + sign * r_arc, oz + straight)
+        arc = arc_points(centre, r_arc, "x",
+                         180.0 if sign > 0 else 0.0,
+                         0.0 if sign > 0 else 180.0, n=10)
+    else:
+        centre = (ax + sign * r_arc, ay, oz + straight)
+        arc = arc_points(centre, r_arc, "y",
+                         180.0 if sign > 0 else 0.0,
+                         0.0 if sign > 0 else 180.0, n=10)
+    path = [start, top_of_straight] + [tuple(p) for p in arc]
+    objs.append(tube(f"{name}_arm", path, ft_("arm_dia") / 2.0, coll, sides=8))
+
+    # ---- shade: hangs from the arm's outboard end --------------------------
+    sx = ax + n.x * proj
+    sy = ay + n.y * proj
+    z_top = oz + straight                      # where the arc finishes, pointing down
+    neck_h, shade_h = ft_("neck_height"), ft_("shade_height")
+    r_neck, r_shade = ft_("neck_dia") / 2.0, ft_("shade_dia") / 2.0
+
+    # Whole profile in one loft: down the outside, across the rim, back up the
+    # inside. loft()'s docstring is emphatic about this — a one-sided cone is
+    # invisible from half the angles once glTF culls backfaces.
+    z_neck = z_top - neck_h
+    z_rim = z_neck - shade_h
+    lip = min(0.02, r_shade * 0.06)
+    rings = [
+        ellipse_ring(sx, sy, r_neck, r_neck, z_top),
+        ellipse_ring(sx, sy, r_neck, r_neck, z_neck),
+        ellipse_ring(sx, sy, r_shade, r_shade, z_rim),
+        ellipse_ring(sx, sy, r_shade - lip, r_shade - lip, z_rim),
+        ellipse_ring(sx, sy, r_neck * 0.8, r_neck * 0.8, z_neck),
+        ellipse_ring(sx, sy, r_neck * 0.8, r_neck * 0.8, z_top),
+    ]
+    objs.append(loft(f"{name}_shade", rings, coll, cap_first=True, cap_last=True))
+
+    if lens_name:
+        # The lit look: a disc just inside the mouth. It is emissive and it
+        # illuminates nothing — see materials.lamp_glow for why that is the
+        # right trade in a web viewer.
+        inset = shade_h * 0.25
+        r_lens = r_shade - lip - (r_shade - r_neck) * (inset / shade_h)
+        objs.append(loft(lens_name,
+                         [ellipse_ring(sx, sy, r_lens, r_lens, z_rim + inset),
+                          ellipse_ring(sx, sy, r_lens * 0.98, r_lens * 0.98,
+                                       z_rim + inset - 0.01)],
+                         coll, cap_first=True, cap_last=True))
+    return objs
+
+
+def build_mounted(spec, geo, coll):
+    """Place spec.fixtures.mounted.items on their walls.
+
+    Wall-mounted fixtures do not have footprints, so none of the Tier 3 casework
+    helpers apply. What they have is a surface, a distance along it, a height
+    and an outward normal; this turns those four into a world point.
+    """
+    mounted = spec["fixtures"].get("mounted")
+    if not mounted:
+        return []
+
+    t, SY = geo["t"], geo["SY"]
+    forms = mounted["forms"]
+    made = []
+    for item in mounted["items"]:
+        surface, side = item["surface"], item["side"]
+        if (surface, side) != ("Wall_S", "exterior"):
+            # Deliberately narrow. The south wall is the only one this model
+            # has a fixture on, and inventing untested mappings for the other
+            # three would be three untested mappings, not three features.
+            raise SystemExit(f"[mounted] no placement rule for {surface}/{side}")
+        # `along` shares openings.main_floor's datum: distance from the west
+        # exterior corner, which is world X directly. The exterior FACE of the
+        # south wall is at Y = SY, not SY + t: the wall spans SY..SY+t and the
+        # porch is to the south of it.
+        origin = (item["along"]["ft"], SY, item["height_aff"]["ft"])
+        # Light_lens_* rather than Light_*_lens: assign() matches on prefix and
+        # first rule wins, so the emissive part must be distinguishable by its
+        # opening characters. Same shape as Cab_top and Appl_dark.
+        objs = gooseneck_sconce(
+            f"Light_{item['id']}", coll, origin, item["facing"],
+            forms[item["form"]],
+            lens_name=f"Light_lens_{item['id']}" if item.get("lit_lens") else None)
+        made.append((item["id"], origin, objs))
+    return made
 
 
 # ---------------------------------------------------------------------------

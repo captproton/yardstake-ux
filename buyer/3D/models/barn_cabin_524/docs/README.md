@@ -22,6 +22,7 @@ Phases P1–P4 are complete and gated:
 | **Tier 3c** | Toilet | **done** ([#66](https://github.com/captproton/yardstake-ux/pull/66)) — built, not bought |
 | **Tier 3d** | Appliances | **done** ([#67](https://github.com/captproton/yardstake-ux/pull/67)) — built, not bought |
 | **Tier 3e** | Tub/shower, stacked W/D, geometry gate | **done** ([#68](https://github.com/captproton/yardstake-ux/pull/68)) — both were measured and never built |
+| **Tier 3f** | Porch sconce, `fixtures.mounted` anchor, `verify_mounted` | **done** ([#73](https://github.com/captproton/yardstake-ux/issues/73)) — the first position taken from footage, because there is no electrical sheet |
 | **Foundation** | Crawlspace stemwall, footing, rim, piers, the eight vents A2.0 draws | **done** ([#70](https://github.com/captproton/yardstake-ux/pull/70)) — the first `lod2` change in twelve PRs |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
@@ -39,7 +40,7 @@ still never moved.
 **Tier 3's build half is complete** — casework, both sinks, both taps, the
 mirror, the toilet, the tub/shower, the crawl hole, the stacked W/D and all
 three appliances — **and the building now stands on a real foundation.**
-98 meshes, `lod0` **897.6 KB** against a 4 MB ceiling, 49/49 fixture gates and
+102 meshes, `lod0` **907.2 KB** against a 4 MB ceiling, 49/49 fixture gates and
 12/12 geometry gates.
 
 **That claim was made once before and was wrong.** After [#67](https://github.com/captproton/yardstake-ux/pull/67) the plan
@@ -51,7 +52,7 @@ again.**
 **Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
 rather than necessity. Tier 3's *build* half is done: cabinets, counters,
 backsplash, uppers, hood, the kitchen sink and tap, and the bath vanity with
-its basin, three-hole tap and mirror. `lod0` is now **897.6 KB** against a 4 MB
+its basin, three-hole tap and mirror. `lod0` is now **907.2 KB** against a 4 MB
 ceiling.
 
 **The model has three primitives now**, not one. `box`/`multibox` for
@@ -273,7 +274,8 @@ measured ([#70](https://github.com/captproton/yardstake-ux/pull/70)). In order o
 |---|---|
 | **T3:** furniture | The last unbuilt item in the tier, and the only one with `status: not_yet_placed`. Architectural fill-in-the-space per §4 — schematic masses, no licensing exposure |
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 897.6 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#73](https://github.com/captproton/yardstake-ux/issues/73)). The mini-split head, meter panel and tankless heater are all wall-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but none of them is drawn with a height |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 907.2 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
 | **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 28.4 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
 | **UI:** wire the finishes picker | The manifest and the material names are frozen and gated; nothing in the model blocks it |

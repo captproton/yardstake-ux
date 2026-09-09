@@ -320,6 +320,135 @@ Both are now gated, because neither would have failed any existing check:
 `verify_fixtures.py` is now **16/16**, still with no Blender needed. See
 [`../renders/tier3_sink.jpg`](../renders/tier3_sink.jpg).
 
+## 1d. Exterior lighting — BUILT
+
+The porch sconce ([#73](https://github.com/captproton/yardstake-ux/issues/73)).
+One fixture, and the first thing in this model that needed a different *kind* of
+anchor rather than a different shape.
+
+### Why it did not fit the existing pattern
+
+Every Tier 3 fixture until now stands on a floor inside a measured footprint —
+`x`, `y`, `w`, `d`, all read off A1.1. A sconce has no footprint. It has a wall,
+a distance along it, a height and an outward normal. Forcing it into the
+footprint datum would have meant inventing a footprint it does not have, so
+`spec.fixtures.mounted` carries its own datum and its own tolerance.
+
+### The plan cannot source it, and never could
+
+There is **no electrical sheet**. The index runs A0.0, A1.0, A1.1, A2.0, A3.0,
+A4.0, N-1, and there is no sheet on which a light fixture could be drawn. So the
+AUTHORITY RULE is not violated here, it is simply silent: the video is not a
+second opinion, it is the only opinion.
+
+That makes this the first **position** in the spec taken from footage. Earlier
+video use was confined to colour, and to settling which option was toured.
+
+Two documents carry it between them, and it is worth being precise about which
+does what:
+
+| Source | Settles | Does not settle |
+|---|---|---|
+| `SHOPPING-GUIDE.pdf` p9, "WALL-MOUNTED LIGHTS" | The fixture **is** a Westinghouse galvanized-steel gooseneck barn sconce | Any dimension — it names no size and carries no spec sheet |
+| Video 1:37 | Where it is, and how big the installed one is | What colour it is, in a frame this colour-cast |
+
+### The check that made the sizes trustworthy
+
+Neither source alone would have been worth much. Together they cross-check:
+
+- the product photo gives an overall height-to-shade-width ratio of **0.927**
+  (179 px by 193 px)
+- the installed fixture in the video gives **0.930** (0.970 ft by 1.043 ft)
+
+Two different images of two different objects agreeing to **0.3%** is what says
+the guide's fixture and the built fixture are the same thing. Everything in
+`forms.gooseneck_barn` is scaled off that agreement.
+
+Position is corroborated the same way. The sconce measures 8.26 ft from the west
+corner; the blank wall between the window at 7.04 and the door jamb at 9.40 has
+its centre at 8.22. It is centred in that gap to within half an inch — noticed
+after the measurement, not used to make it.
+
+### The hue that could not be sampled — and nearly was
+
+The shade in shadow samples linear `[0.270, 0.194, 0.100]`, a hue of
+**1 : 0.717 : 0.369**. The cream siding six inches to its left samples
+**1 : 0.723 : 0.367** — the same hue to three decimal places.
+
+That is not a warm fixture. It is a grey fixture full of bounce off a cream wall
+in late-afternoon sun. Sampling that patch would have painted the sconce the
+colour of the siding, and every render afterwards would have looked subtly wrong
+with nothing to point at. The sunlit rim, which sees sky instead of siding,
+reads **1 : 0.932 : 0.706** and is nearly neutral.
+
+Same failure mode as the pollinator-garden patch already recorded in
+`materials.provenance`, and the reason `fixture_galv` takes its colour from the
+shopping guide's word "galvanized" rather than from the frame.
+
+### Three things the gate caught that nothing else would have
+
+`verify_mounted.py` exists because the two ways this can go wrong are both
+invisible in a render. It found all of these *after* the model looked right:
+
+1. **The arm was buried in the wall.** `tube()` rings a vertical segment in the
+   XY plane, so an arm rooted at the wall plane puts half its own radius —
+   0.36" of steel — inside the siding. Invisible from every angle.
+2. **The arm passed through the porch ceiling** by 1.4". See
+   `discrepancies.sconce-does-not-fit-under-the-modelled-soffit`: the fixture
+   was lowered 1.9", the ceiling was not raised, and the wall/soffit junction
+   was measured in the frame *first* to check which one was wrong. It came out
+   at 7.97 ft against the modelled 7.90 — a 0.8" disagreement, inside the
+   declared tolerance, so the plan kept authority over the ceiling.
+3. **The gate itself was wrong twice.** It measured clearance against the plate
+   instead of the ceiling's underside — right by luck, by the soffit thickness —
+   and its reach bound dropped the canopy depth and failed a correct model. A
+   gate that is right by luck is a gate that will be wrong somewhere else.
+
+### Looking at it
+
+[`../renders/tier3_sconce.jpg`](../renders/tier3_sconce.jpg) is framed to match
+video 1:37 — left window, door, right window, sconce in the gap between the
+first two and tight under the soffit — so the two can be put side by side and
+the placement judged by eye rather than only by the gate's numbers. Put it next
+to [`../refs/video_porch_sconce_1-37.jpg`](../refs/video_porch_sconce_1-37.jpg).
+
+It is a placement check, not a beauty shot: the porch reads cool because the
+scene is lit by a blue sky world with no warm bounce off the slab, where the
+frame has late-afternoon sun. The siding's own colour is unchanged sandstone.
+
+### What is reusable
+
+`gooseneck_sconce()` is marked a **`_lib` candidate** and knows nothing about
+this building: a point, an outward normal, and a bag of dimensions. It is built
+from `tube()`, `arc_points()`, `ellipse_ring()` and `loft()` — **no new
+primitive was needed and no third-party asset was bought**, so the licence
+position from P1 holds: the model still contains no third-party content at all.
+
+That matters beyond this model. Concord ships `A1-111 MECHANICAL & ELECTRICAL
+PLANS` and Richmond ships `A1.2 Electrical Plan`, both as vector PDFs — so
+mounted fixtures are a category for the next models, not a one-off here, and
+their positions will be extractable rather than measured off footage.
+
+`Light_lens_*` is emissive rather than a real light. `KHR_lights_punctual` is
+deliberately not used: a real light is a viewer feature, expensive to make look
+right, and unnecessary for the fixture to read as switched on. Day and night are
+an `emissiveFactor` swap at runtime — the same trick the colour variants use, on
+a different property.
+
+### Cost
+
+`lod0` 897.6 KB → **907.2 KB**, +9.6 KB for four meshes, against a 4 MB ceiling.
+`lod1` and `lod2` are untouched: **`lod2` stays 28.4 KB**, as it has since #57.
+
+### Not done, deliberately
+
+**Instancing.** Six sconces should cost the bytes of one, and the exporter
+currently shares no meshes at all — `lod0` is 102 nodes and 102 distinct meshes,
+so the two porch posts and the closet door pair are each paid for twice. That is
+a real win on geometry already shipped, but it is an exporter change with no
+payoff for a single fixture, and bundling it here would have hidden it inside a
+lighting PR. It belongs with the `_lib` split.
+
 ## 1. The good news: sourcing is already solved in principle
 
 This was underestimated in earlier discussion. The inputs split cleanly three
