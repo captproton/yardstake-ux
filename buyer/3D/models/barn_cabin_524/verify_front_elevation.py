@@ -27,7 +27,15 @@ rail and the panel come out of the build as remainders, so that the parts meet.
 Those recorded measurements are checked here against what was actually built.
 A measurement kept in the spec and never compared to anything is decoration.
 
-    blender --background barn_cabin_524.blend --python verify_front_elevation.py
+THE SCENE MATTERS, AND THIS FILE USED TO NAME THE WRONG ONE. Glazing does not
+exist in `barn_cabin_524.blend`; `finish_adu.py` adds it, and only the viewable
+blend it saves has it. Run against the base file and this suite reported
+`Glazing_D-FRONT_lites missing` -- a right question asked of a file that cannot
+answer it, which reads exactly like a real defect. That is ground rule 28, and
+`main()` now refuses the wrong scene instead of failing seven gates on it.
+
+    blender --background barn_cabin_524_textured.blend \\
+        --python verify_front_elevation.py
 """
 import sys
 from pathlib import Path
@@ -79,6 +87,31 @@ def main():
     print("\n" + "=" * 96)
     print("FRONT ELEVATION — gable window, half-lite entry door, projecting ridge beam")
     print("=" * 96)
+
+    # ---- 0. the right scene, or nothing --------------------------------
+    # AN ABSENT SUBJECT IS NOT A FAILING ONE. Run against barn_cabin_524.blend
+    # and every glazing gate below reports "missing", which reads like the door
+    # regressed to a slab when in truth finish_adu.py has simply not run on
+    # this file. Seven confusing failures where one clear sentence belongs.
+    #
+    # THE DISCRIMINATOR IS DELIBERATELY NARROW. Aborting whenever the door's
+    # lites are absent would destroy the gate that catches a door with no glass
+    # at all -- the exact defect #83 fixed. So the test is whether the scene
+    # has ANY glazing: none means finish_adu.py never ran here and the question
+    # cannot be asked; some, but not the door's, is a real finding and falls
+    # through to the gates below.
+    if not any(o.name.startswith("Glazing_") for o in bpy.data.objects):
+        print("\n  [ABSENT] this scene carries no glazing at all, so the front"
+              "\n           elevation cannot be tested here. finish_adu.py adds"
+              "\n           glazing; run against the blend it saves:"
+              "\n"
+              "\n             blender --background barn_cabin_524_textured.blend"
+              " \\"
+              "\n                 --python verify_front_elevation.py"
+              "\n"
+              "\n  NOT A PASS AND NOT A FAILURE — the subject is not here.")
+        print("=" * 96)
+        raise SystemExit(2)
 
     # ---- 1. the door is not a slab ---------------------------------------
     # The failure this rejects: `Door_D-FRONT` goes back to being one box, and
