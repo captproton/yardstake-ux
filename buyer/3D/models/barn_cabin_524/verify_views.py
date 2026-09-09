@@ -28,6 +28,7 @@ from bpy_extras.object_utils import world_to_camera_view
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import views  # noqa: E402
+from verify_lib import inside_mesh  # noqa: E402
 
 FAILED = []
 
@@ -59,31 +60,6 @@ def inside(p, box, pad=0.0):
     x0, x1, y0, y1, z0, z1 = box
     return (x0 - pad <= p.x <= x1 + pad and y0 - pad <= p.y <= y1 + pad
             and z0 - pad <= p.z <= z1 + pad)
-
-
-def inside_mesh(ob, p):
-    """Is p within ob's surface?
-
-    TWO TESTS, AND BOTH ARE NEEDED.
-
-    The bounding box alone is useless against this model's merged meshes --
-    Appl_body's box covers most of the building. But the nearest-surface test
-    alone is ALSO wrong: closest_point_on_mesh gives a meaningless answer for a
-    point far outside an open or lofted shell, and the first version of this
-    gate duly reported a sofa in the living room as being inside a toilet eight
-    feet away in the bathroom.
-
-    Inside implies inside the bounding box, so the box is a sound prefilter,
-    and the surface test then does the real work.
-    """
-    cs = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
-    if not (min(c.x for c in cs) <= p.x <= max(c.x for c in cs)
-            and min(c.y for c in cs) <= p.y <= max(c.y for c in cs)
-            and min(c.z for c in cs) <= p.z <= max(c.z for c in cs)):
-        return False
-    local = ob.matrix_world.inverted() @ p
-    ok, loc, nor, _ = ob.closest_point_on_mesh(local)
-    return bool(ok) and (local - loc).dot(nor) < 0
 
 
 def main():
@@ -146,8 +122,7 @@ def main():
     # the frame, and the footing was landing below 0.
     x0, x1, y0, y1, z0, z1 = model
     corners = [(x, y, z) for x in (x0, x1) for y in (y0, y1) for z in (z0, z1)]
-    uv = [world_to_camera_view(scene, cam, __import__("mathutils").Vector(c))
-          for c in corners]
+    uv = [world_to_camera_view(scene, cam, Vector(c)) for c in corners]
     worst_u = min(min(p.x for p in uv), 1 - max(p.x for p in uv))
     worst_v = min(min(p.y for p in uv), 1 - max(p.y for p in uv))
     gate("front: every corner of the model is inside the frame",
