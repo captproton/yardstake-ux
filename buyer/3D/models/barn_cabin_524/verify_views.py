@@ -17,6 +17,7 @@ So each of those is now a gate.
 
     blender --background barn_cabin_524.blend --python verify_views.py
 """
+import copy
 import sys
 from pathlib import Path
 
@@ -33,6 +34,19 @@ FAILED = []
 # Anything a standing person would collide with. A camera inside one of these
 # is not a view of the room, it is a view of the inside of a cupboard.
 SOLID = ("Cab_", "Appl_", "Fix_", "Part_", "Wall_", "Door_", "Found_")
+
+
+def _drop(st, key, opt=None):
+    """A copy of presence set `st` with one key removed.
+
+    `opt` names an option index to remove the key from instead of the set
+    itself. Used only to manufacture the malformed manifests the schema gate
+    requires views._bad_set() to reject.
+    """
+    st = copy.deepcopy(st)
+    target = st if opt is None else st["options"][opt]
+    target.pop(key, None)
+    return st
 
 
 def gate(name, ok, detail=""):
@@ -186,6 +200,119 @@ def main():
         print(f"        re-register raised: {exc}")
     gate("panel: re-running the file re-registers cleanly", again,
          "register() called twice without error")
+
+    # ---- the visibility modes must not fight the arrangements -------------
+    # This is the defect that prompted the gate: _show() blanket-unhid every
+    # mesh it was not told to hide, so pressing Full put the office desk
+    # through the bed -- exactly the state the manifest warns runtimes about,
+    # reproduced by a button in our own panel.
+    sets = views._presence()
+    gate("presence sets reach views.py", bool(sets),
+         f"{len(sets)} sets from {views.MANIFEST}"
+         if sets else "no manifest — run finish_adu.py first")
+
+    if sets:
+        # A malformed manifest must be REJECTED, not survived. The failure
+        # mode is a KeyError or StopIteration raised out of the panel's
+        # draw(), which leaves the sidebar blank with no clue why -- so this
+        # gate breaks the real manifest one key at a time and requires
+        # _bad_set() to catch each. The list is every key the code indexes
+        # unconditionally; anything added to that list here must be added to
+        # the validator, and vice versa.
+        good = copy.deepcopy(sets[0])
+        broken = {}
+        for key in ("id", "label", "options"):
+            broken[f"set has no {key!r}"] = _drop(good, key)
+        for key in ("id", "label", "show", "default"):
+            broken[f"option has no {key!r}"] = _drop(good, key, opt=0)
+        broken["set has no options"] = {**good, "options": []}
+        broken["set is not an object"] = ["not", "a", "dict"]
+        broken["no option is default"] = {
+            **good, "options": [{**o, "default": False} for o in good["options"]]}
+        broken["two options are default"] = {
+            **good, "options": [{**o, "default": True} for o in good["options"]]}
+        # Append a non-default copy of the first option, so this manifest is
+        # malformed ONLY in the id. Duplicating the option outright also
+        # duplicates its `default`, and the gate would then pass on the
+        # exactly-one-default rule while the duplicate-id rule did nothing.
+        broken["duplicate option ids"] = {
+            **good, "options": [*good["options"],
+                                {**good["options"][0], "default": False}]}
+        survived = [why for why, bad in broken.items()
+                    if views._bad_set(bad) is None]
+        gate("a malformed presence set is rejected, not survived",
+             not survived and views._bad_set(good) is None,
+             f"{len(broken)} malformations, all caught"
+             if not survived else f"SURVIVED {survived}")
+
+    if sets:
+        controlled = views._controlled()
+        for mode in ("full", "dollhouse", "cutaway", "walkthrough",
+                     "interior_only"):
+            views.VISIBILITY[mode]()
+            visible = {n for n in controlled
+                       if (o := bpy.data.objects.get(n)) and not o.hide_get()}
+            # MATCH ON THE EXACT SET, not on containment. The first version
+            # asked which options were a SUBSET of what is visible, and had to
+            # skip empty options because the empty set is a subset of
+            # everything. That made "Unfurnished" untestable and, worse, made
+            # the gate FAIL on correct behaviour the moment anyone chose it --
+            # no option would match and the count would be zero.
+            per_set = []
+            for st in sets:
+                owned = {n for o in st["options"] for n in o["show"]}
+                shown = owned & visible
+                on = [o["id"] for o in st["options"]
+                      if set(o["show"]) == shown]
+                per_set.append((st["id"], on, sorted(shown)))
+            bad = [f"{sid}:{on or 'no option matches ' + str(shown)}"
+                   for sid, on, shown in per_set if len(on) != 1]
+            gate(f"{mode}(): exactly one arrangement visible per set", not bad,
+                 ", ".join(f"{sid}={on[0] if len(on) == 1 else '?'}"
+                           for sid, on, _ in per_set)
+                 + (f" — WRONG {bad}" if bad else ""))
+
+        # Switching must actually switch, through the operator the panel uses.
+        # SEARCH FOR A USABLE SET rather than assuming sets[0] has one. The
+        # first version indexed [0] and called next() with no default, so a
+        # manifest reordered to put a single-arrangement set first would raise
+        # StopIteration and abort the whole run -- a crash where a readable
+        # gate failure belongs.
+        cand = [(st, o) for st in sets for o in st["options"]
+                if not o["default"] and o["show"]]
+        gate("some set offers a non-default arrangement to switch to",
+             bool(cand), f"{len(cand)} across {len(sets)} sets")
+    if sets and cand:
+        st, alt = cand[0]
+        bpy.ops.adu.layout(set_id=st["id"], option_id=alt["id"])
+        now = {n for n in views._controlled()
+               if (o := bpy.data.objects.get(n)) and not o.hide_get()}
+        gate("choosing an arrangement shows it and hides the others",
+             set(alt["show"]) <= now
+             and not any(n in now for o in st["options"] if o["id"] != alt["id"]
+                         for n in o["show"]),
+             f"{st['id']} -> {alt['id']}")
+
+        # And a visibility mode must not undo that choice.
+        views.full()
+        after = {n for n in views._controlled()
+                 if (o := bpy.data.objects.get(n)) and not o.hide_get()}
+        gate("a visibility mode preserves the chosen arrangement",
+             set(alt["show"]) <= after,
+             f"{alt['id']} still visible after full()")
+
+        # The empty option is the one the first gate could not see. Choose it
+        # explicitly and require the set to go dark.
+        empty = next((o for o in st["options"] if not o["show"]), None)
+        if empty is not None:
+            views.layout(st["id"], empty["id"])
+            dark = {n for o in st["options"] for n in o["show"]
+                    if (ob := bpy.data.objects.get(n)) and not ob.hide_get()}
+            gate("an empty arrangement hides everything its set controls",
+                 not dark, f"{st['id']} -> {empty['id']}"
+                 + (f" — STILL VISIBLE {sorted(dark)[:3]}" if dark else ""))
+
+        views.layout(st["id"], next(o["id"] for o in st["options"] if o["default"]))
 
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")

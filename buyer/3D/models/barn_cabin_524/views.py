@@ -51,6 +51,9 @@ Visibility keys off the object-name prefixes declared in spec.yaml, the same
 convention the display modes and the glTF export rely on. New prefixes must be
 declared there or these modes silently stop covering them.
 """
+import json
+from pathlib import Path
+
 import bpy
 from mathutils import Vector
 
@@ -62,6 +65,208 @@ SOUTH = ("Wall_S", "Porch_", "Gable_S")
 SHELL = ("Wall_", "Gable_", "Dormer_", "Eave_", "Roof_", "Porch_", "Glazing_")
 
 
+
+# ---------------------------------------------------------------------------
+# Furniture arrangements
+# ---------------------------------------------------------------------------
+# TWO BEDROOM ARRANGEMENTS SHARE THE FLOOR and are alternatives -- a bed and a
+# home office. lod0 ships both, because a runtime can only toggle what is in
+# the file, and `presence` in the configurator manifest says which is visible.
+#
+# _show() used to blanket-unhide every mesh it was not told to hide, which
+# undid that and put the desk through the bed the moment anyone pressed Full.
+# So the visibility modes now honour the manifest.
+#
+# WHY THE MANIFEST AND NOT THE SPEC. The browser reads variants.json; reading
+# the same file here makes this panel a reference implementation of the same
+# contract, so Blender and the browser cannot quietly disagree. It also means a
+# malformed manifest shows up in the viewport before it shows up in front of a
+# homeowner.
+MANIFEST = "export/variants.json"
+
+_layout = {}          # set id -> chosen option id, for this session
+
+
+_warned = set()
+_cache = {}      # path -> (mtime, parsed manifest)
+
+
+def _warn_once(key, message):
+    if key not in _warned:
+        _warned.add(key)
+        print(f"[view] {message}")
+
+
+def _manifest():
+    """The exported manifest, or None if there is not one yet.
+
+    views.py has to keep working on a .blend alone: a fresh build_adu.py run
+    has no export. A missing manifest degrades to the old behaviour rather
+    than raising, and says so ONCE -- _show() calls this on every mode change,
+    so a per-call message would bury the console in a loop the user cannot
+    see the start of.
+    """
+    blend = bpy.data.filepath
+    if not blend:
+        _warn_once("unsaved", "unsaved .blend; furniture arrangements not applied")
+        return None
+    path = Path(blend).parent / MANIFEST
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        _warn_once("missing", f"no {MANIFEST}; run finish_adu.py to get "
+                              f"furniture arrangements")
+        return None
+
+    # CACHED BY MTIME. _presence() is called from the panel's draw(), which
+    # Blender runs on every redraw, and from _show() on every mode change.
+    # Re-reading and re-parsing the file that often is real disk I/O inside
+    # the UI loop. Keyed on mtime so a fresh finish_adu.py run is picked up
+    # without restarting Blender.
+    hit = _cache.get(str(path))
+    if hit is not None and hit[0] == mtime:
+        return hit[1]
+    try:
+        man = json.loads(path.read_text())
+    except (OSError, ValueError) as exc:              # noqa: BLE001
+        _warn_once("unreadable",
+                   f"{MANIFEST} unreadable ({exc}); arrangements not applied")
+        return None
+    _cache[str(path)] = (mtime, man)
+    return man
+
+
+def _bad_set(st):
+    """Why this presence set cannot be trusted, or None if it can.
+
+    The schema is not a guess at what a manifest ought to contain. It is the
+    list of keys this project INDEXES UNCONDITIONALLY, read off the consumers:
+    _apply_layouts() and _controlled() below, the panel's draw(), and
+    verify_views.py. A key nothing indexes is not checked; a key something
+    indexes is, because the alternative is a KeyError out of draw(), and a
+    draw() that raises leaves the sidebar blank with no clue why.
+
+    `default` carries an invariant as well as a type. Three call sites do
+    `next(o for o in options if o["default"])` with a bare next(): zero
+    defaults raises StopIteration mid-redraw, two defaults silently take
+    whichever came first. Requiring exactly one is what makes those three
+    lines safe, so it is checked here rather than defended at each of them.
+
+    Ids must be unique for the same reason. `_layout` is keyed by set id and
+    option lookup is a first-match next(), so a duplicate id would apply one
+    arrangement while layout() printed the other -- a wrong answer reported as
+    a right one, which is a failure mode this file has already shipped once.
+    """
+    if not isinstance(st, dict):
+        return "not an object"
+    for key in ("id", "label"):
+        if not isinstance(st.get(key), str):
+            return f"set {key!r} missing or not a string"
+    opts = st.get("options")
+    if not isinstance(opts, list) or not opts:
+        return "'options' missing, not a list, or empty"
+    for o in opts:
+        if not isinstance(o, dict):
+            return "option is not an object"
+        for key in ("id", "label"):
+            if not isinstance(o.get(key), str):
+                return f"option {key!r} missing or not a string"
+        if not isinstance(o.get("show"), list) or not all(
+                isinstance(n, str) for n in o["show"]):
+            return f"option {o['id']!r}: 'show' is not a list of strings"
+        if not isinstance(o.get("default"), bool):
+            return f"option {o['id']!r}: 'default' missing or not a boolean"
+    n_default = sum(o["default"] for o in opts)
+    if n_default != 1:
+        return f"{n_default} options marked default, need exactly 1"
+    ids = [o["id"] for o in opts]
+    if len(set(ids)) != len(ids):
+        return f"duplicate option ids in {ids}"
+    return None
+
+
+def _presence():
+    """The presence sets, or [] if the manifest cannot be trusted.
+
+    VALIDATED, NOT ASSUMED -- and validated against what the code actually
+    indexes, which is what _bad_set() enumerates. `variants.json` can be valid
+    JSON and still be the wrong shape: a top-level array, a set with no
+    `options`, an option with no `label`, a set with no default. Left
+    unchecked those raise AttributeError, KeyError or StopIteration out of
+    _show() and out of the panel's draw(), and a draw() that raises leaves the
+    sidebar broken with no clue why.
+
+    All or nothing on purpose: a half-applied presence block is worse than
+    none, because it puts the desk back through the bed.
+    """
+    man = _manifest()
+    if man is None:
+        return []
+    if not isinstance(man, dict) or not isinstance(man.get("presence", []), list):
+        _warn_once("schema", f"{MANIFEST} is not the expected shape; "
+                             f"arrangements not applied")
+        return []
+    sets = man.get("presence", [])
+    for st in sets:
+        why = _bad_set(st)
+        if why is not None:
+            name = st.get("id", "?") if isinstance(st, dict) else repr(st)
+            _warn_once("schema", f"{MANIFEST} presence block is malformed "
+                                 f"(set {name}: {why}); arrangements not applied")
+            return []
+    ids = [st["id"] for st in sets]
+    if len(set(ids)) != len(ids):
+        _warn_once("schema", f"{MANIFEST} has duplicate presence set ids "
+                             f"({ids}); arrangements not applied")
+        return []
+    return sets
+
+
+def _controlled():
+    """Every object name any presence option can show."""
+    return {n for st in _presence() for o in st["options"] for n in o["show"]}
+
+
+def _apply_layouts():
+    """Show one option per presence set; hide everything else it controls."""
+    sets = _presence()
+    if not sets:
+        return
+    shown = set()
+    for st in sets:
+        want = _layout.get(st["id"])
+        opt = next((o for o in st["options"] if o["id"] == want), None)
+        if opt is None:
+            opt = next(o for o in st["options"] if o["default"])
+            _layout[st["id"]] = opt["id"]
+        shown |= set(opt["show"])
+    for name in _controlled():
+        ob = bpy.data.objects.get(name)
+        if ob is not None:
+            ob.hide_set(name not in shown)
+            ob.hide_render = name not in shown
+
+
+def layout(set_id, option_id):
+    """Choose one furniture arrangement, exactly as the runtime would.
+
+    BOTH ids are validated. An unknown option used to be accepted here and
+    then silently replaced by the default inside _apply_layouts(), while this
+    function cheerfully printed the option that had NOT been applied -- a
+    wrong answer reported as a right one.
+    """
+    st = next((x for x in _presence() if x["id"] == set_id), None)
+    if st is None:
+        have = [x["id"] for x in _presence()]
+        raise ValueError(f"no such layout set: {set_id!r} (have {have})")
+    if option_id not in [o["id"] for o in st["options"]]:
+        have = [o["id"] for o in st["options"]]
+        raise ValueError(
+            f"no such option in {set_id!r}: {option_id!r} (have {have})")
+    _layout[set_id] = option_id
+    _apply_layouts()
+    print(f"[view] layout {set_id} -> {option_id}")
+
 def _matches(ob, prefixes):
     return any(ob.name.startswith(p) for p in prefixes)
 
@@ -72,12 +277,20 @@ def _show(hide=()):
     There was an unused `prefixes` parameter here, which read as a
     half-built "show only these" feature. There is no such feature: every
     mode is expressed as what to hide.
+
+    Objects a presence set controls are left alone here and settled by
+    _apply_layouts(), because "show everything not hidden" is the wrong rule
+    for a set of alternatives -- it showed the bed AND the desk.
     """
+    controlled = _controlled()
     for ob in bpy.data.objects:
         if ob.type != "MESH":
             continue
+        if ob.name in controlled:
+            continue          # a presence set owns this one; see _apply_layouts
         ob.hide_set(_matches(ob, hide))
         ob.hide_render = _matches(ob, hide)
+    _apply_layouts()
 
 
 def _viewport(near=None, shading="MATERIAL"):
@@ -369,6 +582,25 @@ class ADU_OT_view(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class ADU_OT_layout(bpy.types.Operator):
+    """Choose a furniture arrangement, as the configurator would"""
+
+    bl_idname = "adu.layout"
+    bl_label = "ADU layout"
+    bl_options = {"REGISTER", "UNDO"}
+
+    set_id: bpy.props.StringProperty(name="Set")
+    option_id: bpy.props.StringProperty(name="Option")
+
+    def execute(self, context):
+        try:
+            layout(self.set_id, self.option_id)
+        except ValueError as exc:                      # noqa: BLE001
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
 class ADU_PT_views(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -392,11 +624,31 @@ class ADU_PT_views(bpy.types.Panel):
         for key in VISIBILITY:
             col.operator("adu.view", text=LABELS[key]).view = key
 
+        sets = _presence()
+        if sets:
+            lay.separator()
+            lay.label(text="Furniture", icon="OUTLINER_OB_GROUP_INSTANCE")
+            for st in sets:
+                box = lay.box()
+                box.label(text=st["label"])
+                col = box.column(align=True)
+                for o in st["options"]:
+                    cur = _layout.get(st["id"])
+                    if cur is None:
+                        cur = next(x["id"] for x in st["options"] if x["default"])
+                    op = col.operator("adu.layout", text=o["label"],
+                                      depress=(o["id"] == cur))
+                    op.set_id = st["id"]
+                    op.option_id = o["id"]
+        else:
+            lay.separator()
+            lay.label(text="No variants.json — run finish_adu.py", icon="INFO")
+
         lay.separator()
         lay.label(text="Numpad 0 looks through the preset", icon="INFO")
 
 
-_CLASSES = (ADU_OT_view, ADU_PT_views)
+_CLASSES = (ADU_OT_view, ADU_OT_layout, ADU_PT_views)
 
 
 def register():
