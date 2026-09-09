@@ -404,6 +404,54 @@ invisible in a render. It found all of these *after* the model looked right:
    and its reach bound dropped the canopy depth and failed a correct model. A
    gate that is right by luck is a gate that will be wrong somewhere else.
 
+### What review caught that the gate did not — TWO OF THE GATE'S OWN CHECKS
+
+Copilot reviewed [#74](https://github.com/captproton/yardstake-ux/pull/74) and
+raised six findings. All six were real. The two that matter are checks in
+`verify_mounted.py` that **could not fail**, which is the exact defect this file
+was written to prevent, committed inside the file that prevents it.
+
+**The AFF gate was unfalsifiable.** It asked
+`min(zs) <= aff <= max(zs)` across *every* vertex of the fixture — a span from
+the shade rim to the arm peak, nearly a foot. Any declared height inside that
+range passed. `spec.fixtures.mounted.datum` says the datum is the canopy
+centre, so it now measures the canopy mesh and compares within tolerance.
+
+**The lens gate was vacuous.** It asked `min(zs) <= min(lz)` where `zs` already
+*contained* the lens vertices — true by construction, always — and bounded the
+top against the canopy AFF, which is the wrong datum. It now bounds the lens
+between the shade's mouth and the mouth plus the shade's own height.
+
+Both were proved rather than argued. Two perturbed copies of the model were
+built — the canopy moved 4" out of place, and the lens dropped a foot clear of
+the shade — and each was run against both versions of the gate:
+
+| Perturbation | Old gate | New gate |
+|---|---|---|
+| Canopy 4" out of place (tolerance 2") | **PASS** | FAIL |
+| Lens 1 ft below the shade | **PASS** | FAIL |
+| Unperturbed model | PASS | PASS, 9/9 |
+
+A gate that has never been seen to fail is a claim, not a check.
+
+The other four findings, all correct:
+
+- **The arm path had a duplicated point.** `arc_points()` returns its first
+  point exactly at `top_of_straight`, so `[start, top_of_straight] + arc` fed
+  `tube()` two identical consecutive points and produced a band of zero-area
+  quads. The degenerate-geometry gate missed it because `tube()` averages
+  directions at a bend, so the duplicate never collapsed the frame — it only
+  made faces with no area. `arc[1:]` fixes it; `lod0` lost 20 bytes.
+- **The emission socket name was assumed.** `Emission Color` is the 4.x name;
+  the same function three lines below already probes for `Transmission` vs
+  `Transmission Weight`. It now probes, and raises rather than silently
+  producing an unlit material.
+- **`porch_soffit_z()` ignored the `plate` it was handed.** It now uses it: a
+  soffit at or above the plate means the object is not what the function
+  thinks it is, and every clearance measured after would be against the wrong
+  plane.
+- **`build_mounted()` unpacked a wall thickness it never used.**
+
 ### Looking at it
 
 [`../renders/tier3_sconce.jpg`](../renders/tier3_sconce.jpg) is framed to match

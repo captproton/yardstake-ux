@@ -90,10 +90,21 @@ def make_materials(spec, textured=True):
             # same kind of swap the colour variants already do, on a different
             # property. No KHR_lights_punctual is written and none is wanted:
             # see materials.lamp_glow.
+            # Socket name moved between Blender versions the same way
+            # Transmission did below — "Emission" in 3.x, "Emission Color" in
+            # 4.x and later. Probe rather than assume, so this does not become
+            # a silent no-emission material on an LTS build.
             er, eg, eb = m["emissive_linear"]
-            bsdf.inputs["Emission Color"].default_value = (er, eg, eb, 1.0)
-            bsdf.inputs["Emission Strength"].default_value = m.get(
-                "emissive_strength", 1.0)
+            for key in ("Emission Color", "Emission"):
+                if key in bsdf.inputs:
+                    bsdf.inputs[key].default_value = (er, eg, eb, 1.0)
+                    break
+            else:
+                raise SystemExit(f"[mat] {name}: no emission colour socket on "
+                                 "Principled BSDF; emissive_linear cannot be applied")
+            if "Emission Strength" in bsdf.inputs:
+                bsdf.inputs["Emission Strength"].default_value = m.get(
+                    "emissive_strength", 1.0)
         if m.get("transmission"):
             for key in ("Transmission Weight", "Transmission"):
                 if key in bsdf.inputs:

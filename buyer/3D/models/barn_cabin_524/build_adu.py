@@ -1625,7 +1625,15 @@ def gooseneck_sconce(name, coll, origin, normal, dims, lens_name=None):
         arc = arc_points(centre, r_arc, "y",
                          180.0 if sign > 0 else 0.0,
                          0.0 if sign > 0 else 180.0, n=10)
-    path = [start, top_of_straight] + [tuple(p) for p in arc]
+    # arc[0] IS top_of_straight by construction — the arc is centred half a
+    # projection outboard at that same height, so its 0-degree (or 180-degree)
+    # end lands exactly on the top of the straight run. Passing both gives
+    # tube() two identical consecutive points and a band of zero-area quads.
+    # They survive export and are invisible in a render, which is why the
+    # degenerate-geometry gate did not see them: tube() averages directions at
+    # a bend, so the duplicate never collapses the frame, it only makes faces
+    # with no area. Copilot caught it on review.
+    path = [start, top_of_straight] + [tuple(p) for p in arc[1:]]
     objs.append(tube(f"{name}_arm", path, ft_("arm_dia") / 2.0, coll, sides=8))
 
     # ---- shade: hangs from the arm's outboard end --------------------------
@@ -1676,7 +1684,7 @@ def build_mounted(spec, geo, coll):
     if not mounted:
         return []
 
-    t, SY = geo["t"], geo["SY"]
+    SY = geo["SY"]
     forms = mounted["forms"]
     made = []
     for item in mounted["items"]:

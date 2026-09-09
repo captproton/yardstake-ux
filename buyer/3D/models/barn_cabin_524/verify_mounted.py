@@ -58,7 +58,15 @@ def porch_soffit_z(plate):
     ob = bpy.data.objects.get("Porch_ceiling")
     if ob is None:
         raise SystemExit("[mounted] no Porch_ceiling to measure clearance against")
-    return min((ob.matrix_world @ v.co).z for v in ob.data.vertices)
+    z = min((ob.matrix_world @ v.co).z for v in ob.data.vertices)
+    # `plate` was a dead parameter until review. It is worth using: the ceiling
+    # hangs BELOW the plate, so a soffit at or above it means the object is not
+    # what this function thinks it is, and every clearance below would be
+    # measured against the wrong plane.
+    if z >= plate:
+        raise SystemExit(f"[mounted] Porch_ceiling underside {z:.3f} is not below "
+                         f"the plate {plate:.3f} — model changed shape")
+    return z
 
 
 def parts_of(item_id):
@@ -141,9 +149,25 @@ def main():
         gate(f"{fid}: centred on the declared offset", abs(cx - along) <= tol,
              f"model {ftin(cx)} vs spec {ftin(along)} "
              f"(tol {mounted['measurement']['tolerance_in']:.0f}\")")
-        gate(f"{fid}: canopy height matches the declared AFF",
-             min(zs) <= aff <= max(zs),
-             f"spans {ftin(min(zs))}..{ftin(max(zs))}, canopy {ftin(aff)}")
+        # AGAINST THE CANOPY MESH, not the fixture's bounding box. The first
+        # version asked `min(zs) <= aff <= max(zs)` over every vertex, which
+        # spans rim to arm peak — nearly a foot — so it passed for almost any
+        # value and could not have failed for the placement it exists to check.
+        # spec.fixtures.mounted.datum says the datum is the canopy centre, so
+        # measure the canopy. Copilot caught it on review.
+        canopy = [o for o in objs if o.name.endswith("_canopy")]
+        if len(canopy) != 1:
+            gate(f"{fid}: has exactly one canopy mesh to anchor on", False,
+                 f"found {[o.name for o in canopy]}")
+        else:
+            cz = [(canopy[0].matrix_world @ v.co).z
+                  for v in canopy[0].data.vertices]
+            c_mid = (min(cz) + max(cz)) / 2.0
+            gate(f"{fid}: canopy centre matches the declared AFF",
+                 abs(c_mid - aff) <= tol,
+                 f"canopy centre {ftin(c_mid)} vs spec {ftin(aff)} "
+                 f"({abs(c_mid - aff) * 12:.2f}\" off, tol "
+                 f"{mounted['measurement']['tolerance_in']:.0f}\")")
 
         # --- clear of the porch ceiling -------------------------------------
         # Against the ceiling's UNDERSIDE as built, not against the plate. The
@@ -174,11 +198,26 @@ def main():
             lens = [o for o in objs if o.name.startswith("Light_lens_")]
             gate(f"{fid}: lens named so assignment can reach it", len(lens) == 1,
                  lens[0].name if lens else "no Light_lens_* object")
-            if lens:
+            shade = [o for o in objs if o.name.endswith("_shade")]
+            if lens and shade:
                 lz = [(lens[0].matrix_world @ v.co).z for v in lens[0].data.vertices]
+                sz = [(shade[0].matrix_world @ v.co).z for v in shade[0].data.vertices]
+                # BOUNDED BY THE SHADE, not by the fixture. The first version
+                # asked `min(zs) <= min(lz)`, where `zs` already contained the
+                # lens vertices — true by construction, a gate that could not
+                # fail — and bounded the top against the canopy AFF, which is
+                # the wrong datum entirely. The lens belongs in the mouth: at
+                # or above the rim, and no higher than the rim plus the shade's
+                # own height. Copilot caught it on review.
+                mouth = min(sz)
+                ceiling = mouth + form["shade_height"]["ft"]
                 gate(f"{fid}: lens sits inside the shade mouth",
-                     min(zs) <= min(lz) and max(lz) <= aff,
-                     f"lens {ftin(min(lz))}..{ftin(max(lz))}")
+                     mouth <= min(lz) and max(lz) <= ceiling,
+                     f"lens {ftin(min(lz))}..{ftin(max(lz))} within "
+                     f"{ftin(mouth)}..{ftin(ceiling)}")
+            elif lens:
+                gate(f"{fid}: has a shade to bound the lens against", False,
+                     "no *_shade mesh")
 
     print("\n" + "=" * 76)
     if FAILED:
