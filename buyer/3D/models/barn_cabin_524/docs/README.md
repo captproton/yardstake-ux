@@ -411,20 +411,37 @@ and deliberately left out of it:
   material on it is listed; and the list must name real `materials.library`
   keys. Naming the **material** rather than the `Glazing_` prefix is the point
   — the exemption ends the day glass gains a texture.
-- **`verify_fixtures.py` cannot run in Blender at all.** Line 21 does a bare
-  `import yaml`, and Blender's bundled Python has no PyYAML —
-  `build_adu.load_spec()` exists precisely to work around that, and this file
-  bypasses it. So a **49-gate suite is currently unrunnable**, and has been
-  reported as passing. Found while running the whole suite for
-  [#86](https://github.com/captproton/yardstake-ux/pull/86) rather than the one
-  file that PR touched. The fix is to import `load_spec` like every other gate
-  file does. **Next in the queue.**
-- **`verify_front_elevation` only passes against a scene with glazing.** On
-  `barn_cabin_524.blend` it reports `Glazing_D-FRONT_lites missing`; confirmed
-  pre-existing by stashing. Same shape as the UV gate above — a gate aimed at a
-  file that cannot contain what it tests. Decide which scene each verify script
-  targets and say so in its docstring, rather than leaving it to whoever runs
-  it next.
+- **RETRACTED — `verify_fixtures.py` runs perfectly well.** The entry here
+  claimed it "cannot run in Blender at all" because of a bare `import yaml`.
+  It was **wrong, and the error was mine**: `verify_fixtures.py` is not a
+  Blender script. Its docstring says so in plain words — *"Run it with plain
+  Python; Blender is not needed"* — and `python3 verify_fixtures.py` gives
+  **49/49 ALL PASS**. I ran it under Blender, watched it fail on an import that
+  is correct for its actual runner, and reported a working suite as broken.
+  That claim reached [#86](https://github.com/captproton/yardstake-ux/pull/86)'s
+  body and this plan before it was checked.
+  **This is rule 28, committed by the person who had just written rule 28** —
+  a right question asked of the wrong environment, an hour after recording that
+  exact trap. It also wrongly cast doubt on
+  [#85](https://github.com/captproton/yardstake-ux/pull/85)'s claim that
+  fixtures passes 49/49; that claim was correct. Kept here rather than deleted,
+  because a retracted finding is evidence about how findings get made.
+- ~~**`verify_front_elevation` only passes against a scene with glazing.**~~
+  Fixed in [#87](https://github.com/captproton/yardstake-ux/pull/87). This half
+  was real: the docstring named `barn_cabin_524.blend`, where glazing does not
+  exist — `finish_adu.py` adds it — so the suite reported
+  `Glazing_D-FRONT_lites missing`, which reads exactly like the door having
+  regressed to a slab. The docstring now names the blend that can answer, and
+  `main()` **refuses the wrong scene** with an `[ABSENT]` notice and exit code
+  2, distinct from a real failure's 1.
+  **The guard's discriminator is deliberately narrow**, and that is the part
+  worth reading. Aborting whenever the door's lites are missing would have
+  silently destroyed the gate that catches a door with no glass — the exact
+  defect [#83](https://github.com/captproton/yardstake-ux/pull/83) fixed. So it
+  tests for **no glazing anywhere**: none means `finish_adu.py` never ran here;
+  some, but not the door's, is a real finding and falls through. Both proved by
+  lesion — deleting only the door's lites still FAILS, deleting all glazing
+  reports ABSENT.
 - **Exterior casing is modelled on no window at all, and on no door either.**
   A1.1 draws head casing, side casing and a sill with apron around the gable
   window, around the others, and around `D-FRONT`. `Trim_` today is INTERIOR
@@ -704,3 +721,17 @@ Keep these — they caught real errors:
     trap as the empty set in rule 24. Related: three of the numbers in this
     plan's own backlog were wrong because the entry was written from reading
     the gate instead of running it.
+    *The rule caught its own author within the hour.* `verify_fixtures.py` was
+    filed in the backlog as unrunnable, because it was run under Blender — when
+    its docstring says plainly to run it with `python3`, where it passes 49/49.
+    A right question asked of the wrong ENVIRONMENT is the same error as the
+    wrong scene, and it produced a false report about a working suite. **Before
+    filing a gate as broken, run it the way its docstring says.**
+    *An absent subject now has its own exit code.*
+    [#87](https://github.com/captproton/yardstake-ux/pull/87) gives
+    `verify_front_elevation` exit 2 for "wrong scene" against 1 for a real
+    failure — a distinction the suite could not previously express, and the
+    reason a misrun could masquerade as a defect. Its guard tests for **no
+    glazing anywhere**, never for the one object it is about to gate on;
+    aborting on the latter would have deleted the gate that catches a door with
+    no glass.
