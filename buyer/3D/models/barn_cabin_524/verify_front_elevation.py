@@ -103,13 +103,33 @@ def main():
     # The failure this rejects: one sheet of glass across the upper half. That
     # passes any gate phrased as "the door has glazing", which is precisely why
     # this one counts instead of asking.
-    lites = [o for o in bpy.data.objects
-             if o.name.startswith("Glazing_D-FRONT_lite_")]
-    want = cols * rows
+    # COUNTED BY POSITION, not by object name. The six panes are welded into
+    # one mesh, so there is no list to take len() of -- and that is the better
+    # test anyway. Counting objects would have passed on one sheet of glass
+    # split into six pieces, or on six panes stacked in the same place.
+    #
+    # A lite EXISTS if its centre is glass. The lites are SEPARATE if the
+    # muntin line between them is not glass. Both halves are needed: the first
+    # alone passes on a single sheet, the second alone passes on no glass.
+    glass = ob("Glazing_D-FRONT_lites")
+    gate("the door has glass in it at all", glass is not None,
+         "" if glass else "Glazing_D-FRONT_lites missing")
+    if glass is None:
+        raise SystemExit(1)
+    lit = [p for p in centres if inside_mesh(glass, p)]
+    bars = []
+    for i in range(1, cols):
+        bars.append(Vector((gx0 + (gx1 - gx0) * i / cols, SY + t / 2,
+                            (gz0 + gz1) / 2)))
+    for j in range(1, rows):
+        bars.append(Vector(((gx0 + gx1) / 2, SY + t / 2,
+                            gz0 + (gz1 - gz0) * j / rows)))
+    open_bars = [b for b in bars if inside_mesh(glass, b)]
     gate("the door carries exactly the lite count its TYPE claims",
-         len(lites) == want,
-         f"{len(lites)} panes against {cols}x{rows} = {want} "
-         f"for a {door['type']}")
+         len(lit) == cols * rows and not open_bars,
+         f"{len(lit)}/{cols * rows} lite centres are glass, "
+         f"{len(bars) - len(open_bars)}/{len(bars)} muntin lines divide them "
+         f"— a {door['type']}")
 
     # ---- 3. half-lite means the UPPER half -------------------------------
     # The failure this rejects: the glass runs the full 6'-8" of the leaf, which
@@ -125,7 +145,7 @@ def main():
     # full-height pane started at z=0, twenty times the tolerance away.
     tol = spec["openings"]["measurement"]["tolerance_ft"]
     mid = door["sill"] + door["h"] / 2
-    lowest = min((bbox(o)[4] for o in lites), default=0.0)
+    lowest = bbox(glass)[4]
     gate("no lite drops into the lower half — it is a HALF lite",
          lowest >= mid - tol,
          f"lowest lite bottom {lowest:.3f} against mid-leaf {mid:.3f} "
@@ -159,6 +179,48 @@ def main():
     gate("the built lite grid matches the one measured off A1.1",
          abs(built_grid_w - cn["lite_grid"]["w"]) <= tol,
          f"built {built_grid_w:.3f} vs measured {cn['lite_grid']['w']:.3f} ft")
+
+    # ---- 5b. the door hardware -------------------------------------------
+    # Nothing about this is in the plan set: A1.1 draws the entry door with no
+    # knob, no rose and no deadbolt on it. The PRODUCT is sourced (the shopping
+    # guide names it) and every DIMENSION is a standard assumed value, so these
+    # gates check the things that would be wrong regardless of which standard
+    # you picked.
+    hw = spec["fixtures"]["door_hardware"]["entry_set"]
+    knob = ob(f"Hdw_{door['id']}")
+    gate("the entry door has hardware on it", knob is not None,
+         "" if knob else f"Hdw_{door['id']} missing")
+    if knob is not None:
+        kx0, kx1, ky0, ky1, kz0, kz1 = bbox(knob)
+        lx0, lx1, ly0, ly1, _, _ = bbox(leaf)
+
+        # The failure this rejects: hardware sunk flush into the leaf, or
+        # buried inside it. A knob that does not stand off the face is not a
+        # knob. Checked on BOTH faces, because a set built on one side only is
+        # the thing you notice the moment you look at the door from inside.
+        gate("the knob stands off BOTH faces of the door",
+             ky0 < ly0 - 1e-6 and ky1 > ly1 + 1e-6,
+             f"hardware y {ky0:.3f}..{ky1:.3f} against leaf {ly0:.3f}..{ly1:.3f}")
+
+        # The failure this rejects: a backset that puts the bore in the glass
+        # or off the edge of the door. The stile is what a lock is bored
+        # through, and on THIS door the lite grid comes down to mid-leaf, so
+        # there is far less solid rail than on the door in the tour.
+        gate("every piece of hardware is bored through the stile",
+             kx0 > lx0 + 1e-6 and kx1 < gx0 - 1e-6,
+             f"hardware x {kx0:.3f}..{kx1:.3f} inside the stile "
+             f"{lx0:.3f}..{gx0:.3f}")
+
+        # The failure this rejects: knob and deadbolt swapped, or collapsed
+        # onto one height. On an entry set the deadbolt is ABOVE the knob.
+        z_knob = door["sill"] + hw["knob_height_aff"]["ft"]
+        z_bolt = door["sill"] + hw["deadbolt_height_aff"]["ft"]
+        gate("the deadbolt sits above the knob, by the stated bore spacing",
+             abs((z_bolt - z_knob) - hw["bore_spacing"]["ft"]) < 1e-6
+             and abs(kz0 - (z_knob - hw["rose_diameter"]["ft"] / 2)) < 0.01
+             and abs(kz1 - (z_bolt + hw["rose_diameter"]["ft"] / 2)) < 0.01,
+             f"knob {z_knob:.3f}, deadbolt {z_bolt:.3f}, "
+             f"spacing {(z_bolt - z_knob) * 12:.2f}\"")
 
     # ---- 6. the ridge beam PROJECTS ---------------------------------------
     # The failure this rejects: the beam built flush with the gable, or buried

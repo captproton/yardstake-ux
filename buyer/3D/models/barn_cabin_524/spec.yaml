@@ -1160,6 +1160,78 @@ fixtures:
     - {id: elec_meter_panel, reason: "EXTERIOR, north-east corner"}
     - {id: smoke_co_detectors, reason: "ceiling items, tagged SD and SD/CO; no footprint"}
     - {id: upper_cabinets, reason: "not drawn in plan at all — see kitchen.upper_cab.note"}
+  door_hardware:
+    # DOOR-MOUNTED, WHICH IS A THIRD ANCHOR AGAIN.
+    #
+    # `mounted` below hangs a fixture on a NAMED WALL at a distance along it.
+    # A knob does not hang on a wall, it belongs to a LEAF, and it is placed
+    # from the leaf's latch edge by a backset. Reusing the wall anchor would
+    # have meant re-deriving the door's position to describe something already
+    # attached to the door.
+    product_source:
+      doc: "example plans/thataduguy/SHOPPING-GUIDE.pdf, page 10"
+      heading: DOOR KNOBS
+      gives: >
+        FAMILY AND FINISH, NOT DIMENSIONS — the same thing the guide gave for
+        the porch sconce on page 9. It names four products and carries no size
+        for any of them.
+    catalogue:
+      - {id: entry_knob_deadbolt, raw: "2 Pack Entry Door Knob with Deadbolt in Satin Nickel",
+         finish: satin_nickel, form: round_knob_plus_deadbolt, applies_to: [D-FRONT]}
+      - {id: half_dummy, raw: "Probrico Half-Dummy Door Knobs in Oil Rubbed Bronze",
+         finish: oil_rubbed_bronze, form: round_knob, applies_to: UNRESOLVED}
+      - {id: privacy_lockset, raw: "Probrico Brushed Nickel Privacy Door Locksets for Bedroom and Bathroom",
+         finish: brushed_nickel, form: round_knob, applies_to: UNRESOLVED}
+      - {id: pismo_privacy, raw: "Kwikset Pismo Privacy Square Modern Door Knob in Satin Nickel",
+         finish: satin_nickel, form: round_knob_square_rose, applies_to: UNRESOLVED}
+    unresolved: >
+      ONLY THE ENTRY SET MAPS ONTO THIS PLAN, and the mismatch is the guide's,
+      not ours. It names privacy locksets "for Bedroom and Bathroom" — but in
+      OPTION B both of those doors are POCKET doors, which take a flush pull
+      and a pocket-door lock, and the guide lists those separately under LOCKS
+      (Kwikset Bed/Bath Pocket Door Lock). A knob cannot go on a door that
+      slides into a wall. The guide serves several plans, so this is a
+      catalogue covering more doors than this building has, and picking one for
+      the closet bypass or the pockets would be a guess dressed as a source.
+      Recorded, not resolved. Three knobs and two pocket locks stay unbuilt.
+    entry_set:
+      built_on: D-FRONT
+      faces: both
+      finish_source: "SHOPPING-GUIDE.pdf p10 — 'in Satin Nickel'"
+      geometry_source: >
+        NOT IN THE PLAN SET AND NOT IN THE GUIDE. A1.1 draws the entry door in
+        elevation with NO hardware on it at all — no knob, no rose, no
+        deadbolt — and the guide gives no dimension for any product. Every
+        figure below is therefore a standard residential value, marked
+        assumed, and none of it inherits the credibility of the measured
+        openings.
+      video_corroboration: >
+        COARSE, AND ONLY WORTH ONE OF THE THREE FIGURES. Video 0:13 shows the
+        as-built door with knob and deadbolt. Read against the leaf, the knob
+        lands near 34-35" and the deadbolt near 39-40" — both a little under
+        the standard, which is the direction a camera looking DOWN on a door
+        biases them. At 1280x720 the leaf is about 210 px tall and the shot is
+        oblique, so those two are not measurements and are not used.
+        What DOES survive the perspective is the SPACING between them, because
+        it spans only five inches: it reads 5.1" against the 5-1/2" that a
+        two-bore entry prep uses as standard. That agreement is the reason the
+        5-1/2" below is a corroborated assumption rather than a bare one.
+      hand: >
+        LATCH ON THE WEST EDGE, from video 0:13 — the knob is plainly on the
+        left of the leaf viewed from outside, and outside faces south, so left
+        is west. A1.1's elevation cannot say: it draws no hardware and no swing.
+      knob_height_aff:  {ft: 3.0,   raw: "3'-0\"",     confidence: assumed}
+      bore_spacing:     {ft: 0.458, raw: "5 1/2\"",    confidence: assumed_corroborated}
+      deadbolt_height_aff: {ft: 3.458, derived: "knob_height_aff + bore_spacing"}
+      backset:          {ft: 0.198, raw: "2 3/8\"",    confidence: assumed}
+      rose_diameter:    {ft: 0.208, raw: "2 1/2\"",    confidence: assumed}
+      rose_thickness:   {ft: 0.029, raw: "3/8\"",      confidence: assumed}
+      shank_diameter:   {ft: 0.075, raw: "7/8\"",      confidence: assumed}
+      shank_length:     {ft: 0.075, raw: "7/8\"",      confidence: assumed}
+      knob_diameter:    {ft: 0.177, raw: "2 1/8\"",    confidence: assumed}
+      knob_length:      {ft: 0.083, raw: "1\"",        confidence: assumed}
+      deadbolt_diameter: {ft: 0.125, raw: "1 1/2\"",   confidence: assumed}
+      deadbolt_projection: {ft: 0.042, raw: "1/2\"",   confidence: assumed}
   mounted:
     # WALL-MOUNTED FIXTURES. A DIFFERENT ANCHOR FROM EVERYTHING ABOVE.
     #
@@ -1868,6 +1940,17 @@ materials:
       metallic: 0.0
       source: "video 4:10 — monstera"
       confidence: assumed
+    satin_nickel:
+      base_color_linear: [0.620, 0.605, 0.575]
+      roughness: 0.42
+      metallic: 0.85
+      source: >
+        SHOPPING-GUIDE.pdf p10 names the finish outright: "in Satin Nickel".
+        Kept separate from `steel` on purpose — that slot is the stainless
+        range hood, which is cooler and glossier. Satin nickel is warmer and
+        brushed, so sharing the slot would have made the hood the authority on
+        a finish the guide states independently.
+      confidence: "finish NAMED by the guide; the linear values are plausible-not-measured, per materials.provenance"
     steel:
       base_color_linear: [0.560, 0.570, 0.580]
       roughness: 0.30
@@ -1888,6 +1971,7 @@ materials:
     Porch_slab: concrete
     Ceil_: drywall
     Trim_: trim
+    Hdw_: satin_nickel
     # Exterior, and deliberately not Trim_ — see build_adu.
     Ridge_beam: trim
     Ladder_: fir_ladder

@@ -110,7 +110,36 @@ def multibox(name, specs, coll):
 
 
 def tube(name, path, radius, coll, sides=8, caps=True):
-    """Sweep an n-gon along a 3D polyline. The first round primitive here.
+    """One swept n-gon as its own object. See `tube_geom` for the sweep."""
+    v, f = tube_geom(path, radius, sides, caps)
+    return _new_obj(name, v, f, coll)
+
+
+def multitube(name, specs, coll, sides=8):
+    """Several tubes welded into ONE mesh, as `multibox` does for boxes.
+
+    A doorknob is a rose, a shank and a ball -- three tubes that share a
+    material, never move independently, and are always drawn together. Built as
+    three objects they cost three draw calls and three entries against the mesh
+    budget, and that budget is real: it was set in the first commit of this
+    model and eleven PRs later the knob is what would have pushed it over.
+
+    `specs` is a sequence of (path, radius).
+    """
+    verts, faces = [], []
+    for path, radius in specs:
+        v, f = tube_geom(path, radius, sides, True)
+        off = len(verts)
+        verts.extend(v)
+        faces.extend(tuple(i + off for i in face) for face in f)
+    return _new_obj(name, verts, faces, coll)
+
+
+def tube_geom(path, radius, sides=8, caps=True):
+    """Sweep an n-gon along a 3D polyline, as (verts, faces).
+
+    Split out from `tube` so several sweeps can be welded into one mesh --
+    the geometry and the object are different decisions and were tangled.
 
     Everything else in this model is axis-aligned boxes, which is right for
     architecture and useless for a tap. `sides=8` is deliberate: at
@@ -124,7 +153,7 @@ def tube(name, path, radius, coll, sides=8, caps=True):
 
     pts = [mathutils.Vector(p) for p in path]
     if len(pts) < 2:
-        raise ValueError(f"{name}: a tube needs at least two points")
+        raise ValueError("a tube needs at least two points")
 
     # Seed a reference axis that is not parallel to the first segment, or the
     # cross product below degenerates and the ring collapses.
@@ -163,7 +192,7 @@ def tube(name, path, radius, coll, sides=8, caps=True):
     if caps:
         faces.append(tuple(reversed(rings[0])))
         faces.append(tuple(rings[-1]))
-    return _new_obj(name, verts, faces, coll)
+    return verts, faces
 
 
 def ellipse_ring(cx, cy, ax, ay, z, n=16):
@@ -834,6 +863,53 @@ def build(spec, cut_openings=True):
             parts.append((gx0, gx1, y0, y1, c - mw / 2, c + mw / 2))
         multibox(name, parts, finish)
 
+    def entry_hardware(o, y_out, y_in):
+        """The knob-and-deadbolt set on the entry door, on BOTH faces.
+
+        Its own objects rather than part of the leaf, because the leaf is
+        painted trim and the hardware is satin nickel, and material here is
+        chosen by object-name prefix. Merging them would have made the knob
+        the same colour as the door.
+
+        Round, and `tube()` with a two-point path is a capped cylinder about
+        any axis -- the same call the sconce canopy makes. Everything else in
+        this model is an axis-aligned box, which is right for architecture and
+        wrong for a doorknob.
+
+        BOTH FACES on purpose. Only the exterior one is visible in the tour and
+        in views.front(), but the interior presets and the walkthrough look at
+        this door from inside, and a door with a knob on one side only is a
+        thing you notice immediately.
+        """
+        hw = spec["fixtures"].get("door_hardware", {}).get("entry_set")
+        if not hw or hw["built_on"] != o["id"]:
+            return
+        # Latch edge is the WEST edge, from video 0:13 -- see spec.hand.
+        cx = o["offset"] + hw["backset"]["ft"]
+        z_knob = o["sill"] + hw["knob_height_aff"]["ft"]
+        z_bolt = o["sill"] + hw["deadbolt_height_aff"]["ft"]
+        rr, rt = hw["rose_diameter"]["ft"] / 2, hw["rose_thickness"]["ft"]
+        sr, sl = hw["shank_diameter"]["ft"] / 2, hw["shank_length"]["ft"]
+        kr, kl = hw["knob_diameter"]["ft"] / 2, hw["knob_length"]["ft"]
+        br = hw["deadbolt_diameter"]["ft"] / 2
+        bp = hw["deadbolt_projection"]["ft"]
+
+        # `out` is the direction away from the leaf on each face: the exterior
+        # face looks south (-Y), the interior north (+Y).
+        # ONE mesh for the whole set, on both faces. Ten separate cylinders is
+        # ten draw calls and ten entries against a mesh budget that has held
+        # since the first commit -- a knob is not where that budget gets spent.
+        parts = []
+        for face, out in ((y_out, -1.0), (y_in, +1.0)):
+            for z, stack in ((z_knob, [(rt, rr), (sl, sr), (kl, kr)]),
+                             (z_bolt, [(rt, rr), (bp, br)])):
+                d = 0.0
+                for length, radius in stack:
+                    parts.append(([(cx, face + out * d, z),
+                                   (cx, face + out * (d + length), z)], radius))
+                    d += length
+        multitube(f"Hdw_{o['id']}", parts, finish)
+
     # exterior entry door, in the south wall
     for o in spec["openings"]["main_floor"]["south_wall"]["openings"]:
         if not o["type"].endswith("door"):
@@ -854,6 +930,7 @@ def build(spec, cut_openings=True):
                     "`construction` block. A half-lite door cannot be built "
                     "from a type alone -- add the block or change the type.")
             half_lite(f"Door_{o['id']}", o, c - lt / 2, c + lt / 2)
+            entry_hardware(o, c - lt / 2, c + lt / 2)
         else:
             leaf(f"Door_{o['id']}", o["offset"], o["offset"] + o["w"],
                  c - lt / 2, c + lt / 2, o["sill"], o["sill"] + o["h"])
