@@ -251,7 +251,7 @@ def main():
              if o.type == "MESH" and o.name.startswith(("Ceil_", "Floor_main",
                                                         "Floor_bath", "Floor_loft",
                                                         "Door_", "Trim_", "Ladder_",
-                                                        "Rail_"))
+                                                        "Rail_", "Hdw_"))
              and o.name not in fin]
     gate("all Tier 1 geometry is in the Finish collection", not stray,
          ", ".join(stray) or f"{len(fin)} objects")

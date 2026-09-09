@@ -27,7 +27,8 @@ import bpy
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from build_adu import load_spec, build, box, collection, ft  # noqa: E402
+from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
+                       ft)
 
 FOOT_M = 0.3048
 
@@ -209,6 +210,7 @@ def add_glazing(spec, geo, coll):
             gz0 = o["sill"] + cn["lite_grid"]["bottom_z"]
             gz1 = o["sill"] + cn["lite_grid"]["top_z"]
             cols, rows = cn["lites"]["cols"], cn["lites"]["rows"]
+            lites = []
             for i in range(cols):
                 for j in range(rows):
                     a = gx0 + (gx1 - gx0) * i / cols
@@ -217,10 +219,18 @@ def add_glazing(spec, geo, coll):
                     q = gz0 + (gz1 - gz0) * (j + 1) / rows
                     # Inset by half a muntin, so a lite meets its bar rather
                     # than overlapping it.
-                    pane(f"Glazing_{o['id']}_lite_{j}{i}",
-                         a + (mw / 2 if i else 0), b - (mw / 2 if i < cols - 1 else 0),
-                         c - d / 2, c + d / 2,
-                         p + (mw / 2 if j else 0), q - (mw / 2 if j < rows - 1 else 0))
+                    lites.append((
+                        a + (mw / 2 if i else 0), b - (mw / 2 if i < cols - 1 else 0),
+                        c - d / 2, c + d / 2,
+                        p + (mw / 2 if j else 0), q - (mw / 2 if j < rows - 1 else 0)))
+            # ONE mesh, not six. They share a material, they never toggle
+            # apart, and six objects is six draw calls for one door.
+            #
+            # This does mean the lite COUNT can no longer be read off the
+            # object list. That is a good thing: counting names was always the
+            # weaker test, and the gate now samples the six lite centres and
+            # the muntins between them instead. Position, not naming.
+            made.append(multibox(f"Glazing_{o['id']}_lites", lites, coll))
             continue
         nm = ("Door_" if o["type"].endswith("door") else "Glazing_") + o["id"]
         pane(nm, o["offset"], o["offset"] + o["w"],
