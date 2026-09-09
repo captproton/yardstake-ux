@@ -88,6 +88,7 @@ _layout = {}          # set id -> chosen option id, for this session
 
 
 _warned = set()
+_cache = {}      # path -> (mtime, parsed manifest)
 
 
 def _warn_once(key, message):
@@ -110,21 +111,67 @@ def _manifest():
         _warn_once("unsaved", "unsaved .blend; furniture arrangements not applied")
         return None
     path = Path(blend).parent / MANIFEST
-    if not path.exists():
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
         _warn_once("missing", f"no {MANIFEST}; run finish_adu.py to get "
                               f"furniture arrangements")
         return None
+
+    # CACHED BY MTIME. _presence() is called from the panel's draw(), which
+    # Blender runs on every redraw, and from _show() on every mode change.
+    # Re-reading and re-parsing the file that often is real disk I/O inside
+    # the UI loop. Keyed on mtime so a fresh finish_adu.py run is picked up
+    # without restarting Blender.
+    hit = _cache.get(str(path))
+    if hit is not None and hit[0] == mtime:
+        return hit[1]
     try:
-        return json.loads(path.read_text())
+        man = json.loads(path.read_text())
     except (OSError, ValueError) as exc:              # noqa: BLE001
         _warn_once("unreadable",
                    f"{MANIFEST} unreadable ({exc}); arrangements not applied")
         return None
+    _cache[str(path)] = (mtime, man)
+    return man
 
 
 def _presence():
+    """The presence sets, or [] if the manifest cannot be trusted.
+
+    VALIDATED, NOT ASSUMED. `variants.json` can be valid JSON and still be the
+    wrong shape -- a top-level array, a set with no `options`, an option with
+    no `show`. Left unchecked those raise AttributeError or KeyError out of
+    _show() and out of the panel's draw(), and a draw() that raises leaves the
+    sidebar broken with no clue why.
+
+    All or nothing on purpose: a half-applied presence block is worse than
+    none, because it puts the desk back through the bed.
+    """
     man = _manifest()
-    return (man or {}).get("presence", [])
+    if man is None:
+        return []
+    if not isinstance(man, dict) or not isinstance(man.get("presence", []), list):
+        _warn_once("schema", f"{MANIFEST} is not the expected shape; "
+                             f"arrangements not applied")
+        return []
+    sets = man.get("presence", [])
+    for st in sets:
+        ok = (isinstance(st, dict)
+              and isinstance(st.get("id"), str)
+              and isinstance(st.get("options"), list)
+              and st["options"]
+              and all(isinstance(o, dict)
+                      and isinstance(o.get("id"), str)
+                      and isinstance(o.get("show"), list)
+                      and all(isinstance(n, str) for n in o["show"])
+                      for o in st["options"]))
+        if not ok:
+            _warn_once("schema", f"{MANIFEST} presence block is malformed "
+                                 f"(set {st.get('id', '?') if isinstance(st, dict) else st!r}); "
+                                 f"arrangements not applied")
+            return []
+    return sets
 
 
 def _controlled():

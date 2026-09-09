@@ -225,8 +225,17 @@ def main():
                  + (f" — WRONG {bad}" if bad else ""))
 
         # Switching must actually switch, through the operator the panel uses.
-        st = sets[0]
-        alt = next(o for o in st["options"] if not o["default"] and o["show"])
+        # SEARCH FOR A USABLE SET rather than assuming sets[0] has one. The
+        # first version indexed [0] and called next() with no default, so a
+        # manifest reordered to put a single-arrangement set first would raise
+        # StopIteration and abort the whole run -- a crash where a readable
+        # gate failure belongs.
+        cand = [(st, o) for st in sets for o in st["options"]
+                if not o["default"] and o["show"]]
+        gate("some set offers a non-default arrangement to switch to",
+             bool(cand), f"{len(cand)} across {len(sets)} sets")
+    if sets and cand:
+        st, alt = cand[0]
         bpy.ops.adu.layout(set_id=st["id"], option_id=alt["id"])
         now = {n for n in views._controlled()
                if (o := bpy.data.objects.get(n)) and not o.hide_get()}
