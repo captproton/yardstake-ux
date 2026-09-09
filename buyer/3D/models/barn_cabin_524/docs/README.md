@@ -31,6 +31,7 @@ Phases P1–P4 are complete and gated:
 | **Tooling** | `inside_mesh` deduped into `verify_lib.py`, with a known-answer gate | **done** ([#82](https://github.com/captproton/yardstake-ux/pull/82)) — one bug that had to be fixed twice, and two dead leftovers the extraction itself created |
 | **Front elevation** | Gable window, half-lite entry door, projecting ridge beam | **done** ([#83](https://github.com/captproton/yardstake-ux/pull/83)) — the sheet's third calibration attempt, and a door that had glazing all along |
 | **Gates** | UV gate says which meshes may skip UVs, and why | **done** ([#86](https://github.com/captproton/yardstake-ux/pull/86)) — the obvious fix would have silently dropped 74 meshes out of the gate |
+| **Gates** | `front_elevation` refuses a scene it cannot test; one finding retracted | **done** ([#87](https://github.com/captproton/yardstake-ux/pull/87)) — a misrun could look exactly like the defect [#83](https://github.com/captproton/yardstake-ux/pull/83) fixed |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -194,6 +195,34 @@ around with W/A/S/D.
 `walkthrough()` deliberately hides nothing — standing in a room you want the
 ceiling above you. Hiding the roof and ceilings is right for looking *down*
 into the model and wrong for walking through it.
+
+## Running the gates
+
+**It matters which runner and which scene, exactly as it matters which file you
+open.** Every script names its own in its docstring; this table is here so no
+one has to open nine files to find out, and because getting it wrong has
+already produced two false reports about working code.
+
+| Script | Run it with | Against |
+|---|---|---|
+| `verify_fixtures.py` | **`python3`** — spec only, no Blender | *(no scene)* |
+| `verify_front_elevation.py` | `blender --background` | **`barn_cabin_524_textured.blend`** |
+| `verify_tier1` `tier2` `openings` `geometry` `mounted` `furniture` `views` | `blender --background` | `barn_cabin_524.blend` |
+
+Two traps, both sprung for real:
+
+- **`verify_fixtures.py` is not a Blender script.** Its `import yaml` is
+  correct for `python3` and fails under Blender, whose bundled Python has no
+  PyYAML. Run it the wrong way and a **passing 49-gate suite looks broken** —
+  which is exactly how it got filed as a defect in this plan, and retracted in
+  [#87](https://github.com/captproton/yardstake-ux/pull/87).
+- **`verify_front_elevation.py` needs the textured blend**, because glazing
+  does not exist until `finish_adu.py` runs. Against the base file it used to
+  report `Glazing_D-FRONT_lites missing` — indistinguishable from the entry
+  door having regressed to a slab. It now refuses that scene with `[ABSENT]`
+  and **exit code 2**, distinct from a real failure's **1**.
+
+A green suite means all nine, each run its own way. Anything else is a claim.
 
 ## Ownership
 
