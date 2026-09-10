@@ -236,6 +236,68 @@ def main():
         detail = "no probe found a gap"
     gate("no vertical gap from footing to finished floor", gap < 0.01, detail)
 
+    # ---- the stacked pair must read as a washer and dryer ------------------
+    # THE FAILURE MODE IS A CUPBOARD. Before #91 the pair was a body and two
+    # blank front panels, geometrically correct and visually nothing -- the
+    # same defect the entry door carried for eleven PRs. Two features make a
+    # front-load stack legible, so the gate demands exactly those two, ONE PER
+    # UNIT, and by position rather than by count: two drums stacked in the
+    # wrong half would satisfy any tally.
+    fx = spec["fixtures"]
+    wd = next(i for i in fx["laundry"]["items"] if i["id"] == "stacked_wd")
+    drum = bpy.data.objects.get("Appl_drum")
+    dark = bpy.data.objects.get("Appl_dark")
+    split = wd["h"] * fx["appliance_form"]["stacked_wd"]["split_share"]["fraction"]
+    bad = []
+    if drum is None:
+        bad.append("Appl_drum missing — the pair has no doors")
+    else:
+        zs = [(drum.matrix_world @ v.co).z for v in drum.data.vertices]
+        lower = [z for z in zs if z < split]
+        upper = [z for z in zs if z >= split]
+        if not lower:
+            bad.append("no drum on the washer")
+        if not upper:
+            bad.append("no drum on the dryer")
+        # A drum is round: its vertical extent must match its width, or a flat
+        # panel would pass a test that only asked "is something there".
+        for label, s in (("washer", lower), ("dryer", upper)):
+            if s:
+                want = wd["w"] * fx["appliance_form"]["stacked_wd"]["drum"][
+                    "diameter_share"]["fraction"]
+                if abs((max(s) - min(s)) - want) > 0.02:
+                    bad.append(f"{label} drum is {max(s) - min(s):.3f} ft tall, "
+                               f"want {want:.3f}")
+    if dark is None:
+        # NOT A SILENT SKIP. `if dark is not None` let the whole control-panel
+        # half of this gate vanish the moment the object did -- and the object
+        # vanishing is precisely the regression worth catching.
+        bad.append("Appl_dark missing — the pair has no control panels")
+    else:
+        # FILTER BY THE SPEC'S OWN FOOTPRINT, using the same datum mapping the
+        # loop above uses: `xw + it["x"]`, `ye - it["y"]`. The first version
+        # tested x > 8.0, a number true of this layout and of nothing else --
+        # move the closet and the gate quietly starts reading the kitchen's
+        # dark panels instead, and still passes.
+        fx0, fx1 = xw + wd["x"], xw + wd["x"] + wd["w"]
+        fy0, fy1 = ye - (wd["y"] + wd["d"]), ye - wd["y"]
+        pad = 0.05
+        tops = [p.z for p in (dark.matrix_world @ v.co
+                              for v in dark.data.vertices)
+                if fx0 - pad <= p.x <= fx1 + pad
+                and fy0 - pad <= p.y <= fy1 + pad]
+        if not tops:
+            bad.append("no dark geometry in the stack's footprint at all")
+        else:
+            # One strip at the top of the washer, one at the top of the stack.
+            if not any(abs(z - split) < 0.5 for z in tops):
+                bad.append("no control panel on the washer")
+            if not any(abs(z - wd["h"]) < 0.05 for z in tops):
+                bad.append("no control panel on the dryer")
+    gate("the stacked pair reads as a washer and dryer", not bad,
+         "a drum and a control panel on each unit" if not bad
+         else "; ".join(bad))
+
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
     print("=" * 96)

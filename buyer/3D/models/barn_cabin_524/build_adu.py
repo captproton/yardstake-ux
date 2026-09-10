@@ -1639,7 +1639,7 @@ def build_casework(spec, geo, coll):
     af = fx.get("appliance_form")
     if af:
         pp, dg = af["panel_proud"]["ft"], af["door_gap"]["ft"]
-        bodies, fronts_a, darks = [], [], []
+        bodies, fronts_a, darks, drums = [], [], [], []
 
         def span(fid):
             it = find_item(kit["items"], fid)
@@ -1696,9 +1696,40 @@ def build_casework(spec, geo, coll):
                 (wx1 - pp, wx1, wy0, wy1, wsplit + dg / 2.0, wd["h"]),  # dryer
             ]
 
+            # A STACK IS LEGIBLE FROM TWO FEATURES, and it had neither: a big
+            # circular door on each unit and a control strip across the top of
+            # each. Two blank panels are a cupboard. This is the argument the
+            # casework `leaf()` docstring already made and #83 finally applied
+            # to the entry door -- a slab is geometrically correct and visually
+            # nothing.
+            #
+            # Everything below is a FRACTION of the drawn box, never a size.
+            # The reference frames come from a different video and may show a
+            # different unit, so they set the form and its ratios and nothing
+            # else. Change the box and these follow it.
+            drum, cp = wd_cfg["drum"], wd_cfg["control_panel"]
+            r = wd["w"] * drum["diameter_share"]["fraction"] / 2.0
+            cyc = (wy0 + wy1) / 2.0
+            for base, top in ((0.0, wsplit - dg / 2.0),
+                              (wsplit + dg / 2.0, wd["h"])):
+                unit_h = top - base
+                # Control strip first, so the drum centre can be expressed
+                # against the unit rather than against the strip.
+                darks.append((wx1 - pp, wx1 + drum["proud"]["ft"] / 2.0,
+                              wy0, wy1,
+                              top - unit_h * cp["height_share"]["fraction"], top))
+                zc = base + unit_h * drum["centre_share"]["fraction"]
+                drums.append((((wx1, cyc, zc),
+                               (wx1 + drum["proud"]["ft"], cyc, zc)), r))
+
         multibox("Appl_body", bodies, coll)
         multibox("Appl_front", fronts_a, coll)
         multibox("Appl_dark", darks, coll)
+        # ONE extra mesh for both drum doors, welded -- the same trade #84 made
+        # to keep a doorknob inside the cap. A round door cannot be a box, and
+        # the cap has 3 left, so it is spent deliberately and recorded here.
+        if drums:
+            multitube("Appl_drum", drums, coll, sides=24)
         geo["appliance_boxes"] = len(bodies) + len(fronts_a) + len(darks)
 
     # ---- bath vanity ------------------------------------------------------

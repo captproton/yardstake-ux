@@ -1698,6 +1698,37 @@ fixtures:
       split_share: {fraction: 0.5, confidence: assumed,
                     note: "washer below, dryer above, roughly equal on a stack"}
       source: "A1.1 box labelled STACK W/D; visible at video 2:29"
+      # FORM, added because the pair was two blank panels. Same argument the
+      # casework `leaf()` docstring makes and that #83 finally applied to the
+      # entry door: a slab is geometrically correct and VISUALLY NOTHING. A
+      # front-load stack is legible from two features and neither was there.
+      #
+      # PROPORTIONS, NOT DIMENSIONS. The reference frames supplied with this
+      # work come from a DIFFERENT video and may show a different unit, so
+      # they are used the way the porch sconce used footage: for the form and
+      # its ratios, never to set a size. Every number here is a fraction of
+      # the drawn box, so it survives the box changing.
+      drum:
+        diameter_share: {fraction: 0.68, confidence: assumed,
+                         note: "of the unit WIDTH; reads a little over two
+                                thirds in the frames, which is ordinary for a
+                                27\" cabinet with a 19\"-ish door"}
+        proud: {ft: 0.06, raw: "3/4\"", confidence: assumed,
+                note: "the glass bulges past the door face"}
+        centre_share: {fraction: 0.46, confidence: assumed,
+                       note: "of each unit's own height, measured from its
+                              bottom -- the drum sits slightly BELOW centre
+                              because the control panel takes the top"}
+      control_panel:
+        height_share: {fraction: 0.13, confidence: assumed,
+                       note: "of each unit's height, a strip across the top of
+                              the door face"}
+      form_source: >
+        Frames supplied 2026-09-10 showing a stacked front-load pair: a large
+        circular glass door on each unit and a control strip across the top of
+        each. Treated as evidence of TYPE and PROPORTION only -- see
+        `discrepancies.stacked-wd-full-size-vs-drawn-compact`, which is the
+        conflict these same frames raised.
     finish_note: >
       The two filmed units DIFFER — white at 2:11, stainless at 2:27 — so the
       appliance finish is a configurator choice, not a fact, exactly like the
@@ -2204,6 +2235,8 @@ materials:
     # basin is glazed porcelain where the kitchen's is stainless.
     # Appl_dark must precede Appl_: first match wins.
     Appl_dark: appliance_dark
+    # The drum glass reads as the same dark as the control panels.
+    Appl_drum: appliance_dark
     Appl_: steel
     # Steel fittings must precede the porcelain Fix_tub catch-all.
     Fix_tub_rod: steel
@@ -2608,6 +2641,41 @@ discrepancies:
       while correctly detecting all six on the other three walls. The pet-yard door
       seen in the video is an AS-BUILT ADDITION, not part of the free plan set.
     action: "Model the plans: solid east wall. Offer the door as a P4 configurator option if the as-built look is wanted."
+  - id: stacked-wd-full-size-vs-drawn-compact
+    severity: medium
+    plan_says: >
+      A1.1's STACK W/D box measures 2'-3-3/4" x 2'-0" — 27-3/4" wide by 24"
+      DEEP. `fixtures.laundry.items[stacked_wd].stock_check` already noted, in
+      this file, that "full-size stacks are ~27\" x 31\", so this is the
+      shallow variant". That observation sat there and was never followed up.
+    video_says: >
+      A second tour, transcript near 5:27: "behind the other bypass door is our
+      FULL-SIZE washer and dryer. One thing we do to incorporate these
+      full-size units is we design and build a 38 inch deep closet."
+    analysis: >
+      The two statements are about the same wall. A full-size front-load unit
+      is roughly 31" deep and needs clearance behind it for hose and duct,
+      which is exactly what a 38" closet buys. The plan's 24" box cannot hold
+      one; it is drawn for a shallow/compact stack.
+      THIS ALSO EXPLAINS `closet-depth`, which recorded the 38" figure from
+      "4:20 — we do a full closet, this is 38 inches deep" and treated it as a
+      loose dimension to use if needed. It is not loose: the depth exists FOR
+      the appliances. Two entries in this file were each holding half of one
+      finding.
+    resolved: true
+    action: >
+      MODEL THE PLAN — the drawn 27-3/4" x 24" box is unchanged, consistent
+      with every other plan-versus-as-built call in this file. Nothing about
+      the form work in #91 depends on the depth: the drum and the control panel
+      are fractions of the box, so they follow whichever box is right.
+      The as-built pairing — a 38" closet with a full-size stack — is a
+      candidate configurator option, and a better one than most, since it is a
+      DIMENSIONAL change a buyer would actually feel when choosing appliances.
+    what_would_settle_it: >
+      An appliance schedule, or any frame of THIS unit's closet showing the
+      units. The frames that raised this are from a different video and may
+      show a different build — the check #85 established before trusting a
+      frame, and one this entry cannot pass.
   - id: closet-depth
     severity: low
     plan_says: "closet shown but depth not called out in the strings I could resolve"
