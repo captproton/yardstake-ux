@@ -221,14 +221,24 @@ def main():
                 if typ != "bypass" and min(a[1], c + hw) - max(a[0], c - hw) > 0.02:
                     bad.append(f"{d['id']}: open leaf still blocks its opening")
             if typ == "bypass":
-                covered = sum(max(0.0, min(a[1], c + hw) - max(a[0], c - hw))
-                              for a in spans)
-                # Two leaves stacked on one half cover that half ONCE between
-                # them, so the union is half the opening -- and they overlap,
-                # which is why this measures the union and not the sum.
-                lo_e = min(max(a[0], c - hw) for a in spans)
-                hi_e = max(min(a[1], c + hw) for a in spans)
-                union = max(0.0, hi_e - lo_e)
+                # A REAL INTERVAL UNION, not the hull. The first version took
+                # the span from the lowest clamped start to the highest clamped
+                # end, which is the same number whether the leaves overlap or
+                # sit apart with a GAP between them -- so two leaves covering
+                # two disjoint strips whose outer edges happen to be half the
+                # opening apart would have passed while leaving a hole in the
+                # middle of the covered half. Merge, then sum.
+                clipped = sorted((max(a[0], c - hw), min(a[1], c + hw))
+                                 for a in spans)
+                merged = []
+                for lo_e, hi_e in clipped:
+                    if hi_e <= lo_e:
+                        continue                   # entirely outside the opening
+                    if merged and lo_e <= merged[-1][1] + 1e-9:
+                        merged[-1][1] = max(merged[-1][1], hi_e)
+                    else:
+                        merged.append([lo_e, hi_e])
+                union = sum(hi_e - lo_e for lo_e, hi_e in merged)
                 if abs(union - hw) > 0.02:
                     bad.append(f"{d['id']}: open bypass covers {union:.2f} ft "
                                f"of its {d['w']:.2f} ft opening, want {hw:.2f}")

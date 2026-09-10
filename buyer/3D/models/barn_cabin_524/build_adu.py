@@ -987,7 +987,17 @@ def build(spec, cut_openings=True):
             # and said nothing. The same defect `views.py` had with `presence`
             # and the window builder had with `type` -- a declared setting the
             # build does not honour.
-            reveal_end = dspec.get("bypass_reveals", "north")
+            # VALIDATED, NOT ASSUMED. Read free-form, any typo -- `North`,
+            # `nrth`, a missing key -- fell through the else and silently built
+            # the SOUTH reveal, which is the opposite door. A spec-driven build
+            # that guesses when the spec is wrong is how `default_state.bypass`
+            # came to be inert for eight tiers in the first place.
+            reveal_end = dspec.get("bypass_reveals")
+            if opn and typ == "bypass" and reveal_end not in ("north", "south"):
+                raise SystemExit(
+                    f"doors.bypass_reveals is {reveal_end!r}; a bypass reveals "
+                    "'north' or 'south' and nothing else. An open bypass "
+                    "cannot be built without knowing which half it clears.")
             for k, (a, b) in enumerate(spans):
                 off = (lt if k else -lt)              # bypass leaves offset in depth
                 if opn and typ == "bypass":

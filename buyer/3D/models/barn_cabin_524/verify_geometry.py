@@ -310,7 +310,15 @@ def main():
               if o.name.startswith("Door_D-CLOSET")]
     wy0, wy1 = ye - (wd["y"] + wd["d"]), ye - wd["y"]
     trouble = []
-    if len(leaves) != 2:
+    # A VALUE THIS GATE DOES NOT UNDERSTAND IS A FINDING, NOT A DEFAULT. The
+    # first version tested `== "open"` and let everything else fall into the
+    # closed branch, so `bypass: opne` would have been checked as though it
+    # said closed -- and passed. The gate would then be certifying a state
+    # nobody asked for, which is worse than not gating it at all.
+    if dstate not in ("open", "closed"):
+        trouble.append(f"default_state.bypass is {dstate!r}, not 'open' or "
+                       f"'closed' — nothing can verify a state it cannot read")
+    elif len(leaves) != 2:
         trouble.append(f"{len(leaves)} closet leaves, expected 2")
     else:
         spans = []
