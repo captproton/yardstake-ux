@@ -34,6 +34,7 @@ Phases P1–P4 are complete and gated:
 | **Gates** | `front_elevation` refuses a scene it cannot test; one finding retracted | **done** ([#87](https://github.com/captproton/yardstake-ux/pull/87)) — a misrun could look exactly like the defect [#83](https://github.com/captproton/yardstake-ux/pull/83) fixed |
 | **Openings** | Window sash built from the declared type; exterior casing on all eleven openings | **done** ([#89](https://github.com/captproton/yardstake-ux/pull/89)) — every window was one flat pane while the spec typed all ten, and every `Trim_` was on the inside of the wall |
 | **Openings** | Sash visible from indoors; a stool and apron under every window | **done** ([#90](https://github.com/captproton/yardstake-ux/pull/90)) — #89's sash was a decal on the outside face, and no window had a ledge; both found by looking, neither by a gate |
+| **Tier 3h** | The stacked W/D gets a drum and a control panel | **done** ([#91](https://github.com/captproton/yardstake-ux/pull/91)) — built since #68 and shaped like a cupboard; built from primitives, not downloaded |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -555,12 +556,22 @@ the step where twenty PRs of geometry become something a buyer can click.
 Two smaller items are worth naming because they are now more interesting than
 when they were filed:
 
-- **Mesh instancing** was an optimisation with no urgency at 113 meshes. It is
-  not any more: `lod0` sits at **117 against a cap of 120**, and two PRs in a
-  row have had to weld rather than raise it ([#84](https://github.com/captproton/yardstake-ux/pull/84),
-  [#89](https://github.com/captproton/yardstake-ux/pull/89)). Nothing is shared
-  today, so `Porch_post_1`/`_2` and the closet door pair are each paid for
-  twice. Instancing buys the headroom the next fixture will need.
+- **The mesh cap is at 118 of 120, and it is now its own issue:**
+  [#92](https://github.com/captproton/yardstake-ux/issues/92).
+  **CORRECTION — this entry previously said instancing "buys the headroom the
+  next fixture will need". IT BUYS NONE.** The gate counts OBJECTS:
+  `len([o for o in bpy.data.objects if o.type == "MESH"])`. Instancing shares
+  one mesh datablock between several objects; the datablock count falls and
+  the object count does not move. Measured: **118 objects, 118 datablocks** —
+  nothing is shared today, and sharing everything shareable would still leave
+  118 objects. The claim was written from what instancing is *for* rather than
+  from what the gate *counts*, which is rule 29's mistake in prose.
+  Instancing is still worth doing for file size and GPU memory — there are 12
+  groups of geometrically identical meshes — but **welding is the only lever
+  that moves this cap**, and its binding constraint is naming, not geometry:
+  31 objects are named exactly in a gate and 28 more are built by a gate's
+  f-string, so welding those breaks the gate. #92 has the full analysis and
+  the three genuinely safe welds.
 - **The loft casement**, now that the frames confirm it. It is the second half
   of a recorded discrepancy and exactly the kind of as-built alternative the
   picker work would want to offer — but see the warning above about what a
@@ -572,7 +583,7 @@ In order of value:
 |---|---|
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
 | **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#74](https://github.com/captproton/yardstake-ux/pull/74)). The mini-split head, meter panel, tankless heater and heat pump are all wall- or ground-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but not one of them is drawn with a height |
-| **Export:** mesh instancing | `lod0` is 113 nodes and **113 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2` and the closet door pair are each paid for twice. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
+| **Export:** mesh instancing | **For file size and GPU memory, NOT for the mesh cap — see [#92](https://github.com/captproton/yardstake-ux/issues/92).** The cap counts objects, and instancing does not change the object count. `lod0` is 118 nodes and **118 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2`, the closet door pair and all four loft windows are each paid for twice or more. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
 | **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 922.0 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
 | **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 28.4 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
@@ -885,3 +896,33 @@ Keep these — they caught real errors:
     expected, that the apron is the same 1x4 stock as the casing. Rule 24
     applies to prose: **a note that agrees with your expectation instead of
     your measurement is the one to re-read.**
+31. **A gate that keeps its own copy of where something is cannot notice the
+    thing moving.** [#91](https://github.com/captproton/yardstake-ux/pull/91)
+    found the washer's control panel with `x > 8.0` — a number true of this
+    layout and of nothing else. Move the closet and the gate quietly starts
+    reading the KITCHEN's dark panels, and still passes. It now filters by the
+    spec's own footprint through the same datum mapping the surrounding loop
+    already uses, so the filter moves when the fixture does.
+    **This is the fifth variant of one mistake in three PRs** — the gable sash
+    on the wrong datum, the stool and apron off the wall, a gate mirroring the
+    build's call sites, and now a gate carrying a hard-coded coordinate. Rule
+    29 says a gate must check placement against something the build did not
+    hand it; this says the gate must not invent that something either.
+    *And a gate must not vanish with its subject.* The same PR guarded the
+    control-panel half with `if dark is not None:`, so the moment `Appl_dark`
+    disappeared — the exact regression worth catching — the check disappeared
+    with it and the suite stayed green. **A missing subject is a failure, not a
+    skip.** Compare rule 28, where an absent subject reports ABSENT: the
+    difference is whether the subject is meant to be in this scene at all.
+32. **Reach for the primitives before the download.** Asked to model a stacked
+    washer/dryer, the offer on the table was to find a similar model or image
+    online. This model contains NO third-party content: textures are
+    procedural, geometry is spec-driven, and that property is easy to lose and
+    impossible to recover quietly. Every "this must be bought" assumption in
+    Tier 3 — the basin, the tub, the toilet, all three appliances — turned out
+    to be `box`, `tube` and `loft`. A front-load stack is a box and two tubes.
+    *When footage is the only reference, take PROPORTIONS from it and not
+    dimensions.* The frames for this one came from a different video and may
+    show a different unit, so every number is a fraction of the drawn box —
+    drum diameter 0.68 of unit width, centre 0.46 of unit height — and the box
+    still comes from the sheet. Change the box and the form follows it.
