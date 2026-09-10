@@ -148,13 +148,28 @@ def main():
          f"({(xe - xw) * (ye - ys):.2f} less {cut:.2f} crawl hole)")
 
     # And the hatch must fill that opening exactly, or the floor has a gap.
+    #
+    # SIZE WAS NOT ENOUGH, AND THE NAME SAID OTHERWISE. This checked width and
+    # depth only, so a correctly-sized hatch sitting anywhere else in the room
+    # passed under the words "fills its opening" -- rule 29's well-formed
+    # versus well-placed, in a gate written long before that rule existed.
+    # Found by auditing every gate in this repo for name-versus-predicate
+    # mismatch after #93's review found four of them.
     if hole:
         hlo, hhi = bounds("Floor_crawl_hatch")
-        gate("crawl hatch fills its opening",
-             abs((hhi[0] - hlo[0]) - hole["w"]) < 0.01
-             and abs((hhi[1] - hlo[1]) - hole["d"]) < 0.01,
-             f"{hhi[0] - hlo[0]:.3f} x {hhi[1] - hlo[1]:.3f} ft "
-             f"vs {hole['w']:.3f} x {hole['d']:.3f}")
+        hx0, hy0 = xw + hole["x"], ye - (hole["y"] + hole["d"])
+        wrong = []
+        if abs((hhi[0] - hlo[0]) - hole["w"]) > 0.01:
+            wrong.append(f"width {hhi[0] - hlo[0]:.3f} vs {hole['w']:.3f}")
+        if abs((hhi[1] - hlo[1]) - hole["d"]) > 0.01:
+            wrong.append(f"depth {hhi[1] - hlo[1]:.3f} vs {hole['d']:.3f}")
+        if abs(hlo[0] - hx0) > 0.01 or abs(hlo[1] - hy0) > 0.01:
+            wrong.append(f"corner at {hlo[0]:.3f},{hlo[1]:.3f} "
+                         f"but the opening is at {hx0:.3f},{hy0:.3f}")
+        gate("crawl hatch fills its opening", not wrong,
+             "; ".join(wrong) or
+             f"{hhi[0] - hlo[0]:.3f} x {hhi[1] - hlo[1]:.3f} ft at "
+             f"{hlo[0]:.3f},{hlo[1]:.3f}, matching the opening")
 
     # pairwise overlap
     ov = []

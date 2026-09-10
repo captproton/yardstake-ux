@@ -1223,8 +1223,8 @@ fixtures:
          stock_check: "30\" x 24\" — exactly stock, both axes",
          confidence: measured, height_confidence: assumed,
          source: "A1.1 main floor plan"}
-      - {id: fan_light, drawn: true, ceiling_mounted: true,
-         note: "Tagged FAN, LIGHT, V.T.O. Position drawn but it is a ceiling item; no footprint on the floor.",
+      - {id: fan_light, drawn: true, ceiling_mounted: true, no_footprint: true,
+         note: "Tagged FAN, LIGHT, V.T.O. Position drawn but it is a ceiling item; no footprint on the floor. `no_footprint` is DECLARED rather than inferred from a missing `x`: verify_geometry skips positionless items, and inferring the exemption from the same absence that causes the skip makes that gate unfailable. Losing an `x` by accident must look different from meaning it.",
          confidence: measured, source: "A1.1 main floor plan tag"}
   casework_detail:
     # Joinery figures shared by the kitchen run and the bath vanity.

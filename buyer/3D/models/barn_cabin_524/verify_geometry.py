@@ -219,7 +219,52 @@ def main():
                  + ("…" if len(found) > 3 else "")
                  if found else "MEASURED BUT NEVER BUILT")
 
-    gate("every measured fixture was checked", checked > 0, f"{checked} fixtures")
+    # EVERY ITEM ACCOUNTED FOR, not "at least one was". The name said EVERY
+    # while `checked > 0` said AT LEAST ONE -- so a whole group vanishing from
+    # the spec would drop the count from 10 to 9 and still pass, under a name
+    # claiming completeness. Found by auditing every gate in this repo for
+    # exactly that mismatch after #93's review found four of them.
+    #
+    # The loop skips items with no `x`, which is legitimate -- an exhaust fan
+    # has no footprint -- so the check is that skipping is DELIBERATE: each
+    # item is either checked or named here as having no position.
+    # AND "EXCUSED" MUST MEAN DECLARED, NOT MERELY ABSENT. The first version of
+    # this repair counted every item lacking `x` as legitimately positionless,
+    # which is the SAME condition the loop skips on -- so checked + excused
+    # equalled declared by construction and the predicate could never fail. A
+    # gate that over-claimed, replaced by a gate that cannot fail, is a worse
+    # trade: rule 24, in the repair for rule 29. RED-tested by stripping an `x`
+    # from the refrigerator, which the tautology version passed.
+    #
+    # The exemption is now `no_footprint: true` in the spec, so losing an `x`
+    # by accident looks different from meaning it.
+    excused, skipped = [], []
+    for g in ("kitchen", "bath", "laundry", "access"):
+        for it in fx[g].get("items", []):
+            if "x" in it:
+                continue
+            (excused if it.get("no_footprint") else skipped).append(f"{g}.{it['id']}")
+    declared = [(g, it["id"]) for g in ("kitchen", "bath", "laundry", "access")
+                for it in fx[g].get("items", [])]
+    positionless = excused
+    unaccounted = len(skipped)
+    #
+    # AND THE NAME STILL HAS TO SAY *DECLARED*. The first attempt at this fix
+    # was called "every measured fixture was checked" and it does not verify
+    # that: emptying a whole group from the spec drops `declared` and `checked`
+    # together, the accounting balances, and it passes. RED-tested exactly so.
+    # A gate reading ONE source cannot notice that source shrinking -- rule 29,
+    # met inside the repair for it. What it CAN verify is that nothing the spec
+    # declares was silently skipped by the loop, so that is what it is called.
+    # Catching a spec that lost an entry needs a second source: the built model
+    # itself, via the inverse question -- non-structural geometry no fixture
+    # claims. That is a real gate and it is not this one.
+    gate("every fixture the spec DECLARES was checked or excused",
+         unaccounted == 0,
+         f"{checked} checked + {len(positionless)} declared no_footprint "
+         f"({', '.join(positionless) or 'none'}) = {len(declared)} declared"
+         + (f" — SKIPPED WITHOUT SAYING SO: {', '.join(skipped)}"
+            if skipped else ""))
 
     missing = vents_built(spec)
     n = len(spec["foundation"]["venting"]["openings"])
