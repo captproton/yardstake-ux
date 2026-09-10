@@ -1076,15 +1076,20 @@ def build(spec, cut_openings=True):
                      (plane, plane + cd_, a1, a1 + cw, z0, z1),
                      (plane, plane + cd_, a0 - cw, a1 + cw, z1, z1 + hh)]
         if stool:
-            p0, p1 = sorted((plane, plane + into * st))
-            for lo, hi, c0, c1 in ((a0 - cw - horn, a1 + cw + horn,
-                                    z0 - stt, z0),               # the stool
-                                   (a0 - cw, a1 + cw,
-                                    z0 - stt - sap, z0 - stt)):  # the apron
-                # The apron sits back against the wall; only the stool projects.
-                q0, q1 = (p0, p1) if c1 == z0 else sorted((plane, plane + into * cd_))
-                specs.append((lo, hi, q0, q1, c0, c1) if axis == "x"
-                             else (q0, q1, lo, hi, c0, c1))
+            # `plane` IS NOT THE WALL FACE, and that is the trap. Callers pass
+            # the low end of the casing's depth band: on a wall whose room lies
+            # in +Y that IS the finished face, but on one lying in -Y it is the
+            # face minus cd_. Every member above is immune because they all
+            # span plane..plane+cd_ regardless. The stool and apron are not:
+            # they are placed RELATIVE to the face, so they need the real one.
+            face = plane if into > 0 else plane + cd_
+            p0, p1 = sorted((face, face + into * st))       # stool: projects
+            q0, q1 = plane, plane + cd_                     # apron: as the jambs
+            for lo, hi, c0, c1, (d0, d1) in (
+                    (a0 - cw - horn, a1 + cw + horn, z0 - stt, z0, (p0, p1)),
+                    (a0 - cw, a1 + cw, z0 - stt - sap, z0 - stt, (q0, q1))):
+                specs.append((lo, hi, d0, d1, c0, c1) if axis == "x"
+                             else (d0, d1, lo, hi, c0, c1))
         multibox(name, specs, finish)
 
     def ext_casing(axis, plane, out, a0, a1, z0, z1, sill=True):
