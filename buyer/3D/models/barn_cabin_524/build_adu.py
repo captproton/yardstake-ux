@@ -980,8 +980,28 @@ def build(spec, cut_openings=True):
             wx = ix(pdef["at_ft"]) - ti / 2
             spans = ([(c - hw, c), (c, c + hw)] if typ == "bypass"
                      else [(c - hw, c + hw)])
+            # THIS BRANCH USED TO IGNORE `opn` ENTIRELY. `default_state.bypass`
+            # has been in the spec since Tier 1, and the closet wall runs
+            # north-south, so the one door the setting exists for went down the
+            # branch that never read it: setting it to `open` changed nothing
+            # and said nothing. The same defect `views.py` had with `presence`
+            # and the window builder had with `type` -- a declared setting the
+            # build does not honour.
+            reveal_end = dspec.get("bypass_reveals", "north")
             for k, (a, b) in enumerate(spans):
                 off = (lt if k else -lt)              # bypass leaves offset in depth
+                if opn and typ == "bypass":
+                    # A bypass reveals HALF its opening: one leaf slides its own
+                    # width behind the other. WHICH leaf is a real choice, not a
+                    # detail -- the interesting half of a closet is not always
+                    # the same end, so it is declared rather than hard-coded.
+                    # k=0 is the span nearer c - hw, which iy() maps to the
+                    # NORTH leaf, so revealing the north end moves k=0 south.
+                    lw = b - a
+                    moves = (k == 0) if reveal_end == "north" else (k == 1)
+                    if moves:
+                        a, b = ((a + lw, b + lw) if reveal_end == "north"
+                                else (a - lw, b - lw))
                 leaf(f"Door_{d['id']}_{k}", wx - lt / 2 + off, wx + lt / 2 + off,
                      iy(b), iy(a), 0, d["h"])
 

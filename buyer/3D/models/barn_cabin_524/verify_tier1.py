@@ -190,18 +190,48 @@ def main():
         total = sum(max(o.dimensions.x, o.dimensions.y) for o in leaves)
         if abs(total - d["w"]) > 0.02:
             bad.append(f"{d['id']}: leaves total {total:.2f} vs {d['w']:.2f} ft")
-        # an OPEN pocket leaf must sit clear of its own opening
+        # An OPEN leaf must clear its opening -- but "clear" means something
+        # different for the two mechanisms, and this test only ever described
+        # one of them. Its own comment said POCKET, while it ran against any
+        # door whose state was open.
+        #
+        # A POCKET leaf retracts into the wall and leaves the opening empty.
+        # A BYPASS leaf CANNOT: it slides behind its partner and stays inside
+        # the opening, because a bypass reveals half and never more. Applying
+        # the pocket rule to a bypass is a predicate no correct bypass can
+        # satisfy -- it failed the moment `default_state.bypass` was honoured
+        # for the first time in #93.
+        #
+        # So the bypass gets the invariant that IS true of it: HALF the
+        # opening clear, no more and no less. That is not a relaxation --
+        # "leaves cover half" is stronger than "leaves are somewhere", and it
+        # catches both a bypass that never moved and one slid clean out of its
+        # own opening.
         if dh.get(typ) == "open":
             pdef = pd[d["in"]]
             c, hw = d["centre_ft"], d["w"] / 2.0
+            spans = []
             for o in leaves:
                 lo, hi = bounds(o.name)
                 if pdef["axis"] == "x":
                     a = (lo[0] - t), (hi[0] - t)
                 else:
                     a = ((NY - t) - hi[1]), ((NY - t) - lo[1])
-                if min(a[1], c + hw) - max(a[0], c - hw) > 0.02:
+                spans.append(a)
+                if typ != "bypass" and min(a[1], c + hw) - max(a[0], c - hw) > 0.02:
                     bad.append(f"{d['id']}: open leaf still blocks its opening")
+            if typ == "bypass":
+                covered = sum(max(0.0, min(a[1], c + hw) - max(a[0], c - hw))
+                              for a in spans)
+                # Two leaves stacked on one half cover that half ONCE between
+                # them, so the union is half the opening -- and they overlap,
+                # which is why this measures the union and not the sum.
+                lo_e = min(max(a[0], c - hw) for a in spans)
+                hi_e = max(min(a[1], c + hw) for a in spans)
+                union = max(0.0, hi_e - lo_e)
+                if abs(union - hw) > 0.02:
+                    bad.append(f"{d['id']}: open bypass covers {union:.2f} ft "
+                               f"of its {d['w']:.2f} ft opening, want {hw:.2f}")
     gate("door leaves match their callouts and open leaves are clear",
          not bad, "; ".join(bad) or f"{len(lay['doors'])} doors, "
          f"{len([o for o in bpy.data.objects if o.name.startswith('Door_')])} leaves")

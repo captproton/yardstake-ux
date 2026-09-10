@@ -298,6 +298,51 @@ def main():
          "a drum and a control panel on each unit" if not bad
          else "; ".join(bad))
 
+    # ---- the closet ships open, on the half the laundry is behind ---------
+    # THE FAILURE MODE IS A DOOR IN FRONT OF THE APPLIANCES. `default_state`
+    # declares this and build_adu ignored it for eight tiers -- the flag was
+    # only honoured on walls running east-west, and the closet wall runs
+    # north-south, so the one door the setting exists for never moved.
+    # Gated in BOTH directions: a leaf covering the laundry is the state this
+    # replaced, and both leaves on one half is what "open" has to mean.
+    dstate = spec["doors"]["default_state"].get("bypass")
+    leaves = [o for o in bpy.data.objects
+              if o.name.startswith("Door_D-CLOSET")]
+    wy0, wy1 = ye - (wd["y"] + wd["d"]), ye - wd["y"]
+    trouble = []
+    if len(leaves) != 2:
+        trouble.append(f"{len(leaves)} closet leaves, expected 2")
+    else:
+        spans = []
+        for o in leaves:
+            vs = [o.matrix_world @ v.co for v in o.data.vertices]
+            spans.append((min(v.y for v in vs), max(v.y for v in vs)))
+        blocking = [o.name for o, (a, b) in zip(leaves, spans)
+                    if a < wy1 - 0.01 and b > wy0 + 0.01]
+        if dstate == "open":
+            if blocking:
+                trouble.append(f"{', '.join(blocking)} still covers the laundry")
+            # Both leaves on the same half is what an open bypass looks like;
+            # leaves still side by side would mean the slide did nothing.
+            if abs(spans[0][0] - spans[1][0]) > 0.01:
+                trouble.append(f"leaves not stacked: {spans[0]} vs {spans[1]}")
+        elif dstate == "closed" and not blocking:
+            trouble.append("bypass is declared closed but nothing covers the "
+                           "laundry — the flag is being ignored again")
+    # THE MESSAGE MUST DESCRIBE WHAT WAS VERIFIED, not one of the two states.
+    # A fixed success string read "the washer/dryer is exposed" while the gate
+    # was correctly verifying the CLOSED case, where a leaf covers it -- the
+    # message-vs-predicate drift #79 recorded, caught here by running the gate
+    # against both settings rather than only the one being shipped.
+    if trouble:
+        detail = "; ".join(trouble)
+    elif dstate == "open":
+        detail = "both leaves stacked south; the washer/dryer is exposed"
+    else:
+        detail = "leaves side by side; the laundry is behind one of them"
+    gate(f"the closet bypass honours default_state ({dstate})", not trouble,
+         detail)
+
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
     print("=" * 96)

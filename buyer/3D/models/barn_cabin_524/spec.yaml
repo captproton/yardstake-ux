@@ -755,7 +755,26 @@ doors:
     swing: closed
     pocket: open        # retracted into the wall; clear sightlines in the dollhouse
     double_pocket: open
-    bypass: closed
+    bypass: open        # see bypass_reveals — the laundry is the point of the closet
+  bypass_reveals: north
+  bypass_note: >
+    WHICH HALF A BYPASS OPENS IS A CHOICE, not a detail, so it is declared here
+    rather than falling out of leaf order. A bypass door can only ever expose
+    half its opening: one leaf slides its own width behind the other.
+
+    `north` puts the moving leaf at the SOUTH end and clears the north half,
+    which is where the stacked washer/dryer stands. With it closed the laundry
+    is invisible, and the closet reads as a blank pair of doors — the model
+    ships open because the appliances are the thing worth seeing, and because
+    the hanging rod behind the other half is the less interesting half.
+
+    The last 6" of the appliance sits north of the door opening, behind solid
+    wall, so `north` reveals everything of it that any door position could.
+
+    THIS SETTING WAS INERT UNTIL #93. `default_state.bypass` has been in this
+    file since Tier 1 and build_adu only honoured the open flag on walls
+    running EAST-WEST; the closet wall runs north-south, so the one door the
+    setting exists for went down the branch that ignored it.
   note: >
     Every leaf is built regardless of default state, so the configurator can show
     doors either way later. Pocket leaves are placed inside the wall cavity at
