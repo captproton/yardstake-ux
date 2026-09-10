@@ -33,6 +33,7 @@ Phases P1–P4 are complete and gated:
 | **Gates** | UV gate says which meshes may skip UVs, and why | **done** ([#86](https://github.com/captproton/yardstake-ux/pull/86)) — the obvious fix would have silently dropped 74 meshes out of the gate |
 | **Gates** | `front_elevation` refuses a scene it cannot test; one finding retracted | **done** ([#87](https://github.com/captproton/yardstake-ux/pull/87)) — a misrun could look exactly like the defect [#83](https://github.com/captproton/yardstake-ux/pull/83) fixed |
 | **Openings** | Window sash built from the declared type; exterior casing on all eleven openings | **done** ([#89](https://github.com/captproton/yardstake-ux/pull/89)) — every window was one flat pane while the spec typed all ten, and every `Trim_` was on the inside of the wall |
+| **Openings** | Sash visible from indoors; a stool and apron under every window | **done** ([#90](https://github.com/captproton/yardstake-ux/pull/90)) — #89's sash was a decal on the outside face, and no window had a ledge; both found by looking, neither by a gate |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -497,6 +498,31 @@ and deliberately left out of it:
   PRs. [#84](https://github.com/captproton/yardstake-ux/pull/84) kept a
   doorknob inside it by welding rather than raising it, so #89 welded too:
   one `Trim_ext` run, and the number in the gate did not move.
+- **The rear gable has NO window, and that is now checked rather than assumed.**
+  Asked directly whether the model was missing one, the REAR ELEVATION was read
+  off the sheet: plain lap siding to the ridge, no opening. The only window on
+  that face is the main-floor egress slider, which is built. This plan
+  previously asserted it inside the ridge-beam note, on no stated evidence.
+- **The gable window: the sheet contradicts itself.** A1.1's LOFT plan labels
+  it `2'0" X 3'0" FXD` — fixed, so no meeting rail — while A1.1's FRONT
+  ELEVATION draws that same window WITH a rail, and the tour frame shows it
+  built with one. Two of three sources say divided, so the model follows the
+  elevation and the as-built. Filed as
+  `discrepancies.gable-window-fixed-on-the-plan-operable-on-the-elevation`,
+  because `spec.openings` carries `raw: 2'-0" x 3'-0" S.H.` sourced to the
+  elevation with nothing saying the plan disagrees. **Turned up by asking about
+  the rear gable** — the question that had nothing to do with it.
+- **The loft egress casement is confirmed on screen, not only in the
+  narration.** `discrepancies.loft-egress-window` rested on the 6:26 audio.
+  Loft frames now show the unit as a single tall light with no mullion and no
+  rail, with crank hardware on the stool — an outswing casement. They also show
+  what the audio did not: **the two dormer walls do not match.** One carries a
+  band of two divided units, consistent with the plan's paired X/O sliders; the
+  other carries the single casement. The swap was made on one side, for egress,
+  where the plan draws four identical units.
+  A casement is NOT a slider with the mullion removed — it swings, so an open
+  state needs a hinge axis and a sash that leaves the opening plane. That is
+  why `spec.windows.types` has no `casement` entry rather than a half-built one.
 - **The drawn front door and the built one disagree.** A1.1 gives six lites in
   two columns by three rows over one square panel; the tour shows three columns
   by two rows over two tall panels, in mustard yellow. Same building — the 0:13
@@ -518,6 +544,27 @@ classifying this session's twenty-five defects put only three in the
 duplication bucket — neither refactor would have prevented what actually bit
 us, and doing them now means a large no-behaviour-change diff across every
 verify file. Revisit when a third caller needs one of them.
+
+**Next, and it is not close.** Every opening item is now shipped, so the
+largest remaining piece of work is also the only one a homeowner would ever
+see: **wire the pickers.** `variants.json` already carries both kinds — 8
+material `sets` and 3 `presence` sets — with a working `applyChoice()` and
+`applyLayout()` written out in TIER-2. Nothing in the model blocks it. It is
+the step where twenty PRs of geometry become something a buyer can click.
+
+Two smaller items are worth naming because they are now more interesting than
+when they were filed:
+
+- **Mesh instancing** was an optimisation with no urgency at 113 meshes. It is
+  not any more: `lod0` sits at **117 against a cap of 120**, and two PRs in a
+  row have had to weld rather than raise it ([#84](https://github.com/captproton/yardstake-ux/pull/84),
+  [#89](https://github.com/captproton/yardstake-ux/pull/89)). Nothing is shared
+  today, so `Porch_post_1`/`_2` and the closet door pair are each paid for
+  twice. Instancing buys the headroom the next fixture will need.
+- **The loft casement**, now that the frames confirm it. It is the second half
+  of a recorded discrepancy and exactly the kind of as-built alternative the
+  picker work would want to offer — but see the warning above about what a
+  casement actually requires.
 
 In order of value:
 
@@ -804,6 +851,24 @@ Keep these — they caught real errors:
     mullion sampled at mid-height, which is where a meeting rail crosses it —
     a degenerate point for a surface test and, worse, a point a rail ALONE
     could satisfy. Sample a member where it is the only explanation.
+    *Rule 29 then held for a third and fourth time, in
+    [#90](https://github.com/captproton/yardstake-ux/pull/90).* The sash was
+    built entirely OUTBOARD of the glazing plane, so the divisions read from
+    the garden and the same window was one flat pane from the sofa — glass is
+    drawn before whatever sits behind it. Every gate in #89 passed it, because
+    all of them ask what the members ARE and none asked which SIDE of the glass
+    they are on. Then the stool and apron landed a casing-depth off the wall on
+    every wall whose room lies in the negative direction, and the stool gate
+    passed that too, because it asked only whether anything sat below the sill.
+    **Four placement defects in two PRs, every one of them through a
+    composition gate.** In this codebase, if a gate checks what a thing is,
+    assume nothing checks where it is.
+    *A shared helper is where orientation bugs hide.* The root cause of the
+    stool defect was that `plane` means the wall FACE on a +Y room and the face
+    minus `cd_` on a −Y room. Every member that spans `plane .. plane + cd_`
+    is immune whatever the orientation; only the two placed RELATIVE to the
+    face broke. When a helper serves both orientations, the parameter that
+    looks symmetric is the one to check.
 30. **When a fixture and the thing it tests are the same shape, counting
     proves nothing.** A `single_hung` is four frame members plus a meeting
     rail. A `slider_XO` is four plus a mullion. **Both are five boxes and
