@@ -305,6 +305,7 @@ def main():
     # north-south, so the one door the setting exists for never moved.
     # Gated in BOTH directions: a leaf covering the laundry is the state this
     # replaced, and both leaves on one half is what "open" has to mean.
+    lay = spec["interior_partitions"]["layout"]
     dstate = spec["doors"]["default_state"].get("bypass")
     leaves = [o for o in bpy.data.objects
               if o.name.startswith("Door_D-CLOSET")]
@@ -321,33 +322,68 @@ def main():
     elif len(leaves) != 2:
         trouble.append(f"{len(leaves)} closet leaves, expected 2")
     else:
+        # AGAINST THE DECLARED HALF, not against "somewhere plausible". The
+        # first version compared the two leaves' lower bounds to each other and
+        # checked nothing covered the laundry. Both are necessary and neither
+        # is sufficient: a stack shifted into an INTERIOR three-foot interval
+        # has equal starts, misses the laundry, and covers half the opening --
+        # so it passed here AND passed verify_tier1's union, while sitting in
+        # neither half of the door. The expected half is now derived from
+        # `bypass_reveals` and the D-CLOSET callout, which is a fact the build
+        # does not hand this gate.
+        dcl = next(d for d in lay["doors"] if d["id"] == "D-CLOSET")
+        c, hw = dcl["centre_ft"], dcl["w"] / 2.0
+        south = (ye - (c + hw), ye - c)          # lower y
+        north = (ye - c, ye - (c - hw))          # upper y
+        reveals = spec["doors"].get("bypass_reveals")
+        # Revealing the north half means the leaves stack on the south one.
+        want = south if reveals == "north" else north
+        want_name = "south" if reveals == "north" else "north"
+
         spans = []
         for o in leaves:
             vs = [o.matrix_world @ v.co for v in o.data.vertices]
             spans.append((min(v.y for v in vs), max(v.y for v in vs)))
         blocking = [o.name for o, (a, b) in zip(leaves, spans)
                     if a < wy1 - 0.01 and b > wy0 + 0.01]
+
         if dstate == "open":
-            if blocking:
-                trouble.append(f"{', '.join(blocking)} still covers the laundry")
-            # Both leaves on the same half is what an open bypass looks like;
-            # leaves still side by side would mean the slide did nothing.
-            if abs(spans[0][0] - spans[1][0]) > 0.01:
-                trouble.append(f"leaves not stacked: {spans[0]} vs {spans[1]}")
-        elif dstate == "closed" and not blocking:
-            trouble.append("bypass is declared closed but nothing covers the "
-                           "laundry — the flag is being ignored again")
-    # THE MESSAGE MUST DESCRIBE WHAT WAS VERIFIED, not one of the two states.
-    # A fixed success string read "the washer/dryer is exposed" while the gate
-    # was correctly verifying the CLOSED case, where a leaf covers it -- the
-    # message-vs-predicate drift #79 recorded, caught here by running the gate
-    # against both settings rather than only the one being shipped.
+            if reveals not in ("north", "south"):
+                trouble.append(f"bypass_reveals is {reveals!r}; cannot say "
+                               "which half should be covered")
+            else:
+                for o, s in zip(leaves, spans):
+                    if abs(s[0] - want[0]) > 0.02 or abs(s[1] - want[1]) > 0.02:
+                        trouble.append(
+                            f"{o.name} spans {s[0]:.2f}..{s[1]:.2f}, not the "
+                            f"{want_name} half {want[0]:.2f}..{want[1]:.2f}")
+                if blocking:
+                    trouble.append(f"{', '.join(blocking)} covers the laundry")
+        elif dstate == "closed":
+            # CLOSED IS BOTH HALVES, not "something is in front of the
+            # laundry". A pair stacked ON the laundry half satisfied that and
+            # was reported as closed AND as side by side, which is two wrong
+            # answers from one weak test.
+            lo = min(s[0] for s in spans)
+            hi = max(s[1] for s in spans)
+            if abs(lo - south[0]) > 0.02 or abs(hi - north[1]) > 0.02:
+                trouble.append(f"closed leaves span {lo:.2f}..{hi:.2f}, not the "
+                               f"whole opening {south[0]:.2f}..{north[1]:.2f}")
+            elif abs(max(s[0] for s in spans) - min(s[1] for s in spans)) > 0.02:
+                trouble.append("closed leaves are not adjacent halves: "
+                               f"{spans[0]} and {spans[1]}")
+    # THE MESSAGE MUST DESCRIBE WHAT WAS VERIFIED. A fixed string read "the
+    # washer/dryer is exposed" while the gate correctly verified the CLOSED
+    # case; the replacement then hard-coded "stacked south", which is wrong
+    # whenever `bypass_reveals` is south. Both are #79's message-vs-predicate
+    # drift, and the second one was introduced while fixing the first.
     if trouble:
         detail = "; ".join(trouble)
     elif dstate == "open":
-        detail = "both leaves stacked south; the washer/dryer is exposed"
+        detail = (f"both leaves on the {want_name} half; the "
+                  f"{reveals} half is clear and the washer/dryer is exposed")
     else:
-        detail = "leaves side by side; the laundry is behind one of them"
+        detail = "leaves cover both halves; the laundry is behind one of them"
     gate(f"the closet bypass honours default_state ({dstate})", not trouble,
          detail)
 

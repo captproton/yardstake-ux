@@ -242,9 +242,15 @@ def main():
                 if abs(union - hw) > 0.02:
                     bad.append(f"{d['id']}: open bypass covers {union:.2f} ft "
                                f"of its {d['w']:.2f} ft opening, want {hw:.2f}")
-    gate("door leaves match their callouts and open leaves are clear",
+    # THE NAME CLAIMED THE OPPOSITE OF WHAT IT VERIFIES. "open leaves are
+    # clear" is false for a bypass on EVERY passing run -- one half is
+    # intentionally covered, which is the whole invariant. The name survived
+    # the predicate being rewritten under it, which is how a green run comes
+    # to assert something nobody checked.
+    gate("door leaves match their callouts and open ones clear what they should",
          not bad, "; ".join(bad) or f"{len(lay['doors'])} doors, "
-         f"{len([o for o in bpy.data.objects if o.name.startswith('Door_')])} leaves")
+         f"{len([o for o in bpy.data.objects if o.name.startswith('Door_')])} "
+         f"leaves; pockets retract, a bypass covers half")
 
     # ---- 7. reveals tagged for the trim material ---------------------------
     # A door with sill 0 has no sill reveal, so it contributes 3 faces, not 4.
