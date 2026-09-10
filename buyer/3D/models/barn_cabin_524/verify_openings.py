@@ -32,6 +32,7 @@ from mathutils import Vector
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from build_adu import load_spec, ft  # noqa: E402
+from verify_lib import inside_mesh  # noqa: E402
 
 TOL = 0.02
 
@@ -154,10 +155,261 @@ def main():
     print("-" * 86)
     print("Volume is the strong test: it confirms the holes exist AND are the")
     print("right size. Corner test confirms they are in the right place.")
+
+    ok &= sash_gates(spec)
+
     print("=" * 86)
     print("RESULT:", "ALL PASS" if ok else "FAILURES PRESENT")
     if not ok:
         raise SystemExit(1)
+
+
+def sash_gates(spec):
+    """Every window carries the divisions its declared TYPE implies.
+
+    WRITTEN AGAINST THE FAILURE MODE (ground rule 24). The failure is a window
+    that went back to being one flat pane, or one built as the wrong type --
+    and the obvious gate, counting vertices, CANNOT SEE IT. A single_hung is
+    four frame members plus a rail; a slider_XO is four plus a mullion. Both
+    are five boxes and forty vertices. Counting passes on a slider built as a
+    single-hung and on a single-hung built as a slider.
+
+    So it samples POSITION. At the centre of every member the type implies the
+    point must be inside sash solid, and at the centre of every light it must
+    NOT be -- the second half being what fails when a window quietly becomes
+    the wrong type, since a missing rail leaves the light where the rail was.
+    """
+    ws = spec["windows"]
+    mr_r = ws["meeting_rail"]["ratio"]
+    print()
+    ok = True
+    rows = []
+    for name, o, axis, a0, a1, z0, z1, host_name in sash_targets(spec):
+        obj = bpy.data.objects.get(name)
+        if obj is None:
+            rows.append((name, o["type"], "MISSING", ""))
+            ok = False
+            continue
+        # A TYPE THE SPEC DOES NOT DEFINE IS A FINDING, NOT A CRASH. Indexing
+        # straight into types[] would raise a KeyError out of the whole run,
+        # so the suite would abort without naming the window that caused it --
+        # a traceback where a readable gate failure belongs. build_adu already
+        # refuses this case with a clear message; the gate should report it.
+        typ = ws["types"].get(o["type"])
+        if typ is None:
+            rows.append((name, o["type"], "FAIL",
+                         f"no such type in spec.windows.types "
+                         f"(have {sorted(ws['types'])})"))
+            ok = False
+            continue
+        units, rail = typ["units"], typ["meeting_rail"]
+        zc = z0 + (z1 - z0) * mr_r
+        step = (a1 - a0) / units
+
+        want_solid, want_air = [], []
+        for i in range(1, units):
+            # SAMPLE THE MULLION CLEAR OF THE RAIL, at quarter and
+            # three-quarter height. Mid-height is where a meeting rail crosses
+            # it, so a sample there is inside three boxes at once -- a
+            # degenerate point for a surface test, and worse, a point a rail
+            # alone could satisfy. Two samples in different sashes can only be
+            # explained by a full-height member.
+            for f in (0.25, 0.75):
+                want_solid.append((a0 + i * step, z0 + (z1 - z0) * f))
+        for i in range(units):                           # per-unit light centres
+            b = a0 + (i + 0.5) * step
+            if rail:
+                want_solid.append((b, zc))
+                want_air += [(b, (z0 + zc) / 2), (b, (zc + z1) / 2)]
+            else:
+                want_air.append((b, (z0 + z1) / 2))
+
+        bad = []
+        for b, z in want_solid:
+            if not solid_at(obj, axis, b, z):
+                bad.append(f"no solid at ({b:.2f},{z:.2f})")
+        for b, z in want_air:
+            if solid_at(obj, axis, b, z):
+                bad.append(f"solid where a light belongs ({b:.2f},{z:.2f})")
+        # IS THE SASH EVEN IN ITS OWN WALL? The composition checks above are
+        # blind to this: they sample at the object's OWN mid-depth, so a sash
+        # built on the wrong datum is internally perfect and six feet from its
+        # glass. That shipped -- the gable sash was placed on the wall plane
+        # when its gable is a prism at y 0..t -- and every member gate passed.
+        # A gate that only asks "is this well-formed" cannot ask "is this in
+        # the right place", so the depth is checked against the host solid.
+        host = bpy.data.objects.get(host_name)
+        if host is None:
+            bad.append(f"host {host_name} missing")
+        else:
+            i = 1 if axis == "x" else 0        # the depth axis of this wall
+            sv = [obj.matrix_world @ v.co for v in obj.data.vertices]
+            hv = [host.matrix_world @ v.co for v in host.data.vertices]
+            s0, s1 = min(v[i] for v in sv), max(v[i] for v in sv)
+            h0, h1 = min(v[i] for v in hv), max(v[i] for v in hv)
+            if s1 < h0 - 0.1 or s0 > h1 + 0.1:
+                bad.append(f"sits at {s0:.2f}..{s1:.2f} but {host_name} "
+                           f"spans {h0:.2f}..{h1:.2f}")
+
+        rows.append((name, o["type"],
+                     "PASS" if not bad else "FAIL",
+                     f"{len(want_solid)} members, {len(want_air)} lights, "
+                     f"in {host_name}"
+                     if not bad else "; ".join(bad[:2])))
+        ok &= not bad
+
+    w = max(len(r[0]) for r in rows)
+    for name, typ, verdict, detail in rows:
+        print(f"  [{verdict:4}] {name.ljust(w)}  {typ:20s} {detail}")
+    print("A slider and a single-hung are both five boxes: this samples the")
+    print("members' POSITIONS, because counting cannot tell them apart.")
+    return ok and casing_gates(spec)
+
+
+def casing_gates(spec):
+    """Exterior casing exists, and is on the side of the wall you can see.
+
+    THE FAILURE MODE IS BEING ON THE WRONG FACE, not being absent. Every
+    `Trim_` in this model was interior casing for the whole ladder --
+    Trim_D-FRONT at y 6.458..6.518 on a wall whose exterior face is 6.000 --
+    and #80's own table ticked exterior casing as done, pointing at exactly
+    that object. Nothing caught it because nothing asked which side.
+
+    So the gate is a signed comparison against the exterior face, and it would
+    have failed on day one. Presence is checked too, but presence is the weak
+    half: a casing on the wrong face is present.
+    """
+    print()
+    obj = bpy.data.objects.get("Trim_ext")
+    if obj is None:
+        print("  [FAIL] Trim_ext missing — no exterior casing at all")
+        return False
+
+    cw = spec["trim"]["casing_width"]["ft"]
+    rows, ok = [], True
+    for oid, host, face, out, sill, a0, a1, z0, z1 in casing_targets(spec):
+        # SAMPLED PER OPENING, not read off a bounding box. The casing is one
+        # welded mesh now, so a bbox says only where the whole run is -- it
+        # cannot tell that ONE window lost its casing, nor that one is on the
+        # wrong face. Two samples per jamb do both: outboard must be solid,
+        # and the mirror point inboard of the wall must be air.
+        i = 0 if out[0] else 1
+        sgn = out[i]
+        depth = 0.03
+        bad = []
+        for a in (a0 - cw / 2, a1 + cw / 2):          # both jambs
+            zc = (z0 + z1) / 2
+            p_out = [0.0, 0.0, zc]
+            p_in = [0.0, 0.0, zc]
+            j = 1 - i
+            p_out[j] = p_in[j] = a
+            p_out[i] = face + sgn * depth
+            p_in[i] = face - sgn * depth
+            if not inside_mesh(obj, Vector(p_out)):
+                bad.append(f"no casing outboard at {a:.2f}")
+            elif inside_mesh(obj, Vector(p_in)):
+                bad.append(f"casing INBOARD of the face at {a:.2f}")
+        rows.append((f"Trim_ext/{oid}", "PASS" if not bad else "FAIL",
+                     "; ".join(bad) or
+                     f"both jambs outboard of {face:.2f} on {host}"
+                     f"{'' if sill else ' (no sill: a door)'}"))
+        ok &= not bad
+
+    w = max(len(r[0]) for r in rows)
+    for name, verdict, detail in rows:
+        print(f"  [{verdict:4}] {name.ljust(w)}  {detail}")
+    print("Presence is the weak half: casing on the WRONG FACE is present.")
+    return ok
+
+
+def casing_targets(spec):
+    """(id, host, exterior face, outward vector, has a sill, a0, a1, z0, z1)."""
+    env = spec["envelope"]
+    NY = env["porch_depth"]["ft"] + env["main_body_depth"]["ft"]
+    SY = env["porch_depth"]["ft"]
+    W = env["main_body_width"]["ft"]
+    op = spec["openings"]["main_floor"]
+    con = spec["construction"]
+    loft_sf = spec["levels"]["loft_top_of_subfloor"]["ft"]
+    dsill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
+
+    def yn(v):
+        return NY - v
+
+    out = []
+    for o in op["north_wall"]["openings"]:
+        out.append((o["id"], "Wall_N", NY, (0, +1), True,
+                    o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"]))
+    for o in op["south_wall"]["openings"]:
+        out.append((o["id"], "Wall_S", SY, (0, -1),
+                    not o["type"].endswith("door"),
+                    o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"]))
+    for o in op["west_wall"]["openings"]:
+        out.append((o["id"], "Wall_W", 0.0, (-1, 0), True,
+                    yn(o["offset"] + o["w"]), yn(o["offset"]),
+                    o["sill"], o["sill"] + o["h"]))
+    for o in spec["openings"]["loft"]["windows"]:
+        for side, face, vec, host in (("W", 0.0, (-1, 0), "Dormer_face_W"),
+                                      ("E", W, (+1, 0), "Dormer_face_E")):
+            out.append((f"{o['id']}_{side}", host, face, vec, True,
+                        yn(o["offset"] + o["w"]), yn(o["offset"]),
+                        dsill, dsill + o["h"]))
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        out.append((o["id"], "Gable_S_porch", 0.0, (0, -1), True,
+                    o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"]))
+    return out
+
+
+def sash_targets(spec):
+    """(object, opening, axis, a0, a1, z0, z1, host) for every window, as built.
+
+    Mirrors build_adu's own call sites rather than re-deriving them, so a
+    window that moves cannot leave the gate testing empty air.
+    """
+    env, con = spec["envelope"], spec["construction"]
+    NY = env["porch_depth"]["ft"] + env["main_body_depth"]["ft"]
+    op = spec["openings"]["main_floor"]
+    loft_sf = spec["levels"]["loft_top_of_subfloor"]["ft"]
+    dsill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
+
+    def yn(v):
+        return NY - v
+
+    out = []
+    for o in op["north_wall"]["openings"] + op["south_wall"]["openings"]:
+        if o["type"].endswith("door"):
+            continue
+        out.append((f"Win_{o['id']}", o, "x", o["offset"], o["offset"] + o["w"],
+                    o["sill"], o["sill"] + o["h"],
+                    "Wall_N" if o in op["north_wall"]["openings"] else "Wall_S"))
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        out.append((f"Win_{o['id']}", o, "x", o["offset"], o["offset"] + o["w"],
+                    o["sill"], o["sill"] + o["h"], "Gable_S_porch"))
+    for o in op["west_wall"]["openings"]:
+        out.append((f"Win_{o['id']}", o, "y", yn(o["offset"] + o["w"]),
+                    yn(o["offset"]), o["sill"], o["sill"] + o["h"], "Wall_W"))
+    for o in spec["openings"]["loft"]["windows"]:
+        for side in ("W", "E"):
+            out.append((f"Win_{o['id']}_{side}", o, "y",
+                        yn(o["offset"] + o["w"]), yn(o["offset"]),
+                        dsill, dsill + o["h"], f"Dormer_face_{side}"))
+    return out
+
+
+def solid_at(obj, axis, b, z):
+    """Is (b, z) in the opening plane inside this sash object?
+
+    The sash is a thin plate, so the sample is taken at its own mid-depth
+    rather than at a wall plane -- a point on the face is neither in nor out.
+    """
+    vs = [obj.matrix_world @ v.co for v in obj.data.vertices]
+    if axis == "x":
+        mid = (min(v.y for v in vs) + max(v.y for v in vs)) / 2
+        p = Vector((b, mid, z))
+    else:
+        mid = (min(v.x for v in vs) + max(v.x for v in vs)) / 2
+        p = Vector((mid, b, z))
+    return inside_mesh(obj, p)
 
 
 if __name__ == "__main__":
