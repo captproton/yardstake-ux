@@ -959,7 +959,19 @@ def build(spec, cut_openings=True):
         typ = "bypass" if d["id"].endswith("CLOSET") else (
             "double_pocket" if "DBL" in d["id"] else "pocket")
         c, hw = d["centre_ft"], d["w"] / 2.0
-        opn = state.get(typ, "closed") == "open"
+        # VALIDATE THE STATE BEFORE DERIVING FROM IT. `== "open"` quietly turns
+        # every value that is not exactly "open" into CLOSED, so `bypass: opne`
+        # BUILT the closed layout and shipped it -- a verifier reporting it
+        # afterwards is too late, because the .blend and the .glb are already
+        # wrong. Validating `bypass_reveals` while leaving this line to guess
+        # fixed the smaller half of one problem.
+        declared = state.get(typ, "closed")
+        if declared not in ("open", "closed"):
+            raise SystemExit(
+                f"doors.default_state.{typ} is {declared!r}; expected 'open' "
+                "or 'closed'. A door state that cannot be read must not be "
+                "guessed at -- the build would ship a state nobody asked for.")
+        opn = declared == "open"
         if pdef["axis"] == "x":                       # wall runs east-west
             wy = iy(pdef["at_ft"]) + ti / 2
             spans = ([(c - hw, c), (c, c + hw)] if typ == "double_pocket"

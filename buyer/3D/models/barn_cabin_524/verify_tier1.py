@@ -254,7 +254,18 @@ def main():
                     else:
                         merged.append([lo_e, hi_e])
                 union = sum(hi_e - lo_e for lo_e, hi_e in merged)
-                if abs(union - hw) > 0.02:
+                # ONE CONTIGUOUS RUN, not merely the right total. Switching the
+                # hull for a real union fixed the case where two SMALL leaves
+                # sum to less than a half, and left the case where two leaves
+                # of exactly hw/2 sit at opposite ends of the opening: the
+                # union is hw, the middle is bare, and the pair is stacked on
+                # no half at all. Length was never the invariant -- a covered
+                # HALF is -- and a half is contiguous by definition.
+                if len(merged) != 1:
+                    bad.append(f"{d['id']}: open bypass covers {len(merged)} "
+                               f"separate strips {[[round(v, 2) for v in m] for m in merged]}, "
+                               "not one contiguous half")
+                elif abs(union - hw) > 0.02:
                     bad.append(f"{d['id']}: open bypass covers {union:.2f} ft "
                                f"of its {d['w']:.2f} ft opening, want {hw:.2f}")
     # THE NAME CLAIMED THE OPPOSITE OF WHAT IT VERIFIES. "open leaves are

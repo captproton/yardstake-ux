@@ -409,14 +409,18 @@ def main():
             # laundry". A pair stacked ON the laundry half satisfied that and
             # was reported as closed AND as side by side, which is two wrong
             # answers from one weak test.
-            lo = min(s[0] for s in spans)
-            hi = max(s[1] for s in spans)
-            if abs(lo - south[0]) > 0.02 or abs(hi - north[1]) > 0.02:
-                trouble.append(f"closed leaves span {lo:.2f}..{hi:.2f}, not the "
-                               f"whole opening {south[0]:.2f}..{north[1]:.2f}")
-            elif abs(max(s[0] for s in spans) - min(s[1] for s in spans)) > 0.02:
-                trouble.append("closed leaves are not adjacent halves: "
-                               f"{spans[0]} and {spans[1]}")
+            # EACH LEAF AGAINST ITS OWN HALF. Testing the combined hull plus
+            # "the spans touch" let UNEQUAL leaves pass -- a 4.5 ft leaf beside
+            # a 1.5 ft one spans the whole 6 ft opening and touches in the
+            # middle, while the builder makes two half-width leaves. The hull
+            # is a property of the pair; the invariant is a property of each.
+            got = sorted(spans)
+            for want_half, name, s in ((south, "south", got[0]),
+                                       (north, "north", got[1])):
+                if abs(s[0] - want_half[0]) > 0.02 or abs(s[1] - want_half[1]) > 0.02:
+                    trouble.append(
+                        f"closed leaf spans {s[0]:.2f}..{s[1]:.2f}, not the "
+                        f"{name} half {want_half[0]:.2f}..{want_half[1]:.2f}")
     # THE MESSAGE MUST DESCRIBE WHAT WAS VERIFIED. A fixed string read "the
     # washer/dryer is exposed" while the gate correctly verified the CLOSED
     # case; the replacement then hard-coded "stacked south", which is wrong
