@@ -319,6 +319,113 @@ def casing_gates(spec):
     for name, verdict, detail in rows:
         print(f"  [{verdict:4}] {name.ljust(w)}  {detail}")
     print("Presence is the weak half: casing on the WRONG FACE is present.")
+    return ok and both_sides_gates(spec) and stool_gates(spec)
+
+
+def both_sides_gates(spec):
+    """A sash must be visible from INSIDE as well as out.
+
+    THE FAILURE MODE IS A SASH THAT ONLY EXISTS ON ONE FACE, and it shipped:
+    the members sat entirely outboard of the glazing plane, so the divisions
+    read from the garden while the same window was one flat pane from the
+    sofa -- glass is drawn before whatever is behind it. Every other sash gate
+    passed, because they ask what the members ARE and not which side of the
+    glass they are on.
+
+    The test is that the member depth STRADDLES the host's own mid-depth,
+    which is where the glazing sits. Taken from the host MESH rather than
+    recomputed from the build's expression -- ground rule 29: a gate that
+    redoes the build's arithmetic proves only that Python is deterministic.
+    """
+    print()
+    rows, ok = [], True
+    for name, o, axis, a0, a1, z0, z1, host_name in sash_targets(spec):
+        obj = bpy.data.objects.get(name)
+        host = bpy.data.objects.get(host_name)
+        if obj is None or host is None:
+            rows.append((name, "FAIL", "missing object or host"))
+            ok = False
+            continue
+        i = 1 if axis == "x" else 0
+        sv = [obj.matrix_world @ v.co for v in obj.data.vertices]
+        hv = [host.matrix_world @ v.co for v in host.data.vertices]
+        s0, s1 = min(v[i] for v in sv), max(v[i] for v in sv)
+        mid = (min(v[i] for v in hv) + max(v[i] for v in hv)) / 2
+        straddles = s0 < mid < s1
+        rows.append((name, "PASS" if straddles else "FAIL",
+                     f"{s0:.3f} .. {s1:.3f} about {host_name} mid {mid:.3f}"
+                     + ("" if straddles else "  — ONE FACE ONLY")))
+        ok &= straddles
+
+    w = max(len(r[0]) for r in rows)
+    for name, verdict, detail in rows:
+        print(f"  [{verdict:4}] {name.ljust(w)}  {detail}")
+    print("A sash that reaches only outboard is invisible from indoors.")
+    return ok
+
+
+def stool_gates(spec):
+    """Every window has a ledge; every door does not.
+
+    Interior casing was two jambs and a head band for the whole ladder, so
+    from inside the trim stopped dead at the sill and the wall carried on --
+    a hole, not a window. Both halves are gated because they are different
+    mistakes: a missing stool is an omission, and a stool on a DOOR is a board
+    across a doorway.
+    """
+    print()
+    rows, ok = [], True
+    for oid, host, face, out, wants_stool, a0, a1, z0, z1 in casing_targets(spec):
+        # The loft windows carry a side suffix on their interior casing.
+        obj = bpy.data.objects.get(f"Trim_{oid}")
+        if obj is None:
+            rows.append((f"Trim_{oid}", "FAIL", "no interior casing at all"))
+            ok = False
+            continue
+        vs = [obj.matrix_world @ v.co for v in obj.data.vertices]
+        zs = [v.z for v in vs]
+        below = z0 - min(zs)
+        has = below > 0.01
+        good = has == wants_stool
+        detail = (f"ledge {below * 12:.1f} in below the sill" if has
+                  else "no ledge")
+        if not good:
+            detail += ("  — A DOOR HAS NO LEDGE" if has else
+                       "  — MISSING: a window without a stool is a hole")
+
+        # PRESENCE IS NOT PLACEMENT. The first version of this gate asked only
+        # whether anything sat below the sill, and passed an apron floating
+        # 0.06 off the wall and a stool that never reached the finished face --
+        # on every wall whose room lies in the NEGATIVE direction, which is
+        # half of them. Rule 29 again: well-formed is not the same as
+        # well-placed. Both checks below are RELATIVE, so neither needs to know
+        # which way the room lies or to recompute the build's arithmetic.
+        if good and has:
+            i = 1 if out[1] else 0
+            band = lambda s: (min(v[i] for v in s), max(v[i] for v in s))
+            jamb = band([v for v in vs if v.z > z0 + 0.01])
+            stool = band([v for v in vs if z0 - 0.07 < v.z < z0 - 0.001])
+            apron = band([v for v in vs if v.z < z0 - 0.08])
+            # A stool sits ON the casing's depth band and reaches past it into
+            # the room, so the two must OVERLAP with real width -- touching at
+            # a single coordinate is exactly the broken case.
+            lap = min(jamb[1], stool[1]) - max(jamb[0], stool[0])
+            if lap < 0.01:
+                detail += (f"  — STOOL DETACHED: {stool} against casing {jamb}")
+                good = False
+            # An apron is flat against the wall, in the casing's own band.
+            elif max(abs(apron[0] - jamb[0]), abs(apron[1] - jamb[1])) > 0.005:
+                detail += (f"  — APRON OFF THE WALL: {apron} against "
+                           f"casing {jamb}")
+                good = False
+
+        rows.append((f"Trim_{oid}", "PASS" if good else "FAIL", detail))
+        ok &= good
+
+    w = max(len(r[0]) for r in rows)
+    for name, verdict, detail in rows:
+        print(f"  [{verdict:4}] {name.ljust(w)}  {detail}")
+    print("A window with no stool reads as a hole in a wall.")
     return ok
 
 

@@ -509,6 +509,42 @@ trim:
     source: "Measured: a horizontal band at z 7.00-7.38 ft, sitting on the 7'-0\" head"
     confidence: measured
   baseboard_height: {ft: 0.292, raw: "3 1/2\"", confidence: assumed, note: "not drawn on any sheet"}
+  # INTERIOR stool and apron -- the LEDGE. Until #90 the interior casing was
+  # two jambs and a head band, stopping dead at the sill, so from inside every
+  # window read as a hole in a wall. The tour frames show a stool under each
+  # one with an apron beneath it.
+  #
+  # NONE OF THESE THREE CAN COME OFF A SHEET, and that is permanent rather than
+  # a gap to fill later: the plan set contains NO INTERIOR ELEVATIONS, which
+  # spec.fixtures already records as the reason every fixture height here is an
+  # industry standard rather than a measurement. An exterior elevation cannot
+  # show an interior ledge. So these are stock joinery sizes, labelled.
+  interior_stool_projection:
+    ft: 0.073
+    raw: "7/8\""
+    confidence: assumed
+    note: >
+      How far the stool stands out past the finished wall. Stock 1x stool
+      nosing. The tour frames show a ledge deep enough to hold a small plant,
+      which is consistent, but a video frame cannot resolve an inch at that
+      distance and is not being treated as if it could.
+    what_would_settle_it: "Any interior elevation or a section at a window."
+  interior_stool_thickness:
+    ft: 0.063
+    raw: "3/4\""
+    confidence: assumed
+    note: "Nominal 1x stock, the same section the casing is cut from."
+  interior_apron_height:
+    ft: 0.292
+    raw: "3 1/2\""
+    confidence: assumed
+    note: >
+      The board below the stool. Set equal to `casing_width`, because an apron
+      is conventionally the same stock as the casing it sits under -- and
+      unlike the EXTERIOR apron, where the sheet measured 3.60"/3.60"/3.84"
+      and so was NOT snapped to the casing, nothing here measures anything.
+      Matching the casing is a convention, not a finding.
+
   # EXTERIOR casing, added in #88. Until then every Trim_ in this model was
   # INTERIOR casing and nothing else -- checked, not assumed: Trim_D-FRONT sat
   # at y 6.458..6.518 on a wall whose exterior face is 6.000, so the casing
@@ -2430,6 +2466,52 @@ discrepancies:
       number to 24": record it and leave the sheet alone, the same treatment the
       loft egress finding got.
     severity_note: "Cosmetic. It cannot fail a clearance check — the aisle is measured to the cabinet front, which is exact."
+  - id: gable-window-fixed-on-the-plan-operable-on-the-elevation
+    severity: medium
+    surfaced_by: >
+      Asked whether the model was missing a window on the REAR gable. It is
+      not — the rear elevation draws plain lap siding to the ridge with no
+      opening, and the only rear window is the main-floor egress slider. But
+      reading the sheet to answer that turned this up instead.
+    plan_says: >
+      A1.1 LOFT - OPTION B labels the gable opening `4 X 10 DF #2 HDR` over
+      `2'0" X 3'0" FXD`. FXD is FIXED: no operable sash, and therefore no
+      meeting rail.
+    elevation_says: >
+      A1.1 FRONT ELEVATION - OPTION B draws the same window WITH a meeting rail
+      across the middle — two lights, upper and lower. Read at 6x magnification
+      when the conflict surfaced, and measured independently by
+      tools/tier3/front_elev.py at 50.0% of the opening height, agreeing with
+      the rail on both living-room windows to within a third of a percent.
+    video_says: >
+      The gable frame supplied with this finding shows the built window with a
+      meeting rail, upper and lower sash — matching the elevation, not the
+      plan callout.
+    analysis: >
+      THE SHEET CONTRADICTS ITSELF, which is why this is not the usual
+      "model the plans". Two of the three sources — the elevation and the built
+      house — agree that the window is divided; only the loft plan's schedule
+      text says FIXED. A fixed window of that size is also unremarkable in a
+      gable, so neither reading is implausible on its face.
+      Note what does NOT resolve it: the 50% rail measurement comes FROM the
+      elevation, so it corroborates that drawing rather than adjudicating
+      between the two.
+    resolved: true
+    action: >
+      FOLLOW THE ELEVATION AND THE AS-BUILT: `W-GABLE-S` stays typed
+      `single_hung` and keeps its meeting rail, which is what #90 built. The
+      model therefore deliberately does NOT follow the FXD callout, and that is
+      recorded here rather than left as a silent choice — `spec.openings`
+      carries `raw: 2'-0" x 3'-0" S.H.` with a source pointing at the
+      elevation, and nothing in it says the plan disagrees.
+    what_would_settle_it: >
+      A window schedule on any sheet, or the A1.0 Option A loft plan carrying
+      the same callout. Neither has been read for this.
+    cost_if_wrong: >
+      One meeting rail on one window. If the FXD callout is authoritative, the
+      fix is to add a `fixed` entry to `spec.windows.types` with
+      `meeting_rail: false, units: 1` and retype the opening — the dispatch
+      already exists and would refuse an unknown type rather than fall back.
   - id: loft-egress-window
     severity: high
     plan_says: "4'-0\" x 2'-0\" X/O slider, two per dormer (A1.1 loft plan + left elevation)"
@@ -2444,7 +2526,35 @@ discrepancies:
       ~9 sf gross and, at full 90-degree swing, meets 5.7 sf net. The built unit
       therefore departs from the published loft window schedule. The A1.1 loft plan
       even carries the "(18\" MIN-44\")" sill note next to that string.
-    action: "Model the plan (4'-0\" x 2'-0\" X/O). Note the as-built alternative in P4 material/config notes."
+    video_shows: >
+      CONFIRMED ON SCREEN, not only in the narration. Loft frames near 6:28 show
+      the egress unit as a SINGLE TALL LIGHT with no vertical mullion and no
+      meeting rail, and crank hardware sitting on the stool below it — an
+      outswing casement, which is what "cranks outward" means and what the
+      audio at 6:26 claimed. The previous record rested on the narration alone;
+      the geometry is now visible.
+    asymmetry: >
+      The two dormer walls DO NOT MATCH in the built unit. One carries a
+      horizontal band of two units, each with a vertical division — consistent
+      with the plan's paired X/O sliders. The opposite wall carries the single
+      casement. So the swap was made on ONE side, for egress, and not on both.
+      The plan draws four identical 4'-0" x 2'-0" X/O.
+      Stated as what the frames show rather than as a count: two viewpoints of
+      the same room, turned about 180 degrees, are the evidence.
+    action: >
+      Model the plan (4'-0" x 2'-0" X/O), unchanged — the resolution this file
+      reaches everywhere the sheet and the build disagree. The as-built casement
+      is a candidate `variants.presence` option alongside the front-door face.
+      NOTE FOR THAT WORK: a casement is not a slider with the mullion removed.
+      It swings, so an open state needs a hinge axis and a sash that leaves the
+      opening plane — which is why `spec.windows.types` has no `casement` entry
+      rather than a half-built one.
+    side_effect_on_windows_spec: >
+      The banded wall corroborates `windows.types.slider_XO`, which is marked
+      `confidence: assumed` because no slider appears on the front elevation:
+      the frames show a vertical division in each banded unit, which is the
+      mullion that entry infers from the X/O callout. Corroboration, not a
+      measurement — a video frame cannot set a dimension.
   - id: front-door-face-differs-from-the-built-unit
     severity: medium
     plan_says: >
