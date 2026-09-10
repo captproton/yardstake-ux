@@ -965,7 +965,16 @@ def build(spec, cut_openings=True):
         # afterwards is too late, because the .blend and the .glb are already
         # wrong. Validating `bypass_reveals` while leaving this line to guess
         # fixed the smaller half of one problem.
-        declared = state.get(typ, "closed")
+        # NO DEFAULT. `state.get(typ, "closed")` silently supplied a state for
+        # a key nobody wrote, which is the same guess as reading a typo as
+        # closed -- and it left the builder ACCEPTING a spec its own verifier
+        # rejects, because the gate reads the key without a default. Two
+        # readers of one setting disagreeing about what "missing" means is how
+        # a spec becomes unverifiable while still building.
+        #
+        # Every door type this file builds is declared in spec.doors, so
+        # requiring the key costs nothing and removes the disagreement.
+        declared = state.get(typ)
         if declared not in ("open", "closed"):
             raise SystemExit(
                 f"doors.default_state.{typ} is {declared!r}; expected 'open' "

@@ -351,6 +351,8 @@ def main():
     # Gated in BOTH directions: a leaf covering the laundry is the state this
     # replaced, and both leaves on one half is what "open" has to mean.
     lay = spec["interior_partitions"]["layout"]
+    # No default here either -- the builder now REQUIRES the key, so a gate
+    # supplying one would be the same disagreement in the other direction.
     dstate = spec["doors"]["default_state"].get("bypass")
     leaves = [o for o in bpy.data.objects
               if o.name.startswith("Door_D-CLOSET")]
@@ -421,6 +423,17 @@ def main():
                     trouble.append(
                         f"closed leaf spans {s[0]:.2f}..{s[1]:.2f}, not the "
                         f"{name} half {want_half[0]:.2f}..{want_half[1]:.2f}")
+            # AND THE CLAIM ABOUT THE LAUNDRY MUST BE CHECKED, NOT ASSERTED.
+            # `blocking` was computed here and never read, while the success
+            # line said "the laundry is behind one of them". If the fixture
+            # ever moves outside the opening the two-half check still passes
+            # and this gate goes on making that claim -- a message asserting a
+            # relationship nothing verified, which is the class this PR has
+            # been chasing for four review passes.
+            if not blocking:
+                trouble.append("closed leaves cover both halves but NOTHING "
+                               "covers the laundry — the fixture is not behind "
+                               "this door at all")
     # THE MESSAGE MUST DESCRIBE WHAT WAS VERIFIED. A fixed string read "the
     # washer/dryer is exposed" while the gate correctly verified the CLOSED
     # case; the replacement then hard-coded "stacked south", which is wrong

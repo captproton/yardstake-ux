@@ -265,9 +265,34 @@ def main():
                     bad.append(f"{d['id']}: open bypass covers {len(merged)} "
                                f"separate strips {[[round(v, 2) for v in m] for m in merged]}, "
                                "not one contiguous half")
-                elif abs(union - hw) > 0.02:
-                    bad.append(f"{d['id']}: open bypass covers {union:.2f} ft "
-                               f"of its {d['w']:.2f} ft opening, want {hw:.2f}")
+                else:
+                    # AND IT MUST BE ONE OF THE TWO HALVES, not any contiguous
+                    # run of the right length. Two leaves overlapping on an
+                    # interior interval -- say (c-hw+1, c+1) -- are contiguous
+                    # and exactly hw long, and neither end of the opening is
+                    # covered or revealed. Length and contiguity are both
+                    # properties a half HAS; being a half is the property that
+                    # matters, and it is cheap to state directly.
+                    #
+                    # Fourth attempt at this predicate: hull, total length,
+                    # contiguity, and now identity. Each earlier one was the
+                    # nearest stronger measurement rather than the thing meant.
+                    lo_m, hi_m = merged[0]
+                    halves = ((c - hw, c), (c, c + hw))
+                    if not any(abs(lo_m - a) < 0.02 and abs(hi_m - b) < 0.02
+                               for a, b in halves):
+                        bad.append(
+                            f"{d['id']}: open bypass covers "
+                            f"{lo_m:.2f}..{hi_m:.2f}, which is neither the "
+                            f"low half {halves[0][0]:.2f}..{halves[0][1]:.2f} "
+                            f"nor the high half "
+                            f"{halves[1][0]:.2f}..{halves[1][1]:.2f}")
+                    # A leaf hanging outside its own opening is not on a track.
+                    outside = [f"{a:.2f}..{b:.2f}" for a, b in spans
+                               if a < c - hw - 0.02 or b > c + hw + 0.02]
+                    if outside:
+                        bad.append(f"{d['id']}: leaf reaches outside the "
+                                   f"opening: {', '.join(outside)}")
     # THE NAME CLAIMED THE OPPOSITE OF WHAT IT VERIFIES. "open leaves are
     # clear" is false for a bypass on EVERY passing run -- one half is
     # intentionally covered, which is the whole invariant. The name survived
