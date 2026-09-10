@@ -32,6 +32,7 @@ Phases P1–P4 are complete and gated:
 | **Front elevation** | Gable window, half-lite entry door, projecting ridge beam | **done** ([#83](https://github.com/captproton/yardstake-ux/pull/83)) — the sheet's third calibration attempt, and a door that had glazing all along |
 | **Gates** | UV gate says which meshes may skip UVs, and why | **done** ([#86](https://github.com/captproton/yardstake-ux/pull/86)) — the obvious fix would have silently dropped 74 meshes out of the gate |
 | **Gates** | `front_elevation` refuses a scene it cannot test; one finding retracted | **done** ([#87](https://github.com/captproton/yardstake-ux/pull/87)) — a misrun could look exactly like the defect [#83](https://github.com/captproton/yardstake-ux/pull/83) fixed |
+| **Openings** | Window sash built from the declared type; exterior casing on all eleven openings | **done** ([#89](https://github.com/captproton/yardstake-ux/pull/89)) — every window was one flat pane while the spec typed all ten, and every `Trim_` was on the inside of the wall |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -471,15 +472,31 @@ and deliberately left out of it:
   some, but not the door's, is a real finding and falls through. Both proved by
   lesion — deleting only the door's lites still FAILS, deleting all glazing
   reports ABSENT.
-- **Exterior casing is modelled on no window at all, and on no door either.**
-  A1.1 draws head casing, side casing and a sill with apron around the gable
-  window, around the others, and around `D-FRONT`. `Trim_` today is INTERIOR
-  casing only — checked, not assumed: `Trim_D-FRONT` sits at y 6.458..6.518,
-  on the far side of a wall whose exterior face is 6.000.
-  [#80](https://github.com/captproton/yardstake-ux/issues/80)'s own table ticked
-  this as done, and that tick is now corrected in a comment there. Adding it to
-  one opening while the other six have none would look worse than none at all,
-  so it belongs to a pass that does every opening at once.
+- ~~**Exterior casing is modelled on no window at all, and on no door
+  either.**~~ Shipped in
+  [#89](https://github.com/captproton/yardstake-ux/pull/89), together with the
+  sash divisions every window's `type` had declared and nothing built. Both
+  halves of [#88](https://github.com/captproton/yardstake-ux/issues/88).
+  **The measurement corrected the issue that raised it.** #88 predicted the
+  sash split would need `confidence: assumed`, from a tour photo that read
+  "nearer 60/40 than an even split" by eye. A1.1 draws the rail, and the
+  reader that calibrated the sheet resolves it at **50.3%, 50.2% and 50.0%**
+  on windows 36", 60" and 36" tall. Three heights agreeing to a third of a
+  percent is the evidence; the eyeball was wrong and the sheet is not vague.
+  The mullion measurement then **confirmed the declared types from a sheet
+  that did not set them** — `W-LIVING-S1` shows a vertical on its centreline,
+  both single-hungs show none — which also reconciles the photo: the left
+  window reads two-wide-by-two-high because it is two single-hung units each
+  split 50/50, not one unit with an off-centre rail.
+  Casing came off the same sheet, and one number could not: a sill's
+  PROJECTION points at the viewer, so an elevation foreshortens it to nothing.
+  It is `confidence: assumed` at 1 1/2" with `what_would_settle_it` naming the
+  section drawing that would fix it.
+  **The mesh cap held.** Eleven casing objects took `lod0` from 116 to 126
+  against a cap of 120 — set in this model's first commit, unmoved for twelve
+  PRs. [#84](https://github.com/captproton/yardstake-ux/pull/84) kept a
+  doorknob inside it by welding rather than raising it, so #89 welded too:
+  one `Trim_ext` run, and the number in the gate did not move.
 - **The drawn front door and the built one disagree.** A1.1 gives six lites in
   two columns by three rows over one square panel; the tour shows three columns
   by two rows over two tall panels, in mustard yellow. Same building — the 0:13
@@ -764,3 +781,42 @@ Keep these — they caught real errors:
     glazing anywhere**, never for the one object it is about to gate on;
     aborting on the latter would have deleted the gate that catches a door with
     no glass.
+29. **A gate derived from the build's own expression cannot disagree with the
+    build.** [#89](https://github.com/captproton/yardstake-ux/pull/89) placed
+    the gable window's sash on the WALL datum when its gable is a prism at
+    y 0..t — six feet from its own glass, floating inside the porch — and
+    **every sash gate passed it.** Two reasons, and both generalise. The
+    composition checks sampled at the object's OWN mid-depth, so a sash on the
+    wrong datum is internally perfect: correct jambs, correct rail, correct
+    lights. And `sash_targets()` mirrored `build_adu`'s call sites for
+    tidiness, so it inherited the identical wrong plane. A gate that asks only
+    *is this well-formed* can never answer *is this in the right place*, and a
+    gate that recomputes the build's arithmetic tests only that Python is
+    deterministic. **Check placement against something the build did not hand
+    you** — here the HOST solid the opening is cut into, which #89's gate now
+    reports on every pass line rather than only on failure. `verify_openings`
+    already knew this: its own header says the volume test earns its keep
+    because "these three levels are re-derived here rather than imported".
+    *And the same PR shows the cheap half of the lesson.* Two further defects
+    were mine and both were caught within minutes: a DOOR given a window sill,
+    running to z -0.47 buried in the porch slab, because casing was shared
+    between doors and windows and what sits UNDER an opening is not; and a
+    mullion sampled at mid-height, which is where a meeting rail crosses it —
+    a degenerate point for a surface test and, worse, a point a rail ALONE
+    could satisfy. Sample a member where it is the only explanation.
+30. **When a fixture and the thing it tests are the same shape, counting
+    proves nothing.** A `single_hung` is four frame members plus a meeting
+    rail. A `slider_XO` is four plus a mullion. **Both are five boxes and
+    forty vertices**, so a vertex-count gate passes on either built as the
+    other — the exact confusion this work could produce. #89's gate samples
+    the POSITION of every member the type implies, and the centre of every
+    light, requiring solid and air respectively; its `swap_type` lesion fails
+    in BOTH directions, which is what proves the two types are distinguishable
+    at all. Before counting anything, ask what else has that count.
+    *A note can be written against the expected state too.* The same PR
+    recorded that the apron is "narrower than the 3 1/2" casing", two lines
+    below the measurements 3.60", 3.60" and 3.84" — all WIDER. The sentence
+    survived because it was reasoning toward the conclusion its author
+    expected, that the apron is the same 1x4 stock as the casing. Rule 24
+    applies to prose: **a note that agrees with your expectation instead of
+    your measurement is the one to re-read.**
