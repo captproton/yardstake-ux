@@ -509,6 +509,42 @@ trim:
     source: "Measured: a horizontal band at z 7.00-7.38 ft, sitting on the 7'-0\" head"
     confidence: measured
   baseboard_height: {ft: 0.292, raw: "3 1/2\"", confidence: assumed, note: "not drawn on any sheet"}
+  # INTERIOR stool and apron -- the LEDGE. Until #90 the interior casing was
+  # two jambs and a head band, stopping dead at the sill, so from inside every
+  # window read as a hole in a wall. The tour frames show a stool under each
+  # one with an apron beneath it.
+  #
+  # NONE OF THESE THREE CAN COME OFF A SHEET, and that is permanent rather than
+  # a gap to fill later: the plan set contains NO INTERIOR ELEVATIONS, which
+  # spec.fixtures already records as the reason every fixture height here is an
+  # industry standard rather than a measurement. An exterior elevation cannot
+  # show an interior ledge. So these are stock joinery sizes, labelled.
+  interior_stool_projection:
+    ft: 0.073
+    raw: "7/8\""
+    confidence: assumed
+    note: >
+      How far the stool stands out past the finished wall. Stock 1x stool
+      nosing. The tour frames show a ledge deep enough to hold a small plant,
+      which is consistent, but a video frame cannot resolve an inch at that
+      distance and is not being treated as if it could.
+    what_would_settle_it: "Any interior elevation or a section at a window."
+  interior_stool_thickness:
+    ft: 0.063
+    raw: "3/4\""
+    confidence: assumed
+    note: "Nominal 1x stock, the same section the casing is cut from."
+  interior_apron_height:
+    ft: 0.292
+    raw: "3 1/2\""
+    confidence: assumed
+    note: >
+      The board below the stool. Set equal to `casing_width`, because an apron
+      is conventionally the same stock as the casing it sits under -- and
+      unlike the EXTERIOR apron, where the sheet measured 3.60"/3.60"/3.84"
+      and so was NOT snapped to the casing, nothing here measures anything.
+      Matching the casing is a convention, not a finding.
+
   # EXTERIOR casing, added in #88. Until then every Trim_ in this model was
   # INTERIOR casing and nothing else -- checked, not assumed: Trim_D-FRONT sat
   # at y 6.458..6.518 on a wall whose exterior face is 6.000, so the casing

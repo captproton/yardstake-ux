@@ -1049,8 +1049,24 @@ def build(spec, cut_openings=True):
     bh = tr["baseboard_height"]["ft"]
     cd_ = 0.06                                   # casing proud of the wall face
 
-    def casing(name, axis, plane, a0, a1, z0, z1):
-        """Frame on the interior face of an opening. axis 'x' spans X, 'y' spans Y."""
+    def casing(name, axis, plane, a0, a1, z0, z1, stool=False, into=+1):
+        """Frame on the interior face of an opening. axis 'x' spans X, 'y' spans Y.
+
+        `stool` adds the LEDGE. Every window in this model had jambs and a head
+        band and nothing underneath -- so from inside, the casing stopped dead
+        at the sill and the wall carried on. The tour frames show a stool under
+        every window with an apron beneath it, and a window without one reads as
+        a hole in a wall rather than as a window.
+
+        `into` is the direction the room lies in along the wall's depth axis,
+        because a stool PROJECTS into the room and a head casing does not --
+        which is why the stool needs a sign the other three members never did.
+        """
+        st = tr["interior_stool_projection"]["ft"]
+        stt = tr["interior_stool_thickness"]["ft"]
+        sap = tr["interior_apron_height"]["ft"]
+        # The stool runs past the casing on both sides, as drawn horns do.
+        horn = cw * 0.5
         if axis == "x":
             specs = [(a0 - cw, a0, plane, plane + cd_, z0, z1),
                      (a1, a1 + cw, plane, plane + cd_, z0, z1),
@@ -1059,6 +1075,16 @@ def build(spec, cut_openings=True):
             specs = [(plane, plane + cd_, a0 - cw, a0, z0, z1),
                      (plane, plane + cd_, a1, a1 + cw, z0, z1),
                      (plane, plane + cd_, a0 - cw, a1 + cw, z1, z1 + hh)]
+        if stool:
+            p0, p1 = sorted((plane, plane + into * st))
+            for lo, hi, c0, c1 in ((a0 - cw - horn, a1 + cw + horn,
+                                    z0 - stt, z0),               # the stool
+                                   (a0 - cw, a1 + cw,
+                                    z0 - stt - sap, z0 - stt)):  # the apron
+                # The apron sits back against the wall; only the stool projects.
+                q0, q1 = (p0, p1) if c1 == z0 else sorted((plane, plane + into * cd_))
+                specs.append((lo, hi, q0, q1, c0, c1) if axis == "x"
+                             else (q0, q1, lo, hi, c0, c1))
         multibox(name, specs, finish)
 
     def ext_casing(axis, plane, out, a0, a1, z0, z1, sill=True):
@@ -1115,7 +1141,13 @@ def build(spec, cut_openings=True):
     mr_t = ws["meeting_rail"]["thickness"]["ft"]
     mr_r = ws["meeting_rail"]["ratio"]
     mull = ws["mullion"]["ft"]
-    sd_ = 0.05                                  # sash proud of the glass plane
+    # A SASH IS SEEN FROM BOTH SIDES. The first version was a 0.05 plate sitting
+    # OUTBOARD of the glass, so the divisions read from the garden and the same
+    # window was one flat pane from the sofa -- glass is drawn before the thing
+    # behind it, so the members were hidden by the pane they divide. A real sash
+    # holds the glass; it does not sit in front of it. So the members now
+    # STRADDLE the glazing plane, standing proud on both faces.
+    sd_ = 0.05                                  # sash proud of the glass, EACH face
 
     def sash(name, o, axis, plane, a0, a1, z0, z1):
         """The frame, meeting rail and mullion a window's TYPE implies.
@@ -1143,9 +1175,16 @@ def build(spec, cut_openings=True):
                 "the opening.")
 
         def member(b0, b1, c0, c1):
-            """One rectangle in the opening plane, spanning the wall axis."""
-            return ((b0, b1, plane, plane + sd_, c0, c1) if axis == "x"
-                    else (plane, plane + sd_, b0, b1, c0, c1))
+            """One rectangle STRADDLING the glazing plane, spanning the wall axis.
+
+            `plane` is the glass's own centre, and the member reaches sd_ to
+            either side of it. That is the whole difference between a sash and
+            a decal: reaching only outboard, as the first version did, leaves
+            the members hidden behind the pane when seen from indoors.
+            """
+            d0, d1 = plane - sd_, plane + sd_
+            return ((b0, b1, d0, d1, c0, c1) if axis == "x"
+                    else (d0, d1, b0, b1, c0, c1))
 
         parts = [
             member(a0, a0 + f2g, z0, z1),                  # left jamb
@@ -1175,21 +1214,34 @@ def build(spec, cut_openings=True):
 
         multibox(name, parts, finish)
 
+    # `into` points at the ROOM along each wall's depth axis, because a stool
+    # projects inward and the other three members do not.
     op = spec["openings"]["main_floor"]
     for o in op["north_wall"]["openings"]:
         casing(f"Trim_{o['id']}", "x", ye - cd_, o["offset"], o["offset"] + o["w"],
-               o["sill"], o["sill"] + o["h"])
+               o["sill"], o["sill"] + o["h"], stool=True, into=-1)
     for o in op["south_wall"]["openings"]:
+        # A DOOR HAS A THRESHOLD, NOT A LEDGE -- the same distinction the
+        # exterior casing already draws, and for the same reason: casing is
+        # shared between doors and windows, what sits under them is not.
         casing(f"Trim_{o['id']}", "x", ys, o["offset"], o["offset"] + o["w"],
-               o["sill"], o["sill"] + o["h"])
+               o["sill"], o["sill"] + o["h"],
+               stool=not o["type"].endswith("door"), into=+1)
     for o in op["west_wall"]["openings"]:
         casing(f"Trim_{o['id']}", "y", xw, yn(o["offset"] + o["w"]), yn(o["offset"]),
-               o["sill"], o["sill"] + o["h"])
+               o["sill"], o["sill"] + o["h"], stool=True, into=+1)
     dsill = loft_sf + con["dormer_window_sill_above_loft_floor"]["ft"]
     for o in spec["openings"]["loft"]["windows"]:
-        for side, pl in (("W", xw), ("E", xe - cd_)):
+        for side, pl, ito in (("W", xw, +1), ("E", xe - cd_, -1)):
             casing(f"Trim_{o['id']}_{side}", "y", pl,
-                   yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"])
+                   yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"],
+                   stool=True, into=ito)
+    # The gable window had NO interior casing at all -- #88 reported it as
+    # having no trim on either face, and #89 gave it only the exterior half.
+    # Its gable is the prism at y 0..t, so the room is at increasing y.
+    for o in spec["openings"]["loft"]["south_gable"]["windows"]:
+        casing(f"Trim_{o['id']}", "x", t, o["offset"], o["offset"] + o["w"],
+               o["sill"], o["sill"] + o["h"], stool=True, into=+1)
 
     # EXTERIOR casing, on every opening at once. Doing one and stopping looks
     # worse than doing none -- a single cased window reads as an error rather
@@ -1230,14 +1282,14 @@ def build(spec, cut_openings=True):
     for o in op["south_wall"]["openings"]:
         if o["type"].endswith("door"):
             continue
-        sash(f"Win_{o['id']}", o, "x", SY + t / 2 - sd_,
+        sash(f"Win_{o['id']}", o, "x", SY + t / 2,
              o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"])
     for o in op["west_wall"]["openings"]:
-        sash(f"Win_{o['id']}", o, "y", t / 2 - sd_,
+        sash(f"Win_{o['id']}", o, "y", t / 2,
              yn(o["offset"] + o["w"]), yn(o["offset"]),
              o["sill"], o["sill"] + o["h"])
     for o in spec["openings"]["loft"]["windows"]:
-        for side, pl in (("W", t / 2 - sd_), ("E", W - t / 2)):
+        for side, pl in (("W", t / 2), ("E", W - t / 2)):
             sash(f"Win_{o['id']}_{side}", o, "y", pl,
                  yn(o["offset"] + o["w"]), yn(o["offset"]), dsill, dsill + o["h"])
     # THE GABLE IS A PRISM AT y 0..t, NOT THE WALL AT y SY..SY+t. The first
@@ -1247,7 +1299,7 @@ def build(spec, cut_openings=True):
     # same wrong plane. finish_adu.add_glazing already carried the warning in
     # a comment: "its pane is placed from the gable's own depth".
     for o in spec["openings"]["loft"]["south_gable"]["windows"]:
-        sash(f"Win_{o['id']}", o, "x", t / 2 - sd_,
+        sash(f"Win_{o['id']}", o, "x", t / 2,
              o["offset"], o["offset"] + o["w"], o["sill"], o["sill"] + o["h"])
 
     # baseboard: one welded mesh around the main interior perimeter
