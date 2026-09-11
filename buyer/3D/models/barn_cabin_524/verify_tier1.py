@@ -415,7 +415,11 @@ def main():
     # rung's centre to the loft floor when the face you stand on is 11/16"
     # higher. Both are now measured the way the builder measures them.
     rung_v = verts("Ladder_rungs")
-    rt_ = la["rung_section"]["ft"]
+    # THICKNESS, not a single square section. The rungs are 1" x 3 1/2" boards
+    # -- 3 1/2" of tread, 1" thick -- so the dimension that decides where the
+    # top face lands and what the dado receives is the THICKNESS.
+    rt_ = la["rung_section"]["thickness"]["ft"]
+    rw_ = la["rung_section"]["depth"]["ft"]
     rs_ = la["rung_spacing"]["ft"]
     zs_ = sorted({round(v.z, 4) for v in rung_v})
     groups = []
@@ -441,11 +445,17 @@ def main():
     if any(abs(d - rs_) > 0.01 for d in along):
         bad_r.append(f"rung spacing along the rail runs "
                      f"{ft(min(along))}..{ft(max(along))}, want {ft(rs_)}")
+    treads = [max(v.y for v in rung_v if abs(v.z - zc) < rt_)
+              - min(v.y for v in rung_v if abs(v.z - zc) < rt_)
+              for _, zc in cent]
+    if treads and any(abs(d - rw_) > 0.004 for d in treads):
+        bad_r.append(f"tread depth runs {ft(min(treads))}..{ft(max(treads))}, "
+                     f"want {ft(rw_)}")
     gate("nine rungs at 12 inches ALONG THE RAIL, top face on the loft floor",
          not bad_r, "; ".join(bad_r) or
          f"{len(cent)} rungs, {ft(min(along))} apart on the rail "
          f"({ft(min(along) * math.cos(math.radians(want_ang)))} of height), "
-         f"top face flush")
+         f"{ft(rw_)} treads {ft(rt_)} thick, top face flush")
 
     # EVERY RUNG SITS IN A SLOT. The rungs used to be pushed into solid rail by
     # the dado depth and left interpenetrating it. Nothing looked wrong, and
@@ -483,9 +493,27 @@ def main():
     # hardware is what has to keep up. That is the point of placing the flange
     # off the floor and the elbow off the rod: two independently positioned
     # things that have to meet.
+    # THE TRIM BOARD IS A REAL OBJECT NOW. This used to read the loft floor's
+    # own edge, because there was no board -- the flanges were screwed to
+    # paint. The gate reads the LEDGER's face, so it is testing the thing the
+    # source actually describes, and it fails if the board is ever removed
+    # rather than silently falling back to the floor behind it.
     fl = la["slide_rod"]["flange"]
-    trim_y = min(v.y for v in verts("Floor_loft"))
-    on_trim = [v for v in hw if abs(v.y - trim_y) < 0.004]
+    led = bpy.data.objects.get("Ledger_loft")
+    gate("there is a trim board for the flanges to land on", led is not None,
+         (f"Ledger_loft present, {ft(la['ledger']['thickness']['ft'])} fir "
+          f"let into the loft floor edge") if led else
+         "Ledger_loft MISSING — the flanges have nothing to screw to")
+
+    # NO EARLY RETURN. The first draft of this bailed out here when the board
+    # was absent, and the RED test caught what that costs: deleting the ledger
+    # did not produce a failing gate, it produced a script that printed its
+    # header and stopped -- no gates, no RESULT line, exit 0. A suite that
+    # says NOTHING reads like a suite that passed, which is worse than the
+    # defect it was hiding. The two gates below depend on the board, so they
+    # fail when it is gone; nothing else does, so nothing else is skipped.
+    trim_y = min(v.y for v in verts("Ledger_loft")) if led else None
+    on_trim = [v for v in hw if abs(v.y - trim_y) < 0.004] if led else []
     fx = sorted({round(v.x, 3) for v in on_trim})
     clusters = []
     for x in fx:
@@ -494,12 +522,13 @@ def main():
         else:
             clusters.append([x])
     widths = [max(c) - min(c) for c in clusters]
-    ok_fl = (len(clusters) == fl["count"]
+    ok_fl = (led is not None and len(clusters) == fl["count"]
              and all(abs(w - fl["diameter"]["ft"]) < 0.02 for w in widths))
     gate("both flanges sit flat on the trim board", ok_fl,
-         f"{len(clusters)} flange(s) on the fascia at {ft(trim_y)}, "
-         f"{', '.join(ft(w) for w in widths) or 'none'} across "
-         f"(want {fl['count']} x {ft(fl['diameter']['ft'])})")
+         (f"{len(clusters)} flange(s) on the board at {ft(trim_y)}, "
+          f"{', '.join(ft(w) for w in widths) or 'none'} across "
+          f"(want {fl['count']} x {ft(fl['diameter']['ft'])})") if led else
+         "there is no trim board for them to sit on")
 
     # AND THE ELBOW HAS TO REACH THEM. This gate exists because the previous
     # one did not catch a lesion it looked like it should: put the rod back to
@@ -514,8 +543,8 @@ def main():
     # must land ON the flange's inner face, neither short of it nor through it.
     rr_ = la["slide_rod"]["diameter"]["ft"] / 2
     fl_t_ = fl["thickness"]["ft"]
-    want_face = trim_y - fl_t_
-    bad_e = []
+    want_face = (trim_y - fl_t_) if led else None
+    bad_e = [] if led else ["there is no trim board to land on"]
     for c in clusters:
         xc = (min(c) + max(c)) / 2
         zc = sum(v.z for v in on_trim if abs(v.x - xc) < fl["diameter"]["ft"]) \
@@ -532,7 +561,7 @@ def main():
                          + (f"drives {ft(d)} THROUGH the trim board"
                             if d > 0 else f"stops {ft(-d)} short of the flange"))
     gate("the elbow lands on the flange, neither short nor through it",
-         not bad_e, "; ".join(bad_e) or
+         led is not None and not bad_e, "; ".join(bad_e) or
          f"both elbows reach {ft(want_face)}, the flange's inner face")
 
     gh = spec["loft_access"]["guardrail"]["height"]["ft"]

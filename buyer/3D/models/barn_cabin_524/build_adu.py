@@ -1168,6 +1168,20 @@ def build(spec, cut_openings=True):
     box("Floor_bath",   xw, bath_x1, bath_y0, ye, 0, ff, finish)
     box("Floor_loft",   xw, xe, loft_s, ye, loft_sf, loft_sf + ff, finish)
 
+    # THE BOARD THE FLANGE SCREWS TO. The source says "screwed the flange to
+    # the piece of trim" and the frame shows a wood board running across the
+    # wall -- but the model had no board at all, so the ladder's hardware was
+    # bolted to the painted edge of the loft floor and read as bolted to
+    # nothing. This is that board, in the same fir as the ladder.
+    #
+    # It takes the OUTER 3/4" of the loft floor's south edge rather than
+    # standing proud of it, and that is deliberate: a board applied to the
+    # face would push the rod 3/4" south, which at 20 degrees drops it 2"
+    # down the rail and walks the flange off the bottom of the board it was
+    # added for. Let into the edge, the face stays exactly where it was.
+    led_t = spec["loft_access"]["ladder"]["ledger"]["thickness"]["ft"]
+    box("Ledger_loft", t, W - t, loft_s, loft_s + led_t, plate, loft_sf, finish)
+
     # ---- Tier 1: casing, baseboard, ladder and guardrail --------------------
     tr = spec["trim"]
     cw = tr["casing_width"]["ft"]
@@ -1492,7 +1506,14 @@ def build(spec, cut_openings=True):
 
     prof = rail_profile()
     rs = la["rung_spacing"]["ft"]
-    rt = la["rung_section"]["ft"]
+    # THE RUNG IS A BOARD, NOT A STICK. It was 1 3/8" square and `assumed`;
+    # the rungs are the same 1" x 3 1/2" clear vertical grain fir as the
+    # rails, so the tread is 3 1/2" front to back and 1" thick. The thickness
+    # is also what makes the dado's "about a third of the way into it" read
+    # correctly: 3/8" is a third of an inch-thick rung, not of a 1 3/8" one.
+    rsec = la["rung_section"]
+    rt = rsec["thickness"]["ft"]        # vertical: what the dado receives
+    rw = rsec["depth"]["ft"]            # the tread you stand on
     dado = la["dado_depth"]["ft"]
     n_r = la["rung_count"]["value"]
 
@@ -1543,7 +1564,7 @@ def build(spec, cut_openings=True):
     # one object buys four gates that measure the thing itself.
     weld("Ladder_rungs",
          [box_geom(lx - lw / 2 + th - dado, lx + lw / 2 - th + dado,
-                   yy - rt / 2, yy + rt / 2, zz - rt / 2, zz + rt / 2)
+                   yy - rw / 2, yy + rw / 2, zz - rt / 2, zz + rt / 2)
           for yy, zz in rungs], finish)
 
     # The half-inch rod the ladder hangs and pivots on. Steel, so it cannot
@@ -1581,7 +1602,10 @@ def build(spec, cut_openings=True):
         specs.append((elbow(x_end, sgn), rr))
         specs.append(([(x_end + sgn * bend, loft_s - fl_t, rz),
                        (x_end + sgn * bend, loft_s, rz)], fl_d / 2))
-    multitube("Hdw_ladder_rod", specs, finish, sides=8)
+    # SIXTEEN SIDES, NOT EIGHT. At 1/2" the rod is fine either way, but the
+    # 2 1/2" flange read as a visibly faceted plate. It is all one welded
+    # multitube, so this costs vertices and not an object.
+    multitube("Hdw_ladder_rod", specs, finish, sides=16)
 
     # guardrail along the loft's open (south) edge, clear of the ladder
     gr = spec["loft_access"]["guardrail"]
