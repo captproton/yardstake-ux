@@ -1824,23 +1824,93 @@ fixtures:
       because until that work lands there is nothing to do the choosing and a
       viewer would see a desk growing through a bed. When switching exists,
       `lod0` carries all of them and this flag becomes the initial state.
+    circulation:
+      min_walkway: {ft: 2.5, raw: "2'-6\""}
+      against_it: {ft: 0.167, raw: "2\""}
+      confidence: assumed
+      note: >
+        NOTHING IN THIS REPO MEASURED A WALKWAY UNTIL NOW. verify_furniture
+        had twelve gates -- furniture exists, is not inside a wall or a
+        fixture or the floor, is not standing in a doorway, arrangements do
+        not merge -- and every one passed on a sofa with 20 1/2" between its
+        arm and the loft ladder, because not one of them asked HOW WIDE THE
+        GAPS ARE. verify_fixtures has real clearance gates; the bath is
+        5'-1" x 8'-0" and someone asserted them because they were tight.
+        Furniture got the self-consistency half and never the clearance half.
+        2'-6" is the residential minimum for a secondary route and is
+        `assumed`: no sheet in this set dimensions circulation.
+        `against_it` is the other end of the same rule. A sofa 1/2" off a
+        wall is furniture against a wall; a sofa 20" off a ladder is a gap
+        too narrow to walk through and too wide to be deliberate. THE BAND
+        BETWEEN THEM IS THE DEFECT, and that is what the gate tests.
+      keep_clear:
+      - id: loft_ladder
+        prefix: "Ladder_"
+        min: 2.5
+        why: >
+          You stand at the foot of it to climb, and swing off the top tread
+          onto the loft. Furniture alongside turns that into a squeeze. This
+          is the one the sofa failed: 20 1/2" between its arm and the rail,
+          which no gate measured.
+        note: >
+          DECLARED RATHER THAN INFERRED, and that is deliberate. The first
+          version of this gate asked the general question -- for ANY furniture
+          and ANY solid overlapping on one axis, is the gap between them in
+          the unusable band -- and it fired on a bed's linen 2" from the
+          window casing above it and 8 5/8" from loft trim TEN FEET higher up.
+          Both are fine, and a gate that cries about them gets switched off.
+          The general rule has too many honest exceptions to encode: a bed
+          against a wall, bedding overhanging a rail, trim you walk alongside
+          rather than between. What does NOT have exceptions is a named thing
+          you have to get to. So the spec names them.
+      runs:
+      - id: front_door_to_ladder
+        desc: "the only way to the loft: in the front door and straight north to the foot of the ladder"
+        x0: 9.40
+        x1: 12.40
+        y0: 6.46
+        y1: 14.44
+      - id: kitchen_walkway
+        desc: "the working strip in front of the counter run"
+        x0: 2.54
+        x1: 5.04
+        y0: 6.46
+        y1: 21.34
     arrangements:
     - id: living_sofa
       room: living
       default: true
-      source: "tour video 2:38-2:45 — rust sofa, back to the kitchen, round tufted cushion"
+      source: "tour video 2:38-2:45 — rust sofa, round tufted cushion"
       confidence: assumed
+      departs_from_source: >
+        THE VIDEO PUTS THE SOFA'S BACK TO THE KITCHEN AND THIS DOES NOT. It
+        now backs onto the bedroom partition and faces south, at the only low
+        window in the room.
+        Held to the old orientation the sofa stayed in the kitchen's walkway
+        with 20 1/2" between its arm and the loft ladder, facing a blank half
+        of the room, while the half with the window stood empty. Turning it is
+        what let it move. #101 has the measurements.
+        This is a departure the plan's own position allows: furniture here is
+        "shown but not included in the price ... architectural fill-in-the-
+        space, schematic and unbranded, there to read scale", and the source
+        line records how somebody staged a DIFFERENT cabin for a tour, not a
+        dimension off a sheet. The arrangement was `confidence: assumed`
+        before and after.
       clearance_note: >
-        Back stands 2'-11" off the counter front (x 2.54), which is the
-        walkway. Clear of the loft ladder (x 10.11) and of the front-door path
-        (x 9.40-12.40).
+        Backs onto the bedroom partition (1/2" off it) with the east arm 1/2"
+        off the east wall, facing south at W-LIVING-S2 -- the room's only
+        2'-0" sill window, which falls inside the sofa's own span.
+        NUMBERS, NOT THE WORD "CLEAR": 2'-10.7" to the loft ladder, which is
+        the binding one because the two overlap in Y; 2'-1.2" east of the
+        front-door-to-ladder run; 8'-9" of open floor in front of it; and the
+        kitchen walkway is now the full 12'-0" from the counter front.
       pieces:
-      - {id: seat,     x0: 5.50, x1: 8.40, y0: 9.80, y1: 16.80, z0: 0.60, z1: 1.30, material: furn_fabric}
-      - {id: base,     x0: 5.70, x1: 8.20, y0: 10.00, y1: 16.60, z0: 0.00, z1: 0.60, material: furn_fabric}
-      - {id: back,     x0: 5.50, x1: 6.25, y0: 9.80, y1: 16.80, z0: 0.60, z1: 2.45, material: furn_fabric}
-      - {id: arm_s,    x0: 6.25, x1: 8.40, y0: 9.80, y1: 10.55, z0: 1.30, z1: 1.95, material: furn_fabric}
-      - {id: arm_n,    x0: 6.25, x1: 8.40, y0: 16.05, y1: 16.80, z0: 1.30, z1: 1.95, material: furn_fabric}
-      - {id: cushion,  x0: 6.35, x1: 7.35, y0: 10.75, y1: 11.75, z0: 1.30, z1: 1.75, material: furn_linen}
+      - {id: seat,     x0: 14.50, x1: 21.50, y0: 15.20, y1: 18.10, z0: 0.60, z1: 1.30, material: furn_fabric}
+      - {id: base,     x0: 14.70, x1: 21.30, y0: 15.40, y1: 17.90, z0: 0.00, z1: 0.60, material: furn_fabric}
+      - {id: back,     x0: 14.50, x1: 21.50, y0: 17.35, y1: 18.10, z0: 0.60, z1: 2.45, material: furn_fabric}
+      - {id: arm_w,    x0: 14.50, x1: 15.25, y0: 15.20, y1: 17.35, z0: 1.30, z1: 1.95, material: furn_fabric}
+      - {id: arm_e,    x0: 20.75, x1: 21.50, y0: 15.20, y1: 17.35, z0: 1.30, z1: 1.95, material: furn_fabric}
+      - {id: cushion,  x0: 15.45, x1: 16.45, y0: 16.25, y1: 17.25, z0: 1.30, z1: 1.75, material: furn_linen}
     - id: bedroom_bed
       room: bedroom
       default: true
