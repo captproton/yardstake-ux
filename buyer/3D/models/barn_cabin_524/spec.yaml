@@ -2873,12 +2873,19 @@ assumptions:
 p4_export:
   # A FROZEN RECORD OF PHASE 4, not a description of the current export.
   # Every number below was true of the .glb files as they stood at the end of
-  # P4 and has been overtaken many times since -- lod0 was 35 meshes at 29.3 KB
-  # then and is 126 at ~950 KB now. It is kept because `bugs_found_and_fixed`
-  # is provenance worth having, and it is dated because a stale number with no
-  # date reads as a live claim. The live figures are printed by finish_adu.py
-  # on every run; the lod2 INTERFACE, which is the part with a promise on it,
-  # is declared in export.lod2_contract and gated there.
+  # P4 and has been overtaken many times since. It is kept because
+  # `bugs_found_and_fixed` is provenance worth having, and it is dated because
+  # a stale number with no date reads as a live claim -- which is exactly how
+  # this block was read on #99.
+  #
+  # NO CURRENT FIGURE APPEARS HERE, deliberately. The first draft of this note
+  # explained the staleness by quoting today's lod0 size, which would have
+  # gone stale in its turn and put a wrong live number inside the very record
+  # that says not to read numbers here as live. Current figures are printed by
+  # finish_adu.py on every SUCCESSFUL run -- a run that fails the lod2
+  # contract stops before the report, because it stops before writing
+  # anything. The lod2 INTERFACE, which is the part carrying a promise, is
+  # declared in export.lod2_contract and gated there.
   as_of: "Phase 4; superseded by every export since. Do not read as current."
   verification: >
     Each .glb was parsed back out of its own bytes and, for the primary file,

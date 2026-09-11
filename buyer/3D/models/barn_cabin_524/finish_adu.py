@@ -587,7 +587,12 @@ def main():
               " not a post-check.")
         raise SystemExit(1)
 
-    for lod in ("lod0", "lod1", "lod2"):
+    # lod2 GOES FIRST, and the order is the point. The contract is checked
+    # before its own export, so checking it first means checking it before ANY
+    # export: a rejected build leaves the whole directory as it was, not lod0
+    # and lod1 freshly overwritten beside a stale primary. The report is
+    # printed in LOD order regardless -- see `for lod in LODS` below.
+    for lod in ("lod2", "lod0", "lod1"):
         geo, colls = build(spec, cut_openings=(lod != "lod2"))
         bpy.context.scene.unit_settings.scale_length = FOOT_M
 
@@ -630,8 +635,9 @@ def main():
             lod2_nodes = sorted(o.name for o in keep)
             print("-" * 76)
             if not report_lod2_contract(want2, lod2_nodes):
-                print("\nlod2 NOT written, and neither is the primary .glb:"
-                      " the files on disk are still the last ones that passed.")
+                print("\nNOTHING WRITTEN. lod2 is built first precisely so"
+                      " this failure costs no artefacts: every file in"
+                      " export/ is still the one that passed last time.")
                 raise SystemExit(1)
 
         export_glb(p, keep)
@@ -658,7 +664,8 @@ def main():
           f"{'bbox (m)':>22}  draco")
     print("-" * 76)
     ok = True
-    for lod, i in results.items():
+    for lod in ("lod0", "lod1", "lod2"):
+        i = results[lod]
         draco = "KHR_draco_mesh_compression" in i["extensions"]
         ok &= draco
         bb = "x".join(f"{v:.2f}" for v in i["bbox"])
