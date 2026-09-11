@@ -325,14 +325,72 @@ def main():
     # ---- 8. ladder and guardrail -------------------------------------------
     la = spec["loft_access"]["ladder"]
     lo, hi = bounds("Ladder_loft")
-    rise = hi[2] - lo[2]
-    run = hi[1] - lo[1]
+    # THE BOUNDING BOX IS NOT THE RAKE. This measured atan(bbox Y / bbox Z),
+    # which was close enough while the rails were a staircase of thin boxes and
+    # became wrong the moment they were real boards: a 3 1/2" deep rail adds
+    # its own depth to the Y extent, so a perfectly cut 20-degree ladder
+    # measured 21.11. The box is a proxy; the rake is a property of the rail's
+    # own long edge, and rule 33 says measure the property.
+    #
+    # Taken from the two verts that are furthest apart ALONG the rail: the
+    # foot and the top of one edge. Their difference is the rail direction.
+    o = bpy.data.objects["Ladder_loft"]
+    vs = [o.matrix_world @ v.co for v in o.data.vertices]
+    xs = sorted({round(v.x, 3) for v in vs})
+    # THE STRAIGHT BACK EDGE, not the highest point. Taking the topmost vertex
+    # put the measurement on the ROUNDED top, which curves away from the rail
+    # line and read 20.26 for a ladder cut at exactly 20. Both points below
+    # lie on the one straight edge: the back of the flat foot, and the top of
+    # the back edge where the radius begins.
+    edge = [v for v in vs if abs(v.x - xs[0]) < 1e-3]      # one outer rail face
+    foot = max((v for v in edge if v.z < 0.01), key=lambda v: v.y)
+    peak = max(edge, key=lambda v: v.y)
+    rise = peak.z - foot.z
+    run = peak.y - foot.y
     ang = math.degrees(math.atan(run / rise)) if rise else 0.0
     want_ang = la["heel_cut_deg"]["value"]
     gate("ladder stands at the 20 degree heel cut", abs(ang - want_ang) < 0.6,
          f"{ang:.2f} deg vs {want_ang} deg")
-    gate("ladder reaches the loft subfloor", abs(hi[2] - loft_sf) < 0.05,
-         f"top at {ft(hi[2])}, loft subfloor {ft(loft_sf)}")
+    # THE RAILS DO NOT STOP AT THE LOFT FLOOR, and this gate said they must.
+    # It encoded the old build, where they did -- and the builder's own
+    # step-by-step says otherwise: "hang the ladder rails up over the loft by
+    # about three feet so we have HANDLES". A gate that pins the top to the
+    # floor forbids the handhold, which is the part you grab stepping off.
+    over = la["overrun_above_loft"]["ft"]
+    want_top = loft_sf + over * math.cos(math.radians(want_ang))
+    gate("the rails carry past the loft floor to make a handhold",
+         abs(hi[2] - want_top) < 0.08,
+         f"top at {ft(hi[2])}, {ft(hi[2] - loft_sf)} above the loft floor "
+         f"(want {ft(over)} along the rail = {ft(want_top - loft_sf)} up)")
+
+    # AND THE RUNGS: nine of them, the top one LEVEL WITH THE LOFT FLOOR.
+    # Counting up from the floor gave eight at whole feet and nothing at the
+    # loft edge. Count alone would not catch that, so position is checked too.
+    rung_x = [x for x in xs if xs[0] + 0.02 < x < xs[-1] - 0.02]
+    rung_z = sorted({round(v.z, 3) for v in vs
+                     if any(abs(v.x - rx) < 1e-3 for rx in rung_x)})
+    groups = []
+    for z in rung_z:
+        if groups and z - groups[-1][-1] < 0.3:
+            groups[-1].append(z)
+        else:
+            groups.append([z])
+    # Rail verts share those x only at the flat foot and the rounded top.
+    cent = [sum(g) / len(g) for g in groups
+            if 0.3 < sum(g) / len(g) < loft_sf + 0.3]
+    want_n = la["rung_count"]["value"]
+    rs_ = la["rung_spacing"]["ft"]
+    bad_r = []
+    if len(cent) != want_n:
+        bad_r.append(f"{len(cent)} rungs, want {want_n}")
+    if cent and abs(cent[-1] - loft_sf) > 0.02:
+        bad_r.append(f"top tread at {ft(cent[-1])}, not level with the loft "
+                     f"floor at {ft(loft_sf)}")
+    if any(abs((cent[i + 1] - cent[i]) - rs_) > 0.02 for i in range(len(cent) - 1)):
+        bad_r.append("rungs are not evenly spaced")
+    gate("nine rungs, the top one level with the loft floor", not bad_r,
+         "; ".join(bad_r) or
+         f"{len(cent)} rungs at {ft(rs_)}, top tread on the loft floor")
     gh = spec["loft_access"]["guardrail"]["height"]["ft"]
     lo, hi = bounds("Rail_loft")
     gate("guardrail reaches its stated height", abs((hi[2] - loft_sf) - gh) < 0.02,
