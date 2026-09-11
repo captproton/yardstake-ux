@@ -606,23 +606,25 @@ def main():
     led_h_want = la["ledger"]["height"]["ft"]
     led_h_got = (bounds("Ledger_loft")[1][2] - bounds("Ledger_loft")[0][2]
                  ) if led else None
-    # AND IT SITS ON THE TOP OF THE WALL, which is the thing the board is
-    # for: in the frame its bottom edge is the line where the wall stops.
-    # Checked against `plate` rather than against the rod, so a board that
-    # drifts up the loft floor edge with its hardware fails instead of
-    # travelling along with it.
-    led_on_wall = led is not None and abs(bounds("Ledger_loft")[0][2] - plate) < 0.004
+    # AND IT HANGS FROM THE LOFT FLOOR SURFACE. Checked against the floor
+    # rather than against the rod, so a board that drifts down the edge with
+    # its own hardware fails instead of travelling along with it. (It used to
+    # be checked against the plate, when the board sat on the top of the
+    # wall -- which is where the footage puts it and where the ladder's own
+    # placement will not allow it; see spec.ledger.)
+    led_on_wall = led is not None and abs(bounds("Ledger_loft")[1][2]
+                                          - (loft_sf + ff)) < 0.004
     ok_led = (led is not None and abs(led_h_got - led_h_want) < 0.004
               and led_on_wall)
-    gate("the trim board is the height of the flange and sits on the wall",
+    gate("the trim board is the height of the flange and hangs from the floor",
          ok_led,
          (f"Ledger_loft {ft(led_h_got)} tall, matching the "
-          f"{ft(fl_pre['diameter']['ft'])} flange, sitting on the wall at "
-          f"{ft(plate)}") if led and ok_led else
+          f"{ft(fl_pre['diameter']['ft'])} flange, hung from the loft floor "
+          f"at {ft(loft_sf + ff)}") if led and ok_led else
          ((f"Ledger_loft is {ft(led_h_got)} tall, want {ft(led_h_want)}"
            if abs(led_h_got - led_h_want) >= 0.004 else
-           f"Ledger_loft sits at {ft(bounds('Ledger_loft')[0][2])}, not on "
-           f"the top of the wall at {ft(plate)}")
+           f"Ledger_loft tops out at {ft(bounds('Ledger_loft')[1][2])}, not "
+           f"hung from the loft floor at {ft(loft_sf + ff)}")
           if led else "Ledger_loft MISSING — the flanges have nothing to "
           "screw to"))
 
@@ -706,6 +708,27 @@ def main():
     gate("the elbow lands on the flange, neither short nor through it",
          led is not None and not bad_e, "; ".join(bad_e) or
          f"both elbows reach {ft(want_face)}, the flange's inner face")
+
+    # NOTHING CAUGHT THE LADDER BEING INSIDE THE BUILDING, and that is the
+    # defect a person found by looking. Every ladder gate measured the ladder
+    # against ITSELF -- its own rake, its own rungs, its own rails -- so a
+    # perfectly built ladder buried to its shoulders in the loft floor passed
+    # all of them. Rule 31: a gate that only knows about its own subject
+    # cannot see the subject in the wrong place.
+    #
+    # The ladder leans on the loft floor's edge, so touching it is correct and
+    # passing THROUGH it is not. Measured as overlap of the real solids: for
+    # every rail vertex north of the floor's south face, how far past it does
+    # the rail go, and at what height.
+    floor_face = bounds("Loft_floor")[0][1]
+    floor_lo, floor_hi = bounds("Loft_floor")[0][2], bounds("Floor_loft")[1][2]
+    intruding = [v for v in rail_v
+                 if v.y > floor_face + 0.004 and floor_lo - 0.004 <= v.z <= floor_hi + 0.004]
+    deep = max((v.y - floor_face for v in intruding), default=0.0)
+    gate("the ladder clears the loft floor edge it leans on", not intruding,
+         f"{len(intruding)} rail vertices up to {ft(deep)} inside the floor "
+         f"slab" if intruding else
+         f"rail touches the edge at {ft(floor_face)} and never passes it")
 
     gh = spec["loft_access"]["guardrail"]["height"]["ft"]
     lo, hi = bounds("Rail_loft")

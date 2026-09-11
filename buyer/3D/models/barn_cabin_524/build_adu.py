@@ -1182,18 +1182,20 @@ def build(spec, cut_openings=True):
     _la = spec["loft_access"]["ladder"]
     led_t = _la["ledger"]["thickness"]["ft"]
     led_h = _la["ledger"]["height"]["ft"]
-    # IT SITS ON THE TOP OF THE WALL. Built first as the whole floor build-up
-    # -- plate to subfloor, 10 1/4" -- which is a fascia, not the board in the
-    # frame; then narrowed to the flange's height but left floating an inch up
-    # the loft floor edge. In the footage the board lands exactly on the line
-    # where the wall stops, with the wall below it and the wall above.
-    #
-    # So the board's BOTTOM is the plate, and everything else follows from it:
-    # the rod sits at the board's centre, and the elbow's bend radius is
-    # whatever reaches the board's face from there. The board's bottom edge,
-    # the flange's bottom edge and the top of the wall are all one line.
-    box("Ledger_loft", t, W - t, loft_s, loft_s + led_t,
-        plate, plate + led_h, finish)
+    # APPLIED TO THE FACE, AND HUNG FROM THE FLOOR SURFACE. Three earlier
+    # positions, and the ladder's own placement is what settles it.
+    #   - the whole floor build-up: a fascia, not the board in the frame
+    #   - narrowed to the flange's height, but floating up the edge
+    #   - dropped to sit on the top of the wall, which is where the frame
+    #     puts it and where it cannot go HERE: with the ladder moved clear of
+    #     the floor edge, the rod at that height is 5 1/2" off the face, and
+    #     5 1/2" of standoff is a bracket, not a 1/2" pipe elbow.
+    # At the TOP of the floor edge the rail is at its closest -- it touches
+    # there -- and the reach is 1 9/16", which the elbow already spans. So the
+    # board's top is the loft floor surface and it stands PROUD of the edge,
+    # with the slab directly behind it for its whole height.
+    box("Ledger_loft", t, W - t, loft_s - led_t, loft_s,
+        loft_sf + ff - led_h, loft_sf + ff, finish)
 
     # ---- Tier 1: casing, baseboard, ladder and guardrail --------------------
     tr = spec["trim"]
@@ -1472,8 +1474,22 @@ def build(spec, cut_openings=True):
     lw = la["width"]["ft"]
     run = loft_sf * math.tan(ang)
     lx = ix(la["top_at"]["x_ft"])
-    y_top = iy(pdefs["P_bedroom_S"]["at_ft"])
-    y_bot = y_top - run
+    # THE LADDER LEANS ON THE LOFT FLOOR EDGE, NOT ON THE WALL BELOW IT.
+    # It used to be set by putting the rail's CENTRE LINE on the bedroom
+    # partition's face, and that buried the top of the ladder: the rail is
+    # 3 1/2" deep so half of it is already behind its own centre line, and
+    # the loft floor above overhangs that wall by 1 3/4" to the south. The
+    # two add up, and the top 10" of each rail ran inside the floor slab.
+    #
+    # The datum is now the thing the ladder actually rests against -- the
+    # face of the loft floor edge -- and it is the rail's BACK FACE that
+    # touches it, at the top of the finished floor. Below that the rail
+    # leans away and is clear; above it there is nothing to hit, which is
+    # where the handhold runs. It moves the ladder 3 7/8" south.
+    _dep = la["stringer_section"]["depth"]["ft"]
+    y_bot = loft_s - (loft_sf + ff) * math.tan(ang) \
+        - (_dep / 2) / math.cos(ang)
+    y_top = y_bot + run
     # A RAIL IS ONE STRAIGHT BOARD. It used to be fourteen axis-aligned boxes
     # per side, stair-stepping up an incline -- the comment said "stepped
     # stringer approximation" and it read as a zigzag at any angle where the
@@ -1621,8 +1637,13 @@ def build(spec, cut_openings=True):
     specs = [([(xa, ry, rz), (xb, ry, rz)], rr)]
     for x_end, sgn in ((xa, -1), (xb, +1)):
         specs.append((elbow(x_end, sgn), rr))
-        specs.append(([(x_end + sgn * bend, loft_s - fl_t, rz),
-                       (x_end + sgn * bend, loft_s, rz)], fl_d / 2))
+        # ON THE BOARD'S FACE, which is now `led_t` south of the floor edge
+        # because the board stands proud. Left at the edge it sat INSIDE the
+        # board, with the elbow ending correctly in front of a flange that
+        # was not there -- the elbow gate passed and the flange gate found
+        # nothing to measure.
+        specs.append(([(x_end + sgn * bend, loft_s - led_t - fl_t, rz),
+                       (x_end + sgn * bend, loft_s - led_t, rz)], fl_d / 2))
     # SIXTEEN SIDES, NOT EIGHT. At 1/2" the rod is fine either way, but the
     # 2 1/2" flange read as a visibly faceted plate. It is all one welded
     # multitube, so this costs vertices and not an object.
