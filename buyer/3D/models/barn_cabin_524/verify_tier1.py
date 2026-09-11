@@ -597,11 +597,24 @@ def main():
     # source actually describes, and it fails if the board is ever removed
     # rather than silently falling back to the floor behind it.
     fl = la["slide_rod"]["flange"]
+    fl_pre = fl
     led = bpy.data.objects.get("Ledger_loft")
-    gate("there is a trim board for the flanges to land on", led is not None,
-         (f"Ledger_loft present, {ft(la['ledger']['thickness']['ft'])} fir "
-          f"let into the loft floor edge") if led else
-         "Ledger_loft MISSING — the flanges have nothing to screw to")
+    # AND IT IS THE HEIGHT OF THE FLANGE. The spec ties the board's height to
+    # the flange diameter rather than giving it a number of its own, because
+    # that is the relationship the frame shows; this checks the built board
+    # kept it, so a board that drifts back to a full-height fascia fails.
+    led_h_want = la["ledger"]["height"]["ft"]
+    led_h_got = (bounds("Ledger_loft")[1][2] - bounds("Ledger_loft")[0][2]
+                 ) if led else None
+    ok_led = led is not None and abs(led_h_got - led_h_want) < 0.004
+    gate("there is a trim board, and it is the height of the flange", ok_led,
+         (f"Ledger_loft {ft(led_h_got)} tall, matching the "
+          f"{ft(fl_pre['diameter']['ft'])} flange, "
+          f"{ft(la['ledger']['thickness']['ft'])} fir let into the loft floor "
+          f"edge") if led and ok_led else
+         (f"Ledger_loft is {ft(led_h_got)} tall, want {ft(led_h_want)}"
+          if led else "Ledger_loft MISSING — the flanges have nothing to "
+          "screw to"))
 
     # NO EARLY RETURN. The first draft of this bailed out here when the board
     # was absent, and the RED test caught what that costs: deleting the ledger
@@ -650,7 +663,7 @@ def main():
         if not ring:
             continue
         z0, z1 = min(v.z for v in ring), max(v.z for v in ring)
-        if not (led_b[0][2] <= z0 and z1 <= led_b[1][2]):
+        if not (led_b[0][2] - 0.002 <= z0 and z1 <= led_b[1][2] + 0.002):
             off_board.append(f"a flange spans {ft(z0)}..{ft(z1)}, outside the "
                              f"board's {ft(led_b[0][2])}..{ft(led_b[1][2])}")
         if not (led_b[0][0] <= min(c) and max(c) <= led_b[1][0]):

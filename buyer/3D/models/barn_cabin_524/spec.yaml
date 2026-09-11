@@ -781,6 +781,21 @@ loft_access:
       confidence: assumed
       material: "clear vertical grain Douglas fir, to match the ladder"
       source: "Loft Ladder 2:29 frame — the flanges are screwed to a WOOD BOARD running across the wall, not to drywall."
+      height:
+        ft: 0.208
+        raw: "2 1/2\""
+        derived: "slide_rod.flange.diameter"
+        confidence: measured
+        source: "Loft Ladder 2:29 close frame — the board is a narrow band, and the flange very nearly fills its height."
+        note: >
+          THE BOARD IS AS TALL AS THE FLANGE, and no taller. It was first
+          built as the whole floor build-up, 10 1/4" from the plate to the
+          loft subfloor, which is a fascia and reads as a wide band; the frame
+          shows a narrow board with the flange's disc nearly touching its top
+          and bottom edges.
+          Tied to the flange diameter rather than given its own number,
+          because that is the relationship the frame actually shows -- change
+          the flange and the board follows it.
       note: >
         THE MODEL HAD NO BOARD AT ALL. The source says "screwed the flange to
         the piece of trim" and the frame shows a wood board; the flanges were
@@ -788,10 +803,11 @@ loft_access:
         hardware read as bolted to nothing.
         It occupies the OUTER 3/4" of the loft floor's south edge, so its face
         is exactly where that edge already was -- adding it does not move the
-        rod, and the elbow still lands on the flange.
-        Its height is NOT assumed: it is the floor build-up, from the top of
-        the plate below to the loft subfloor. Only the thickness is a guess,
-        and no elevation in the set draws this board.
+        rod, and the elbow still lands on the flange. A board standing PROUD
+        of that edge would: 3/4" south is 2" down the rail at 20 degrees, and
+        the rod would land below the loft floor entirely, leaving the board
+        floating clear of the wall beneath it.
+        It is centred on the rod, so the flange sits in the middle of it.
       what_would_settle_it: >
         A frame showing the board against a known dimension -- the loft floor
         edge or a rung -- would give its height and projection directly.
