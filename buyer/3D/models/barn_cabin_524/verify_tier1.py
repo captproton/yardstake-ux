@@ -335,8 +335,38 @@ def main():
 
     rail_v = verts("Ladder_loft")
     rx = sorted({round(v.x, 3) for v in rail_v})
-    bands = {"W": (rx[0] - 1e-3, rx[0] + th_ + 1e-3),
-             "E": (rx[-1] - th_ - 1e-3, rx[-1] + 1e-3)}
+
+    # THE BANDS MUST BE PROVEN, NOT ASSUMED. Taking them as "th_ in from each
+    # extreme" cannot notice a rail going missing: with one rail, rx[0] and
+    # rx[-1] are that rail's own two faces, both bands land on it, and the
+    # gate below checks the same board twice and passes. So cluster the x
+    # planes instead -- a ladder is two boards, th_ thick, lw apart -- and let
+    # the clustering itself be the evidence there are two of them.
+    lw_ = la["width"]["ft"]
+    groups_x = []
+    for x in rx:
+        if groups_x and x - groups_x[-1][-1] <= th_ + 1e-3:
+            groups_x[-1].append(x)
+        else:
+            groups_x.append([x])
+    bad_b = []
+    if len(groups_x) != 2:
+        bad_b.append(f"{len(groups_x)} rail(s) found, want 2")
+    elif any(abs((max(g) - min(g)) - th_) > 0.002 for g in groups_x):
+        bad_b.append("a rail is not "
+                     + ft(th_) + " thick: "
+                     + ", ".join(ft(max(g) - min(g)) for g in groups_x))
+    elif abs((rx[-1] - rx[0]) - lw_) > 0.002:
+        bad_b.append(f"rails {ft(rx[-1] - rx[0])} apart outside to outside, "
+                     f"want {ft(lw_)}")
+    gate("the ladder has two rails, the stated thickness and width apart",
+         not bad_b, "; ".join(bad_b) or
+         f"2 rails, {ft(th_)} thick, {ft(rx[-1] - rx[0])} overall")
+    bands = {"W": (groups_x[0][0] - 1e-3, groups_x[0][-1] + 1e-3),
+             "E": (groups_x[-1][0] - 1e-3, groups_x[-1][-1] + 1e-3)} \
+        if len(groups_x) == 2 else \
+        {"W": (rx[0] - 1e-3, rx[0] + th_ + 1e-3),
+         "E": (rx[-1] - th_ - 1e-3, rx[-1] + 1e-3)}
 
     # BOTH RAILS, EVERY VERTEX. The old gate read the minimum-x outer face only
     # and compared two chosen points on it, so it would have passed with the
@@ -438,11 +468,21 @@ def main():
     bad_r = []
     if len(cent) != want_n:
         bad_r.append(f"{len(cent)} rungs, want {want_n}")
-    if tops and abs(tops[-1] - loft_sf) > 0.005:
+    # THE FINISHED FLOOR, not the subfloor. loft_sf is the top of the
+    # subfloor and Floor_loft lays `ff` of finish on it; comparing to loft_sf
+    # approves a tread sitting 3/4" BELOW the surface you step onto, and
+    # rejects one correctly flush with it.
+    loft_walk = loft_sf + ff
+    if tops and abs(tops[-1] - loft_walk) > 0.005:
         bad_r.append(f"top tread FACE at {ft(tops[-1])}, not level with the "
-                     f"loft floor at {ft(loft_sf)}")
+                     f"loft floor at {ft(loft_walk)} "
+                     f"(subfloor {ft(loft_sf)} + {ft(ff)} finish)")
+    # GUARD THE DETAIL STRING, not just the predicate. `gate(...)` takes its
+    # detail as an already-evaluated argument, so with nought or one rung
+    # `min(along)` raises ValueError and the verifier dies instead of
+    # REPORTING the wrong rung count it was about to catch.
     along = [math.dist(cent[i + 1], cent[i]) for i in range(len(cent) - 1)]
-    if any(abs(d - rs_) > 0.01 for d in along):
+    if along and any(abs(d - rs_) > 0.01 for d in along):
         bad_r.append(f"rung spacing along the rail runs "
                      f"{ft(min(along))}..{ft(max(along))}, want {ft(rs_)}")
     treads = [max(v.y for v in rung_v if abs(v.z - zc) < rt_)
@@ -453,9 +493,10 @@ def main():
                      f"want {ft(rw_)}")
     gate("nine rungs at 12 inches ALONG THE RAIL, top face on the loft floor",
          not bad_r, "; ".join(bad_r) or
-         f"{len(cent)} rungs, {ft(min(along))} apart on the rail "
-         f"({ft(min(along) * math.cos(math.radians(want_ang)))} of height), "
-         f"{ft(rw_)} treads {ft(rt_)} thick, top face flush")
+         (f"{len(cent)} rungs, {ft(min(along))} apart on the rail "
+          f"({ft(min(along) * math.cos(math.radians(want_ang)))} of height), "
+          f"{ft(rw_)} treads {ft(rt_)} thick, top face flush") if along else
+         f"{len(cent)} rung(s) — too few to have a spacing")
 
     # EVERY RUNG SITS IN A SLOT. The rungs used to be pushed into solid rail by
     # the dado depth and left interpenetrating it. Nothing looked wrong, and
@@ -481,11 +522,68 @@ def main():
     # THE ROD REACHES BOTH RAILS, tested by where it is rather than by its
     # existing. It is one tube spanning the full width, so nothing would have
     # noticed it shortening to touch only one rail.
+    # THE OUTER EXTENT OF THE HARDWARE IS NOT THE ROD. This compared the
+    # min/max x of the whole welded Hdw_ladder_rod -- rod, elbows AND flanges
+    # -- against the rails. The flanges sit outside the rails by design, so
+    # they set both extremes and the gate would keep passing with the straight
+    # rod shortened off one rail entirely. It only caught the lesion in the
+    # RED test because this build happens to move the elbow with the rod end;
+    # that is a coupling in the builder, not a property of the gate.
+    #
+    # The property is that a tube of the rod's diameter CROSSES each rail. So
+    # look inside each rail's own band of x -- where nothing but the straight
+    # rod can reach -- and check what is there is a rod-sized cross-section,
+    # at the same height on both sides.
     hw = verts("Hdw_ladder_rod")
-    hx0, hx1 = min(v.x for v in hw), max(v.x for v in hw)
-    spans = hx0 < bands["W"][0] and hx1 > bands["E"][1]
-    gate("the slide rod passes through both rails", spans,
-         f"rod runs {ft(hx0)}..{ft(hx1)}, rails at {ft(rx[0])} and {ft(rx[-1])}")
+    rr_rod = la["slide_rod"]["diameter"]["ft"] / 2
+
+    # SLICE THE SOLID. Two drafts of this gate failed on the same instinct --
+    # find the rod by looking at vertices -- and a tube has vertices only at
+    # the ends of its segments.
+    #   Draft 1 asked what vertices lie inside the rail's band of x. None do,
+    #   because the rod's rings are outside it.
+    #   Draft 2 recovered the rod from rings sharing one axis, and counted the
+    #   ELBOW'S FIRST RING as rod: the elbow leaves tangent to the rod, so its
+    #   opening ring is exactly on the rod's axis. Shorten the rod and leave
+    #   the elbow where it was and that draft still reported a rod spanning
+    #   both rails, with a gap in the middle where no metal is.
+    # The question is not where the vertices are. It is whether there is
+    # METAL in the plane of each rail, so cut the mesh there and measure what
+    # the cut returns: a rod-sized ring, or nothing.
+    def section_at(x):
+        bm = bmesh.new()
+        bm.from_mesh(bpy.data.objects["Hdw_ladder_rod"].data)
+        bm.transform(bpy.data.objects["Hdw_ladder_rod"].matrix_world)
+        res = bmesh.ops.bisect_plane(
+            bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:],
+            plane_co=(x, 0.0, 0.0), plane_no=(1.0, 0.0, 0.0))
+        pts = [g.co.copy() for g in res["geom_cut"]
+               if isinstance(g, bmesh.types.BMVert)]
+        bm.free()
+        return pts
+
+    bad_rod = []
+    seen = []
+    for side, (x0, x1) in bands.items():
+        pts = section_at((x0 + x1) / 2)
+        if not pts:
+            bad_rod.append(f"no metal in the plane of the {side} rail — "
+                           f"the rod does not cross it")
+            continue
+        dy = max(p_.y for p_ in pts) - min(p_.y for p_ in pts)
+        dz = max(p_.z for p_ in pts) - min(p_.z for p_ in pts)
+        seen.append((side, dy, dz,
+                     (min(p_.z for p_ in pts) + max(p_.z for p_ in pts)) / 2))
+        if abs(dy - 2 * rr_rod) > 0.004 or abs(dz - 2 * rr_rod) > 0.004:
+            bad_rod.append(f"what crosses the {side} rail sections "
+                           f"{ft(dy)} x {ft(dz)}, not the {ft(2 * rr_rod)} rod")
+    if len(seen) == 2 and abs(seen[0][3] - seen[1][3]) > 0.004:
+        bad_rod.append("the rod sits at a different height in each rail")
+    gate("the slide rod passes through both rails", not bad_rod,
+         "; ".join(bad_rod) or
+         f"a {ft(2 * rr_rod)} section of rod in the plane of both rails, "
+         f"at {ft(seen[0][3])}")
+
 
     # AND THE FLANGES LAND ON THE TRIM BOARD. The trim is the loft floor's own
     # south fascia, and its position is read OFF THAT OBJECT rather than
@@ -541,6 +639,28 @@ def main():
     # geometry and asserted by nobody -- prose standing in for a check, which
     # is exactly what ground rule 34 is about. So: the pipe's furthest reach
     # must land ON the flange's inner face, neither short of it nor through it.
+    # AND IT MUST BE ON THE BOARD. Sharing the board's Y plane says nothing
+    # about where in the board's face the flange landed: it could hang off the
+    # bottom edge or sit beyond the end of the run and still pass. Read the
+    # board's own X and Z extent and require the whole flange ring inside it.
+    led_b = bounds("Ledger_loft") if led else None
+    off_board = []
+    for c in clusters:
+        ring = [v for v in on_trim if min(c) - 0.01 <= v.x <= max(c) + 0.01]
+        if not ring:
+            continue
+        z0, z1 = min(v.z for v in ring), max(v.z for v in ring)
+        if not (led_b[0][2] <= z0 and z1 <= led_b[1][2]):
+            off_board.append(f"a flange spans {ft(z0)}..{ft(z1)}, outside the "
+                             f"board's {ft(led_b[0][2])}..{ft(led_b[1][2])}")
+        if not (led_b[0][0] <= min(c) and max(c) <= led_b[1][0]):
+            off_board.append(f"a flange runs past the end of the board in x")
+    gate("each flange lands within the board's face, not off an edge",
+         led is not None and bool(clusters) and not off_board,
+         "; ".join(off_board) or
+         (f"both rings inside {ft(led_b[0][2])}..{ft(led_b[1][2])} vertically"
+          if led and clusters else "no flange to place"))
+
     rr_ = la["slide_rod"]["diameter"]["ft"] / 2
     fl_t_ = fl["thickness"]["ft"]
     want_face = (trim_y - fl_t_) if led else None

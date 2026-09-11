@@ -1529,7 +1529,15 @@ def build(spec, cut_openings=True):
     # proud of the loft floor: a lip to catch your toe on, and the rung buried
     # in the floor finish. The face you stand on is the thing that must be
     # flush, so the top rung's centre sits half a section below the floor.
-    t0 = (loft_sf - rt / 2.0) / uz          # top rung CENTRE, measured along the rail
+    #
+    # AND THE FLOOR IS loft_sf + ff, NOT loft_sf. `loft_sf` is the top of the
+    # SUBFLOOR; Floor_loft lays 3/4" of finish on top of it, and that finish
+    # is what you walk on. Targeting the subfloor swapped an 11/16" lip for a
+    # 3/4" step DOWN -- the same defect mirrored, and arguably worse, because
+    # a step down at the top of a ladder is where your weight already is.
+    # "The top tread is going to be level with the Loft floor" means the floor.
+    loft_walk = loft_sf + ff
+    t0 = (loft_walk - rt / 2.0) / uz        # top rung CENTRE, measured along the rail
     rungs = [(y_bot + (t0 - k * rs) * uy, (t0 - k * rs) * uz) for k in range(n_r)]
 
     # THE DADO IS A RECESS, NOT AN OVERLAP. The rungs used to be extended into
