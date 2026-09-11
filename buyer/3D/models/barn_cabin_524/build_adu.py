@@ -2026,10 +2026,14 @@ def build_casework(spec, geo, coll):
                  sc_["height"]["ft"], sc_["height"]["ft"] + 0.06),  # shelf
             ], coll)
 
-            # Curtain rod, head and valve: one set of steel fittings, welded.
-            # The SPOUT stays its own object -- verify_lib's known-answer cases
-            # name Fix_tub_valve_spout, and welding it away would break a gate
-            # to save a slot, which is the wrong trade.
+            # Curtain rod, head, valve AND spout: one set of steel fittings.
+            #
+            # The spout was held out on a rationale that was simply FALSE --
+            # "verify_lib's known-answer cases name it". They do not: they name
+            # Fix_tub_basin and Fix_toilet_bowl. The exclusion came from an
+            # automated scan matching the quoted token "spout" in
+            # verify_fixtures, which is a SPEC KEY for the tap, not a reference
+            # to this object. A false positive, written into a comment as fact.
             fr_ = ft_["fitting_r"]["ft"]
             ey = (ty0 + ty1) / 2.0
             multitube("Fix_tub_fittings", [
@@ -2039,11 +2043,9 @@ def build_casework(spec, geo, coll):
                   (tx1 - st - 0.42, ey, ft_["head_h"]["ft"] - 0.17)], fr_),
                 ([(tx1 - st, ey, ft_["valve_h"]["ft"]),
                   (tx1 - st - 0.25, ey, ft_["valve_h"]["ft"])], fr_),
+                ([(tx1 - st, ey, ft_["spout_h"]["ft"]),
+                  (tx1 - st - 0.25, ey, ft_["spout_h"]["ft"])], fr_),
             ], coll, sides=8)
-            tube("Fix_tub_valve_spout",
-                 [(tx1 - st, ey, ft_["spout_h"]["ft"]),
-                  (tx1 - st - 0.25, ey, ft_["spout_h"]["ft"])],
-                 fr_, coll, sides=8)
 
         # ---- toilet ---------------------------------------------------
         # The BUILD answer to "must this be bought?". loft() was made generic
