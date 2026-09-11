@@ -2871,6 +2871,15 @@ assumptions:
 
 # ---------------------------------------------------------------------------
 p4_export:
+  # A FROZEN RECORD OF PHASE 4, not a description of the current export.
+  # Every number below was true of the .glb files as they stood at the end of
+  # P4 and has been overtaken many times since -- lod0 was 35 meshes at 29.3 KB
+  # then and is 126 at ~950 KB now. It is kept because `bugs_found_and_fixed`
+  # is provenance worth having, and it is dated because a stale number with no
+  # date reads as a live claim. The live figures are printed by finish_adu.py
+  # on every run; the lod2 INTERFACE, which is the part with a promise on it,
+  # is declared in export.lod2_contract and gated there.
+  as_of: "Phase 4; superseded by every export since. Do not read as current."
   verification: >
     Each .glb was parsed back out of its own bytes and, for the primary file,
     re-imported into a clean Blender session and rendered. Round-trip: 35 meshes,
