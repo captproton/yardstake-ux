@@ -35,6 +35,9 @@ Phases P1–P4 are complete and gated:
 | **Openings** | Window sash built from the declared type; exterior casing on all eleven openings | **done** ([#89](https://github.com/captproton/yardstake-ux/pull/89)) — every window was one flat pane while the spec typed all ten, and every `Trim_` was on the inside of the wall |
 | **Openings** | Sash visible from indoors; a stool and apron under every window | **done** ([#90](https://github.com/captproton/yardstake-ux/pull/90)) — #89's sash was a decal on the outside face, and no window had a ledge; both found by looking, neither by a gate |
 | **Tier 3h** | The stacked W/D gets a drum and a control panel | **done** ([#91](https://github.com/captproton/yardstake-ux/pull/91)) — built since #68 and shaped like a cupboard; built from primitives, not downloaded |
+| **Loft access** | The ladder rebuilt from the builder's own transcript | **done** ([#96](https://github.com/captproton/yardstake-ux/pull/96)) — nine rungs at 12" on a 20° rake, dadoed into 1"×3½" rails that run 3 ft over the loft as handles; the rake gate now measures the straight back edge rather than the bbox. Refinements in [#97](https://github.com/captproton/yardstake-ux/issues/97) |
+| **Export** | Five welds for mesh headroom, and #92's arithmetic corrected | **done** ([#98](https://github.com/captproton/yardstake-ux/pull/98)) — 119 → 112, and **three of the five were a mistake**; see the row below |
+| **Handoff** | The three `lod2` welds reverted, and the contract gated | **done** ([#99](https://github.com/captproton/yardstake-ux/pull/99)) — #98 changed the placement developer's file while its PR body said it had not; `lod2` is byte-identical again and the promise is now a build gate rather than a sentence |
 | **Doors** | The closet ships OPEN on the laundry half | **done** ([#93](https://github.com/captproton/yardstake-ux/pull/93)) — `default_state.bypass` had been inert for eight tiers; fourteen review findings, every one in the gates and none in the geometry |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
@@ -45,7 +48,7 @@ handoff are on `main`.
 
 **`lod2` was byte-identical at 24.1 KB through eleven PRs, and changed in the
 twelfth.** [#70](https://github.com/captproton/yardstake-ux/pull/70) replaced the wrong-variant `Floor_slab` with the
-crawlspace stemwall, so `lod2` is now **28.4 KB** and its bbox floor moved from
+crawlspace stemwall, so `lod2` is now **29.6 KB** and its bbox floor moved from
 −0.101 m to −0.972 m. That was a conversation before it was a commit, which is
 what the stability guarantee actually asks for. Origin, axes and units have
 still never moved.
@@ -53,7 +56,7 @@ still never moved.
 **Tier 3 is complete** — casework, both sinks, both taps, the mirror, the
 toilet, the tub/shower, the crawl hole, the stacked W/D, all three appliances,
 the porch sconce and, last, the furniture — **and the building stands on a real
-foundation.** 113 meshes, all of them shipped in `lod0` at **922.0 KB** against
+foundation.** 115 meshes, all of them shipped in `lod0` at **950.4 KB** against
 a 4 MB ceiling, with 49/49 fixture gates, 12/12 geometry gates and 11/11
 furniture gates.
 
@@ -270,7 +273,7 @@ Their scope is placement in the buildable envelope, and nothing else. They take
 the exported `.glb`; nothing in tiers 1–3 may break it. All figures verified
 against the current export.
 
-**Use `barn_cabin_524_lod2.glb`** (28.4 KB). It is the massing: no openings, no
+**Use `barn_cabin_524_lod2.glb`** (29.6 KB, 24 nodes). It is the massing: no openings, no
 glazing, no interior. A gate in `finish_adu.py` fails the build if it exceeds
 200 KB — which has already caught one regression, when texturing took it to
 239 KB.
@@ -329,10 +332,34 @@ check that the vents clear grade — no geometry expresses it, so do not read a
 bearing plane off the model. **Placement still owns the grade-to-floor offset**,
 and now has a real 2'-0" stemwall to bed into the ground.
 
-**Stability guarantee.** Origin, axes and units are frozen and have never
-moved. `lod2` contents changed **once**, in [#69](https://github.com/captproton/yardstake-ux/issues/69), for the foundation
-variant above — and that was a conversation first and a commit second, which is
-what this guarantee asks for.
+**Stability guarantee, and it has now been broken once.** Origin, axes and
+units are frozen and have never moved. `lod2` contents changed deliberately
+**once**, in [#69](https://github.com/captproton/yardstake-ux/issues/69), for the foundation variant above — a
+conversation first and a commit second, which is what this guarantee asks for.
+
+> ⚠️ **And accidentally once, in [#98](https://github.com/captproton/yardstake-ux/pull/98).** Welding five pairs of
+> objects for mesh headroom, three of the five turned out to live in the
+> `shell` and `roof` collections `lod2` keeps: `Dormer_cheek_`, `Roof_dormer_`
+> and `Eave_band_`. **Your file went from 24 nodes to 21, and three names you
+> may address went away**, while that PR's body said `lod2` was untouched. The
+> massing never differed — 1464 verts, 744 tris, identical bbox — but the
+> interface did, and the interface is the part with the promise on it.
+>
+> **Reverted in [#99](https://github.com/captproton/yardstake-ux/pull/99).** `lod2` is byte-identical to its pre-#98
+> state, sha `44276d83` before and after. **Nothing you hold needs changing.**
+
+**The promise is now a gate.** `spec.export.lod2_contract` declares all 24 node
+names; `finish_adu.py` compares the exported list against it and **fails the
+build** on any difference, naming what went and what arrived. It **fails
+closed** — a missing or empty contract is a failure, not a skip — and it runs
+**before anything is written**, which is why `lod2` is built first of the three
+levels. A rejected build leaves every file in `export/` exactly as it was.
+
+What #98 and #99 cost, in one line each: the first changed your file with
+nothing objecting, and the second made "nothing objecting" impossible. Changing
+`lod2` is still allowed, and still a conversation first — but now it is a
+conversation, then `spec.export.lod2_contract`, then the commit, in that order,
+because the build refuses the other orders.
 
 ---
 
@@ -539,6 +566,33 @@ and deliberately left out of it:
   the build follows it. Recorded in `tools/tier3/front_elev.py` so the next
   reader does not re-derive it as a defect. **No action wanted.**
 
+- **The loft ladder is built from the builder's own transcript, and five
+  refinements are open.** [#95](https://github.com/captproton/yardstake-ux/issues/95) said it did not look real, and
+  it did not: two bare stringers with boxes floating between them. The rebuild
+  in [#96](https://github.com/captproton/yardstake-ux/pull/96) follows `example plans/thataduguy/Loft Ladder.rtf`
+  step for step — 1"×3½" clear vertical grain Douglas fir, **20° for both the
+  heel cut and the dados**, nine rungs at 12", top tread level with the loft
+  floor, rails running 3 ft past it as handles with 1" radius tops, and a ½"
+  slide rod on an elbow and flange.
+  **The rake gate had to stop measuring the bbox.** A ladder with a flat foot
+  and a radiused top has a bounding box whose diagonal is not its rake, and
+  the topmost vertex is on the radius. It now measures the **straight back
+  edge** and reads 19.98°.
+  [#97](https://github.com/captproton/yardstake-ux/issues/97) carries what review found and the mesh cap deferred:
+  rung spacing measured vertically rather than along the rail, "top tread
+  level" compared by centre rather than top face, a rake gate that samples one
+  rail and two vertices, and dados that overlap solid rail.
+- **`spec.yaml` has no CODEOWNERS protection, and the `lod2` contract asks for
+  it.** Copilot's second pass on [#99](https://github.com/captproton/yardstake-ux/pull/99) made a fair point: the
+  contract's baseline and the thing it gates live in the same editable file, so
+  a commit that welds a node and updates `lod2_contract.nodes` together passes.
+  That is by design — **no gate can stop a deliberate edit to its own
+  baseline**; what it guarantees is that the edit must EXIST, be visible in the
+  diff, and be refusable. #98 changed the handoff while touching neither.
+  Making it unforgeable wants CODEOWNERS or branch protection on `spec.yaml`,
+  which is a repo-settings decision rather than a code one. **Not taken
+  unilaterally; it is @captproton's call.**
+
 **Deferred, with the reason recorded so it stays a decision rather than an
 omission:** the `main()` split in the verify scripts and a `Box` value object.
 Both are genuine improvements to code that will be read for a long time, but
@@ -558,8 +612,11 @@ the step where twenty PRs of geometry become something a buyer can click.
 written**, because both came out of work that looked finished:
 
 - [#92](https://github.com/captproton/yardstake-ux/issues/92) — `lod0` is at
-  **118 of 120 meshes**, and instancing will NOT help: the cap counts objects.
-  Welding is the only lever, and its constraint is naming, not geometry.
+  **115 of 120 meshes**, and instancing will NOT help: the cap counts objects.
+  Welding is the only lever, its constraint is naming rather than geometry —
+  **and naming is not the only constraint.** See the corrected entry below:
+  #98 took five welds on a naming analysis alone and three of them were in
+  `lod2`, which no amount of name-scanning would have revealed.
 - [#94](https://github.com/captproton/yardstake-ux/issues/94) — the bypass
   gates ask a two-dimensional question one axis at a time, which is why
   [#93](https://github.com/captproton/yardstake-ux/pull/93) needed five review
@@ -570,22 +627,39 @@ written**, because both came out of work that looked finished:
 Two smaller items are worth naming because they are now more interesting than
 when they were filed:
 
-- **The mesh cap is at 118 of 120, and it is now its own issue:**
+- **The mesh cap is at 115 of 120, and it is now its own issue:**
   [#92](https://github.com/captproton/yardstake-ux/issues/92).
   **CORRECTION — this entry previously said instancing "buys the headroom the
   next fixture will need". IT BUYS NONE.** The gate counts OBJECTS:
   `len([o for o in bpy.data.objects if o.type == "MESH"])`. Instancing shares
   one mesh datablock between several objects; the datablock count falls and
-  the object count does not move. Measured: **118 objects, 118 datablocks** —
-  nothing is shared today, and sharing everything shareable would still leave
-  118 objects. The claim was written from what instancing is *for* rather than
+  the object count does not move. Measured **at the time, when the count was
+  118: 118 objects, 118 datablocks** — nothing was shared, and sharing
+  everything shareable would still have left 118 objects. The argument does not
+  depend on the number and the number has moved since. The claim was written from what instancing is *for* rather than
   from what the gate *counts*, which is rule 29's mistake in prose.
   Instancing is still worth doing for file size and GPU memory — there are 12
   groups of geometrically identical meshes — but **welding is the only lever
-  that moves this cap**, and its binding constraint is naming, not geometry:
-  31 objects are named exactly in a gate and 28 more are built by a gate's
-  f-string, so welding those breaks the gate. #92 has the full analysis and
-  the three genuinely safe welds.
+  that moves this cap.**
+  **SECOND CORRECTION, from [#98](https://github.com/captproton/yardstake-ux/pull/98): the "three genuinely safe
+  welds" this entry used to recommend were not safe, and the "40 free slots"
+  was not 40.** That analysis classified an object as free if no gate named it
+  exactly or built it with an f-string, and missed two things — gates match
+  distinguishing SUBSTRINGS (`verify_mounted` finds the sconce's canopy by
+  looking inside names), and nine whole families are addressed individually by
+  f-string. Re-measured, the genuinely free welds were worth **8 slots, not
+  40**.
+  **Then #98 took its own advice and got it wrong a third way.** Three of the
+  five welds it shipped were in `shell` and `roof` — collections `lod2` keeps —
+  so it changed the placement developer's handoff to save two slots. Reverted
+  in [#99](https://github.com/captproton/yardstake-ux/pull/99).
+  The lesson is not "scan harder". It is that **the constraints on a weld are
+  not all in the names**: a name-scan cannot see collection membership, cannot
+  see that a mesh spans two rooms, and cannot see a stability guarantee. The
+  remaining welds want a judgement per group. At 115 of 120 there are five
+  slots, and [#94](https://github.com/captproton/yardstake-ux/issues/94) carries the nine in `Win_` — the only large
+  win left, and it is locked behind the same rectangle-vs-projection gate
+  redesign.
 - **The loft casement**, now that the frames confirm it. It is the second half
   of a recorded discrepancy and exactly the kind of as-built alternative the
   picker work would want to offer — but see the warning above about what a
@@ -597,10 +671,10 @@ In order of value:
 |---|---|
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
 | **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#74](https://github.com/captproton/yardstake-ux/pull/74)). The mini-split head, meter panel, tankless heater and heat pump are all wall- or ground-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but not one of them is drawn with a height |
-| **Export:** mesh instancing | **For file size and GPU memory, NOT for the mesh cap — see [#92](https://github.com/captproton/yardstake-ux/issues/92).** The cap counts objects, and instancing does not change the object count. `lod0` is 118 nodes and **118 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2`, the closet door pair and all four loft windows are each paid for twice or more. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 922.0 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **Export:** mesh instancing | **For file size and GPU memory, NOT for the mesh cap — see [#92](https://github.com/captproton/yardstake-ux/issues/92).** The cap counts objects, and instancing does not change the object count. `lod0` is 115 scene objects and **115 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2`, the closet door pair and all four loft windows are each paid for twice or more. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 950.4 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
-| **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 28.4 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
+| **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 29.6 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
 | **UI:** wire the pickers | **The largest open item, and the only one a homeowner would notice.** `variants.json` now carries both kinds: 8 material `sets` and 3 `presence` sets, with a working `applyChoice()` and `applyLayout()` in TIER-2. Nothing in the model blocks it — and `presence` is the half that *must* be honoured, since ignoring it renders a desk through a bed ([#78](https://github.com/captproton/yardstake-ux/pull/78)) |
 
 Two prerequisites are long discharged: **texel density is fixed at 128 px/ft**
@@ -970,3 +1044,43 @@ Keep these — they caught real errors:
     redesign beat a sixth pass on a diff that size. When review findings stop
     being *wrong* and start being *incomplete in a new place each time*, that
     is the signal to change the shape rather than add another clause.
+
+34. **A guarantee nothing checks is not a guarantee, and the commit message is
+    not the check.** This plan said for twelve PRs that `lod2` must not change
+    without a conversation. [#98](https://github.com/captproton/yardstake-ux/pull/98) changed it anyway — welding
+    three objects that happened to live in the collections `lod2` keeps — and
+    **every gate passed, because no gate was looking.** The only thing standing
+    between the placement developer and a silently altered handoff was a
+    sentence in a document and my assertion in a PR body that `lod2` was
+    untouched. Both were wrong at the same time, which is what a guarantee
+    without a check looks like from the inside: nothing objects.
+    The promise is now `spec.export.lod2_contract` and a build gate.
+    [#99](https://github.com/captproton/yardstake-ux/pull/99) reverted the welds and added it. **Three properties, and
+    each was won by a review finding rather than by design:**
+    *It fails CLOSED.* The first version guarded the comparison with
+    `if contract:`, so deleting the spec block would switch the gate off
+    silently — the same shape of mistake one level up. A missing contract is
+    now a failure, not a skip.
+    *It runs BEFORE the write.* The second version ran in the export report,
+    by which time the handoff file had already been overwritten with the very
+    node list the gate was about to reject. A gate that fires after publishing
+    is not a gate. `lod2` is now built first of the three levels, so a rejected
+    build leaves **every** file in `export/` as it was.
+    *Its failure message had to be RED-tested too.* The third version's message
+    said "the files on disk are still the last ones that passed" — true of two
+    files, not the directory, because `lod0` and `lod1` had already been
+    written. **I overclaimed in prose inside the very commit that existed
+    because prose had been trusted over a check.** The RED test now fingerprints
+    the whole directory rather than the two files I expected to matter.
+    *And the RED test found a real bug the gate would have hidden.* Deleting
+    the contract block leaves `export:` present and **null**, and
+    `spec.get("export", {})` returns `None` for a key that exists and is null
+    — the default only fires on a MISSING key. The gate crashed instead of
+    failing. A traceback does stop a build, but it reports a broken script
+    rather than a broken promise.
+    **The general form: when you write down a guarantee, ask what would happen
+    if someone broke it today.** If the honest answer is "the suite would pass
+    and I would say so in the PR", the guarantee is prose. And when you then
+    build the check, the check's own failure path — its default, its ordering,
+    and the words it prints — is code that has never run, so break it
+    deliberately before believing any of it.
