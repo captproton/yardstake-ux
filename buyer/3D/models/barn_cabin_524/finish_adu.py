@@ -517,6 +517,57 @@ def save_viewable_blend(spec, dest):
     return dest
 
 
+def lod2_contract_nodes(spec):
+    """The declared lod2 node list, or None if the spec declares none.
+
+    lod2 is the placement developer's handoff. The plan has said for twelve
+    PRs that it must not change without a conversation -- and #98 changed it
+    anyway, by welding three objects that happened to live in the `shell` and
+    `roof` collections lod2 keeps. Nothing failed, because the guarantee was
+    written in a document and checked by nobody.
+
+    Geometry is not the thing at risk -- welding preserves every vertex -- the
+    INTERFACE is: how many nodes, and the names they address objects by.
+
+    `(spec.get("export") or {})` rather than `spec.get("export", {})`: the
+    default only fires on a MISSING key, and deleting the contract block
+    leaves `export:` present and null.
+    """
+    contract = (spec.get("export") or {}).get("lod2_contract") or {}
+    return sorted(contract.get("nodes") or []) or None
+
+
+def report_lod2_contract(want, got):
+    """Print the verdict. True only if the contract is satisfied.
+
+    FAILS CLOSED, and that is the whole point. A guard of the form
+    `if contract:` would make deleting the spec block a silent way to switch
+    off the only enforcement the handoff has -- the same shape of mistake #98
+    made, one level up. No contract is not "nothing to check"; it is the
+    check missing.
+    """
+    if not want:
+        print("lod2 CONTRACT MISSING - spec.export.lod2_contract declares no nodes.")
+        print("    This gate is the only thing holding the placement developer's"
+              " handoff. Absent, it fails.")
+        return False
+    if got is None:
+        print("lod2 CONTRACT UNCHECKABLE - lod2 was never exported, so the"
+              " contract could not be compared.")
+        return False
+    if sorted(got) == want:
+        print(f"lod2 contract: {len(want)} nodes, unchanged")
+        return True
+    print("lod2 CONTRACT BROKEN - this is the placement developer's file")
+    for n in sorted(set(want) - set(got)):
+        print(f"    GONE: {n}")
+    for n in sorted(set(got) - set(want)):
+        print(f"     NEW: {n}")
+    print("    If this change is intended, it is a CONVERSATION first,"
+          " then spec.export.lod2_contract, then the commit.")
+    return False
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else HERE / "export"
@@ -525,8 +576,23 @@ def main():
     spec = load_spec(HERE / "spec.yaml")
     results = {}
     lod0_nodes = set()
+    lod2_nodes = None
 
-    for lod in ("lod0", "lod1", "lod2"):
+    # Checked BEFORE the first export, so a build with no contract writes no
+    # artefacts at all rather than publishing first and complaining after.
+    want2 = lod2_contract_nodes(spec)
+    if not want2:
+        report_lod2_contract(want2, None)
+        print("\nnothing exported: the lod2 contract is the precondition,"
+              " not a post-check.")
+        raise SystemExit(1)
+
+    # lod2 GOES FIRST, and the order is the point. The contract is checked
+    # before its own export, so checking it first means checking it before ANY
+    # export: a rejected build leaves the whole directory as it was, not lod0
+    # and lod1 freshly overwritten beside a stale primary. The report is
+    # printed in LOD order regardless -- see `for lod in LODS` below.
+    for lod in ("lod2", "lod0", "lod1"):
         geo, colls = build(spec, cut_openings=(lod != "lod2"))
         bpy.context.scene.unit_settings.scale_length = FOOT_M
 
@@ -557,6 +623,23 @@ def main():
             keep += [o for o in glaz.objects]
 
         p = out / f"barn_cabin_524_{lod}.glb"
+
+        # BEFORE the write, not after. The gate used to run down at the report,
+        # by which time barn_cabin_524_lod2.glb -- the handoff file itself --
+        # had already been overwritten with the very node list the gate
+        # rejects, and the primary .glb copied beside it. A consumer picking
+        # those up between runs would get exactly the artefact the build said
+        # no to. Checked here, a broken contract leaves the last good lod2
+        # where it was.
+        if lod == "lod2":
+            lod2_nodes = sorted(o.name for o in keep)
+            print("-" * 76)
+            if not report_lod2_contract(want2, lod2_nodes):
+                print("\nNOTHING WRITTEN. lod2 is built first precisely so"
+                      " this failure costs no artefacts: every file in"
+                      " export/ is still the one that passed last time.")
+                raise SystemExit(1)
+
         export_glb(p, keep)
         if textured:
             patch_base_color_factors(p, spec)
@@ -581,7 +664,8 @@ def main():
           f"{'bbox (m)':>22}  draco")
     print("-" * 76)
     ok = True
-    for lod, i in results.items():
+    for lod in ("lod0", "lod1", "lod2"):
+        i = results[lod]
         draco = "KHR_draco_mesh_compression" in i["extensions"]
         ok &= draco
         bb = "x".join(f"{v:.2f}" for v in i["bbox"])
@@ -600,6 +684,23 @@ def main():
         print(f"  budget {k}: {results[k]['size_kb']:8.1f} KB / {v:5d} KB ceiling"
               f"   {'OK' if results[k]['size_kb'] <= v else 'OVER'}")
     ok &= not over
+
+    # ---- lod2 is a PROMISE, and until now it was only prose ---------------
+    # lod2 is the placement developer's handoff. The plan has said for twelve
+    # PRs that it must not change without a conversation -- and #98 changed it
+    # anyway, by welding three objects that happened to live in the `shell`
+    # and `roof` collections lod2 keeps. Nothing failed, because the guarantee
+    # was written in a document and checked by nobody.
+    #
+    # The contract is now DECLARED in spec.export.lod2_contract and compared
+    # against what was actually exported. Geometry is not the thing at risk --
+    # welding preserves every vertex -- the INTERFACE is: node count and the
+    # names they address objects by.
+    # Already enforced above, before anything was written. Repeated here so
+    # the report says so, and so an edited LOD tuple that never reaches lod2
+    # is caught rather than passing by omission.
+    print("-" * 76)
+    ok &= report_lod2_contract(want2, lod2_nodes)
 
     W = spec["envelope"]["main_body_width"]["ft"]
     exp_x = (W + 2 * spec["roof"]["eave_overhang"]["ft"]) * FOOT_M
