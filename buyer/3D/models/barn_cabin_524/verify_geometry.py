@@ -391,8 +391,35 @@ def main():
         for o in leaves:
             vs = [o.matrix_world @ v.co for v in o.data.vertices]
             spans.append((min(v.y for v in vs), max(v.y for v in vs)))
+        # OVERLAP IN Y IS NOT "BEHIND THE DOOR". The leaves and the laundry
+        # were compared on the Y axis alone, and the door is in a NORTH-SOUTH
+        # partition -- so the check never asked which SIDE of that partition
+        # the appliance stands on. Move `stacked_wd.x` into the bedroom and
+        # leave y alone: the overlap still holds and the gate still reports
+        # "the laundry is behind one of them". Proved by lesion before fixing.
+        #
+        # The closet is the space between two partition MESHES, read from the
+        # model rather than recomputed from the layout the build used -- the
+        # closet's own west wall and the wall the door sits in.
+        bath_e = bpy.data.objects.get("Part_P_bath_E")
+        bed_w = bpy.data.objects.get("Part_P_bedroom_W")
+        if bath_e is None or bed_w is None:
+            trouble.append("cannot locate the closet's partitions")
+            inside_closet = False
+        else:
+            west = max((bath_e.matrix_world @ v.co).x
+                       for v in bath_e.data.vertices)
+            east = min((bed_w.matrix_world @ v.co).x
+                       for v in bed_w.data.vertices)
+            wx0, wx1 = xw + wd["x"], xw + wd["x"] + wd["w"]
+            inside_closet = wx0 >= west - 0.01 and wx1 <= east + 0.01
+            if not inside_closet:
+                trouble.append(
+                    f"the laundry spans x {wx0:.2f}..{wx1:.2f}, outside the "
+                    f"closet {west:.2f}..{east:.2f} — a door cannot conceal a "
+                    "fixture that is not in the room behind it")
         blocking = [o.name for o, (a, b) in zip(leaves, spans)
-                    if a < wy1 - 0.01 and b > wy0 + 0.01]
+                    if inside_closet and a < wy1 - 0.01 and b > wy0 + 0.01]
 
         if dstate == "open":
             if reveals not in ("north", "south"):
