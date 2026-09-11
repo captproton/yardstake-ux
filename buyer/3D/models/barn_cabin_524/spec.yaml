@@ -1872,8 +1872,14 @@ fixtures:
         y1: 14.44
       - id: kitchen_walkway
         desc: "the working strip in front of the counter run"
+        note: >
+          3'-0" WIDE, NOT 2'-6". It was declared at the 2'-6" minimum, which
+          contradicted the constraint #101 set for it -- a kitchen aisle you
+          work in from one side wants more than a corridor you pass along.
+          Furniture starting just past 5.04 would have satisfied the gate
+          while standing 6" inside the aisle the issue asked for.
         x0: 2.54
-        x1: 5.04
+        x1: 5.54
         y0: 6.46
         y1: 21.34
     arrangements:

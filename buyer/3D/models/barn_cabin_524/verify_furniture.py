@@ -289,10 +289,11 @@ def main():
            for a in arrs for pc in a["pieces"]
            if pc["z0"] < -0.01 or pc["z1"] > 8.0]
     # ---- circulation: how wide are the gaps? -------------------------------
-    # TWELVE GATES ABOVE THIS ONE AND NOT ONE OF THEM ASKED. They check that
+    # ELEVEN GATES BEFORE THIS BLOCK AND NOT ONE OF THEM ASKED. They check that
     # furniture exists, that it is not inside a wall or a fixture or the
     # floor, that it is not standing in a doorway, that arrangements do not
-    # merge. All twelve passed on a sofa with 20 1/2" between its arm and the
+    # merge -- and the twelfth, below, that it sits between floor and ceiling.
+    # All of them passed on a sofa with 20 1/2" between its arm and the
     # loft ladder, in a room whose other half was bare floor -- because "not
     # inside anything" and "reachable around" are different questions, and
     # only the first was being asked. verify_fixtures has had real clearance
@@ -313,7 +314,17 @@ def main():
         # 1. the named runs are the ways through the building. Nothing stands
         #    in them. This is the cheap half and it would NOT have caught the
         #    sofa: it sat beside the run, not in it.
-        intruding = []
+        # A DECLARATION IS NOT A MEASUREMENT. `min_walkway` was loaded and
+        # never used, so the number was documentation: someone could declare
+        # a 14" run, the gate would keep furniture out of it, and the suite
+        # would report a walkway. The runs are checked against it first, so
+        # the thing being kept clear is at least wide enough to walk down.
+        narrow = [f"{r['id']} is {ft(min(r['x1'] - r['x0'], r['y1'] - r['y0']))} "
+                  f"across, under the {ft(min_w)} it is declared against"
+                  for r in circ["runs"]
+                  if min(r["x1"] - r["x0"], r["y1"] - r["y0"]) < min_w - 1e-6]
+
+        intruding = list(narrow)
         for run in circ["runs"]:
             r = (run["x0"], run["x1"], run["y0"], run["y1"])
             for n, b in furn_b.items():
@@ -322,7 +333,8 @@ def main():
                     intruding.append(f"{n} stands in {run['id']}")
         gate("every declared circulation run is clear of furniture",
              not intruding, "; ".join(intruding) or
-             f"{len(circ['runs'])} runs, {len(furn_b)} furniture meshes, none in the way")
+             f"{len(circ['runs'])} runs, each at least {ft(min_w)} across, "
+             f"{len(furn_b)} furniture meshes, none in the way")
 
         # 2. AND THE THINGS YOU HAVE TO GET TO. This is the half that
         #    matters: the sofa sat BESIDE the run, not in it, so gate 1 would
@@ -338,7 +350,7 @@ def main():
         #    question of every solid and fired on a bed's linen 2" from the
         #    window casing over it, and on loft trim ten feet above it — both
         #    fine, and a gate that cries about them gets switched off.
-        pinch = []
+        pinch, judged = [], {}
         for tgt in circ.get("keep_clear", []):
             tb = [bounds(o.name) for o in bpy.data.objects
                   if o.type == "MESH" and o.name.startswith(tgt["prefix"])]
@@ -355,15 +367,26 @@ def main():
                             and b[1][other] > lo[other] + 1e-6):
                         continue                   # no slot on this axis
                     d = max(lo[ax] - b[1][ax], b[0][ax] - hi[ax])
+                    if d >= 0.0:
+                        judged.setdefault(tgt["id"], []).append(d)
                     if against < d < tgt["min"]:
                         pinch.append(
                             f"{n} leaves {ft(d)} to the {tgt['id']} — want "
                             f"{ft(tgt['min'])} clear, or hard against it")
         pinch = sorted(set(pinch))
+        # SAY WHICH OF THE TWO STATES IT FOUND, AND ONLY ABOUT PAIRS IT
+        # ACTUALLY JUDGED. The old message reported both accepted states as
+        # "clear", so a pass could claim the closest thing was clear of
+        # something it was touching. The first rewrite then reported 0.00"
+        # against the ladder while the sofa stood 34.7" away -- it minimised
+        # over every piece and both axes, including pairs that merely share a
+        # range and form no slot at all. These are the gaps the gate judged.
+        near = [f"{k} {ft(min(ds))}" + (" (against it)" if min(ds) <= against else "")
+                for k, ds in sorted(judged.items())]
         gate("furniture keeps its distance from what you have to reach",
              not pinch, "; ".join(pinch[:3]) or
-             (f"{len(circ.get('keep_clear', []))} named, closest furniture is "
-              f"clear" if circ.get("keep_clear") else "nothing declared"))
+             ("nearest furniture: " + "; ".join(near) if near
+              else "nothing declared"))
 
 
     gate("furniture sits between floor and ceiling", not off,
