@@ -148,13 +148,28 @@ def main():
          f"({(xe - xw) * (ye - ys):.2f} less {cut:.2f} crawl hole)")
 
     # And the hatch must fill that opening exactly, or the floor has a gap.
+    #
+    # SIZE WAS NOT ENOUGH, AND THE NAME SAID OTHERWISE. This checked width and
+    # depth only, so a correctly-sized hatch sitting anywhere else in the room
+    # passed under the words "fills its opening" -- rule 29's well-formed
+    # versus well-placed, in a gate written long before that rule existed.
+    # Found by auditing every gate in this repo for name-versus-predicate
+    # mismatch after #93's review found four of them.
     if hole:
         hlo, hhi = bounds("Floor_crawl_hatch")
-        gate("crawl hatch fills its opening",
-             abs((hhi[0] - hlo[0]) - hole["w"]) < 0.01
-             and abs((hhi[1] - hlo[1]) - hole["d"]) < 0.01,
-             f"{hhi[0] - hlo[0]:.3f} x {hhi[1] - hlo[1]:.3f} ft "
-             f"vs {hole['w']:.3f} x {hole['d']:.3f}")
+        hx0, hy0 = xw + hole["x"], ye - (hole["y"] + hole["d"])
+        wrong = []
+        if abs((hhi[0] - hlo[0]) - hole["w"]) > 0.01:
+            wrong.append(f"width {hhi[0] - hlo[0]:.3f} vs {hole['w']:.3f}")
+        if abs((hhi[1] - hlo[1]) - hole["d"]) > 0.01:
+            wrong.append(f"depth {hhi[1] - hlo[1]:.3f} vs {hole['d']:.3f}")
+        if abs(hlo[0] - hx0) > 0.01 or abs(hlo[1] - hy0) > 0.01:
+            wrong.append(f"corner at {hlo[0]:.3f},{hlo[1]:.3f} "
+                         f"but the opening is at {hx0:.3f},{hy0:.3f}")
+        gate("crawl hatch fills its opening", not wrong,
+             "; ".join(wrong) or
+             f"{hhi[0] - hlo[0]:.3f} x {hhi[1] - hlo[1]:.3f} ft at "
+             f"{hlo[0]:.3f},{hlo[1]:.3f}, matching the opening")
 
     # pairwise overlap
     ov = []
@@ -190,21 +205,103 @@ def main():
         total = sum(max(o.dimensions.x, o.dimensions.y) for o in leaves)
         if abs(total - d["w"]) > 0.02:
             bad.append(f"{d['id']}: leaves total {total:.2f} vs {d['w']:.2f} ft")
-        # an OPEN pocket leaf must sit clear of its own opening
+        # An OPEN leaf must clear its opening -- but "clear" means something
+        # different for the two mechanisms, and this test only ever described
+        # one of them. Its own comment said POCKET, while it ran against any
+        # door whose state was open.
+        #
+        # A POCKET leaf retracts into the wall and leaves the opening empty.
+        # A BYPASS leaf CANNOT: it slides behind its partner and stays inside
+        # the opening, because a bypass reveals half and never more. Applying
+        # the pocket rule to a bypass is a predicate no correct bypass can
+        # satisfy -- it failed the moment `default_state.bypass` was honoured
+        # for the first time in #93.
+        #
+        # So the bypass gets the invariant that IS true of it: HALF the
+        # opening clear, no more and no less. That is not a relaxation --
+        # "leaves cover half" is stronger than "leaves are somewhere", and it
+        # catches both a bypass that never moved and one slid clean out of its
+        # own opening.
         if dh.get(typ) == "open":
             pdef = pd[d["in"]]
             c, hw = d["centre_ft"], d["w"] / 2.0
+            spans = []
             for o in leaves:
                 lo, hi = bounds(o.name)
                 if pdef["axis"] == "x":
                     a = (lo[0] - t), (hi[0] - t)
                 else:
                     a = ((NY - t) - hi[1]), ((NY - t) - lo[1])
-                if min(a[1], c + hw) - max(a[0], c - hw) > 0.02:
+                spans.append(a)
+                if typ != "bypass" and min(a[1], c + hw) - max(a[0], c - hw) > 0.02:
                     bad.append(f"{d['id']}: open leaf still blocks its opening")
-    gate("door leaves match their callouts and open leaves are clear",
+            if typ == "bypass":
+                # A REAL INTERVAL UNION, not the hull. The first version took
+                # the span from the lowest clamped start to the highest clamped
+                # end, which is the same number whether the leaves overlap or
+                # sit apart with a GAP between them -- so two leaves covering
+                # two disjoint strips whose outer edges happen to be half the
+                # opening apart would have passed while leaving a hole in the
+                # middle of the covered half. Merge, then sum.
+                clipped = sorted((max(a[0], c - hw), min(a[1], c + hw))
+                                 for a in spans)
+                merged = []
+                for lo_e, hi_e in clipped:
+                    if hi_e <= lo_e:
+                        continue                   # entirely outside the opening
+                    if merged and lo_e <= merged[-1][1] + 1e-9:
+                        merged[-1][1] = max(merged[-1][1], hi_e)
+                    else:
+                        merged.append([lo_e, hi_e])
+                union = sum(hi_e - lo_e for lo_e, hi_e in merged)
+                # ONE CONTIGUOUS RUN, not merely the right total. Switching the
+                # hull for a real union fixed the case where two SMALL leaves
+                # sum to less than a half, and left the case where two leaves
+                # of exactly hw/2 sit at opposite ends of the opening: the
+                # union is hw, the middle is bare, and the pair is stacked on
+                # no half at all. Length was never the invariant -- a covered
+                # HALF is -- and a half is contiguous by definition.
+                if len(merged) != 1:
+                    bad.append(f"{d['id']}: open bypass covers {len(merged)} "
+                               f"separate strips {[[round(v, 2) for v in m] for m in merged]}, "
+                               "not one contiguous half")
+                else:
+                    # AND IT MUST BE ONE OF THE TWO HALVES, not any contiguous
+                    # run of the right length. Two leaves overlapping on an
+                    # interior interval -- say (c-hw+1, c+1) -- are contiguous
+                    # and exactly hw long, and neither end of the opening is
+                    # covered or revealed. Length and contiguity are both
+                    # properties a half HAS; being a half is the property that
+                    # matters, and it is cheap to state directly.
+                    #
+                    # Fourth attempt at this predicate: hull, total length,
+                    # contiguity, and now identity. Each earlier one was the
+                    # nearest stronger measurement rather than the thing meant.
+                    lo_m, hi_m = merged[0]
+                    halves = ((c - hw, c), (c, c + hw))
+                    if not any(abs(lo_m - a) < 0.02 and abs(hi_m - b) < 0.02
+                               for a, b in halves):
+                        bad.append(
+                            f"{d['id']}: open bypass covers "
+                            f"{lo_m:.2f}..{hi_m:.2f}, which is neither the "
+                            f"low half {halves[0][0]:.2f}..{halves[0][1]:.2f} "
+                            f"nor the high half "
+                            f"{halves[1][0]:.2f}..{halves[1][1]:.2f}")
+                    # A leaf hanging outside its own opening is not on a track.
+                    outside = [f"{a:.2f}..{b:.2f}" for a, b in spans
+                               if a < c - hw - 0.02 or b > c + hw + 0.02]
+                    if outside:
+                        bad.append(f"{d['id']}: leaf reaches outside the "
+                                   f"opening: {', '.join(outside)}")
+    # THE NAME CLAIMED THE OPPOSITE OF WHAT IT VERIFIES. "open leaves are
+    # clear" is false for a bypass on EVERY passing run -- one half is
+    # intentionally covered, which is the whole invariant. The name survived
+    # the predicate being rewritten under it, which is how a green run comes
+    # to assert something nobody checked.
+    gate("door leaves match their callouts and open ones clear what they should",
          not bad, "; ".join(bad) or f"{len(lay['doors'])} doors, "
-         f"{len([o for o in bpy.data.objects if o.name.startswith('Door_')])} leaves")
+         f"{len([o for o in bpy.data.objects if o.name.startswith('Door_')])} "
+         f"leaves; pockets retract, a bypass covers half")
 
     # ---- 7. reveals tagged for the trim material ---------------------------
     # A door with sill 0 has no sill reveal, so it contributes 3 faces, not 4.

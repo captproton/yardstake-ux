@@ -219,7 +219,52 @@ def main():
                  + ("…" if len(found) > 3 else "")
                  if found else "MEASURED BUT NEVER BUILT")
 
-    gate("every measured fixture was checked", checked > 0, f"{checked} fixtures")
+    # EVERY ITEM ACCOUNTED FOR, not "at least one was". The name said EVERY
+    # while `checked > 0` said AT LEAST ONE -- so a whole group vanishing from
+    # the spec would drop the count from 10 to 9 and still pass, under a name
+    # claiming completeness. Found by auditing every gate in this repo for
+    # exactly that mismatch after #93's review found four of them.
+    #
+    # The loop skips items with no `x`, which is legitimate -- an exhaust fan
+    # has no footprint -- so the check is that skipping is DELIBERATE: each
+    # item is either checked or named here as having no position.
+    # AND "EXCUSED" MUST MEAN DECLARED, NOT MERELY ABSENT. The first version of
+    # this repair counted every item lacking `x` as legitimately positionless,
+    # which is the SAME condition the loop skips on -- so checked + excused
+    # equalled declared by construction and the predicate could never fail. A
+    # gate that over-claimed, replaced by a gate that cannot fail, is a worse
+    # trade: rule 24, in the repair for rule 29. RED-tested by stripping an `x`
+    # from the refrigerator, which the tautology version passed.
+    #
+    # The exemption is now `no_footprint: true` in the spec, so losing an `x`
+    # by accident looks different from meaning it.
+    excused, skipped = [], []
+    for g in ("kitchen", "bath", "laundry", "access"):
+        for it in fx[g].get("items", []):
+            if "x" in it:
+                continue
+            (excused if it.get("no_footprint") else skipped).append(f"{g}.{it['id']}")
+    declared = [(g, it["id"]) for g in ("kitchen", "bath", "laundry", "access")
+                for it in fx[g].get("items", [])]
+    positionless = excused
+    unaccounted = len(skipped)
+    #
+    # AND THE NAME STILL HAS TO SAY *DECLARED*. The first attempt at this fix
+    # was called "every measured fixture was checked" and it does not verify
+    # that: emptying a whole group from the spec drops `declared` and `checked`
+    # together, the accounting balances, and it passes. RED-tested exactly so.
+    # A gate reading ONE source cannot notice that source shrinking -- rule 29,
+    # met inside the repair for it. What it CAN verify is that nothing the spec
+    # declares was silently skipped by the loop, so that is what it is called.
+    # Catching a spec that lost an entry needs a second source: the built model
+    # itself, via the inverse question -- non-structural geometry no fixture
+    # claims. That is a real gate and it is not this one.
+    gate("every fixture the spec DECLARES was checked or excused",
+         unaccounted == 0,
+         f"{checked} checked + {len(positionless)} declared no_footprint "
+         f"({', '.join(positionless) or 'none'}) = {len(declared)} declared"
+         + (f" — SKIPPED WITHOUT SAYING SO: {', '.join(skipped)}"
+            if skipped else ""))
 
     missing = vents_built(spec)
     n = len(spec["foundation"]["venting"]["openings"])
@@ -297,6 +342,139 @@ def main():
     gate("the stacked pair reads as a washer and dryer", not bad,
          "a drum and a control panel on each unit" if not bad
          else "; ".join(bad))
+
+    # ---- the closet ships open, on the half the laundry is behind ---------
+    # THE FAILURE MODE IS A DOOR IN FRONT OF THE APPLIANCES. `default_state`
+    # declares this and build_adu ignored it for eight tiers -- the flag was
+    # only honoured on walls running east-west, and the closet wall runs
+    # north-south, so the one door the setting exists for never moved.
+    # Gated in BOTH directions: a leaf covering the laundry is the state this
+    # replaced, and both leaves on one half is what "open" has to mean.
+    lay = spec["interior_partitions"]["layout"]
+    # No default here either -- the builder now REQUIRES the key, so a gate
+    # supplying one would be the same disagreement in the other direction.
+    dstate = spec["doors"]["default_state"].get("bypass")
+    leaves = [o for o in bpy.data.objects
+              if o.name.startswith("Door_D-CLOSET")]
+    wy0, wy1 = ye - (wd["y"] + wd["d"]), ye - wd["y"]
+    trouble = []
+    # A VALUE THIS GATE DOES NOT UNDERSTAND IS A FINDING, NOT A DEFAULT. The
+    # first version tested `== "open"` and let everything else fall into the
+    # closed branch, so `bypass: opne` would have been checked as though it
+    # said closed -- and passed. The gate would then be certifying a state
+    # nobody asked for, which is worse than not gating it at all.
+    if dstate not in ("open", "closed"):
+        trouble.append(f"default_state.bypass is {dstate!r}, not 'open' or "
+                       f"'closed' — nothing can verify a state it cannot read")
+    elif len(leaves) != 2:
+        trouble.append(f"{len(leaves)} closet leaves, expected 2")
+    else:
+        # AGAINST THE DECLARED HALF, not against "somewhere plausible". The
+        # first version compared the two leaves' lower bounds to each other and
+        # checked nothing covered the laundry. Both are necessary and neither
+        # is sufficient: a stack shifted into an INTERIOR three-foot interval
+        # has equal starts, misses the laundry, and covers half the opening --
+        # so it passed here AND passed verify_tier1's union, while sitting in
+        # neither half of the door. The expected half is now derived from
+        # `bypass_reveals` and the D-CLOSET callout, which is a fact the build
+        # does not hand this gate.
+        dcl = next(d for d in lay["doors"] if d["id"] == "D-CLOSET")
+        c, hw = dcl["centre_ft"], dcl["w"] / 2.0
+        south = (ye - (c + hw), ye - c)          # lower y
+        north = (ye - c, ye - (c - hw))          # upper y
+        reveals = spec["doors"].get("bypass_reveals")
+        # Revealing the north half means the leaves stack on the south one.
+        want = south if reveals == "north" else north
+        want_name = "south" if reveals == "north" else "north"
+
+        spans = []
+        for o in leaves:
+            vs = [o.matrix_world @ v.co for v in o.data.vertices]
+            spans.append((min(v.y for v in vs), max(v.y for v in vs)))
+        # OVERLAP IN Y IS NOT "BEHIND THE DOOR". The leaves and the laundry
+        # were compared on the Y axis alone, and the door is in a NORTH-SOUTH
+        # partition -- so the check never asked which SIDE of that partition
+        # the appliance stands on. Move `stacked_wd.x` into the bedroom and
+        # leave y alone: the overlap still holds and the gate still reports
+        # "the laundry is behind one of them". Proved by lesion before fixing.
+        #
+        # The closet is the space between two partition MESHES, read from the
+        # model rather than recomputed from the layout the build used -- the
+        # closet's own west wall and the wall the door sits in.
+        bath_e = bpy.data.objects.get("Part_P_bath_E")
+        bed_w = bpy.data.objects.get("Part_P_bedroom_W")
+        if bath_e is None or bed_w is None:
+            trouble.append("cannot locate the closet's partitions")
+            inside_closet = False
+        else:
+            west = max((bath_e.matrix_world @ v.co).x
+                       for v in bath_e.data.vertices)
+            east = min((bed_w.matrix_world @ v.co).x
+                       for v in bed_w.data.vertices)
+            wx0, wx1 = xw + wd["x"], xw + wd["x"] + wd["w"]
+            inside_closet = wx0 >= west - 0.01 and wx1 <= east + 0.01
+            if not inside_closet:
+                trouble.append(
+                    f"the laundry spans x {wx0:.2f}..{wx1:.2f}, outside the "
+                    f"closet {west:.2f}..{east:.2f} — a door cannot conceal a "
+                    "fixture that is not in the room behind it")
+        blocking = [o.name for o, (a, b) in zip(leaves, spans)
+                    if inside_closet and a < wy1 - 0.01 and b > wy0 + 0.01]
+
+        if dstate == "open":
+            if reveals not in ("north", "south"):
+                trouble.append(f"bypass_reveals is {reveals!r}; cannot say "
+                               "which half should be covered")
+            else:
+                for o, s in zip(leaves, spans):
+                    if abs(s[0] - want[0]) > 0.02 or abs(s[1] - want[1]) > 0.02:
+                        trouble.append(
+                            f"{o.name} spans {s[0]:.2f}..{s[1]:.2f}, not the "
+                            f"{want_name} half {want[0]:.2f}..{want[1]:.2f}")
+                if blocking:
+                    trouble.append(f"{', '.join(blocking)} covers the laundry")
+        elif dstate == "closed":
+            # CLOSED IS BOTH HALVES, not "something is in front of the
+            # laundry". A pair stacked ON the laundry half satisfied that and
+            # was reported as closed AND as side by side, which is two wrong
+            # answers from one weak test.
+            # EACH LEAF AGAINST ITS OWN HALF. Testing the combined hull plus
+            # "the spans touch" let UNEQUAL leaves pass -- a 4.5 ft leaf beside
+            # a 1.5 ft one spans the whole 6 ft opening and touches in the
+            # middle, while the builder makes two half-width leaves. The hull
+            # is a property of the pair; the invariant is a property of each.
+            got = sorted(spans)
+            for want_half, name, s in ((south, "south", got[0]),
+                                       (north, "north", got[1])):
+                if abs(s[0] - want_half[0]) > 0.02 or abs(s[1] - want_half[1]) > 0.02:
+                    trouble.append(
+                        f"closed leaf spans {s[0]:.2f}..{s[1]:.2f}, not the "
+                        f"{name} half {want_half[0]:.2f}..{want_half[1]:.2f}")
+            # AND THE CLAIM ABOUT THE LAUNDRY MUST BE CHECKED, NOT ASSERTED.
+            # `blocking` was computed here and never read, while the success
+            # line said "the laundry is behind one of them". If the fixture
+            # ever moves outside the opening the two-half check still passes
+            # and this gate goes on making that claim -- a message asserting a
+            # relationship nothing verified, which is the class this PR has
+            # been chasing for four review passes.
+            if not blocking:
+                trouble.append("closed leaves cover both halves but NOTHING "
+                               "covers the laundry — the fixture is not behind "
+                               "this door at all")
+    # THE MESSAGE MUST DESCRIBE WHAT WAS VERIFIED. A fixed string read "the
+    # washer/dryer is exposed" while the gate correctly verified the CLOSED
+    # case; the replacement then hard-coded "stacked south", which is wrong
+    # whenever `bypass_reveals` is south. Both are #79's message-vs-predicate
+    # drift, and the second one was introduced while fixing the first.
+    if trouble:
+        detail = "; ".join(trouble)
+    elif dstate == "open":
+        detail = (f"both leaves on the {want_name} half; the "
+                  f"{reveals} half is clear and the washer/dryer is exposed")
+    else:
+        detail = "leaves cover both halves; the laundry is behind one of them"
+    gate(f"the closet bypass honours default_state ({dstate})", not trouble,
+         detail)
 
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")

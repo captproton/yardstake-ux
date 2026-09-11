@@ -959,7 +959,28 @@ def build(spec, cut_openings=True):
         typ = "bypass" if d["id"].endswith("CLOSET") else (
             "double_pocket" if "DBL" in d["id"] else "pocket")
         c, hw = d["centre_ft"], d["w"] / 2.0
-        opn = state.get(typ, "closed") == "open"
+        # VALIDATE THE STATE BEFORE DERIVING FROM IT. `== "open"` quietly turns
+        # every value that is not exactly "open" into CLOSED, so `bypass: opne`
+        # BUILT the closed layout and shipped it -- a verifier reporting it
+        # afterwards is too late, because the .blend and the .glb are already
+        # wrong. Validating `bypass_reveals` while leaving this line to guess
+        # fixed the smaller half of one problem.
+        # NO DEFAULT. `state.get(typ, "closed")` silently supplied a state for
+        # a key nobody wrote, which is the same guess as reading a typo as
+        # closed -- and it left the builder ACCEPTING a spec its own verifier
+        # rejects, because the gate reads the key without a default. Two
+        # readers of one setting disagreeing about what "missing" means is how
+        # a spec becomes unverifiable while still building.
+        #
+        # Every door type this file builds is declared in spec.doors, so
+        # requiring the key costs nothing and removes the disagreement.
+        declared = state.get(typ)
+        if declared not in ("open", "closed"):
+            raise SystemExit(
+                f"doors.default_state.{typ} is {declared!r}; expected 'open' "
+                "or 'closed'. A door state that cannot be read must not be "
+                "guessed at -- the build would ship a state nobody asked for.")
+        opn = declared == "open"
         if pdef["axis"] == "x":                       # wall runs east-west
             wy = iy(pdef["at_ft"]) + ti / 2
             spans = ([(c - hw, c), (c, c + hw)] if typ == "double_pocket"
@@ -980,8 +1001,38 @@ def build(spec, cut_openings=True):
             wx = ix(pdef["at_ft"]) - ti / 2
             spans = ([(c - hw, c), (c, c + hw)] if typ == "bypass"
                      else [(c - hw, c + hw)])
+            # THIS BRANCH USED TO IGNORE `opn` ENTIRELY. `default_state.bypass`
+            # has been in the spec since Tier 1, and the closet wall runs
+            # north-south, so the one door the setting exists for went down the
+            # branch that never read it: setting it to `open` changed nothing
+            # and said nothing. The same defect `views.py` had with `presence`
+            # and the window builder had with `type` -- a declared setting the
+            # build does not honour.
+            # VALIDATED, NOT ASSUMED. Read free-form, any typo -- `North`,
+            # `nrth`, a missing key -- fell through the else and silently built
+            # the SOUTH reveal, which is the opposite door. A spec-driven build
+            # that guesses when the spec is wrong is how `default_state.bypass`
+            # came to be inert for eight tiers in the first place.
+            reveal_end = dspec.get("bypass_reveals")
+            if opn and typ == "bypass" and reveal_end not in ("north", "south"):
+                raise SystemExit(
+                    f"doors.bypass_reveals is {reveal_end!r}; a bypass reveals "
+                    "'north' or 'south' and nothing else. An open bypass "
+                    "cannot be built without knowing which half it clears.")
             for k, (a, b) in enumerate(spans):
                 off = (lt if k else -lt)              # bypass leaves offset in depth
+                if opn and typ == "bypass":
+                    # A bypass reveals HALF its opening: one leaf slides its own
+                    # width behind the other. WHICH leaf is a real choice, not a
+                    # detail -- the interesting half of a closet is not always
+                    # the same end, so it is declared rather than hard-coded.
+                    # k=0 is the span nearer c - hw, which iy() maps to the
+                    # NORTH leaf, so revealing the north end moves k=0 south.
+                    lw = b - a
+                    moves = (k == 0) if reveal_end == "north" else (k == 1)
+                    if moves:
+                        a, b = ((a + lw, b + lw) if reveal_end == "north"
+                                else (a - lw, b - lw))
                 leaf(f"Door_{d['id']}_{k}", wx - lt / 2 + off, wx + lt / 2 + off,
                      iy(b), iy(a), 0, d["h"])
 
