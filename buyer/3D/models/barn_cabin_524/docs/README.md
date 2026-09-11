@@ -35,7 +35,8 @@ Phases P1–P4 are complete and gated:
 | **Openings** | Window sash built from the declared type; exterior casing on all eleven openings | **done** ([#89](https://github.com/captproton/yardstake-ux/pull/89)) — every window was one flat pane while the spec typed all ten, and every `Trim_` was on the inside of the wall |
 | **Openings** | Sash visible from indoors; a stool and apron under every window | **done** ([#90](https://github.com/captproton/yardstake-ux/pull/90)) — #89's sash was a decal on the outside face, and no window had a ledge; both found by looking, neither by a gate |
 | **Tier 3h** | The stacked W/D gets a drum and a control panel | **done** ([#91](https://github.com/captproton/yardstake-ux/pull/91)) — built since #68 and shaped like a cupboard; built from primitives, not downloaded |
-| **Loft access** | The ladder rebuilt from the builder's own transcript | **done** ([#96](https://github.com/captproton/yardstake-ux/pull/96)) — nine rungs at 12" on a 20° rake, dadoed into 1"×3½" rails that run 3 ft over the loft as handles; the rake gate now measures the straight back edge rather than the bbox. Refinements in [#97](https://github.com/captproton/yardstake-ux/issues/97) |
+| **Loft access** | The ladder rebuilt from the builder's own transcript | **done** ([#96](https://github.com/captproton/yardstake-ux/pull/96)) — nine rungs at 12" on a 20° rake, dadoed into 1"×3½" rails that run 3 ft over the loft as handles |
+| **Loft access** | The ladder laid out on the rail, dadoed, hung on real hardware, and moved out of the wall | **done** ([#100](https://github.com/captproton/yardstake-ux/pull/100)) — all of [#97](https://github.com/captproton/yardstake-ux/issues/97), plus a trim board the source describes and the model never had, plus the discovery that **the top 10" of both rails ran inside the loft floor slab**. Four review rounds, and the last two changed no geometry at all |
 | **Export** | Five welds for mesh headroom, and #92's arithmetic corrected | **done** ([#98](https://github.com/captproton/yardstake-ux/pull/98)) — 119 → 112, and **three of the five were a mistake**; see the row below |
 | **Handoff** | The three `lod2` welds reverted, and the contract gated | **done** ([#99](https://github.com/captproton/yardstake-ux/pull/99)) — #98 changed the placement developer's file while its PR body said it had not; `lod2` is byte-identical again and the promise is now a build gate rather than a sentence |
 | **Doors** | The closet ships OPEN on the laundry half | **done** ([#93](https://github.com/captproton/yardstake-ux/pull/93)) — `default_state.bypass` had been inert for eight tiers; fourteen review findings, every one in the gates and none in the geometry |
@@ -56,7 +57,7 @@ still never moved.
 **Tier 3 is complete** — casework, both sinks, both taps, the mirror, the
 toilet, the tub/shower, the crawl hole, the stacked W/D, all three appliances,
 the porch sconce and, last, the furniture — **and the building stands on a real
-foundation.** 115 meshes, all of them shipped in `lod0` at **950.4 KB** against
+foundation.** 117 meshes, all of them shipped in `lod0` at **960.2 KB** against
 a 4 MB ceiling, with 49/49 fixture gates, 12/12 geometry gates and 11/11
 furniture gates.
 
@@ -578,10 +579,32 @@ and deliberately left out of it:
   and a radiused top has a bounding box whose diagonal is not its rake, and
   the topmost vertex is on the radius. It now measures the **straight back
   edge** and reads 19.98°.
-  [#97](https://github.com/captproton/yardstake-ux/issues/97) carries what review found and the mesh cap deferred:
-  rung spacing measured vertically rather than along the rail, "top tread
-  level" compared by centre rather than top face, a rake gate that samples one
-  rail and two vertices, and dados that overlap solid rail.
+  ~~[#97](https://github.com/captproton/yardstake-ux/issues/97) carries what review found and the mesh cap
+  deferred.~~ **Shipped in [#100](https://github.com/captproton/yardstake-ux/pull/100)**, and it grew well past its
+  six items.
+  **The rungs were laid out on the wall, not the board.** `zz = loft_sf - k*rs`
+  steps a foot of HEIGHT, which at 20° is 12.77" along the rail; the top rung
+  is pinned, so the error accumulated downward and the bottom rung finished
+  about 6" low. The tape in the video is clamped to the rail.
+  **The top tread then went wrong in the mirror.** #97 said it was level by
+  its CENTRE, leaving the face 11/16" proud; the fix moved it to the top face
+  but onto the SUBFLOOR, leaving it 3/4" below the surface you step on. Review
+  caught that. It is `Floor_loft`'s own top face now — read off the object,
+  not recomputed.
+  **The rungs are the same 1"×3½" fir as the rails**, so they are treads and
+  not sticks. Sourced to the project owner and said so: the transcript
+  dimensions only the RAIL stock at 0:44 and never dimensions the rungs, and
+  attributing it to the footage would have invented a line that is not there.
+  **The dado is a recess now**, two laminations with the inner one interrupted
+  at every rung, clipped Sutherland-Hodgman so the flat foot and the radiused
+  top survive.
+  **And the ladder was inside the building.** A person found it by looking at a
+  render: the top 10" of both rails ran inside the loft floor slab, 3.84" past
+  its face on a board 3.5" deep. Two errors pushing the same way — the ladder
+  was placed by putting the rail's CENTRE LINE on the partition face, and the
+  loft floor overhangs that wall by 1 3/4". **Every ladder gate measured the
+  ladder against itself**, so a perfectly built ladder buried to its shoulders
+  passed all of them. That is rule 31, and it is now a gate.
 - **`spec.yaml` has no CODEOWNERS protection, and the `lod2` contract asks for
   it.** Copilot's second pass on [#99](https://github.com/captproton/yardstake-ux/pull/99) made a fair point: the
   contract's baseline and the thing it gates live in the same editable file, so
@@ -612,7 +635,7 @@ the step where twenty PRs of geometry become something a buyer can click.
 written**, because both came out of work that looked finished:
 
 - [#92](https://github.com/captproton/yardstake-ux/issues/92) — `lod0` is at
-  **115 of 120 meshes**, and instancing will NOT help: the cap counts objects.
+  **117 of 120 meshes**, and instancing will NOT help: the cap counts objects.
   Welding is the only lever, its constraint is naming rather than geometry —
   **and naming is not the only constraint.** See the corrected entry below:
   #98 took five welds on a naming analysis alone and three of them were in
@@ -627,7 +650,7 @@ written**, because both came out of work that looked finished:
 Two smaller items are worth naming because they are now more interesting than
 when they were filed:
 
-- **The mesh cap is at 115 of 120, and it is now its own issue:**
+- **The mesh cap is at 117 of 120, and it is now its own issue:**
   [#92](https://github.com/captproton/yardstake-ux/issues/92).
   **CORRECTION — this entry previously said instancing "buys the headroom the
   next fixture will need". IT BUYS NONE.** The gate counts OBJECTS:
@@ -656,7 +679,7 @@ when they were filed:
   The lesson is not "scan harder". It is that **the constraints on a weld are
   not all in the names**: a name-scan cannot see collection membership, cannot
   see that a mesh spans two rooms, and cannot see a stability guarantee. The
-  remaining welds want a judgement per group. At 115 of 120 there are five
+  remaining welds want a judgement per group. At 117 of 120 there are three
   slots, and [#94](https://github.com/captproton/yardstake-ux/issues/94) carries the nine in `Win_` — the only large
   win left, and it is locked behind the same rectangle-vs-projection gate
   redesign.
@@ -671,8 +694,8 @@ In order of value:
 |---|---|
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
 | **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#74](https://github.com/captproton/yardstake-ux/pull/74)). The mini-split head, meter panel, tankless heater and heat pump are all wall- or ground-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but not one of them is drawn with a height |
-| **Export:** mesh instancing | **For file size and GPU memory, NOT for the mesh cap — see [#92](https://github.com/captproton/yardstake-ux/issues/92).** The cap counts objects, and instancing does not change the object count. `lod0` is 115 scene objects and **115 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2`, the closet door pair and all four loft windows are each paid for twice or more. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 950.4 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **Export:** mesh instancing | **For file size and GPU memory, NOT for the mesh cap — see [#92](https://github.com/captproton/yardstake-ux/issues/92).** The cap counts objects, and instancing does not change the object count. `lod0` is 117 scene objects and **117 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2`, the closet door pair and all four loft windows are each paid for twice or more. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
+| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 960.2 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
 | **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
 | **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 29.6 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
 | **UI:** wire the pickers | **The largest open item, and the only one a homeowner would notice.** `variants.json` now carries both kinds: 8 material `sets` and 3 `presence` sets, with a working `applyChoice()` and `applyLayout()` in TIER-2. Nothing in the model blocks it — and `presence` is the half that *must* be honoured, since ignoring it renders a desk through a bed ([#78](https://github.com/captproton/yardstake-ux/pull/78)) |
@@ -1084,3 +1107,51 @@ Keep these — they caught real errors:
     build the check, the check's own failure path — its default, its ordering,
     and the words it prints — is code that has never run, so break it
     deliberately before believing any of it.
+
+35. **A LESION HAS TO BREAK THE BUILD WITHOUT TELLING THE GATE.** Rule 24 says
+    break the line that makes each gate pass. [#100](https://github.com/captproton/yardstake-ux/pull/100) found the
+    way that goes wrong: **three times in one PR I wrote a lesion that changed
+    the SPEC**, and the spec is the gate's half of the comparison, so the
+    expectation moved with the build and the gate passed. Each time the
+    conclusion looked like "this gate cannot be broken", which is the most
+    dangerous false reassurance a gate can give.
+    *Rung count.* Set `rung_count` to 1 in the spec: one rung built, one rung
+    wanted, PASS. The real lesion builds one while the spec still says nine.
+    *Dado depth.* Set `dado_depth` to 3/16": the rail is cut shallow and the
+    gate wants shallow, PASS. The real lesion halves it in the BUILDER.
+    *Flange.* Same shape, caught before it shipped.
+    **And a lesion can fail for the wrong reason, which is just as useless.**
+    The gate for *"the ladder clears the loft floor edge"* was rewritten to
+    test EDGES rather than vertices, because a rail's long edge spans from the
+    main floor to the overrun and can cross the floor slab with no vertex
+    inside it. The obvious lesion — move the ladder north — did fail, but it
+    failed the OLD gate too: the dado laminations leave vertices all along the
+    run, so eight of them landed in the slab. Proving the new gate needed a
+    rail with no vertices in the band at all: remove the dado interruptions
+    first, THEN move it. Old gate: 0 vertices flagged, on a rail 0.72" inside
+    the slab. New gate: caught.
+    **The general form: a lesion is an experiment, and an experiment needs a
+    control.** Before believing a gate is strong, ask what the PREVIOUS
+    version of it would have said about the same lesion. If the answer is
+    "also failed", the lesion has not tested the change — and if the answer is
+    "passed", write that number down, because it is the only evidence the
+    rewrite was worth doing.
+
+36. **A GATE THAT RECOMPUTES THE BUILD'S ARITHMETIC CANNOT DISAGREE WITH IT,
+    and this repo now has four instances.** Rule 29 said it about expressions;
+    [#100](https://github.com/captproton/yardstake-ux/pull/100) shows the shape it actually takes — a gate comparing
+    a built object against a SUM the builder used, rather than against the
+    OBJECT that sum produced.
+    `loft_sf + ff` is the top of the loft's finished floor. Three gates
+    computed it: the tread's target height, the ledger's hang point, and the
+    slab's own extent. Move `Floor_loft` and every one of them goes on
+    measuring against a surface that is no longer there. Reviewers caught two
+    of the three one round apart, and the third only because the second was
+    fixed and the asymmetry showed.
+    They read `bounds("Floor_loft")` now, and the difference is not cosmetic:
+    the RED test moves the floor 5/8" while the spec's sum stays put, and four
+    gates fail that previously could not.
+    **Ask of every gate: what would have to be true for this to fail? If the
+    only answer involves the gate's own arithmetic being wrong, it is
+    checking itself.** The fix is always the same — find the object the claim
+    is about and measure that.
