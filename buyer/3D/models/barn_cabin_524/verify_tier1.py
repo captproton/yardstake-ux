@@ -486,15 +486,18 @@ def main():
     bad_r = []
     if len(cent) != want_n:
         bad_r.append(f"{len(cent)} rungs, want {want_n}")
-    # THE FINISHED FLOOR, not the subfloor. loft_sf is the top of the
-    # subfloor and Floor_loft lays `ff` of finish on it; comparing to loft_sf
-    # approves a tread sitting 3/4" BELOW the surface you step onto, and
-    # rejects one correctly flush with it.
-    loft_walk = loft_sf + ff
+    # THE FINISHED FLOOR, not the subfloor -- and READ OFF THE FLOOR, not
+    # recomputed. `loft_sf + ff` is the arithmetic the builder already used,
+    # so the gate and the build cannot disagree: move Floor_loft and the
+    # tread is measured against a surface that is no longer there. The ledger
+    # gate below was corrected the same way one review earlier; this is the
+    # other half of the same mistake, left behind.
+    loft_walk = bounds("Floor_loft")[1][2]
     if tops and abs(tops[-1] - loft_walk) > 0.005:
         bad_r.append(f"top tread FACE at {ft(tops[-1])}, not level with the "
                      f"loft floor at {ft(loft_walk)} "
-                     f"(subfloor {ft(loft_sf)} + {ft(ff)} finish)")
+                     f"(Floor_loft's own top face; the spec's "
+                     f"{ft(loft_sf)} + {ft(ff)} says {ft(loft_sf + ff)})")
     # GUARD THE DETAIL STRING, not just the predicate. `gate(...)` takes its
     # detail as an already-evaluated argument, so with nought or one rung
     # `min(along)` raises ValueError and the verifier dies instead of
