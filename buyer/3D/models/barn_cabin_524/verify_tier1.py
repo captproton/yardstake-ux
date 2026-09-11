@@ -421,6 +421,24 @@ def main():
         if abs(spread - dep_) > 0.002:
             bad_rail.append(f"{side} rail measures {ft(spread)} across its own "
                             f"rake, not {ft(dep_)} -- it is not one straight board")
+        # AND THE ENVELOPE IS NOT STRAIGHTNESS. The spread is the widest the
+        # board gets anywhere; a section that bows or steps INWARD keeps the
+        # same extremes and the same fitted angle and passes. A straight board
+        # has no vertex between its two long faces at all -- every one is on
+        # one face or the other -- except where the 1" radius turns the top.
+        a2_ = math.radians(ang_)
+        uy_, uz_ = math.sin(a2_), math.cos(a2_)
+        off_ = [(w.y * math.cos(a2_) - w.z * math.sin(a2_)) for w in vs_]
+        mid_ = (min(off_) + max(off_)) / 2
+        run_ = [w.y * uy_ + w.z * uz_ for w in vs_]
+        top_ = max(run_) - la["top_radius"]["ft"] - 0.002
+        astray = [(t_, o_ - mid_) for t_, o_ in zip(run_, off_)
+                  if abs(abs(o_ - mid_) - dep_ / 2) > 0.002 and t_ < top_]
+        if astray:
+            worst = max(astray, key=lambda p: dep_ / 2 - abs(p[1]))
+            bad_rail.append(f"{side} rail has {len(astray)} vertices between "
+                            f"its faces (worst {ft(dep_ / 2 - abs(worst[1]))} "
+                            f"in) -- it bows or steps somewhere along the run")
 
     gate("both rails are straight boards on the 20 degree rake", not bad_rail,
          "; ".join(bad_rail) or
@@ -554,12 +572,25 @@ def main():
             for edge in (zc - rt_ / 2, zc + rt_ / 2):
                 if not any(abs(z - edge) < 0.004 for z in zs_side):
                     missing.append(f"{side} rail has no dado shoulder at {ft(edge)}")
-    # and the rungs have to reach into both slots
-    if not missing:
-        rgx0, rgx1 = min(w.x for w in rung_v), max(w.x for w in rung_v)
-        if rgx0 > slots["W"][0] + 0.002 or rgx1 < slots["E"][1] - 0.002:
-            missing.append(f"the rungs span {ft(rgx0)}..{ft(rgx1)} and do not "
-                           f"reach into both slots")
+    # AND EACH RUNG SEPARATELY. Taking the extent across ALL the rungs lets
+    # one shortened or shifted rung miss its slot while another supplies the
+    # global minimum and maximum -- the aggregate is seated even though that
+    # rung is not. Every rung is asked about its own two ends.
+    #
+    # `if rung_v` because an EMPTY rung mesh reaches here with `missing` still
+    # empty -- no shoulder loop runs when there are no rungs -- and min() over
+    # nothing raises before the wrong-count gate above can report it.
+    if not rung_v:
+        missing.append("Ladder_rungs is empty — there is nothing to seat")
+    elif not missing:
+        for _, zc in cent:
+            own = [w for w in rung_v if abs(w.z - zc) < rt_]
+            if not own:
+                continue
+            a0, a1 = min(w.x for w in own), max(w.x for w in own)
+            if a0 > slots["W"][0] + 0.002 or a1 < slots["E"][1] - 0.002:
+                missing.append(f"the rung at {ft(zc)} spans {ft(a0)}..{ft(a1)} "
+                               f"and does not reach into both slots")
     gate("every rung is dadoed into both rails, not buried in them",
          not missing,
          "; ".join(missing[:3]) or
@@ -649,7 +680,20 @@ def main():
     # the flange diameter rather than giving it a number of its own, because
     # that is the relationship the frame shows; this checks the built board
     # kept it, so a board that drifts back to a full-height fascia fails.
-    led_h_want = la["ledger"]["height"]["ft"]
+    # AGAINST THE FLANGE, NOT AGAINST THE SPEC'S COPY OF IT. The spec says
+    # the board's height is `derived: slide_rod.flange.diameter`, and that
+    # text is prose -- nothing enforced it. Comparing the built board with
+    # `ledger.height` lets the flange change while the board does not, and
+    # the gate goes on passing over a broken relationship. So the flange is
+    # the authority, and the spec's own number is checked against it too,
+    # which is what makes `derived:` mean something.
+    led_h_want = fl_pre["diameter"]["ft"]
+    if abs(la["ledger"]["height"]["ft"] - led_h_want) > 1e-6:
+        bad_b = (f"spec ledger.height {ft(la['ledger']['height']['ft'])} no "
+                 f"longer equals the flange it says it is derived from, "
+                 f"{ft(led_h_want)}")
+    else:
+        bad_b = None
     led_h_got = (bounds("Ledger_loft")[1][2] - bounds("Ledger_loft")[0][2]
                  ) if led else None
     # AND IT HANGS FROM THE LOFT FLOOR SURFACE. Checked against the floor
@@ -670,15 +714,17 @@ def main():
     led_on_wall = led is not None and (
         abs(led_b0[1][2] - fl_b[1][2]) < 0.004          # top flush with the floor
         and abs(led_b0[1][1] - fl_b[0][1]) < 0.004)     # back against its edge
-    ok_led = (led is not None and abs(led_h_got - led_h_want) < 0.004
-              and led_on_wall)
+    ok_led = (led is not None and bad_b is None
+              and abs(led_h_got - led_h_want) < 0.004 and led_on_wall)
     gate("the trim board is the height of the flange and hangs from the floor",
          ok_led,
          (f"Ledger_loft {ft(led_h_got)} tall, matching the "
           f"{ft(fl_pre['diameter']['ft'])} flange, hung from Floor_loft at "
           f"{ft(fl_b[1][2])} and applied to its edge at {ft(fl_b[0][1])}")
          if led and ok_led else
-         ((f"Ledger_loft is {ft(led_h_got)} tall, want {ft(led_h_want)}"
+         (bad_b or
+          (f"Ledger_loft is {ft(led_h_got)} tall, want the flange's "
+           f"{ft(led_h_want)}"
            if abs(led_h_got - led_h_want) >= 0.004 else
            f"Ledger_loft tops out at {ft(led_b0[1][2])} / backs onto "
            f"{ft(led_b0[1][1])}, not hung from Floor_loft at "
@@ -780,13 +826,34 @@ def main():
     # the rail go, and at what height.
     floor_face = bounds("Loft_floor")[0][1]
     floor_lo, floor_hi = bounds("Loft_floor")[0][2], bounds("Floor_loft")[1][2]
-    intruding = [v for v in rail_v
-                 if v.y > floor_face + 0.004 and floor_lo - 0.004 <= v.z <= floor_hi + 0.004]
-    deep = max((v.y - floor_face for v in intruding), default=0.0)
-    gate("the ladder clears the loft floor edge it leans on", not intruding,
-         f"{len(intruding)} rail vertices up to {ft(deep)} inside the floor "
-         f"slab" if intruding else
-         f"rail touches the edge at {ft(floor_face)} and never passes it")
+    # EDGES, NOT VERTICES. A rail's long edges run from the main floor to the
+    # overrun in one span, so the rail can cross the floor's slab between two
+    # vertices with neither of them inside it -- and a vertex test sees
+    # nothing. The rail is a solid; ask its edges.
+    #
+    # Each edge is a straight segment, so clip it to the slab's z band and the
+    # deepest incursion is at one of the two clipped ends. That is exact, and
+    # it costs one pass over the edge list.
+    lad = bpy.data.objects["Ladder_loft"]
+    M = lad.matrix_world
+    deep, worst_z = 0.0, None
+    for e in lad.data.edges:
+        p0 = M @ lad.data.vertices[e.vertices[0]].co
+        p1 = M @ lad.data.vertices[e.vertices[1]].co
+        z0, z1 = p0.z, p1.z
+        lo_, hi_ = max(min(z0, z1), floor_lo), min(max(z0, z1), floor_hi)
+        if lo_ > hi_:
+            continue                                  # never in the slab's band
+        for zc_ in (lo_, hi_):
+            f_ = 0.0 if abs(z1 - z0) < 1e-9 else (zc_ - z0) / (z1 - z0)
+            y_ = p0.y + f_ * (p1.y - p0.y)
+            if y_ - floor_face > deep:
+                deep, worst_z = y_ - floor_face, zc_
+    gate("the ladder clears the loft floor edge it leans on", deep <= 0.004,
+         f"a rail edge reaches {ft(deep)} inside the floor slab at {ft(worst_z)}"
+         if deep > 0.004 else
+         f"every rail edge stops at the edge face {ft(floor_face)} "
+         f"or south of it")
 
     gh = spec["loft_access"]["guardrail"]["height"]["ft"]
     lo, hi = bounds("Rail_loft")
