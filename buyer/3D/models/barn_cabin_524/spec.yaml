@@ -826,6 +826,50 @@ windows:
         method transfers; only the crop and the level anchors change.
 
 # ---------------------------------------------------------------------------
+export:
+  lod2_contract:
+    note: >
+      THE PLACEMENT DEVELOPER'S FILE, AND NOW A CHECKED PROMISE. lod2 has been
+      described in the plan as stable since P4, and #70 changed it only after a
+      conversation -- but the guarantee lived in a document and nothing
+      enforced it. #98 then changed lod2 by accident: three objects were welded
+      for the mesh cap, and they happened to live in the `shell` and `roof`
+      collections lod2 keeps. Every gate passed. The massing was untouched
+      (1464 verts, 744 triangles, identical bbox) -- what changed was the
+      INTERFACE: 24 nodes became 21, and three names went away.
+      finish_adu now compares the export against this list and fails if they
+      differ. Geometry is not what is at risk here; the node inventory is.
+    changing_it: >
+      A conversation with whoever consumes lod2, THEN this list, THEN the
+      commit. In that order. Editing this list to make a red build go green is
+      the one thing it exists to prevent.
+    nodes:
+      - Dormer_cheek_E
+      - Dormer_cheek_W
+      - Dormer_face_E
+      - Dormer_face_W
+      - Eave_band_E
+      - Eave_band_W
+      - Found_pier
+      - Found_rim
+      - Found_stemwall
+      - Gable_N
+      - Gable_S_porch
+      - Loft_floor
+      - Porch_ceiling
+      - Porch_post_1
+      - Porch_post_2
+      - Porch_slab
+      - Ridge_beam
+      - Roof_dormer_E
+      - Roof_dormer_W
+      - Roof_main
+      - Wall_E
+      - Wall_N
+      - Wall_S
+      - Wall_W
+
+# ---------------------------------------------------------------------------
 doors:
   # Tier 1 leaf geometry. Sizes are plan callouts; positions come from
   # interior_partitions.layout.doors and openings.main_floor.

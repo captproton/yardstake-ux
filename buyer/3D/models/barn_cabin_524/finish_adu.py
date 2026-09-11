@@ -567,6 +567,8 @@ def main():
         results[lod] = info
         if lod == "lod0":
             lod0_nodes = {o.name for o in keep}
+        if lod == "lod2":
+            lod2_nodes = sorted(o.name for o in keep)
 
     all_mats = sorted(m.name for m in bpy.data.materials)
     vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes)
@@ -600,6 +602,34 @@ def main():
         print(f"  budget {k}: {results[k]['size_kb']:8.1f} KB / {v:5d} KB ceiling"
               f"   {'OK' if results[k]['size_kb'] <= v else 'OVER'}")
     ok &= not over
+
+    # ---- lod2 is a PROMISE, and until now it was only prose ---------------
+    # lod2 is the placement developer's handoff. The plan has said for twelve
+    # PRs that it must not change without a conversation -- and #98 changed it
+    # anyway, by welding three objects that happened to live in the `shell`
+    # and `roof` collections lod2 keeps. Nothing failed, because the guarantee
+    # was written in a document and checked by nobody.
+    #
+    # The contract is now DECLARED in spec.export.lod2_contract and compared
+    # against what was actually exported. Geometry is not the thing at risk --
+    # welding preserves every vertex -- the INTERFACE is: node count and the
+    # names they address objects by.
+    contract = spec.get("export", {}).get("lod2_contract")
+    if contract:
+        want = sorted(contract["nodes"])
+        got = sorted(lod2_nodes)
+        print("-" * 76)
+        if got == want:
+            print(f"lod2 contract: {len(got)} nodes, unchanged")
+        else:
+            ok = False
+            print(f"lod2 CONTRACT BROKEN — this is the placement developer's file")
+            for n in sorted(set(want) - set(got)):
+                print(f"    GONE: {n}")
+            for n in sorted(set(got) - set(want)):
+                print(f"     NEW: {n}")
+            print("    If this change is intended, it is a CONVERSATION first,"
+                  " then spec.export.lod2_contract, then the commit.")
 
     W = spec["envelope"]["main_body_width"]["ft"]
     exp_x = (W + 2 * spec["roof"]["eave_overhang"]["ft"]) * FOOT_M

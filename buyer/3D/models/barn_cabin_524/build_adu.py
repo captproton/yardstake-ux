@@ -610,16 +610,17 @@ def build(spec, cut_openings=True):
                          -1 if side == "W" else +1)
 
     # dormer cheek wall at the inboard (south) end of each dormer
-    # WELDED. Two cheeks, one material, one visibility fate, and no gate names
-    # either -- so they cost two slots against a cap of 120 for nothing. The
-    # name keeps the `Dormer_cheek_` prefix the material rule matches on.
-    cheeks = []
+    # NOT WELDED, AND THE REASON IS lod2. These are in the `shell` collection,
+    # which lod2 keeps -- so welding them changes the placement developer's
+    # handoff: 24 nodes to 21, and three names they may reference gone. The
+    # massing is untouched either way (1464 verts, 744 tris, identical bbox),
+    # but lod2 has held stable for twelve PRs and #70 changed it only after a
+    # conversation. Two slots is not worth spending someone else's guarantee.
     for side in ("W", "E"):
         tri = [(0, main_under_wall), (0, dorm_under_wall), (ridge_x, ridge_top - dp_v)]
         if side == "E":
             tri = [(W - x, z) for x, z in tri]
-        cheeks.append(prism_geom(tri, yn(dorm_len), yn(dorm_len) + t, "xz"))
-    weld("Dormer_cheek_EW", cheeks, shell)
+        prism_xz(f"Dormer_cheek_{side}", tri, yn(dorm_len), yn(dorm_len) + t, shell)
 
     # ---- main roof --------------------------------------------------------
     z_eave = main_top_wall - mp * eave
@@ -640,9 +641,7 @@ def build(spec, cut_openings=True):
                                -pad, ridge_top + pad, roofc)])
 
     # ---- dormer roofs (4:12, sloping up from the face to the main plane) ---
-    # WELDED, for the same reason as the cheeks: two planes, one material, one
-    # visibility fate, nothing addresses either by name.
-    dorm_planes = []
+    # In the `roof` collection, which lod2 keeps -- see the cheeks above.
     for side in ("W", "E"):
         z_face_eave = dorm_top_wall - dp * eave
         prof = [(-eave, z_face_eave), (ridge_x, ridge_top),
@@ -651,8 +650,7 @@ def build(spec, cut_openings=True):
             prof = [(W - x, z) for x, z in prof]
         # Runs out to the rear rake: past the dormers the roof surface IS the
         # 4:12 plane, so the rear overhang follows it, not the 9:12 main plane.
-        dorm_planes.append(prism_geom(prof, yn(dorm_len), NY + rake, "xz"))
-    weld("Roof_dormer_EW", dorm_planes, roofc)
+        prism_xz(f"Roof_dormer_{side}", prof, yn(dorm_len), NY + rake, roofc)
 
     # ---- the projecting ridge beam at the front apex -----------------------
     # RB01's tail, cantilevering forward out of the peak. It goes in the ROOF
@@ -680,9 +678,10 @@ def build(spec, cut_openings=True):
     # ---- eave / raised-heel band on the side walls -------------------------
     # Between the 8'-0" top of plate and the main roof underside. This is the 9"
     # raised heel plus fascia; without it the walls stop short of the roof.
-    multibox("Eave_band_EW",
-             [(bx0, bx1, SY + t, yn(dorm_len), plate, main_under_wall)
-              for bx0, bx1 in ((0, t), (W - t, W))], shell)
+    # `shell` again, so lod2 again. See the dormer cheeks.
+    for side, (bx0, bx1) in (("W", (0, t)), ("E", (W - t, W))):
+        box(f"Eave_band_{side}", bx0, bx1, SY + t, yn(dorm_len),
+            plate, main_under_wall, shell)
 
     # ---- porch ------------------------------------------------------------
     slab_t = con["porch_slab_thickness"]["ft"]
