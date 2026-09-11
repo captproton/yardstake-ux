@@ -97,16 +97,57 @@ def box(name, x0, x1, y0, y1, z0, z1, coll):
     return _new_obj(name, v, f, coll)
 
 
+def box_geom(x0, x1, y0, y1, z0, z1):
+    """One box as (verts, faces). Split out for the same reason `tube_geom` was:
+    the geometry and the object are different decisions."""
+    v = [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
+         (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
+    f = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4),
+         (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    return v, f
+
+
+def prism_geom(pts, lo, hi, plane="xz"):
+    """Closed polygon extruded along the third axis, as (verts, faces).
+
+    `plane` says which two axes the polygon lives in, so a raked member can be
+    drawn in the plane it actually rakes in. The loft ladder leans along Y and
+    climbs in Z, so its rails are a "yz" prism extruded across X -- drawn as
+    XZ they would have to be faked with a staircase of boxes, which is exactly
+    what they were until #95.
+    """
+    n = len(pts)
+    if plane == "xz":
+        ring = lambda c: [(a, c, b) for a, b in pts]
+    elif plane == "yz":
+        ring = lambda c: [(c, a, b) for a, b in pts]
+    else:
+        raise ValueError(f"prism_geom: plane must be 'xz' or 'yz', got {plane!r}")
+    verts = ring(lo) + ring(hi)
+    faces = [tuple(range(n - 1, -1, -1)), tuple(range(n, 2 * n))]
+    faces += [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)]
+    return verts, faces
+
+
+def weld(name, parts, coll):
+    """Several (verts, faces) pieces as ONE mesh, whatever produced them.
+
+    `multibox` and `multitube` each weld one KIND of primitive. A ladder is
+    two raked prisms and nine boxes that share a material and never move
+    apart, so neither of those fits and three objects would be the wrong
+    answer against a cap of 120.
+    """
+    verts, faces = [], []
+    for v, f in parts:
+        off = len(verts)
+        verts.extend(v)
+        faces.extend(tuple(i + off for i in face) for face in f)
+    return _new_obj(name, verts, faces, coll)
+
+
 def multibox(name, specs, coll):
     """Several boxes as ONE mesh. Trim would otherwise explode the object count."""
-    verts, faces = [], []
-    for (x0, x1, y0, y1, z0, z1) in specs:
-        n = len(verts)
-        verts += [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
-                  (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
-        faces += [(n+0, n+3, n+2, n+1), (n+4, n+5, n+6, n+7), (n+0, n+1, n+5, n+4),
-                  (n+1, n+2, n+6, n+5), (n+2, n+3, n+7, n+6), (n+3, n+0, n+4, n+7)]
-    return _new_obj(name, verts, faces, coll)
+    return weld(name, [box_geom(*s) for s in specs], coll)
 
 
 def _check_path(name, path, which=""):
@@ -282,11 +323,8 @@ def arc_points(centre, radius, axis, start_deg, end_deg, n=8):
 
 def prism_xz(name, pts_xz, y0, y1, coll):
     """Closed polygon in the XZ plane, extruded along Y. Points counter-clockwise."""
-    n = len(pts_xz)
-    verts = [(x, y0, z) for x, z in pts_xz] + [(x, y1, z) for x, z in pts_xz]
-    faces = [tuple(range(n - 1, -1, -1)), tuple(range(n, 2 * n))]
-    faces += [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)]
-    return _new_obj(name, verts, faces, coll)
+    v, f = prism_geom(pts_xz, y0, y1, "xz")
+    return _new_obj(name, v, f, coll)
 
 
 def uv_project(ob, tile_ft):
@@ -1372,23 +1410,83 @@ def build(spec, cut_openings=True):
     lx = ix(la["top_at"]["x_ft"])
     y_top = iy(pdefs["P_bedroom_S"]["at_ft"])
     y_bot = y_top - run
-    st = 0.29
-    specs = []
-    for sx in (lx - lw / 2, lx + lw / 2 - st):
-        for k in range(14):                       # stepped stringer approximation
-            f0, f1 = k / 14.0, (k + 1) / 14.0
-            specs.append((sx, sx + st,
-                          y_bot + (y_top - y_bot) * f0, y_bot + (y_top - y_bot) * f1 + 0.02,
-                          loft_sf * f0, loft_sf * f1 + 0.02))
+    # A RAIL IS ONE STRAIGHT BOARD. It used to be fourteen axis-aligned boxes
+    # per side, stair-stepping up an incline -- the comment said "stepped
+    # stringer approximation" and it read as a zigzag at any angle where the
+    # steps caught the light. It rakes in the YZ plane, so it is drawn there,
+    # which is what prism_geom's `plane` argument is for.
+    sec = la["stringer_section"]
+    th, dep = sec["thickness"]["ft"], sec["depth"]["ft"]
+    over = la["overrun_above_loft"]["ft"]
+    rad = la["top_radius"]["ft"]
+
+    # Unit vectors in the YZ plane: u climbs the rail, p crosses it.
+    uy, uz = math.sin(ang), math.cos(ang)
+    py, pz = math.cos(ang), -math.sin(ang)
+    h = dep / 2.0
+    L = loft_sf / uz + over            # foot to top, along the rail
+
+    def rail_profile():
+        """The rail seen from the side: flat foot, straight run, rounded top.
+
+        The foot is cut at the same 20 degrees so it sits FLAT on the floor,
+        which is why the bottom edge is horizontal and the rail's footprint in
+        Y is dep/cos(a) rather than dep.
+        """
+        cy = y_bot                                   # foot centre, at z = 0
+        def at(t, s):                                # t along, s across
+            return (cy + t * uy + s * py, t * uz + s * pz)
+        # Flat bottom: each long edge clipped to z = 0.
+        back = (cy + h / math.cos(ang), 0.0)
+        front = (cy - h / math.cos(ang), 0.0)
+        pts = [front, back]
+        # Up the back edge, round the top corner, across, round the front.
+        pts.append(at(L - rad, +h))
+        for i in range(1, 5):
+            a2 = i * (math.pi / 2) / 5
+            pts.append(at(L - rad + rad * math.sin(a2), h - rad + rad * math.cos(a2)))
+        pts.append(at(L, h - rad))
+        pts.append(at(L, -(h - rad)))
+        for i in range(1, 5):
+            a2 = (math.pi / 2) - i * (math.pi / 2) / 5
+            pts.append(at(L - rad + rad * math.sin(a2), -(h - rad) - rad * math.cos(a2)))
+        pts.append(at(L - rad, -h))
+        return pts
+
+    prof = rail_profile()
+    parts = []
+    for sx in (lx - lw / 2, lx + lw / 2 - th):
+        parts.append(prism_geom(prof, sx, sx + th, "yz"))
+
+    # NINE RUNGS, COUNTED DOWN FROM THE LOFT FLOOR. Counting up from the floor
+    # gave eight at whole feet and nothing level with the loft edge -- the one
+    # tread you actually stand on to step off.
     rs = la["rung_spacing"]["ft"]
     rt = la["rung_section"]["ft"]
-    n_r = int(loft_sf / rs)
-    for k in range(1, n_r + 1):
-        f = k * rs / loft_sf
-        yy = y_bot + (y_top - y_bot) * f
-        specs.append((lx - lw / 2, lx + lw / 2, yy - rt / 2, yy + rt / 2,
-                      k * rs - rt / 2, k * rs + rt / 2))
-    multibox("Ladder_loft", specs, finish)
+    dado = la["dado_depth"]["ft"]
+    n_r = la["rung_count"]["value"]
+    for k in range(n_r):
+        zz = loft_sf - k * rs
+        yy = y_bot + (y_top - y_bot) * (zz / loft_sf)
+        # Seated in its dado: the rung runs into each rail by the dado depth.
+        parts.append(box_geom(lx - lw / 2 + th - dado, lx + lw / 2 - th + dado,
+                              yy - rt / 2, yy + rt / 2,
+                              zz - rt / 2, zz + rt / 2))
+    weld("Ladder_loft", parts, finish)
+
+    # The half-inch rod the ladder hangs and pivots on. Steel, so it cannot
+    # weld into the fir above -- materials are assigned by name prefix.
+    rod = la["slide_rod"]
+    rr = rod["diameter"]["ft"] / 2.0
+    # AT THE TRIM BOARD, NOT AT THE RAIL TOP. Placed at the rail top first,
+    # which is wrong twice over: the frames show the rails carrying well past
+    # the rod, and a rod at the very end would leave nothing to hold. The
+    # height is undimensioned in the source and labelled `assumed` in the spec.
+    rz = rod["height_above_floor"]["ft"]
+    ry = y_bot + (y_top - y_bot) * (rz / loft_sf)
+    multitube("Hdw_ladder_rod",
+              [([(lx - lw / 2 - 0.25, ry, rz), (lx + lw / 2 + 0.25, ry, rz)], rr)],
+              finish, sides=8)
 
     # guardrail along the loft's open (south) edge, clear of the ladder
     gr = spec["loft_access"]["guardrail"]
