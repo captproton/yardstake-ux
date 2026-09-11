@@ -2341,6 +2341,8 @@ materials:
     Appl_drum: appliance_dark
     Appl_: steel
     # Steel fittings must precede the porcelain Fix_tub catch-all.
+    # The welded rod+head+valve set. BEFORE Fix_tub, which is porcelain.
+    Fix_tub_fittings: steel
     Fix_tub_rod: steel
     Fix_tub_head: steel
     Fix_tub_valve: steel
