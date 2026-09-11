@@ -1182,14 +1182,18 @@ def build(spec, cut_openings=True):
     _la = spec["loft_access"]["ladder"]
     led_t = _la["ledger"]["thickness"]["ft"]
     led_h = _la["ledger"]["height"]["ft"]
-    # CENTRED ON THE ROD, and only as tall as the flange. Built first as the
-    # whole floor build-up -- plate to subfloor, 10 1/4" -- which is a fascia,
-    # not the board in the frame: there the flange's disc very nearly fills
-    # the board's height. A band, then, with the loft floor's own edge showing
-    # above and below it exactly as the wall does in the footage.
-    _rz = _la["slide_rod"]["height_above_floor"]["ft"]
+    # IT SITS ON THE TOP OF THE WALL. Built first as the whole floor build-up
+    # -- plate to subfloor, 10 1/4" -- which is a fascia, not the board in the
+    # frame; then narrowed to the flange's height but left floating an inch up
+    # the loft floor edge. In the footage the board lands exactly on the line
+    # where the wall stops, with the wall below it and the wall above.
+    #
+    # So the board's BOTTOM is the plate, and everything else follows from it:
+    # the rod sits at the board's centre, and the elbow's bend radius is
+    # whatever reaches the board's face from there. The board's bottom edge,
+    # the flange's bottom edge and the top of the wall are all one line.
     box("Ledger_loft", t, W - t, loft_s, loft_s + led_t,
-        _rz - led_h / 2, _rz + led_h / 2, finish)
+        plate, plate + led_h, finish)
 
     # ---- Tier 1: casing, baseboard, ladder and guardrail --------------------
     tr = spec["trim"]

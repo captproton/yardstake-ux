@@ -606,13 +606,23 @@ def main():
     led_h_want = la["ledger"]["height"]["ft"]
     led_h_got = (bounds("Ledger_loft")[1][2] - bounds("Ledger_loft")[0][2]
                  ) if led else None
-    ok_led = led is not None and abs(led_h_got - led_h_want) < 0.004
-    gate("there is a trim board, and it is the height of the flange", ok_led,
+    # AND IT SITS ON THE TOP OF THE WALL, which is the thing the board is
+    # for: in the frame its bottom edge is the line where the wall stops.
+    # Checked against `plate` rather than against the rod, so a board that
+    # drifts up the loft floor edge with its hardware fails instead of
+    # travelling along with it.
+    led_on_wall = led is not None and abs(bounds("Ledger_loft")[0][2] - plate) < 0.004
+    ok_led = (led is not None and abs(led_h_got - led_h_want) < 0.004
+              and led_on_wall)
+    gate("the trim board is the height of the flange and sits on the wall",
+         ok_led,
          (f"Ledger_loft {ft(led_h_got)} tall, matching the "
-          f"{ft(fl_pre['diameter']['ft'])} flange, "
-          f"{ft(la['ledger']['thickness']['ft'])} fir let into the loft floor "
-          f"edge") if led and ok_led else
-         (f"Ledger_loft is {ft(led_h_got)} tall, want {ft(led_h_want)}"
+          f"{ft(fl_pre['diameter']['ft'])} flange, sitting on the wall at "
+          f"{ft(plate)}") if led and ok_led else
+         ((f"Ledger_loft is {ft(led_h_got)} tall, want {ft(led_h_want)}"
+           if abs(led_h_got - led_h_want) >= 0.004 else
+           f"Ledger_loft sits at {ft(bounds('Ledger_loft')[0][2])}, not on "
+           f"the top of the wall at {ft(plate)}")
           if led else "Ledger_loft MISSING — the flanges have nothing to "
           "screw to"))
 

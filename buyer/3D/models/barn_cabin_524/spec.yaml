@@ -723,8 +723,9 @@ loft_access:
           enough to thread an elbow onto and no more.
       confidence: measured
       height_above_floor:
-        ft: 8.179
-        raw: "8'-2 1/8\""
+        ft: 8.104
+        raw: "8'-1 1/4\""
+        derived: "top of plate + flange radius — the rod sits at the centre of a trim board whose bottom rests on the wall"
         confidence: assumed
         note: >
           NOT DIMENSIONED ANYWHERE. The source shows the flange screwed to a trim
@@ -745,13 +746,19 @@ loft_access:
           Any frame showing the rod and a known vertical dimension together --
           the loft floor edge or the door head would do.
       elbow:
-        bend_radius: {ft: 0.083, raw: "1\""}
+        bend_radius: {ft: 0.110, raw: "1 5/16\""}
         confidence: assumed
         note: >
           A 1/2" 90-degree pipe bend's centreline radius is not given in the
-          source and is not a number an elevation could carry. 1" is the common
-          malleable-iron figure and it is what positions the rod, so it is
-          declared here rather than buried in the builder.
+          source and is not a number an elevation could carry. Malleable iron
+          runs about 1 1/8" to 1 1/2" centre-to-face at this size, and 1 5/16"
+          is what closes the gap between the rod -- whose height the trim
+          board fixes -- and the board's face. It was 1" while the board sat
+          higher up the loft floor edge.
+          THIS NUMBER AND height_above_floor ARE A PAIR. The rod lies on the
+          rail centre line, so its height and its distance from the wall are
+          one degree of freedom, not two: fix where the board is and the bend
+          has to reach it.
       flange:
         diameter: {ft: 0.208, raw: "2 1/2\""}
         thickness: {ft: 0.021, raw: "1/4\""}
