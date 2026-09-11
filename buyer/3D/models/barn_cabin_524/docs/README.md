@@ -35,6 +35,7 @@ Phases P1–P4 are complete and gated:
 | **Openings** | Window sash built from the declared type; exterior casing on all eleven openings | **done** ([#89](https://github.com/captproton/yardstake-ux/pull/89)) — every window was one flat pane while the spec typed all ten, and every `Trim_` was on the inside of the wall |
 | **Openings** | Sash visible from indoors; a stool and apron under every window | **done** ([#90](https://github.com/captproton/yardstake-ux/pull/90)) — #89's sash was a decal on the outside face, and no window had a ledge; both found by looking, neither by a gate |
 | **Tier 3h** | The stacked W/D gets a drum and a control panel | **done** ([#91](https://github.com/captproton/yardstake-ux/pull/91)) — built since #68 and shaped like a cupboard; built from primitives, not downloaded |
+| **Doors** | The closet ships OPEN on the laundry half | **done** ([#93](https://github.com/captproton/yardstake-ux/pull/93)) — `default_state.bypass` had been inert for eight tiers; fourteen review findings, every one in the gates and none in the geometry |
 
 Merged to `main` in [#57](https://github.com/captproton/yardstake-ux/pull/57), [#58](https://github.com/captproton/yardstake-ux/pull/58), [#59](https://github.com/captproton/yardstake-ux/pull/59), [#60](https://github.com/captproton/yardstake-ux/pull/60),
 [#61](https://github.com/captproton/yardstake-ux/pull/61), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64), [#65](https://github.com/captproton/yardstake-ux/pull/65), [#66](https://github.com/captproton/yardstake-ux/pull/66),
@@ -553,6 +554,19 @@ material `sets` and 3 `presence` sets — with a working `applyChoice()` and
 `applyLayout()` written out in TIER-2. Nothing in the model blocks it. It is
 the step where twenty PRs of geometry become something a buyer can click.
 
+**Two gate issues are now open and should be read before the next gate is
+written**, because both came out of work that looked finished:
+
+- [#92](https://github.com/captproton/yardstake-ux/issues/92) — `lod0` is at
+  **118 of 120 meshes**, and instancing will NOT help: the cap counts objects.
+  Welding is the only lever, and its constraint is naming, not geometry.
+- [#94](https://github.com/captproton/yardstake-ux/issues/94) — the bypass
+  gates ask a two-dimensional question one axis at a time, which is why
+  [#93](https://github.com/captproton/yardstake-ux/pull/93) needed five review
+  passes for fourteen findings. It carries the nine lesions those passes
+  produced as a regression suite; a rewrite that does not fail all nine is not
+  a replacement.
+
 Two smaller items are worth naming because they are now more interesting than
 when they were filed:
 
@@ -926,3 +940,33 @@ Keep these — they caught real errors:
     show a different unit, so every number is a fraction of the drawn box —
     drum diameter 0.68 of unit width, centre 0.46 of unit height — and the box
     still comes from the sheet. Change the box and the form follows it.
+33. **When a gate is wrong because it measures a PROXY, find the property —
+    do not hunt for a better proxy.**
+    [#93](https://github.com/captproton/yardstake-ux/pull/93) took five review
+    passes and produced **fourteen findings, every one in the gates and none in
+    the geometry**. Two predicates absorbed nearly all of them, and each fix
+    was the next-strongest measurement rather than the thing meant:
+    *"the open bypass covers half its opening"* went hull → total length →
+    contiguity → identity, and each earlier version passed a state the next one
+    caught — a gap between the leaves, two strips at opposite ends, a
+    contiguous run in the middle of the opening.
+    *"the closed door conceals the laundry"* went Y-overlap → Y-overlap plus
+    the X side of the partition. That second one is the sharper lesson: Y
+    overlap was never a WEAKER form of the right question, it was a DIFFERENT
+    question that happened to agree for the geometry that existed. **A test
+    correct only because nothing has moved yet survives every review until
+    something moves.**
+    The shape underneath is one fault, not six oversights: a relationship
+    between two RECTANGLES was being checked by comparing their
+    one-dimensional projections separately, so every round found another
+    projection nobody had checked. Asked as *does this rectangle cover that
+    one*, there is no second axis to forget.
+    [#94](https://github.com/captproton/yardstake-ux/issues/94) carries the
+    redesign, with the nine lesions from those five passes as its regression
+    suite — **if the rewrite does not fail all nine it is not a replacement.**
+    *And know when to stop patching.* #93 began as a one-line behaviour change
+    and ended at +359 lines across six files, nearly all gate repair, with the
+    passes still finding real things. Merging a correct model and filing the
+    redesign beat a sixth pass on a diff that size. When review findings stop
+    being *wrong* and start being *incomplete in a new place each time*, that
+    is the signal to change the shape rather than add another clause.
