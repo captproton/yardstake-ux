@@ -129,6 +129,35 @@ def prism_geom(pts, lo, hi, plane="xz"):
     return verts, faces
 
 
+def clip_band(pts, lo, hi, idx=1):
+    """Clip a closed polygon to a band on one axis. Sutherland-Hodgman.
+
+    The ladder's dados need this: a dado is the rail's inner lamination
+    ABSENT over the rung's thickness, so each length of that lamination is the
+    rail profile clipped between two rungs. Clipping the real profile rather
+    than approximating it with a rectangle keeps the flat foot and the
+    radiused top intact at the two ends of the run, where the profile is not a
+    rectangle at all.
+
+    `idx` picks the axis within each 2-tuple: for a "yz" prism the points are
+    (y, z) and the dado runs across z, which is 1.
+    """
+    def half(poly, val, keep_above):
+        out = []
+        for i, c in enumerate(poly):
+            nx = poly[(i + 1) % len(poly)]
+            cin = c[idx] >= val if keep_above else c[idx] <= val
+            nin = nx[idx] >= val if keep_above else nx[idx] <= val
+            if cin:
+                out.append(c)
+            if cin != nin:
+                t = (val - c[idx]) / (nx[idx] - c[idx])
+                out.append(tuple(c[j] + t * (nx[j] - c[j]) for j in range(2)))
+        return out
+    band = half(pts, lo, True)
+    return half(band, hi, False) if len(band) >= 3 else []
+
+
 def weld(name, parts, coll):
     """Several (verts, faces) pieces as ONE mesh, whatever produced them.
 
@@ -1462,39 +1491,97 @@ def build(spec, cut_openings=True):
         return pts
 
     prof = rail_profile()
-    parts = []
-    for sx in (lx - lw / 2, lx + lw / 2 - th):
-        parts.append(prism_geom(prof, sx, sx + th, "yz"))
-
-    # NINE RUNGS, COUNTED DOWN FROM THE LOFT FLOOR. Counting up from the floor
-    # gave eight at whole feet and nothing level with the loft edge -- the one
-    # tread you actually stand on to step off.
     rs = la["rung_spacing"]["ft"]
     rt = la["rung_section"]["ft"]
     dado = la["dado_depth"]["ft"]
     n_r = la["rung_count"]["value"]
-    for k in range(n_r):
-        zz = loft_sf - k * rs
-        yy = y_bot + (y_top - y_bot) * (zz / loft_sf)
-        # Seated in its dado: the rung runs into each rail by the dado depth.
-        parts.append(box_geom(lx - lw / 2 + th - dado, lx + lw / 2 - th + dado,
-                              yy - rt / 2, yy + rt / 2,
-                              zz - rt / 2, zz + rt / 2))
+
+    # RUNGS ARE LAID OUT ALONG THE RAIL, AND SEATED BY THEIR TOP FACE.
+    # Both were wrong, and both for the same reason: the code measured in the
+    # room's axes when the builder measures on the board. `zz = loft_sf - k*rs`
+    # steps a foot of HEIGHT, which at 20 degrees is 12.77" along the rail, so
+    # every rung drifted and the bottom one finished about 6" low. The source
+    # is unambiguous -- "every foot on the tape I make a mark and an X, that X
+    # is going to be the slot" -- and the tape is clamped to the rail.
+    #
+    # And the tread was placed by its CENTRE, which left its top face 11/16"
+    # proud of the loft floor: a lip to catch your toe on, and the rung buried
+    # in the floor finish. The face you stand on is the thing that must be
+    # flush, so the top rung's centre sits half a section below the floor.
+    t0 = (loft_sf - rt / 2.0) / uz          # top rung CENTRE, measured along the rail
+    rungs = [(y_bot + (t0 - k * rs) * uy, (t0 - k * rs) * uz) for k in range(n_r)]
+
+    # THE DADO IS A RECESS, NOT AN OVERLAP. The rungs used to be extended into
+    # solid rail by `dado_depth` and left interpenetrating it -- invisible from
+    # outside and wrong the moment anything cuts a section. Each rail is now
+    # two laminations: a solid outer one the full length of the board, and an
+    # inner one the dado's own thickness that is INTERRUPTED at every rung.
+    # The interruption IS the slot, its shoulders are real faces, and the rung
+    # lands against the outer lamination exactly as it does on the bench.
+    parts = []
+    for i, x0 in enumerate((lx - lw / 2, lx + lw / 2 - th)):
+        # the dado is cut on the face that looks at the other rail
+        solid, slot = ((x0, x0 + th - dado), (x0 + th - dado, x0 + th)) if i == 0 \
+            else ((x0 + dado, x0 + th), (x0, x0 + dado))
+        parts.append(prism_geom(prof, solid[0], solid[1], "yz"))
+        cuts = [-1e3]
+        for _, zz in sorted(rungs, key=lambda r: r[1]):
+            cuts += [zz - rt / 2, zz + rt / 2]
+        cuts.append(1e3)
+        for a, b in zip(cuts[0::2], cuts[1::2]):
+            band = clip_band(prof, a, b)
+            if len(band) >= 3:
+                parts.append(prism_geom(band, slot[0], slot[1], "yz"))
     weld("Ladder_loft", parts, finish)
+
+    # THE RUNGS ARE THEIR OWN MESH, and that costs a slot of the five spare.
+    # Welded in with the rails they could only be found by guessing which
+    # vertices were which -- the rails and the rungs share their x planes at
+    # the dado shoulders, so every rung gate was picking up rail geometry and
+    # one of them was silently measuring the radiused top as a tenth rung.
+    # A gate that has to guess its own subject is rule 33's proxy problem, and
+    # one object buys four gates that measure the thing itself.
+    weld("Ladder_rungs",
+         [box_geom(lx - lw / 2 + th - dado, lx + lw / 2 - th + dado,
+                   yy - rt / 2, yy + rt / 2, zz - rt / 2, zz + rt / 2)
+          for yy, zz in rungs], finish)
 
     # The half-inch rod the ladder hangs and pivots on. Steel, so it cannot
     # weld into the fir above -- materials are assigned by name prefix.
     rod = la["slide_rod"]
     rr = rod["diameter"]["ft"] / 2.0
-    # AT THE TRIM BOARD, NOT AT THE RAIL TOP. Placed at the rail top first,
-    # which is wrong twice over: the frames show the rails carrying well past
-    # the rod, and a rod at the very end would leave nothing to hold. The
-    # height is undimensioned in the source and labelled `assumed` in the spec.
+    bend = rod["elbow"]["bend_radius"]["ft"]
+    fl_d = rod["flange"]["diameter"]["ft"]
+    fl_t = rod["flange"]["thickness"]["ft"]
     rz = rod["height_above_floor"]["ft"]
-    ry = y_bot + (y_top - y_bot) * (rz / loft_sf)
-    multitube("Hdw_ladder_rod",
-              [([(lx - lw / 2 - 0.25, ry, rz), (lx + lw / 2 + 0.25, ry, rz)], rr)],
-              finish, sides=8)
+    ry = y_bot + rz * (uy / uz)             # on the rail centre line, at that height
+    ov = rod["rod_stickout"]["ft"]
+    xa, xb = lx - lw / 2 - ov, lx + lw / 2 + ov
+
+    # AN ELBOW AND A FLANGE, WHICH IS WHAT MAKES THIS A PIVOT rather than a
+    # stick through two holes: "threaded the elbow back on and screwed the
+    # flange to the piece of trim". The trim is the loft floor's own south
+    # fascia -- the only board at this height -- so THE FLANGES ARE PLACED OFF
+    # THE FLOOR, not off the rod. The elbow then has to reach them, which is a
+    # real constraint between two independently positioned things and is what
+    # the gate checks. Build the rod at the wrong height and the elbow stops
+    # short of the flange in mid-air.
+    #
+    # Two of them. The source narrates assembling one end -- it is describing
+    # how the rod gets threaded through, not how many ends it has -- and a rod
+    # carrying a ladder off a single cantilevered flange is not a thing.
+    def elbow(x_end, sgn):
+        """Quarter bend from the rod's axis round to the trim board."""
+        return [(x_end + sgn * bend * math.sin(a2),
+                 ry + bend * (1 - math.cos(a2)), rz)
+                for a2 in [i * (math.pi / 2) / 6 for i in range(7)]]
+
+    specs = [([(xa, ry, rz), (xb, ry, rz)], rr)]
+    for x_end, sgn in ((xa, -1), (xb, +1)):
+        specs.append((elbow(x_end, sgn), rr))
+        specs.append(([(x_end + sgn * bend, loft_s - fl_t, rz),
+                       (x_end + sgn * bend, loft_s, rz)], fl_d / 2))
+    multitube("Hdw_ladder_rod", specs, finish, sides=8)
 
     # guardrail along the loft's open (south) edge, clear of the ladder
     gr = spec["loft_access"]["guardrail"]

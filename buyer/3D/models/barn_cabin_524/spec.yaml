@@ -695,20 +695,55 @@ loft_access:
       note: "At the same 20 degrees as the heel cut: 'twenty degrees is going to be our magic number'."
     slide_rod:
       diameter: {ft: 0.042, raw: "1/2\""}
-      confidence: measured
-      height_above_floor:
-        ft: 8.854
-        raw: "at the loft subfloor"
+      rod_stickout:
+        ft: 0.125
+        raw: "1 1/2\""
         confidence: assumed
         note: >
-          NOT DIMENSIONED ANYWHERE. The source shows the flange screwed to a
-          trim board and never gives its height. In the supplied frames the rod
-          sits at about the head of the wall with the rails carrying well past
-          it, so the loft subfloor is the nearest datum this model already
-          has. Labelled rather than presented as measured.
+          How far the rod runs past each rail before the elbow turns. Undimensioned;
+          enough to thread an elbow onto and no more.
+      confidence: measured
+      height_above_floor:
+        ft: 8.179
+        raw: "8'-2 1/8\""
+        confidence: assumed
+        note: >
+          NOT DIMENSIONED ANYWHERE. The source shows the flange screwed to a trim
+          board and never gives its height, so this stays `assumed` -- but it is
+          no longer a free number. It was 8.854, the loft subfloor, chosen as the
+          nearest datum when the rod was a bare cylinder. Building the elbow and
+          flange the source describes made that untenable: at 8.854 the rod sits
+          1 3/4" BEHIND the loft floor's south fascia, inside the floor build-up,
+          so an elbow reaching the trim board would have run through solid floor
+          and the flange would have been buried in it.
+          The height is now what the hardware requires: the rod is on the rail
+          centre line at the point where a 1" pipe bend, turned through ninety
+          degrees, lands its outlet exactly on the fascia with the flange's
+          thickness to spare. What is assumed is WHICH BOARD is the trim board --
+          the fascia is the only one at this height -- and not the arithmetic
+          that follows from it.
         what_would_settle_it: >
           Any frame showing the rod and a known vertical dimension together --
           the loft floor edge or the door head would do.
+      elbow:
+        bend_radius: {ft: 0.083, raw: "1\""}
+        confidence: assumed
+        note: >
+          A 1/2" 90-degree pipe bend's centreline radius is not given in the
+          source and is not a number an elevation could carry. 1" is the common
+          malleable-iron figure and it is what positions the rod, so it is
+          declared here rather than buried in the builder.
+      flange:
+        diameter: {ft: 0.208, raw: "2 1/2\""}
+        thickness: {ft: 0.021, raw: "1/4\""}
+        count: 2
+        confidence: assumed
+        note: >
+          TWO, THOUGH THE SOURCE NARRATES ONE. "Threaded the elbow back on and
+          screwed the flange to the piece of trim" describes how the rod gets
+          THROUGH the rails -- one end has to come apart for that -- not how many
+          ends it has. A rod carrying a ladder off a single cantilevered flange
+          is not a thing, so both ends are built and both are gated.
       source: "Loft Ladder 2:29 — 'this half inch by 90 degree pipe bend' … 'our half inch rod goes all the way through the ladder rails'"
       note: >
         The rod is what makes this a STOWING ladder: it passes through both

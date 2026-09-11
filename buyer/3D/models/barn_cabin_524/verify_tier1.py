@@ -325,32 +325,77 @@ def main():
     # ---- 8. ladder and guardrail -------------------------------------------
     la = spec["loft_access"]["ladder"]
     lo, hi = bounds("Ladder_loft")
-    # THE BOUNDING BOX IS NOT THE RAKE. This measured atan(bbox Y / bbox Z),
-    # which was close enough while the rails were a staircase of thin boxes and
-    # became wrong the moment they were real boards: a 3 1/2" deep rail adds
-    # its own depth to the Y extent, so a perfectly cut 20-degree ladder
-    # measured 21.11. The box is a proxy; the rake is a property of the rail's
-    # own long edge, and rule 33 says measure the property.
-    #
-    # Taken from the two verts that are furthest apart ALONG the rail: the
-    # foot and the top of one edge. Their difference is the rail direction.
-    o = bpy.data.objects["Ladder_loft"]
-    vs = [o.matrix_world @ v.co for v in o.data.vertices]
-    xs = sorted({round(v.x, 3) for v in vs})
-    # THE STRAIGHT BACK EDGE, not the highest point. Taking the topmost vertex
-    # put the measurement on the ROUNDED top, which curves away from the rail
-    # line and read 20.26 for a ladder cut at exactly 20. Both points below
-    # lie on the one straight edge: the back of the flat foot, and the top of
-    # the back edge where the radius begins.
-    edge = [v for v in vs if abs(v.x - xs[0]) < 1e-3]      # one outer rail face
-    foot = max((v for v in edge if v.z < 0.01), key=lambda v: v.y)
-    peak = max(edge, key=lambda v: v.y)
-    rise = peak.z - foot.z
-    run = peak.y - foot.y
-    ang = math.degrees(math.atan(run / rise)) if rise else 0.0
+    sec = la["stringer_section"]
+    th_, dep_ = sec["thickness"]["ft"], sec["depth"]["ft"]
     want_ang = la["heel_cut_deg"]["value"]
-    gate("ladder stands at the 20 degree heel cut", abs(ang - want_ang) < 0.6,
-         f"{ang:.2f} deg vs {want_ang} deg")
+
+    def verts(name):
+        o = bpy.data.objects[name]
+        return [o.matrix_world @ v.co for v in o.data.vertices]
+
+    rail_v = verts("Ladder_loft")
+    rx = sorted({round(v.x, 3) for v in rail_v})
+    bands = {"W": (rx[0] - 1e-3, rx[0] + th_ + 1e-3),
+             "E": (rx[-1] - th_ - 1e-3, rx[-1] + 1e-3)}
+
+    # BOTH RAILS, EVERY VERTEX. The old gate read the minimum-x outer face only
+    # and compared two chosen points on it, so it would have passed with the
+    # other rail still a staircase, or with the checked rail bending between
+    # those two points. #95 asked for "every vertex of a rail lies on the plane
+    # through its own rake"; two points on one rail is a SAMPLE of that, which
+    # is rule 33's proxy again.
+    #
+    # A rail is a straight board, so the property is: every vertex of it lies
+    # within half the board's depth of that rail's own centre line, and that
+    # line is at the heel-cut angle. The angle is taken per rail from its own
+    # extremes, so the two are measured independently and a rail built at the
+    # wrong rake fails on the angle rather than being absorbed by the tolerance.
+    # NO PRIVILEGED VERTICES. Every version of this gate so far has failed by
+    # choosing points: the bbox diagonal (which a 3 1/2" board inflates), then
+    # two verts on one rail, then the topmost vertex -- which lands on the 1"
+    # radius, curves away from the rail line, and reads 19.98 for a ladder cut
+    # at exactly 20. Each fix was a better proxy, which is rule 33's trap.
+    #
+    # A rail is "a straight board of depth D raked at angle A". Both numbers
+    # fall out of one measurement with no point-picking at all: project every
+    # vertex perpendicular to a trial angle and take the spread. For a straight
+    # board that spread is minimised AT the rake and the minimum IS the depth.
+    # A stepped rail has no angle at which it measures 3 1/2" across.
+    def spread_at(vs_, deg):
+        a_ = math.radians(deg)
+        off = [v.y * math.cos(a_) - v.z * math.sin(a_) for v in vs_]
+        return max(off) - min(off)
+
+    def fit_rake(vs_):
+        lo_, hi_ = 0.0, 45.0
+        for _ in range(80):                      # ternary search on the spread
+            m1, m2 = lo_ + (hi_ - lo_) / 3, hi_ - (hi_ - lo_) / 3
+            if spread_at(vs_, m1) < spread_at(vs_, m2):
+                hi_ = m2
+            else:
+                lo_ = m1
+        deg = (lo_ + hi_) / 2
+        return deg, spread_at(vs_, deg)
+
+    bad_rail = []
+    shown = []
+    for side, (x0, x1) in bands.items():
+        vs_ = [v for v in rail_v if x0 <= v.x <= x1]
+        if not vs_:
+            bad_rail.append(f"{side} rail has no geometry")
+            continue
+        ang_, spread = fit_rake(vs_)
+        shown.append(f"{side} {ang_:.2f} deg x {ft(spread)}")
+        if abs(ang_ - want_ang) > 0.15:
+            bad_rail.append(f"{side} rail rakes at {ang_:.2f} deg, want {want_ang}")
+        if abs(spread - dep_) > 0.002:
+            bad_rail.append(f"{side} rail measures {ft(spread)} across its own "
+                            f"rake, not {ft(dep_)} -- it is not one straight board")
+
+    gate("both rails are straight boards on the 20 degree rake", not bad_rail,
+         "; ".join(bad_rail) or
+         " | ".join(shown))
+
     # THE RAILS DO NOT STOP AT THE LOFT FLOOR, and this gate said they must.
     # It encoded the old build, where they did -- and the builder's own
     # step-by-step says otherwise: "hang the ladder rails up over the loft by
@@ -363,34 +408,133 @@ def main():
          f"top at {ft(hi[2])}, {ft(hi[2] - loft_sf)} above the loft floor "
          f"(want {ft(over)} along the rail = {ft(want_top - loft_sf)} up)")
 
-    # AND THE RUNGS: nine of them, the top one LEVEL WITH THE LOFT FLOOR.
-    # Counting up from the floor gave eight at whole feet and nothing at the
-    # loft edge. Count alone would not catch that, so position is checked too.
-    rung_x = [x for x in xs if xs[0] + 0.02 < x < xs[-1] - 0.02]
-    rung_z = sorted({round(v.z, 3) for v in vs
-                     if any(abs(v.x - rx) < 1e-3 for rx in rung_x)})
+    # THE RUNGS ARE LAID OUT ON THE RAIL, NOT UP THE WALL, and they are seated
+    # by their TOP FACE. This gate used to measure the vertical gap between
+    # rung CENTRES against the 12" the source gives for a distance along the
+    # rail -- so it certified a 12.77" layout as 12", and it compared the top
+    # rung's centre to the loft floor when the face you stand on is 11/16"
+    # higher. Both are now measured the way the builder measures them.
+    rung_v = verts("Ladder_rungs")
+    rt_ = la["rung_section"]["ft"]
+    rs_ = la["rung_spacing"]["ft"]
+    zs_ = sorted({round(v.z, 4) for v in rung_v})
     groups = []
-    for z in rung_z:
-        if groups and z - groups[-1][-1] < 0.3:
+    for z in zs_:
+        if groups and z - groups[-1][-1] < rt_ * 1.5:
             groups[-1].append(z)
         else:
             groups.append([z])
-    # Rail verts share those x only at the flat foot and the rounded top.
-    cent = [sum(g) / len(g) for g in groups
-            if 0.3 < sum(g) / len(g) < loft_sf + 0.3]
+    cent, tops = [], []
+    for g in groups:
+        zc = (min(g) + max(g)) / 2
+        ys_ = [v.y for v in rung_v if abs(v.z - zc) < rt_]
+        cent.append(((min(ys_) + max(ys_)) / 2, zc))
+        tops.append(max(g))
     want_n = la["rung_count"]["value"]
-    rs_ = la["rung_spacing"]["ft"]
     bad_r = []
     if len(cent) != want_n:
         bad_r.append(f"{len(cent)} rungs, want {want_n}")
-    if cent and abs(cent[-1] - loft_sf) > 0.02:
-        bad_r.append(f"top tread at {ft(cent[-1])}, not level with the loft "
-                     f"floor at {ft(loft_sf)}")
-    if any(abs((cent[i + 1] - cent[i]) - rs_) > 0.02 for i in range(len(cent) - 1)):
-        bad_r.append("rungs are not evenly spaced")
-    gate("nine rungs, the top one level with the loft floor", not bad_r,
-         "; ".join(bad_r) or
-         f"{len(cent)} rungs at {ft(rs_)}, top tread on the loft floor")
+    if tops and abs(tops[-1] - loft_sf) > 0.005:
+        bad_r.append(f"top tread FACE at {ft(tops[-1])}, not level with the "
+                     f"loft floor at {ft(loft_sf)}")
+    along = [math.dist(cent[i + 1], cent[i]) for i in range(len(cent) - 1)]
+    if any(abs(d - rs_) > 0.01 for d in along):
+        bad_r.append(f"rung spacing along the rail runs "
+                     f"{ft(min(along))}..{ft(max(along))}, want {ft(rs_)}")
+    gate("nine rungs at 12 inches ALONG THE RAIL, top face on the loft floor",
+         not bad_r, "; ".join(bad_r) or
+         f"{len(cent)} rungs, {ft(min(along))} apart on the rail "
+         f"({ft(min(along) * math.cos(math.radians(want_ang)))} of height), "
+         f"top face flush")
+
+    # EVERY RUNG SITS IN A SLOT. The rungs used to be pushed into solid rail by
+    # the dado depth and left interpenetrating it. Nothing looked wrong, and
+    # nothing would have until something cut a section. The recess is real when
+    # the rail's inner lamination STOPS at each rung: those stops are faces, so
+    # they leave vertices at the rung's top and bottom inside the dado's own
+    # thin band of x. Checked on both rails, for every rung.
+    dado_ = la["dado_depth"]["ft"]
+    slots = {"W": (rx[0] + th_ - dado_ - 1e-3, rx[0] + th_ + 1e-3),
+             "E": (rx[-1] - th_ - 1e-3, rx[-1] - th_ + dado_ + 1e-3)}
+    missing = []
+    for side, (x0, x1) in slots.items():
+        zs_side = {round(v.z, 3) for v in rail_v if x0 <= v.x <= x1}
+        for _, zc in cent:
+            for edge in (zc - rt_ / 2, zc + rt_ / 2):
+                if not any(abs(z - edge) < 0.004 for z in zs_side):
+                    missing.append(f"{side} rail has no dado shoulder at {ft(edge)}")
+    gate("every rung is dadoed into both rails, not buried in them",
+         not missing,
+         "; ".join(missing[:3]) or
+         f"{len(cent) * 4} shoulders, {ft(dado_)} deep, all present")
+
+    # THE ROD REACHES BOTH RAILS, tested by where it is rather than by its
+    # existing. It is one tube spanning the full width, so nothing would have
+    # noticed it shortening to touch only one rail.
+    hw = verts("Hdw_ladder_rod")
+    hx0, hx1 = min(v.x for v in hw), max(v.x for v in hw)
+    spans = hx0 < bands["W"][0] and hx1 > bands["E"][1]
+    gate("the slide rod passes through both rails", spans,
+         f"rod runs {ft(hx0)}..{ft(hx1)}, rails at {ft(rx[0])} and {ft(rx[-1])}")
+
+    # AND THE FLANGES LAND ON THE TRIM BOARD. The trim is the loft floor's own
+    # south fascia, and its position is read OFF THAT OBJECT rather than
+    # recomputed here -- so if the floor moves, this gate moves with it and the
+    # hardware is what has to keep up. That is the point of placing the flange
+    # off the floor and the elbow off the rod: two independently positioned
+    # things that have to meet.
+    fl = la["slide_rod"]["flange"]
+    trim_y = min(v.y for v in verts("Floor_loft"))
+    on_trim = [v for v in hw if abs(v.y - trim_y) < 0.004]
+    fx = sorted({round(v.x, 3) for v in on_trim})
+    clusters = []
+    for x in fx:
+        if clusters and x - clusters[-1][-1] < fl["diameter"]["ft"]:
+            clusters[-1].append(x)
+        else:
+            clusters.append([x])
+    widths = [max(c) - min(c) for c in clusters]
+    ok_fl = (len(clusters) == fl["count"]
+             and all(abs(w - fl["diameter"]["ft"]) < 0.02 for w in widths))
+    gate("both flanges sit flat on the trim board", ok_fl,
+         f"{len(clusters)} flange(s) on the fascia at {ft(trim_y)}, "
+         f"{', '.join(ft(w) for w in widths) or 'none'} across "
+         f"(want {fl['count']} x {ft(fl['diameter']['ft'])})")
+
+    # AND THE ELBOW HAS TO REACH THEM. This gate exists because the previous
+    # one did not catch a lesion it looked like it should: put the rod back to
+    # its old 8.854 height and the flanges still sit perfectly on the fascia,
+    # because they are placed off the FLOOR and never moved. What moved was the
+    # elbow, which drove 2 3/4" THROUGH the fascia into the floor build-up.
+    #
+    # The comment above this hardware in build_adu says the flange and the rod
+    # are positioned independently "and have to meet". That was true of the
+    # geometry and asserted by nobody -- prose standing in for a check, which
+    # is exactly what ground rule 34 is about. So: the pipe's furthest reach
+    # must land ON the flange's inner face, neither short of it nor through it.
+    rr_ = la["slide_rod"]["diameter"]["ft"] / 2
+    fl_t_ = fl["thickness"]["ft"]
+    want_face = trim_y - fl_t_
+    bad_e = []
+    for c in clusters:
+        xc = (min(c) + max(c)) / 2
+        zc = sum(v.z for v in on_trim if abs(v.x - xc) < fl["diameter"]["ft"]) \
+            / max(1, len([v for v in on_trim if abs(v.x - xc) < fl["diameter"]["ft"]]))
+        pipe = [v for v in hw
+                if math.dist((v.x, v.z), (xc, zc)) < fl["diameter"]["ft"] * 0.3]
+        if not pipe:
+            bad_e.append(f"no pipe arrives at the flange at {ft(xc)}")
+            continue
+        reach = max(v.y for v in pipe)
+        if abs(reach - want_face) > 0.005:
+            d = reach - want_face
+            bad_e.append(f"elbow at {ft(xc)} "
+                         + (f"drives {ft(d)} THROUGH the trim board"
+                            if d > 0 else f"stops {ft(-d)} short of the flange"))
+    gate("the elbow lands on the flange, neither short nor through it",
+         not bad_e, "; ".join(bad_e) or
+         f"both elbows reach {ft(want_face)}, the flange's inner face")
+
     gh = spec["loft_access"]["guardrail"]["height"]["ft"]
     lo, hi = bounds("Rail_loft")
     gate("guardrail reaches its stated height", abs((hi[2] - loft_sf) - gh) < 0.02,
