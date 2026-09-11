@@ -525,6 +525,7 @@ def main():
     spec = load_spec(HERE / "spec.yaml")
     results = {}
     lod0_nodes = set()
+    lod2_nodes = None
 
     for lod in ("lod0", "lod1", "lod2"):
         geo, colls = build(spec, cut_openings=(lod != "lod2"))
@@ -614,16 +615,31 @@ def main():
     # against what was actually exported. Geometry is not the thing at risk --
     # welding preserves every vertex -- the INTERFACE is: node count and the
     # names they address objects by.
-    contract = spec.get("export", {}).get("lod2_contract")
-    if contract:
-        want = sorted(contract["nodes"])
+    #
+    # This gate FAILS CLOSED, and that is the whole point of it. A guard of the
+    # form `if contract:` would have made deleting the spec block a silent way
+    # to switch off the only enforcement the handoff has -- which is the same
+    # shape of mistake #98 made, one level up. No contract is not "nothing to
+    # check"; it is the check missing.
+    print("-" * 76)
+    contract = (spec.get("export") or {}).get("lod2_contract") or {}
+    want = sorted(contract.get("nodes") or [])
+    if not want:
+        ok = False
+        print("lod2 CONTRACT MISSING — spec.export.lod2_contract declares no nodes.")
+        print("    This gate is the only thing holding the placement developer's"
+              " handoff. Absent, it fails.")
+    elif lod2_nodes is None:
+        ok = False
+        print("lod2 CONTRACT UNCHECKABLE — lod2 was never exported, so the"
+              " contract could not be compared.")
+    else:
         got = sorted(lod2_nodes)
-        print("-" * 76)
         if got == want:
             print(f"lod2 contract: {len(got)} nodes, unchanged")
         else:
             ok = False
-            print(f"lod2 CONTRACT BROKEN — this is the placement developer's file")
+            print("lod2 CONTRACT BROKEN — this is the placement developer's file")
             for n in sorted(set(want) - set(got)):
                 print(f"    GONE: {n}")
             for n in sorted(set(got) - set(want)):
