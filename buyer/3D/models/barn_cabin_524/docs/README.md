@@ -37,6 +37,7 @@ Phases P1–P4 are complete and gated:
 | **Tier 3h** | The stacked W/D gets a drum and a control panel | **done** ([#91](https://github.com/captproton/yardstake-ux/pull/91)) — built since #68 and shaped like a cupboard; built from primitives, not downloaded |
 | **Loft access** | The ladder rebuilt from the builder's own transcript | **done** ([#96](https://github.com/captproton/yardstake-ux/pull/96)) — nine rungs at 12" on a 20° rake, dadoed into 1"×3½" rails that run 3 ft over the loft as handles |
 | **Loft access** | The ladder laid out on the rail, dadoed, hung on real hardware, and moved out of the wall | **done** ([#100](https://github.com/captproton/yardstake-ux/pull/100)) — all of [#97](https://github.com/captproton/yardstake-ux/issues/97), plus a trim board the source describes and the model never had, plus the discovery that **the top 10" of both rails ran inside the loft floor slab**. Four review rounds, and the last two changed no geometry at all |
+| **Furniture** | The sofa moved to the window, and a walkway measured for the first time | **done** ([#102](https://github.com/captproton/yardstake-ux/pull/102)) — it sat 20½" from the ladder with half the room bare, AND across three quarters of the bedroom's pocket door. Twelve furniture gates passed on all of that |
 | **Export** | Five welds for mesh headroom, and #92's arithmetic corrected | **done** ([#98](https://github.com/captproton/yardstake-ux/pull/98)) — 119 → 112, and **three of the five were a mistake**; see the row below |
 | **Handoff** | The three `lod2` welds reverted, and the contract gated | **done** ([#99](https://github.com/captproton/yardstake-ux/pull/99)) — #98 changed the placement developer's file while its PR body said it had not; `lod2` is byte-identical again and the promise is now a build gate rather than a sentence |
 | **Doors** | The closet ships OPEN on the laundry half | **done** ([#93](https://github.com/captproton/yardstake-ux/pull/93)) — `default_state.bypass` had been inert for eight tiers; fourteen review findings, every one in the gates and none in the geometry |
@@ -58,8 +59,9 @@ still never moved.
 toilet, the tub/shower, the crawl hole, the stacked W/D, all three appliances,
 the porch sconce and, last, the furniture — **and the building stands on a real
 foundation.** 117 meshes, all of them shipped in `lod0` at **960.2 KB** against
-a 4 MB ceiling, with 49/49 fixture gates, 12/12 geometry gates and 11/11
-furniture gates.
+a 4 MB ceiling, with 49/49 fixture gates, 12/12 geometry gates and 14/14
+furniture gates — the last three of which are new, and are the first thing in
+this repo ever to measure a walkway.
 
 **The model is also configurable in layout, not only in finish.** Two bedroom
 arrangements share the floor and are alternatives — a bed and a home office,
@@ -616,6 +618,28 @@ and deliberately left out of it:
   which is a repo-settings decision rather than a code one. **Not taken
   unilaterally; it is @captproton's call.**
 
+- **The sofa was in the wrong half of the room, and across the bedroom
+  door.** [#101](https://github.com/captproton/yardstake-ux/issues/101) started as circulation: the sofa sat in a
+  20½" slot between the kitchen counter and the loft ladder while the half of
+  the living room with the low window stood empty. `W-LIVING-S2` has a 2'-0"
+  sill and is the one you sit and look out of; the other south window is at
+  4'-0", high over the counter. Shipped in [#102](https://github.com/captproton/yardstake-ux/pull/102): the sofa now
+  faces that window, 3'-0" off the partition.
+  **The 3 ft is not taste, it is the pocket door.** Against the wall, the
+  sofa covered x 14.50–18.26 of the bedroom's 5'-0" opening at x 13.26–18.26
+  — three quarters of the doorway, half an inch from it. You would have
+  walked out of the bedroom into the back of it.
+  **And the doorway gate could not see that.** *"No furniture stands in a
+  doorway"* took each `Door_` mesh's bounding box as the opening — but a
+  double POCKET door's leaves sit inside the wall on either side of the hole,
+  and the opening is the five feet BETWEEN them, which no `Door_` object
+  covers. The gate was testing the leaf and calling it the doorway. It now
+  finds the hole by walking the wall at **two heights**, because a window is
+  also a hole and a doorway is the one that goes to the floor.
+  **The orientation departs from the footage and says so.** The video has the
+  back to the kitchen; held to that, the sofa could not leave the walkway.
+  `departs_from_source` records it rather than editing the source line.
+
 **Deferred, with the reason recorded so it stays a decision rather than an
 omission:** the `main()` split in the verify scripts and a `Box` value object.
 Both are genuine improvements to code that will be read for a long time, but
@@ -1155,3 +1179,40 @@ Keep these — they caught real errors:
     only answer involves the gate's own arithmetic being wrong, it is
     checking itself.** The fix is always the same — find the object the claim
     is about and measure that.
+
+37. **A SUITE THAT ONLY ASKS "IS IT LEGAL" WILL NEVER ASK "IS IT USABLE",
+    and the gap between those is where a building goes wrong.**
+    `verify_furniture` had twelve gates before [#102](https://github.com/captproton/yardstake-ux/pull/102). Every one
+    was a containment question: does the furniture exist, is it inside a wall,
+    a fixture, the floor, a doorway; do arrangements merge; does each room
+    have one default. All twelve passed on a sofa that sat 20½" from the loft
+    ladder in a room whose other half was bare, AND stood across three
+    quarters of the bedroom's pocket door.
+    Nothing was *inside* anything. That was the only question being asked.
+    `verify_fixtures` had real clearance gates from the start, because the
+    bath is 5'-1" × 8'-0" and the tightness was obvious to whoever wrote them.
+    Furniture looked roomy, so it got the self-consistency half and never the
+    clearance half — **the check was skipped exactly where it was least
+    obviously needed, which is where it was needed.**
+    *Ask of a finished-looking suite: what can a person DO with this building
+    that these gates would not notice?* Walk through it. Reach the loft. Open
+    the bedroom door. Every one of those was ungated.
+
+38. **THE DOOR IS NOT THE DOORWAY, AND THE FIXTURE IS NOT THE FUNCTION.**
+    [#102](https://github.com/captproton/yardstake-ux/pull/102)'s worst defect hid behind a gate named for the right
+    thing. *"No furniture stands in a doorway"* tested each `Door_` mesh's
+    bounding box — which is the LEAF. For a double pocket door the leaves live
+    inside the wall on either side of the opening, so the five feet you
+    actually walk through is covered by no object at all, and a sofa parked
+    across it passed.
+    The fix was to stop looking for the thing and start looking for the
+    absence of the thing: walk the wall and find where the solid stops.
+    *And that needed two heights.* Sampling at body height alone called the
+    bedroom's 5'-1" egress WINDOW a doorway and failed the bed that is meant
+    to sit under it. A doorway is the hole that goes to the floor.
+    The general form is rule 33 wearing different clothes, and worth stating
+    separately because the proxy here was not a measurement — it was an
+    OBJECT. When a gate resolves a named object and tests that, ask whether
+    the object IS the thing the gate's name promises. A door leaf, a fixture
+    body, a trim board: each is evidence ABOUT a function and none of them is
+    the function.
