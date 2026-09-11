@@ -24,7 +24,7 @@ from mathutils import Vector
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from build_adu import load_spec  # noqa: E402
+from build_adu import load_spec, ft  # noqa: E402
 from verify_lib import inside_mesh, inside_mesh_cases  # noqa: E402
 
 FAILED = []
@@ -204,21 +204,64 @@ def main():
          + (f" — {len(clashes)} CLASH: {clashes[:3]}" if clashes else ""))
 
     # ---- 5. no doorway is blocked -----------------------------------------
-    doors = [o for o in bpy.data.objects
-             if o.type == "MESH" and o.name.startswith("Door_")]
+    # THE DOOR IS NOT THE DOORWAY, and this gate spent its life testing the
+    # wrong one. It took each Door_ mesh's bounding box as the opening -- and
+    # for the bedroom's 5'-0" DOUBLE POCKET door the leaves live inside the
+    # wall, one on each side of the hole: x 10.76-13.26 and 18.26-20.76. The
+    # opening is the 5 feet BETWEEN them, x 13.26-18.26, and no Door_ object
+    # covers it. A sofa parked across three quarters of that doorway passed.
+    #
+    # So find the hole instead of the leaf: walk along each partition at door
+    # height and ask the solid itself where it stops. A run of not-inside
+    # wider than a person is a doorway. That is the wall answering, not the
+    # spec's arithmetic being read back (rule 36).
+    openings = []
+    for w in bpy.data.objects:
+        if w.type != "MESH" or not w.name.startswith(("Part_", "Wall_")):
+            continue
+        cs = [w.matrix_world @ v.co for v in w.data.vertices]
+        x0, x1 = min(c.x for c in cs), max(c.x for c in cs)
+        y0, y1 = min(c.y for c in cs), max(c.y for c in cs)
+        if (x1 - x0) < (y1 - y0):        # only walls that run in X, for now
+            continue
+        # AT TWO HEIGHTS, BECAUSE A WINDOW IS ALSO A HOLE. Sampling at body
+        # height alone called the bedroom's 5'-1" egress window a doorway and
+        # failed the bed that is meant to sit under it. A doorway goes to the
+        # floor; a window does not. Void at the ankle AND at the body is a
+        # door, and nothing else in this building is.
+        ym = (y0 + y1) / 2
+        run, step = None, 0.05
+        x = x0 + step
+        while x < x1:
+            solid = (inside_mesh(w, Vector((x, ym, 3.0)))
+                     or inside_mesh(w, Vector((x, ym, 0.30))))
+            if not solid and run is None:
+                run = x
+            elif solid and run is not None:
+                if x - run > 1.5:        # wider than a person: a doorway
+                    openings.append((w.name, run, x, y0, y1))
+                run = None
+            x += step
+        if run is not None and x1 - run > 1.5:
+            openings.append((w.name, run, x1, y0, y1))
+
     blocked = []
-    for d in doors:
-        cs = [d.matrix_world @ v.co for v in d.data.vertices]
-        db = (min(c.x for c in cs), max(c.x for c in cs),
-              min(c.y for c in cs), max(c.y for c in cs), 0, 0)
+    reach = circ["min_walkway"]["ft"] if (circ := spec["fixtures"]["furniture"]
+                                          .get("circulation")) else 2.5
+    for wn, ox0, ox1, oy0, oy1 in openings:
+        # the doorway plus the room you need to get through it, both sides
+        db = (ox0, ox1, oy0 - reach, oy1 + reach, 0, 0)
         for a in arrs:
             for pc in a["pieces"]:
                 if pc["z0"] > 3.0:        # above head height cannot block
                     continue
                 if plan_overlap(piece_box(pc), db):
-                    blocked.append(f"{a['id']}.{pc['id']} across {d.name}")
-    gate("no furniture stands in a doorway", not blocked,
-         f"{len(doors)} doors"
+                    blocked.append(f"{a['id']}.{pc['id']} blocks the "
+                                   f"{(ox1-ox0)*12:.0f}\" opening in {wn}")
+    blocked = sorted(set(blocked))
+    gate("no furniture stands in a doorway or its approach", not blocked,
+         f"{len(openings)} openings found by walking the walls, each kept "
+         f"clear by {ft(reach)}"
          + (f" — BLOCKED {blocked[:3]}" if blocked else ""))
 
     # ---- 5b. nothing is buried in the floor finish ------------------------
@@ -245,6 +288,107 @@ def main():
     off = [f"{a['id']}.{pc['id']}"
            for a in arrs for pc in a["pieces"]
            if pc["z0"] < -0.01 or pc["z1"] > 8.0]
+    # ---- circulation: how wide are the gaps? -------------------------------
+    # ELEVEN GATES BEFORE THIS BLOCK AND NOT ONE OF THEM ASKED. They check that
+    # furniture exists, that it is not inside a wall or a fixture or the
+    # floor, that it is not standing in a doorway, that arrangements do not
+    # merge -- and the twelfth, below, that it sits between floor and ceiling.
+    # All of them passed on a sofa with 20 1/2" between its arm and the
+    # loft ladder, in a room whose other half was bare floor -- because "not
+    # inside anything" and "reachable around" are different questions, and
+    # only the first was being asked. verify_fixtures has had real clearance
+    # gates since the bath; furniture never got them. #101.
+    def bounds(name):
+        o = bpy.data.objects[name]
+        vs = [o.matrix_world @ v.co for v in o.data.vertices]
+        return ([min(v[i] for v in vs) for i in range(3)],
+                [max(v[i] for v in vs) for i in range(3)])
+
+    circ = spec["fixtures"]["furniture"].get("circulation")
+    if circ:
+        min_w = circ["min_walkway"]["ft"]
+        against = circ["against_it"]["ft"]
+        furn_b = {o.name: bounds(o.name) for o in bpy.data.objects
+                  if o.type == "MESH" and o.name.startswith("Furn_")}
+
+        # 1. the named runs are the ways through the building. Nothing stands
+        #    in them. This is the cheap half and it would NOT have caught the
+        #    sofa: it sat beside the run, not in it.
+        # A DECLARATION IS NOT A MEASUREMENT. `min_walkway` was loaded and
+        # never used, so the number was documentation: someone could declare
+        # a 14" run, the gate would keep furniture out of it, and the suite
+        # would report a walkway. The runs are checked against it first, so
+        # the thing being kept clear is at least wide enough to walk down.
+        narrow = [f"{r['id']} is {ft(min(r['x1'] - r['x0'], r['y1'] - r['y0']))} "
+                  f"across, under the {ft(min_w)} it is declared against"
+                  for r in circ["runs"]
+                  if min(r["x1"] - r["x0"], r["y1"] - r["y0"]) < min_w - 1e-6]
+
+        intruding = list(narrow)
+        for run in circ["runs"]:
+            r = (run["x0"], run["x1"], run["y0"], run["y1"])
+            for n, b in furn_b.items():
+                if (b[0][0] < r[1] - 1e-6 and b[1][0] > r[0] + 1e-6
+                        and b[0][1] < r[3] - 1e-6 and b[1][1] > r[2] + 1e-6):
+                    intruding.append(f"{n} stands in {run['id']}")
+        gate("every declared circulation run is clear of furniture",
+             not intruding, "; ".join(intruding) or
+             f"{len(circ['runs'])} runs, each at least {ft(min_w)} across, "
+             f"{len(furn_b)} furniture meshes, none in the way")
+
+        # 2. AND THE THINGS YOU HAVE TO GET TO. This is the half that
+        #    matters: the sofa sat BESIDE the run, not in it, so gate 1 would
+        #    have passed it.
+        #
+        #    A gap is either something you walk through, or furniture pushed
+        #    up against something. The band between -- too narrow to use, too
+        #    wide to be deliberate -- is the defect, and 20 1/2" was squarely
+        #    in it.
+        #
+        #    Measured only against solids the spec NAMES, and only where the
+        #    two actually overlap in Z. The first draft asked the general
+        #    question of every solid and fired on a bed's linen 2" from the
+        #    window casing over it, and on loft trim ten feet above it — both
+        #    fine, and a gate that cries about them gets switched off.
+        pinch, judged = [], {}
+        for tgt in circ.get("keep_clear", []):
+            tb = [bounds(o.name) for o in bpy.data.objects
+                  if o.type == "MESH" and o.name.startswith(tgt["prefix"])]
+            if not tb:
+                pinch.append(f"nothing named {tgt['prefix']} to keep clear of")
+                continue
+            lo = [min(b[0][i] for b in tb) for i in range(3)]
+            hi = [max(b[1][i] for b in tb) for i in range(3)]
+            for n, b in furn_b.items():
+                if b[0][2] >= hi[2] or b[1][2] <= lo[2]:
+                    continue                       # never at the same height
+                for ax, other in ((0, 1), (1, 0)):
+                    if not (b[0][other] < hi[other] - 1e-6
+                            and b[1][other] > lo[other] + 1e-6):
+                        continue                   # no slot on this axis
+                    d = max(lo[ax] - b[1][ax], b[0][ax] - hi[ax])
+                    if d >= 0.0:
+                        judged.setdefault(tgt["id"], []).append(d)
+                    if against < d < tgt["min"]:
+                        pinch.append(
+                            f"{n} leaves {ft(d)} to the {tgt['id']} — want "
+                            f"{ft(tgt['min'])} clear, or hard against it")
+        pinch = sorted(set(pinch))
+        # SAY WHICH OF THE TWO STATES IT FOUND, AND ONLY ABOUT PAIRS IT
+        # ACTUALLY JUDGED. The old message reported both accepted states as
+        # "clear", so a pass could claim the closest thing was clear of
+        # something it was touching. The first rewrite then reported 0.00"
+        # against the ladder while the sofa stood 34.7" away -- it minimised
+        # over every piece and both axes, including pairs that merely share a
+        # range and form no slot at all. These are the gaps the gate judged.
+        near = [f"{k} {ft(min(ds))}" + (" (against it)" if min(ds) <= against else "")
+                for k, ds in sorted(judged.items())]
+        gate("furniture keeps its distance from what you have to reach",
+             not pinch, "; ".join(pinch[:3]) or
+             ("nearest furniture: " + "; ".join(near) if near
+              else "nothing declared"))
+
+
     gate("furniture sits between floor and ceiling", not off,
          "0 ft to 8 ft" + (f" — OUTSIDE {off[:3]}" if off else ""))
 
