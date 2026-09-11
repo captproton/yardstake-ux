@@ -481,10 +481,31 @@ def main():
     # detail as an already-evaluated argument, so with nought or one rung
     # `min(along)` raises ValueError and the verifier dies instead of
     # REPORTING the wrong rung count it was about to catch.
-    along = [math.dist(cent[i + 1], cent[i]) for i in range(len(cent) - 1)]
+    #
+    # AND MEASURE ALONG THE RAKE, NOT THE CHORD BETWEEN CENTRES. The two agree
+    # only while the rungs are ON the rail: a straight-line distance between
+    # centres is preserved if every rung slides the same amount in Y, which
+    # takes the whole set off the rail while the spacing, the top face and
+    # every dado shoulder still read correctly. So the gap is projected onto
+    # the rake, and each centre's PERPENDICULAR offset from the rail's own
+    # centre line is constrained separately. Two numbers, because it is two
+    # claims: evenly spaced, and on the ladder.
+    a_ = math.radians(want_ang)
+    u_y, u_z = math.sin(a_), math.cos(a_)             # along the rake
+    p_y, p_z = math.cos(a_), -math.sin(a_)            # across it
+    along = [abs((cent[i + 1][0] - cent[i][0]) * u_y
+                 + (cent[i + 1][1] - cent[i][1]) * u_z)
+             for i in range(len(cent) - 1)]
     if along and any(abs(d - rs_) > 0.01 for d in along):
         bad_r.append(f"rung spacing along the rail runs "
                      f"{ft(min(along))}..{ft(max(along))}, want {ft(rs_)}")
+    # the rail centre line, taken from the rails themselves
+    rail_off = [w.y * p_y + w.z * p_z for w in rail_v]
+    mid_off = (min(rail_off) + max(rail_off)) / 2
+    stray = [abs((c[0] * p_y + c[1] * p_z) - mid_off) for c in cent]
+    if stray and max(stray) > 0.01:
+        bad_r.append(f"a rung centre sits {ft(max(stray))} off the rail's "
+                     f"centre line — the rungs are not on the ladder")
     treads = [max(v.y for v in rung_v if abs(v.z - zc) < rt_)
               - min(v.y for v in rung_v if abs(v.z - zc) < rt_)
               for _, zc in cent]
@@ -505,15 +526,40 @@ def main():
     # they leave vertices at the rung's top and bottom inside the dado's own
     # thin band of x. Checked on both rails, for every rung.
     dado_ = la["dado_depth"]["ft"]
+    # MEASURE THE SLOT, AND CHECK THE RUNG IS IN IT. This used to look for a
+    # vertex at each expected z SOMEWHERE inside a band of x a whole dado
+    # wide, and never asked where in that band, nor whether the rung reached
+    # it. A shallower dado whose shoulder still fell inside the band passed,
+    # and so did a rung translated in x until it missed the slot entirely.
+    #
+    # The shoulder is a plane, so find the plane: the innermost x the rail
+    # occupies, and the x the slot is cut back to. Their separation is the
+    # dado's real depth. Then require each rung's own x extent to reach into
+    # both slots, which is what "seated" means.
     slots = {"W": (rx[0] + th_ - dado_ - 1e-3, rx[0] + th_ + 1e-3),
              "E": (rx[-1] - th_ - 1e-3, rx[-1] - th_ + dado_ + 1e-3)}
     missing = []
     for side, (x0, x1) in slots.items():
-        zs_side = {round(v.z, 3) for v in rail_v if x0 <= v.x <= x1}
+        planes = sorted({round(v.x, 4) for v in rail_v if x0 <= v.x <= x1})
+        if len(planes) < 2:
+            missing.append(f"{side} rail has no slot cut in it at all")
+            continue
+        got_depth = max(planes) - min(planes)
+        if abs(got_depth - dado_) > 0.002:
+            missing.append(f"{side} dado is {ft(got_depth)} deep, want {ft(dado_)}")
+        shoulder = min(planes) if side == "W" else max(planes)
+        zs_side = {round(v.z, 3) for v in rail_v
+                   if abs(v.x - shoulder) < 1e-3}
         for _, zc in cent:
             for edge in (zc - rt_ / 2, zc + rt_ / 2):
                 if not any(abs(z - edge) < 0.004 for z in zs_side):
                     missing.append(f"{side} rail has no dado shoulder at {ft(edge)}")
+    # and the rungs have to reach into both slots
+    if not missing:
+        rgx0, rgx1 = min(w.x for w in rung_v), max(w.x for w in rung_v)
+        if rgx0 > slots["W"][0] + 0.002 or rgx1 < slots["E"][1] - 0.002:
+            missing.append(f"the rungs span {ft(rgx0)}..{ft(rgx1)} and do not "
+                           f"reach into both slots")
     gate("every rung is dadoed into both rails, not buried in them",
          not missing,
          "; ".join(missing[:3]) or
@@ -612,19 +658,31 @@ def main():
     # be checked against the plate, when the board sat on the top of the
     # wall -- which is where the footage puts it and where the ladder's own
     # placement will not allow it; see spec.ledger.)
-    led_on_wall = led is not None and abs(bounds("Ledger_loft")[1][2]
-                                          - (loft_sf + ff)) < 0.004
+    # MEASURED AGAINST THE FLOOR, NOT AGAINST THE SPEC'S ARITHMETIC. Reading
+    # `loft_sf + ff` here recomputes the same sum the builder used, so the two
+    # cannot disagree -- and `trim_y` is then read off the ledger itself, so
+    # the board and all its hardware could move away from the loft floor
+    # together and every gate downstream would follow them and pass. Compared
+    # against Floor_loft's own top and south face, the board's position is a
+    # relationship between two objects, and drifting breaks it.
+    fl_b = bounds("Floor_loft")
+    led_b0 = bounds("Ledger_loft") if led else None
+    led_on_wall = led is not None and (
+        abs(led_b0[1][2] - fl_b[1][2]) < 0.004          # top flush with the floor
+        and abs(led_b0[1][1] - fl_b[0][1]) < 0.004)     # back against its edge
     ok_led = (led is not None and abs(led_h_got - led_h_want) < 0.004
               and led_on_wall)
     gate("the trim board is the height of the flange and hangs from the floor",
          ok_led,
          (f"Ledger_loft {ft(led_h_got)} tall, matching the "
-          f"{ft(fl_pre['diameter']['ft'])} flange, hung from the loft floor "
-          f"at {ft(loft_sf + ff)}") if led and ok_led else
+          f"{ft(fl_pre['diameter']['ft'])} flange, hung from Floor_loft at "
+          f"{ft(fl_b[1][2])} and applied to its edge at {ft(fl_b[0][1])}")
+         if led and ok_led else
          ((f"Ledger_loft is {ft(led_h_got)} tall, want {ft(led_h_want)}"
            if abs(led_h_got - led_h_want) >= 0.004 else
-           f"Ledger_loft tops out at {ft(bounds('Ledger_loft')[1][2])}, not "
-           f"hung from the loft floor at {ft(loft_sf + ff)}")
+           f"Ledger_loft tops out at {ft(led_b0[1][2])} / backs onto "
+           f"{ft(led_b0[1][1])}, not hung from Floor_loft at "
+           f"{ft(fl_b[1][2])} / {ft(fl_b[0][1])}")
           if led else "Ledger_loft MISSING — the flanges have nothing to "
           "screw to"))
 
@@ -745,7 +803,7 @@ def main():
              if o.type == "MESH" and o.name.startswith(("Ceil_", "Floor_main",
                                                         "Floor_bath", "Floor_loft",
                                                         "Door_", "Trim_", "Ladder_",
-                                                        "Rail_", "Hdw_"))
+                                                        "Ledger_", "Rail_", "Hdw_"))
              and o.name not in fin]
     gate("all Tier 1 geometry is in the Finish collection", not stray,
          ", ".join(stray) or f"{len(fin)} objects")

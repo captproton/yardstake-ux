@@ -32,7 +32,7 @@ FAILED = []
 # Things furniture must not be inside. Deliberately excludes Furn_ itself:
 # two bedroom arrangements share the floor on purpose.
 STRUCTURAL = ("Wall_", "Part_", "Cab_", "Appl_", "Fix_", "Ladder_", "Rail_",
-              "Porch_post", "Found_", "Trim_")
+              "Ledger_", "Porch_post", "Found_", "Trim_")
 
 
 def gate(name, ok, detail=""):

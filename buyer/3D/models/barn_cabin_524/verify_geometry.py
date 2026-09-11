@@ -34,7 +34,8 @@ from build_adu import load_spec  # noqa: E402
 # fixture's footprint would satisfy the check on its own.
 STRUCTURAL = ("Wall_", "Floor_main", "Floor_bath", "Floor_loft", "Floor_slab",
               "Ceil_", "Roof_", "Trim_", "Part_", "Glazing_", "Door_", "Gable_",
-              "Dormer_", "Eave_", "Porch_", "Loft_floor", "Rail_", "Ladder_")
+              "Dormer_", "Eave_", "Porch_", "Loft_floor", "Rail_", "Ladder_",
+              "Ledger_")
 
 FAILED = []
 

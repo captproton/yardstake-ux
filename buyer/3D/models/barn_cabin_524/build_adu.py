@@ -1173,27 +1173,26 @@ def build(spec, cut_openings=True):
     # wall -- but the model had no board at all, so the ladder's hardware was
     # bolted to the painted edge of the loft floor and read as bolted to
     # nothing. This is that board, in the same fir as the ladder.
-    #
-    # It takes the OUTER 3/4" of the loft floor's south edge rather than
-    # standing proud of it, and that is deliberate: a board applied to the
-    # face would push the rod 3/4" south, which at 20 degrees drops it 2"
-    # down the rail and walks the flange off the bottom of the board it was
-    # added for. Let into the edge, the face stays exactly where it was.
     _la = spec["loft_access"]["ladder"]
     led_t = _la["ledger"]["thickness"]["ft"]
     led_h = _la["ledger"]["height"]["ft"]
-    # APPLIED TO THE FACE, AND HUNG FROM THE FLOOR SURFACE. Three earlier
-    # positions, and the ladder's own placement is what settles it.
+    # IT STANDS PROUD OF THE EDGE AND HANGS FROM THE FLOOR SURFACE, and the
+    # ladder's own placement is what settles that. Three positions were tried
+    # and each is worth knowing about, because each was wrong for a different
+    # reason:
     #   - the whole floor build-up: a fascia, not the board in the frame
-    #   - narrowed to the flange's height, but floating up the edge
-    #   - dropped to sit on the top of the wall, which is where the frame
-    #     puts it and where it cannot go HERE: with the ladder moved clear of
-    #     the floor edge, the rod at that height is 5 1/2" off the face, and
-    #     5 1/2" of standoff is a bracket, not a 1/2" pipe elbow.
+    #   - narrowed to the flange's height, but left floating up the edge
+    #   - dropped to the top of the wall, which is where the frame puts it and
+    #     where it cannot go HERE: with the ladder moved clear of the floor
+    #     edge, the rod at that height is 5 1/2" off the face, and 5 1/2" of
+    #     standoff is a bracket, not a 1/2" pipe elbow.
     # At the TOP of the floor edge the rail is at its closest -- it touches
     # there -- and the reach is 1 9/16", which the elbow already spans. So the
-    # board's top is the loft floor surface and it stands PROUD of the edge,
+    # board's top is the loft floor surface, and it is applied to the face
     # with the slab directly behind it for its whole height.
+    # (An earlier comment here described the board as LET INTO the edge. That
+    # was true of a placement three commits back and was left behind when the
+    # geometry moved; the spec and the box below are the authority.)
     box("Ledger_loft", t, W - t, loft_s - led_t, loft_s,
         loft_sf + ff - led_h, loft_sf + ff, finish)
 
