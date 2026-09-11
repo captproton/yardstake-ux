@@ -610,11 +610,16 @@ def build(spec, cut_openings=True):
                          -1 if side == "W" else +1)
 
     # dormer cheek wall at the inboard (south) end of each dormer
+    # WELDED. Two cheeks, one material, one visibility fate, and no gate names
+    # either -- so they cost two slots against a cap of 120 for nothing. The
+    # name keeps the `Dormer_cheek_` prefix the material rule matches on.
+    cheeks = []
     for side in ("W", "E"):
         tri = [(0, main_under_wall), (0, dorm_under_wall), (ridge_x, ridge_top - dp_v)]
         if side == "E":
             tri = [(W - x, z) for x, z in tri]
-        prism_xz(f"Dormer_cheek_{side}", tri, yn(dorm_len), yn(dorm_len) + t, shell)
+        cheeks.append(prism_geom(tri, yn(dorm_len), yn(dorm_len) + t, "xz"))
+    weld("Dormer_cheek_EW", cheeks, shell)
 
     # ---- main roof --------------------------------------------------------
     z_eave = main_top_wall - mp * eave
@@ -635,6 +640,9 @@ def build(spec, cut_openings=True):
                                -pad, ridge_top + pad, roofc)])
 
     # ---- dormer roofs (4:12, sloping up from the face to the main plane) ---
+    # WELDED, for the same reason as the cheeks: two planes, one material, one
+    # visibility fate, nothing addresses either by name.
+    dorm_planes = []
     for side in ("W", "E"):
         z_face_eave = dorm_top_wall - dp * eave
         prof = [(-eave, z_face_eave), (ridge_x, ridge_top),
@@ -643,7 +651,8 @@ def build(spec, cut_openings=True):
             prof = [(W - x, z) for x, z in prof]
         # Runs out to the rear rake: past the dormers the roof surface IS the
         # 4:12 plane, so the rear overhang follows it, not the 9:12 main plane.
-        prism_xz(f"Roof_dormer_{side}", prof, yn(dorm_len), NY + rake, roofc)
+        dorm_planes.append(prism_geom(prof, yn(dorm_len), NY + rake, "xz"))
+    weld("Roof_dormer_EW", dorm_planes, roofc)
 
     # ---- the projecting ridge beam at the front apex -----------------------
     # RB01's tail, cantilevering forward out of the peak. It goes in the ROOF
@@ -671,9 +680,9 @@ def build(spec, cut_openings=True):
     # ---- eave / raised-heel band on the side walls -------------------------
     # Between the 8'-0" top of plate and the main roof underside. This is the 9"
     # raised heel plus fascia; without it the walls stop short of the roof.
-    for side, (bx0, bx1) in (("W", (0, t)), ("E", (W - t, W))):
-        box(f"Eave_band_{side}", bx0, bx1, SY + t, yn(dorm_len),
-            plate, main_under_wall, shell)
+    multibox("Eave_band_EW",
+             [(bx0, bx1, SY + t, yn(dorm_len), plate, main_under_wall)
+              for bx0, bx1 in ((0, t), (W - t, W))], shell)
 
     # ---- porch ------------------------------------------------------------
     slab_t = con["porch_slab_thickness"]["ft"]
@@ -2002,38 +2011,41 @@ def build_casework(spec, geo, coll):
                 (ix0, ix1, iy1, ty1, bfloor, rim),                  # north side
             ], coll)
 
-            # Surround: three walls, from the rim to the top.
+            # Surround: three walls from the rim to the top, plus the shelf
+            # MOULDED INTO the back wall -- the shelf was its own object for a
+            # feature the comment already described as part of the surround.
+            # Same material, same fate, no gate names it: one mesh.
+            sc_ = sr["shelf"]
+            shx = tx0 + (tx1 - tx0) * 0.32
             multibox("Fix_tub_surround", [
                 (tx0, tx1, ty1 - st, ty1, rim, sh),                 # back (north)
                 (tx0, tx0 + st, ty0, ty1, rim, sh),                 # west end
                 (tx1 - st, tx1, ty0, ty1, rim, sh),                 # east end
+                (shx, shx + sc_["width"]["ft"],
+                 ty1 - st - sc_["depth"]["ft"], ty1 - st,
+                 sc_["height"]["ft"], sc_["height"]["ft"] + 0.06),  # shelf
             ], coll)
 
-            # Moulded shelf in the back wall.
-            sc_ = sr["shelf"]
-            shx = tx0 + (tx1 - tx0) * 0.32
-            box("Fix_tub_shelf", shx, shx + sc_["width"]["ft"],
-                ty1 - st - sc_["depth"]["ft"], ty1 - st,
-                sc_["height"]["ft"], sc_["height"]["ft"] + 0.06, coll)
-
-            # Curtain rod across the open south side.
-            tube("Fix_tub_rod",
-                 [(tx0, ty0 + st, ft_["rod_h"]["ft"]),
-                  (tx1, ty0 + st, ft_["rod_h"]["ft"])],
-                 ft_["rod_r"]["ft"], coll, sides=8)
-
-            # Head, valve and spout on the east end wall, per the video.
+            # Curtain rod, head, valve AND spout: one set of steel fittings.
+            #
+            # The spout was held out on a rationale that was simply FALSE --
+            # "verify_lib's known-answer cases name it". They do not: they name
+            # Fix_tub_basin and Fix_toilet_bowl. The exclusion came from an
+            # automated scan matching the quoted token "spout" in
+            # verify_fixtures, which is a SPEC KEY for the tap, not a reference
+            # to this object. A false positive, written into a comment as fact.
             fr_ = ft_["fitting_r"]["ft"]
             ey = (ty0 + ty1) / 2.0
-            tube("Fix_tub_head",
-                 [(tx1 - st, ey, ft_["head_h"]["ft"]),
-                  (tx1 - st - 0.42, ey, ft_["head_h"]["ft"] - 0.17)],
-                 fr_, coll, sides=8)
-            for nm, hgt in (("valve", ft_["valve_h"]["ft"]),
-                            ("spout", ft_["spout_h"]["ft"])):
-                tube(f"Fix_tub_valve_{nm}",
-                     [(tx1 - st, ey, hgt), (tx1 - st - 0.25, ey, hgt)],
-                     fr_, coll, sides=8)
+            multitube("Fix_tub_fittings", [
+                ([(tx0, ty0 + st, ft_["rod_h"]["ft"]),
+                  (tx1, ty0 + st, ft_["rod_h"]["ft"])], ft_["rod_r"]["ft"]),
+                ([(tx1 - st, ey, ft_["head_h"]["ft"]),
+                  (tx1 - st - 0.42, ey, ft_["head_h"]["ft"] - 0.17)], fr_),
+                ([(tx1 - st, ey, ft_["valve_h"]["ft"]),
+                  (tx1 - st - 0.25, ey, ft_["valve_h"]["ft"])], fr_),
+                ([(tx1 - st, ey, ft_["spout_h"]["ft"]),
+                  (tx1 - st - 0.25, ey, ft_["spout_h"]["ft"])], fr_),
+            ], coll, sides=8)
 
         # ---- toilet ---------------------------------------------------
         # The BUILD answer to "must this be bought?". loft() was made generic
