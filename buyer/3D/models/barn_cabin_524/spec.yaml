@@ -1900,17 +1900,26 @@ fixtures:
         Backs onto the bedroom partition (1/2" off it) with the east arm 1/2"
         off the east wall, facing south at W-LIVING-S2 -- the room's only
         2'-0" sill window, which falls inside the sofa's own span.
+        IT STANDS OFF THE WALL, AND THE BEDROOM DOOR IS WHY. Against the
+        partition the sofa's back covered x 14.50-18.26 of a 5'-0" double
+        pocket opening that runs x 13.26-18.26 -- three quarters of the
+        doorway, half an inch from it. You would have walked out of the
+        bedroom into the back of the sofa.
+        Nothing caught that either: the doorway gate tested the door LEAVES,
+        and a pocket door's leaves are in the wall on both SIDES of the
+        opening. Pulled 3'-0" forward, which is the approach the door needs.
         NUMBERS, NOT THE WORD "CLEAR": 2'-10.7" to the loft ladder, which is
-        the binding one because the two overlap in Y; 2'-1.2" east of the
-        front-door-to-ladder run; 8'-9" of open floor in front of it; and the
-        kitchen walkway is now the full 12'-0" from the counter front.
+        the binding one because the two overlap in Y; 3'-0.5" of approach to
+        the bedroom doorway; 2'-1.2" east of the front-door-to-ladder run;
+        5'-8.9" of open floor in front of it; and the kitchen walkway is now
+        the full 12'-0" from the counter front.
       pieces:
-      - {id: seat,     x0: 14.50, x1: 21.50, y0: 15.20, y1: 18.10, z0: 0.60, z1: 1.30, material: furn_fabric}
-      - {id: base,     x0: 14.70, x1: 21.30, y0: 15.40, y1: 17.90, z0: 0.00, z1: 0.60, material: furn_fabric}
-      - {id: back,     x0: 14.50, x1: 21.50, y0: 17.35, y1: 18.10, z0: 0.60, z1: 2.45, material: furn_fabric}
-      - {id: arm_w,    x0: 14.50, x1: 15.25, y0: 15.20, y1: 17.35, z0: 1.30, z1: 1.95, material: furn_fabric}
-      - {id: arm_e,    x0: 20.75, x1: 21.50, y0: 15.20, y1: 17.35, z0: 1.30, z1: 1.95, material: furn_fabric}
-      - {id: cushion,  x0: 15.45, x1: 16.45, y0: 16.25, y1: 17.25, z0: 1.30, z1: 1.75, material: furn_linen}
+      - {id: seat,     x0: 14.50, x1: 21.50, y0: 12.20, y1: 15.10, z0: 0.60, z1: 1.30, material: furn_fabric}
+      - {id: base,     x0: 14.70, x1: 21.30, y0: 12.40, y1: 14.90, z0: 0.00, z1: 0.60, material: furn_fabric}
+      - {id: back,     x0: 14.50, x1: 21.50, y0: 14.35, y1: 15.10, z0: 0.60, z1: 2.45, material: furn_fabric}
+      - {id: arm_w,    x0: 14.50, x1: 15.25, y0: 12.20, y1: 14.35, z0: 1.30, z1: 1.95, material: furn_fabric}
+      - {id: arm_e,    x0: 20.75, x1: 21.50, y0: 12.20, y1: 14.35, z0: 1.30, z1: 1.95, material: furn_fabric}
+      - {id: cushion,  x0: 15.45, x1: 16.45, y0: 13.25, y1: 14.25, z0: 1.30, z1: 1.75, material: furn_linen}
     - id: bedroom_bed
       room: bedroom
       default: true

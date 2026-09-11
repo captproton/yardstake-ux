@@ -204,21 +204,64 @@ def main():
          + (f" — {len(clashes)} CLASH: {clashes[:3]}" if clashes else ""))
 
     # ---- 5. no doorway is blocked -----------------------------------------
-    doors = [o for o in bpy.data.objects
-             if o.type == "MESH" and o.name.startswith("Door_")]
+    # THE DOOR IS NOT THE DOORWAY, and this gate spent its life testing the
+    # wrong one. It took each Door_ mesh's bounding box as the opening -- and
+    # for the bedroom's 5'-0" DOUBLE POCKET door the leaves live inside the
+    # wall, one on each side of the hole: x 10.76-13.26 and 18.26-20.76. The
+    # opening is the 5 feet BETWEEN them, x 13.26-18.26, and no Door_ object
+    # covers it. A sofa parked across three quarters of that doorway passed.
+    #
+    # So find the hole instead of the leaf: walk along each partition at door
+    # height and ask the solid itself where it stops. A run of not-inside
+    # wider than a person is a doorway. That is the wall answering, not the
+    # spec's arithmetic being read back (rule 36).
+    openings = []
+    for w in bpy.data.objects:
+        if w.type != "MESH" or not w.name.startswith(("Part_", "Wall_")):
+            continue
+        cs = [w.matrix_world @ v.co for v in w.data.vertices]
+        x0, x1 = min(c.x for c in cs), max(c.x for c in cs)
+        y0, y1 = min(c.y for c in cs), max(c.y for c in cs)
+        if (x1 - x0) < (y1 - y0):        # only walls that run in X, for now
+            continue
+        # AT TWO HEIGHTS, BECAUSE A WINDOW IS ALSO A HOLE. Sampling at body
+        # height alone called the bedroom's 5'-1" egress window a doorway and
+        # failed the bed that is meant to sit under it. A doorway goes to the
+        # floor; a window does not. Void at the ankle AND at the body is a
+        # door, and nothing else in this building is.
+        ym = (y0 + y1) / 2
+        run, step = None, 0.05
+        x = x0 + step
+        while x < x1:
+            solid = (inside_mesh(w, Vector((x, ym, 3.0)))
+                     or inside_mesh(w, Vector((x, ym, 0.30))))
+            if not solid and run is None:
+                run = x
+            elif solid and run is not None:
+                if x - run > 1.5:        # wider than a person: a doorway
+                    openings.append((w.name, run, x, y0, y1))
+                run = None
+            x += step
+        if run is not None and x1 - run > 1.5:
+            openings.append((w.name, run, x1, y0, y1))
+
     blocked = []
-    for d in doors:
-        cs = [d.matrix_world @ v.co for v in d.data.vertices]
-        db = (min(c.x for c in cs), max(c.x for c in cs),
-              min(c.y for c in cs), max(c.y for c in cs), 0, 0)
+    reach = circ["min_walkway"]["ft"] if (circ := spec["fixtures"]["furniture"]
+                                          .get("circulation")) else 2.5
+    for wn, ox0, ox1, oy0, oy1 in openings:
+        # the doorway plus the room you need to get through it, both sides
+        db = (ox0, ox1, oy0 - reach, oy1 + reach, 0, 0)
         for a in arrs:
             for pc in a["pieces"]:
                 if pc["z0"] > 3.0:        # above head height cannot block
                     continue
                 if plan_overlap(piece_box(pc), db):
-                    blocked.append(f"{a['id']}.{pc['id']} across {d.name}")
-    gate("no furniture stands in a doorway", not blocked,
-         f"{len(doors)} doors"
+                    blocked.append(f"{a['id']}.{pc['id']} blocks the "
+                                   f"{(ox1-ox0)*12:.0f}\" opening in {wn}")
+    blocked = sorted(set(blocked))
+    gate("no furniture stands in a doorway or its approach", not blocked,
+         f"{len(openings)} openings found by walking the walls, each kept "
+         f"clear by {ft(reach)}"
          + (f" — BLOCKED {blocked[:3]}" if blocked else ""))
 
     # ---- 5b. nothing is buried in the floor finish ------------------------
