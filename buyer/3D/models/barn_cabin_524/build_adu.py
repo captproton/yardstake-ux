@@ -129,6 +129,35 @@ def prism_geom(pts, lo, hi, plane="xz"):
     return verts, faces
 
 
+def clip_band(pts, lo, hi, idx=1):
+    """Clip a closed polygon to a band on one axis. Sutherland-Hodgman.
+
+    The ladder's dados need this: a dado is the rail's inner lamination
+    ABSENT over the rung's thickness, so each length of that lamination is the
+    rail profile clipped between two rungs. Clipping the real profile rather
+    than approximating it with a rectangle keeps the flat foot and the
+    radiused top intact at the two ends of the run, where the profile is not a
+    rectangle at all.
+
+    `idx` picks the axis within each 2-tuple: for a "yz" prism the points are
+    (y, z) and the dado runs across z, which is 1.
+    """
+    def half(poly, val, keep_above):
+        out = []
+        for i, c in enumerate(poly):
+            nx = poly[(i + 1) % len(poly)]
+            cin = c[idx] >= val if keep_above else c[idx] <= val
+            nin = nx[idx] >= val if keep_above else nx[idx] <= val
+            if cin:
+                out.append(c)
+            if cin != nin:
+                t = (val - c[idx]) / (nx[idx] - c[idx])
+                out.append(tuple(c[j] + t * (nx[j] - c[j]) for j in range(2)))
+        return out
+    band = half(pts, lo, True)
+    return half(band, hi, False) if len(band) >= 3 else []
+
+
 def weld(name, parts, coll):
     """Several (verts, faces) pieces as ONE mesh, whatever produced them.
 
@@ -1139,6 +1168,34 @@ def build(spec, cut_openings=True):
     box("Floor_bath",   xw, bath_x1, bath_y0, ye, 0, ff, finish)
     box("Floor_loft",   xw, xe, loft_s, ye, loft_sf, loft_sf + ff, finish)
 
+    # THE BOARD THE FLANGE SCREWS TO. The source says "screwed the flange to
+    # the piece of trim" and the frame shows a wood board running across the
+    # wall -- but the model had no board at all, so the ladder's hardware was
+    # bolted to the painted edge of the loft floor and read as bolted to
+    # nothing. This is that board, in the same fir as the ladder.
+    _la = spec["loft_access"]["ladder"]
+    led_t = _la["ledger"]["thickness"]["ft"]
+    led_h = _la["ledger"]["height"]["ft"]
+    # IT STANDS PROUD OF THE EDGE AND HANGS FROM THE FLOOR SURFACE, and the
+    # ladder's own placement is what settles that. Three positions were tried
+    # and each is worth knowing about, because each was wrong for a different
+    # reason:
+    #   - the whole floor build-up: a fascia, not the board in the frame
+    #   - narrowed to the flange's height, but left floating up the edge
+    #   - dropped to the top of the wall, which is where the frame puts it and
+    #     where it cannot go HERE: with the ladder moved clear of the floor
+    #     edge, the rod at that height is 5 1/2" off the face, and 5 1/2" of
+    #     standoff is a bracket, not a 1/2" pipe elbow.
+    # At the TOP of the floor edge the rail is at its closest -- it touches
+    # there -- and the reach is 1 9/16", which the elbow already spans. So the
+    # board's top is the loft floor surface, and it is applied to the face
+    # with the slab directly behind it for its whole height.
+    # (An earlier comment here described the board as LET INTO the edge. That
+    # was true of a placement three commits back and was left behind when the
+    # geometry moved; the spec and the box below are the authority.)
+    box("Ledger_loft", t, W - t, loft_s - led_t, loft_s,
+        loft_sf + ff - led_h, loft_sf + ff, finish)
+
     # ---- Tier 1: casing, baseboard, ladder and guardrail --------------------
     tr = spec["trim"]
     cw = tr["casing_width"]["ft"]
@@ -1416,8 +1473,22 @@ def build(spec, cut_openings=True):
     lw = la["width"]["ft"]
     run = loft_sf * math.tan(ang)
     lx = ix(la["top_at"]["x_ft"])
-    y_top = iy(pdefs["P_bedroom_S"]["at_ft"])
-    y_bot = y_top - run
+    # THE LADDER LEANS ON THE LOFT FLOOR EDGE, NOT ON THE WALL BELOW IT.
+    # It used to be set by putting the rail's CENTRE LINE on the bedroom
+    # partition's face, and that buried the top of the ladder: the rail is
+    # 3 1/2" deep so half of it is already behind its own centre line, and
+    # the loft floor above overhangs that wall by 1 3/4" to the south. The
+    # two add up, and the top 10" of each rail ran inside the floor slab.
+    #
+    # The datum is now the thing the ladder actually rests against -- the
+    # face of the loft floor edge -- and it is the rail's BACK FACE that
+    # touches it, at the top of the finished floor. Below that the rail
+    # leans away and is clear; above it there is nothing to hit, which is
+    # where the handhold runs. It moves the ladder 3 7/8" south.
+    _dep = la["stringer_section"]["depth"]["ft"]
+    y_bot = loft_s - (loft_sf + ff) * math.tan(ang) \
+        - (_dep / 2) / math.cos(ang)
+    y_top = y_bot + run
     # A RAIL IS ONE STRAIGHT BOARD. It used to be fourteen axis-aligned boxes
     # per side, stair-stepping up an incline -- the comment said "stepped
     # stringer approximation" and it read as a zigzag at any angle where the
@@ -1462,39 +1533,120 @@ def build(spec, cut_openings=True):
         return pts
 
     prof = rail_profile()
-    parts = []
-    for sx in (lx - lw / 2, lx + lw / 2 - th):
-        parts.append(prism_geom(prof, sx, sx + th, "yz"))
-
-    # NINE RUNGS, COUNTED DOWN FROM THE LOFT FLOOR. Counting up from the floor
-    # gave eight at whole feet and nothing level with the loft edge -- the one
-    # tread you actually stand on to step off.
     rs = la["rung_spacing"]["ft"]
-    rt = la["rung_section"]["ft"]
+    # THE RUNG IS A BOARD, NOT A STICK. It was 1 3/8" square and `assumed`;
+    # the rungs are the same 1" x 3 1/2" clear vertical grain fir as the
+    # rails, so the tread is 3 1/2" front to back and 1" thick. The thickness
+    # is also what makes the dado's "about a third of the way into it" read
+    # correctly: 3/8" is a third of an inch-thick rung, not of a 1 3/8" one.
+    rsec = la["rung_section"]
+    rt = rsec["thickness"]["ft"]        # vertical: what the dado receives
+    rw = rsec["depth"]["ft"]            # the tread you stand on
     dado = la["dado_depth"]["ft"]
     n_r = la["rung_count"]["value"]
-    for k in range(n_r):
-        zz = loft_sf - k * rs
-        yy = y_bot + (y_top - y_bot) * (zz / loft_sf)
-        # Seated in its dado: the rung runs into each rail by the dado depth.
-        parts.append(box_geom(lx - lw / 2 + th - dado, lx + lw / 2 - th + dado,
-                              yy - rt / 2, yy + rt / 2,
-                              zz - rt / 2, zz + rt / 2))
+
+    # RUNGS ARE LAID OUT ALONG THE RAIL, AND SEATED BY THEIR TOP FACE.
+    # Both were wrong, and both for the same reason: the code measured in the
+    # room's axes when the builder measures on the board. `zz = loft_sf - k*rs`
+    # steps a foot of HEIGHT, which at 20 degrees is 12.77" along the rail, so
+    # every rung drifted and the bottom one finished about 6" low. The source
+    # is unambiguous -- "every foot on the tape I make a mark and an X, that X
+    # is going to be the slot" -- and the tape is clamped to the rail.
+    #
+    # And the tread was placed by its CENTRE, which left its top face 11/16"
+    # proud of the loft floor: a lip to catch your toe on, and the rung buried
+    # in the floor finish. The face you stand on is the thing that must be
+    # flush, so the top rung's centre sits half a section below the floor.
+    #
+    # AND THE FLOOR IS loft_sf + ff, NOT loft_sf. `loft_sf` is the top of the
+    # SUBFLOOR; Floor_loft lays 3/4" of finish on top of it, and that finish
+    # is what you walk on. Targeting the subfloor swapped an 11/16" lip for a
+    # 3/4" step DOWN -- the same defect mirrored, and arguably worse, because
+    # a step down at the top of a ladder is where your weight already is.
+    # "The top tread is going to be level with the Loft floor" means the floor.
+    loft_walk = loft_sf + ff
+    t0 = (loft_walk - rt / 2.0) / uz        # top rung CENTRE, measured along the rail
+    rungs = [(y_bot + (t0 - k * rs) * uy, (t0 - k * rs) * uz) for k in range(n_r)]
+
+    # THE DADO IS A RECESS, NOT AN OVERLAP. The rungs used to be extended into
+    # solid rail by `dado_depth` and left interpenetrating it -- invisible from
+    # outside and wrong the moment anything cuts a section. Each rail is now
+    # two laminations: a solid outer one the full length of the board, and an
+    # inner one the dado's own thickness that is INTERRUPTED at every rung.
+    # The interruption IS the slot, its shoulders are real faces, and the rung
+    # lands against the outer lamination exactly as it does on the bench.
+    parts = []
+    for i, x0 in enumerate((lx - lw / 2, lx + lw / 2 - th)):
+        # the dado is cut on the face that looks at the other rail
+        solid, slot = ((x0, x0 + th - dado), (x0 + th - dado, x0 + th)) if i == 0 \
+            else ((x0 + dado, x0 + th), (x0, x0 + dado))
+        parts.append(prism_geom(prof, solid[0], solid[1], "yz"))
+        cuts = [-1e3]
+        for _, zz in sorted(rungs, key=lambda r: r[1]):
+            cuts += [zz - rt / 2, zz + rt / 2]
+        cuts.append(1e3)
+        for a, b in zip(cuts[0::2], cuts[1::2]):
+            band = clip_band(prof, a, b)
+            if len(band) >= 3:
+                parts.append(prism_geom(band, slot[0], slot[1], "yz"))
     weld("Ladder_loft", parts, finish)
+
+    # THE RUNGS ARE THEIR OWN MESH, and that costs a slot of the five spare.
+    # Welded in with the rails they could only be found by guessing which
+    # vertices were which -- the rails and the rungs share their x planes at
+    # the dado shoulders, so every rung gate was picking up rail geometry and
+    # one of them was silently measuring the radiused top as a tenth rung.
+    # A gate that has to guess its own subject is rule 33's proxy problem, and
+    # one object buys four gates that measure the thing itself.
+    weld("Ladder_rungs",
+         [box_geom(lx - lw / 2 + th - dado, lx + lw / 2 - th + dado,
+                   yy - rw / 2, yy + rw / 2, zz - rt / 2, zz + rt / 2)
+          for yy, zz in rungs], finish)
 
     # The half-inch rod the ladder hangs and pivots on. Steel, so it cannot
     # weld into the fir above -- materials are assigned by name prefix.
     rod = la["slide_rod"]
     rr = rod["diameter"]["ft"] / 2.0
-    # AT THE TRIM BOARD, NOT AT THE RAIL TOP. Placed at the rail top first,
-    # which is wrong twice over: the frames show the rails carrying well past
-    # the rod, and a rod at the very end would leave nothing to hold. The
-    # height is undimensioned in the source and labelled `assumed` in the spec.
+    bend = rod["elbow"]["bend_radius"]["ft"]
+    fl_d = rod["flange"]["diameter"]["ft"]
+    fl_t = rod["flange"]["thickness"]["ft"]
     rz = rod["height_above_floor"]["ft"]
-    ry = y_bot + (y_top - y_bot) * (rz / loft_sf)
-    multitube("Hdw_ladder_rod",
-              [([(lx - lw / 2 - 0.25, ry, rz), (lx + lw / 2 + 0.25, ry, rz)], rr)],
-              finish, sides=8)
+    ry = y_bot + rz * (uy / uz)             # on the rail centre line, at that height
+    ov = rod["rod_stickout"]["ft"]
+    xa, xb = lx - lw / 2 - ov, lx + lw / 2 + ov
+
+    # AN ELBOW AND A FLANGE, WHICH IS WHAT MAKES THIS A PIVOT rather than a
+    # stick through two holes: "threaded the elbow back on and screwed the
+    # flange to the piece of trim". The trim is the loft floor's own south
+    # fascia -- the only board at this height -- so THE FLANGES ARE PLACED OFF
+    # THE FLOOR, not off the rod. The elbow then has to reach them, which is a
+    # real constraint between two independently positioned things and is what
+    # the gate checks. Build the rod at the wrong height and the elbow stops
+    # short of the flange in mid-air.
+    #
+    # Two of them. The source narrates assembling one end -- it is describing
+    # how the rod gets threaded through, not how many ends it has -- and a rod
+    # carrying a ladder off a single cantilevered flange is not a thing.
+    def elbow(x_end, sgn):
+        """Quarter bend from the rod's axis round to the trim board."""
+        return [(x_end + sgn * bend * math.sin(a2),
+                 ry + bend * (1 - math.cos(a2)), rz)
+                for a2 in [i * (math.pi / 2) / 6 for i in range(7)]]
+
+    specs = [([(xa, ry, rz), (xb, ry, rz)], rr)]
+    for x_end, sgn in ((xa, -1), (xb, +1)):
+        specs.append((elbow(x_end, sgn), rr))
+        # ON THE BOARD'S FACE, which is now `led_t` south of the floor edge
+        # because the board stands proud. Left at the edge it sat INSIDE the
+        # board, with the elbow ending correctly in front of a flange that
+        # was not there -- the elbow gate passed and the flange gate found
+        # nothing to measure.
+        specs.append(([(x_end + sgn * bend, loft_s - led_t - fl_t, rz),
+                       (x_end + sgn * bend, loft_s - led_t, rz)], fl_d / 2))
+    # SIXTEEN SIDES, NOT EIGHT. At 1/2" the rod is fine either way, but the
+    # 2 1/2" flange read as a visibly faceted plate. It is all one welded
+    # multitube, so this costs vertices and not an object.
+    multitube("Hdw_ladder_rod", specs, finish, sides=16)
 
     # guardrail along the loft's open (south) edge, clear of the ladder
     gr = spec["loft_access"]["guardrail"]

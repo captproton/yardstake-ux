@@ -664,7 +664,26 @@ loft_access:
       value: true
       confidence: measured
       source: "Loft Ladder 5:23 — 'the top tread is going to be level with the loft floor'"
-    rung_section: {ft: 0.115, raw: "1 3/8\"", confidence: assumed}
+    rung_section:
+      thickness: {ft: 0.083, raw: "1\""}
+      depth: {ft: 0.292, raw: "3 1/2\""}
+      confidence: measured
+      source: "Project owner, 2026-09-10: the rungs are the same clear vertical grain Douglas fir 1\" x 3 1/2\" as the rails."
+      note: >
+        THE TRANSCRIPT DIMENSIONS ONLY THE RAIL STOCK. "Clear vertical grain
+        five quarter by four ... a full one inch thick by three and a half
+        inches wide" is said at 0:44 of the twelve-foot LADDER RAIL stock, and
+        the rungs are never dimensioned anywhere in the video -- 5:53 onward
+        talks about dadoing them in without ever saying what they are. So this
+        is the owner's answer and it is sourced to the owner, not to the
+        footage, because attributing it to the transcript would be inventing a
+        line that is not there.
+        `depth` is the tread, 3 1/2" front to back -- the face you stand on.
+        `thickness` is 1", vertical, and it is what the 3/8" dado receives:
+        "about a third of the way into it" is a third of ONE INCH, which only
+        works if the rung is an inch thick.
+        It was 1 3/8" SQUARE and `assumed`, which made the rungs read as
+        sticks rather than treads.
     stringer_section:
       thickness: {ft: 0.083, raw: "1\""}
       depth: {ft: 0.292, raw: "3 1/2\""}
@@ -695,20 +714,62 @@ loft_access:
       note: "At the same 20 degrees as the heel cut: 'twenty degrees is going to be our magic number'."
     slide_rod:
       diameter: {ft: 0.042, raw: "1/2\""}
-      confidence: measured
-      height_above_floor:
-        ft: 8.854
-        raw: "at the loft subfloor"
+      rod_stickout:
+        ft: 0.125
+        raw: "1 1/2\""
         confidence: assumed
         note: >
-          NOT DIMENSIONED ANYWHERE. The source shows the flange screwed to a
-          trim board and never gives its height. In the supplied frames the rod
-          sits at about the head of the wall with the rails carrying well past
-          it, so the loft subfloor is the nearest datum this model already
-          has. Labelled rather than presented as measured.
+          How far the rod runs past each rail before the elbow turns. Undimensioned;
+          enough to thread an elbow onto and no more.
+      confidence: measured
+      height_above_floor:
+        ft: 8.8125
+        raw: "8'-9 3/4\""
+        derived: "loft finished floor - flange radius — the rod sits at the centre of a trim board hung from the loft floor surface"
+        confidence: assumed
+        note: >
+          NOT DIMENSIONED ANYWHERE. The source shows the flange screwed to a trim
+          board and never gives its height, so this stays `assumed` -- but it is
+          no longer a free number. It was 8.854, the loft subfloor, chosen as the
+          nearest datum when the rod was a bare cylinder. Building the elbow and
+          flange the source describes made that untenable: at 8.854 the rod sits
+          1 3/4" BEHIND the loft floor's south fascia, inside the floor build-up,
+          so an elbow reaching the trim board would have run through solid floor
+          and the flange would have been buried in it.
+          The height is now what the hardware requires: the rod is on the rail
+          centre line at the point where a 1" pipe bend, turned through ninety
+          degrees, lands its outlet exactly on the fascia with the flange's
+          thickness to spare. What is assumed is WHICH BOARD is the trim board --
+          the fascia is the only one at this height -- and not the arithmetic
+          that follows from it.
         what_would_settle_it: >
           Any frame showing the rod and a known vertical dimension together --
           the loft floor edge or the door head would do.
+      elbow:
+        bend_radius: {ft: 0.110, raw: "1 5/16\""}
+        confidence: assumed
+        note: >
+          A 1/2" 90-degree pipe bend's centreline radius is not given in the
+          source and is not a number an elevation could carry. Malleable iron
+          runs about 1 1/8" to 1 1/2" centre-to-face at this size, and 1 5/16"
+          is what closes the gap between the rod -- whose height the trim
+          board fixes -- and the board's face. It was 1" while the board sat
+          higher up the loft floor edge.
+          THIS NUMBER AND height_above_floor ARE A PAIR. The rod lies on the
+          rail centre line, so its height and its distance from the wall are
+          one degree of freedom, not two: fix where the board is and the bend
+          has to reach it.
+      flange:
+        diameter: {ft: 0.208, raw: "2 1/2\""}
+        thickness: {ft: 0.021, raw: "1/4\""}
+        count: 2
+        confidence: assumed
+        note: >
+          TWO, THOUGH THE SOURCE NARRATES ONE. "Threaded the elbow back on and
+          screwed the flange to the piece of trim" describes how the rod gets
+          THROUGH the rails -- one end has to come apart for that -- not how many
+          ends it has. A rod carrying a ladder off a single cantilevered flange
+          is not a thing, so both ends are built and both are gated.
       source: "Loft Ladder 2:29 — 'this half inch by 90 degree pipe bend' … 'our half inch rod goes all the way through the ladder rails'"
       note: >
         The rod is what makes this a STOWING ladder: it passes through both
@@ -722,6 +783,64 @@ loft_access:
         profile, and prism_geom emits ONE n-gon per end. Cutting it properly
         wants a boolean, which is its own piece of work. Recorded rather than
         approximated, because a wrong-shaped notch would read as a defect.
+    ledger:
+      thickness: {ft: 0.0625, raw: "3/4\""}
+      confidence: assumed
+      material: "clear vertical grain Douglas fir, to match the ladder"
+      source: "Loft Ladder 2:29 frame — the flanges are screwed to a WOOD BOARD running across the wall, not to drywall."
+      hangs_from: "the loft finished floor surface, standing proud of the edge"
+      height:
+        ft: 0.208
+        raw: "2 1/2\""
+        derived: "slide_rod.flange.diameter"
+        confidence: measured
+        source: "Loft Ladder 2:29 close frame — the board is a narrow band, and the flange very nearly fills its height."
+        note: >
+          THE BOARD IS AS TALL AS THE FLANGE, and no taller. It was first
+          built as the whole floor build-up, 10 1/4" from the plate to the
+          loft subfloor, which is a fascia and reads as a wide band; the frame
+          shows a narrow board with the flange's disc nearly touching its top
+          and bottom edges.
+          Tied to the flange diameter rather than given its own number,
+          because that is the relationship the frame actually shows -- change
+          the flange and the board follows it.
+      note: >
+        THE MODEL HAD NO BOARD AT ALL. The source says "screwed the flange to
+        the piece of trim" and the frame shows a wood board; the flanges were
+        landing on the painted edge of the loft floor, which is why the
+        hardware read as bolted to nothing.
+        WHERE IT GOES IS SET BY THE LADDER, not chosen. The frame puts this
+        board at the top of the wall, and that is where it cannot go here:
+        once the ladder is moved clear of the loft floor edge, the rod at the
+        top of the wall is 5 1/2" off the board's face, and 5 1/2" of standoff
+        is a bracket rather than a 1/2" pipe elbow. At the TOP of the floor
+        edge the rail is at its closest -- it touches there -- and the reach
+        is 1 9/16", which the declared elbow already spans.
+        So the board hangs from the loft floor surface and stands PROUD of the
+        edge, with the slab directly behind it for its whole height. It is
+        centred on the rod, so the flange sits in the middle of it.
+        RECORDED AS A DEPARTURE FROM THE FOOTAGE: in the source the wall is
+        continuous behind the board, and in this model the loft floor edge
+        overhangs the wall beneath it by 1 3/4", which is what pushes the
+        board up. See discrepancies.
+      what_would_settle_it: >
+        A frame showing the board against a known dimension -- the loft floor
+        edge or a rung -- would give its height and projection directly.
+    leans_on:
+      face: "the loft floor's south edge"
+      contact: "the rail's BACK face, at the top of the finished floor"
+      confidence: derived
+      note: >
+        THE LADDER IS SET BY WHAT IT RESTS AGAINST, and it was not. Its top
+        was placed by putting the rail's CENTRE LINE on the bedroom
+        partition's face -- but the rail is 3 1/2" deep, so half of it sits
+        behind its own centre line, and the loft floor overhangs that wall by
+        1 3/4" to the south. Both errors push the same way and the top 10" of
+        each rail ran INSIDE the loft floor slab. Nothing caught it: every
+        gate measured the ladder against itself.
+        Referenced to the floor edge with the BACK face touching, the ladder
+        moves 3 7/8" south. Below the contact it leans away and is clear;
+        above it there is nothing to hit, which is where the handhold runs.
     top_at:
       wall: P_bedroom_S
       x_ft: 10.40
@@ -2338,6 +2457,7 @@ materials:
     # Exterior, and deliberately not Trim_ — see build_adu.
     Ridge_beam: trim
     Ladder_: fir_ladder
+    Ledger_: fir_ladder
     Rail_: fir_ladder
     # The hatch is a flush panel in the main floor, so it takes the same oak.
     # It needs its own rule: "Floor_crawl_hatch" does not start with
@@ -2533,6 +2653,39 @@ areas_declared:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: ladder-trim-board-cannot-sit-at-the-top-of-the-wall
+    impact: >
+      In the footage the flange board is at the TOP OF THE WALL, with wall
+      above it and wall below. In this model it has to hang from the loft
+      floor surface instead, 9 3/4" higher. The reason is not the board and
+      not the hardware: it is that THIS MODEL'S LOFT FLOOR OVERHANGS THE WALL
+      BENEATH IT BY 1 3/4". `Loft_floor`'s south edge is at y 18.000, derived
+      from the dormer width; `P_bedroom_S`, the wall under it, has its face at
+      y 18.142. The two come from different derivations and were never
+      reconciled.
+      A ladder raked at 20 degrees that clears the floor edge therefore leans
+      away from the wall below it, and keeps leaning: at the top of the wall
+      the rod is 5 1/2" off the face. A 1/2" pipe elbow spans about 1 1/4".
+      5 1/2" of standoff is a bracket, and inventing one to put the board
+      where the video puts it would be modelling a fiction to match a frame.
+    resolution: >
+      MODEL WHAT THIS BUILDING IS. The board hangs from the loft floor surface
+      and stands proud of the edge, where the rail is at its closest -- it
+      touches there -- and the reach is 1 9/16", which the declared elbow
+      already spans. Every number in the assembly then closes with no free
+      parameters: rod on the rail centre line, flange on the board's face,
+      elbow reaching between them.
+      The board's height, its projection and the flange are unchanged; only
+      its elevation differs from the footage.
+    what_would_settle_it: >
+      Whether the loft floor is MEANT to overhang the bedroom wall by 1 3/4".
+      A1.1 does not dimension that junction at the resolution read. If the two
+      are meant to be flush, the wall moves 1 3/4" south, the ladder follows,
+      and the board can drop toward the top of the wall as the footage shows.
+    not_done_here: >
+      Moving the partition. It carries the bedroom door, the closet, the
+      bypass gates and the loft above it; a 1 3/4" shift to make a trim board
+      land prettier is not a trade worth taking without the sheet settling it.
   - id: sconce-does-not-fit-under-the-modelled-soffit
     impact: >
       Measured straight off video 1:37 the sconce needs 8.02 ft from finished floor
