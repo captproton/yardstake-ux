@@ -429,8 +429,54 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
         if stray:
             problems.append(f"furniture nodes no presence set controls: {stray}")
 
+    # ── IDENTITY ──────────────────────────────────────────────────────────
+    # `"model": "barn_cabin_524"` was a STRING LITERAL IN THE BUILDER, which
+    # is rule 4 broken in the one file that hands the page its contract: the
+    # spec owns every name, and this one was typed here. It also gave the page
+    # nothing to render a header with -- an id is not a display name, and
+    # `barn_cabin_524` is not a thing to show a buyer.
+    #
+    # WHICH AREA, NAMED RATHER THAN PICKED. `areas_declared` holds five
+    # numbers that mean different things. The spec names the key and the
+    # source string rides along, so a card that says "528 sf" can say which
+    # 528 -- and so that the next model, whose sheet counts area differently,
+    # says so instead of being silently coerced into this one's convention.
+    meta = spec["meta"]
+    idx = meta.get("index") or {}
+    area_key = idx.get("area_key")
+    if not area_key:
+        problems.append("meta.index.area_key is unset; the index cannot "
+                        "publish an area it was not told to publish")
+    area = (spec.get("areas_declared") or {}).get(area_key) if area_key else None
+    if area_key and area is None:
+        problems.append(f"meta.index.area_key is {area_key!r}, which is not a "
+                        f"key of areas_declared")
+    if not meta.get("display_name"):
+        problems.append("meta.display_name is unset; the page would have to "
+                        "show the directory name")
+
     manifest = {
-        "model": "barn_cabin_524",
+        "model": {
+            "id": meta["model_id"],
+            "name": meta.get("display_name"),
+            "area_sf": (area or {}).get("value"),
+            "area_key": area_key,
+            "area_source": (area or {}).get("source"),
+            "storeys": idx.get("storeys"),
+            # Relative to the MODEL DIRECTORY, so the index can rebase it and
+            # nothing downstream has to know where this model lives. Optional:
+            # a model with no render yet publishes null rather than a path
+            # that 404s, and the page falls back.
+            "thumbnail": idx.get("thumbnail"),
+            "note": (
+                "`id` is an identifier and `name` is what a buyer reads; they "
+                "are not interchangeable and this model is why. The id says "
+                "524 -- it came from the source PDF's filename -- and every "
+                "measurable thing says 528: the sheet's own S.F. notes, and "
+                "22'-0\" x 24'-0\" = 528.0 sf of built geometry. See "
+                "spec.discrepancies."
+                "the-model-id-says-524-and-every-measurable-thing-says-528."),
+        },
         "note": ("Runtime material swaps. Each option sets baseColorFactor on the "
                  "named materials; the albedo maps are neutral, so no textures "
                  "need loading and none ship per option."),

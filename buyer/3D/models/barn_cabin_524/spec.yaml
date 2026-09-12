@@ -12,6 +12,21 @@
 meta:
   model_id: barn_cabin_524
   option: B                       # dormered variant — see option_selection below
+
+  # ---- identity, published to the page ---------------------------------
+  # The index and the page header read THESE, not the directory name. A
+  # directory name is a filesystem fact; a display name is a decision, and
+  # `barn_cabin_524` is not a thing to show a buyer.
+  display_name: "Barn Cabin"
+  index:
+    # WHICH AREA THE INDEX PUBLISHES, named rather than guessed. There are
+    # five numbers in `areas_declared` and they mean different things; a card
+    # that says "528 sf" has to say which 528.
+    area_key: total_living_sf
+    storeys: {count: 1, loft: true,
+              raw: "main floor + loft storage above",
+              source: "A1.1 main floor plan and loft plan"}
+    thumbnail: renders/ortho_front_S.png
   plan_date: 2024-01-25
   designer: Design Residential, Inc., Medford OR
   code_basis: 2021 Oregon Residential Specialty Code
@@ -2802,6 +2817,35 @@ areas_declared:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: the-model-id-says-524-and-every-measurable-thing-says-528
+    impact: >
+      This model is called `barn_cabin_524` and the source file is
+      "Barn-Cabin-524sf-ADU-1.0-.pdf", but nothing measurable agrees with 524.
+      The sheet's own square-footage notes say 528
+      (`areas_declared.total_living_sf`, A1.1 "EXISTING S.F. NOTES", and again
+      on the A0.0 planning summary), and the geometry says 528 independently:
+      the heated box is 22'-0" x 24'-0" = 528.0 sf exactly, from two dimension
+      strings that the foundation plan and the floor plan both carry.
+      It surfaced when the model index had to publish ONE area for a card.
+      Before that, the two numbers never had to meet.
+    resolution: >
+      PUBLISH 528, AND PUBLISH WHERE IT CAME FROM. 524 appears in a filename
+      and in the id derived from it. A filename is not a sheet, and the
+      AUTHORITY RULE at the top of this file says the sheet decides. Two
+      independent witnesses -- the sheet's notes and the built geometry --
+      agree at 528, so the index carries 528 with its source string attached.
+    what_would_settle_it: >
+      Whether 524 is the designer's own marketing figure, a net-of-walls
+      measure, or a typo carried into the filename. A2.0 and A1.1 both
+      dimension the box at 22 x 24 with no qualifier, so nothing in this set
+      produces 524 by any reading of it.
+    not_done_here: >
+      RENAMING THE MODEL. `barn_cabin_524` is the directory name, the blend
+      name, the export filenames, the lod2 node contract's namespace and the
+      id in every issue and PR to date. Renaming to chase a 4 sf label would
+      churn all of that to fix a string that is not load-bearing -- the id is
+      an identifier, and the index publishes the display name and the area
+      separately for exactly this reason.
   - id: ladder-trim-board-cannot-sit-at-the-top-of-the-wall
     impact: >
       In the footage the flange board is at the TOP OF THE WALL, with wall
