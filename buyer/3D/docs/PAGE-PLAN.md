@@ -110,14 +110,27 @@ So composition is **half real**:
   axes, `optional: true`, and namespaced by the shell's square footage rather
   than the model name. That is layering, and it works.
 - **Interior layout and style are not composed at all.** Shell and interior
-  ship as one file, once per style, and style changes *geometry* — not a
-  texture. `…_center-hall_craft` and `…_center-hall_trad` are different files
-  with the same interior.
+  ship as one file **per combination of all three axes** — 2 bed counts × 3
+  interiors × 4 styles, which is where the 24 comes from. And style changes
+  *geometry*, not a texture: `…_center-hall_craft` and `…_center-hall_trad`
+  are different files with the same interior.
 
 **Material and colour are a third, orthogonal axis** — flooring, counters,
-cabinets and siding are plain PNG/JPG applied over whichever body loaded. That
-is our `sets` block exactly, and ours is the better one: theirs has no PBR, no
-normal maps, and no compression.
+cabinets and siding are plain PNG/JPG applied over whichever body loaded.
+
+**That axis is our `sets` block, but the mechanism is not the same, and the
+difference is the page's to implement.** They swap the *picture*: a different
+image file per option. We swap a **`baseColorFactor`** — all 8 sets declare
+`property: "baseColorFactor"`, 23 options are RGBA values, and
+`export/variants.json` references no image at all. The albedo, normal and
+roughness maps ship **once** in the base asset and every option tints the same
+ones.
+
+That is the cheaper arrangement and it is why ours has normal maps to begin
+with: one texture set serves N options instead of N texture sets serving N
+options. It also means `applyChoice()` writes a factor, never a map — and that
+the manifest's colours are **linear**, which is the first of the two traps
+documented in TIER-2.
 
 Four things follow that are ours to act on:
 
