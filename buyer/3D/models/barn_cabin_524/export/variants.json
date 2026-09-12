@@ -502,6 +502,19 @@
       ]
     }
   ],
+  "views_export_only": [
+    "Glazing_D-FRONT_lites",
+    "Glazing_W-BATH",
+    "Glazing_W-BED-EGRESS",
+    "Glazing_W-GABLE-S",
+    "Glazing_W-KITCHEN",
+    "Glazing_W-LIVING-S1",
+    "Glazing_W-LIVING-S2",
+    "Glazing_W-LOFT-1_E",
+    "Glazing_W-LOFT-1_W",
+    "Glazing_W-LOFT-2_E",
+    "Glazing_W-LOFT-2_W"
+  ],
   "views_note": "Visibility modes for the viewer's SHOW INTERIOR control. Each lists the glTF node names to HIDE; show everything else. Node names, not prefixes, so no string matching is needed and a mode that matches nothing fails the export instead of the page.",
   "dimensions": {
     "units": "feet",
@@ -518,7 +531,7 @@
     "overall": {
       "width": 25.0,
       "depth": 33.0,
-      "note": "over the 18\" eave and rake"
+      "note": "over the 18\" eave (width) and rake (depth)"
     },
     "height_to_ridge": 17.807,
     "note": "THREE FOOTPRINTS, AND WHICH ONE IS RIGHT DEPENDS ON THE QUESTION. A dimension overlay wants `with_porch` -- that is the building a buyer sees. A setback check needs BOTH `with_porch` and `overall`: many jurisdictions measure to the wall but cap eave projection under a separate rule, so using one for both over-constrains siting or under-reports the encroachment."

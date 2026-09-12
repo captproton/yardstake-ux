@@ -30,6 +30,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import views  # noqa: E402
 from verify_lib import inside_mesh  # noqa: E402
+from build_adu import load_spec  # noqa: E402
 
 FAILED = []
 
@@ -301,19 +302,36 @@ def main():
     # quietly stop matching the other. So drive views.py and compare what it
     # ACTUALLY HID against what the manifest promises the page will hide --
     # the objects, not the prefixes.
+    # UNTRUSTED, like views._manifest() already treats it. A missing,
+    # truncated or hand-edited file must produce a FAILING GATE, not a
+    # traceback out of read_text() before any gate has run.
     views.full()
-    man = json.loads((HERE / "export" / "variants.json").read_text())
-    modes = man.get("views") or []
+    man, man_err = {}, None
+    try:
+        man = json.loads((HERE / "export" / "variants.json").read_text())
+        if not isinstance(man, dict):
+            man, man_err = {}, "manifest is not an object"
+    except (OSError, ValueError) as e:
+        man_err = f"{type(e).__name__}: {e}"
+    modes = [m for m in (man.get("views") or [])
+             if isinstance(m, dict) and isinstance(m.get("id"), str)
+             and isinstance(m.get("hide"), list)]
     gate("the manifest carries visibility modes at all", bool(modes),
          f"{len(modes)} modes: {[m['id'] for m in modes]}" if modes else
-         "no `views` block — the page cannot offer SHOW INTERIOR")
+         (f"unreadable — {man_err}" if man_err else
+          "no `views` block — the page cannot offer SHOW INTERIOR"))
 
     known = {o.name for o in bpy.data.objects if o.type == "MESH"}
     bad_modes = []
     for m in modes:
-        fn = getattr(views, m["id"], None)
+        # THROUGH THE ALLOW-LIST. `getattr(views, id)` would let a manifest
+        # id reach ANY callable in that module -- `register`, or a camera
+        # preset like `front` -- and the gate could then report agreement
+        # about something that never changed visibility at all.
+        fn = views.VISIBILITY.get(m["id"])
         if not callable(fn):
-            bad_modes.append(f"{m['id']} names no view in views.py")
+            bad_modes.append(f"{m['id']} is not one of views.VISIBILITY "
+                             f"({sorted(views.VISIBILITY)})")
             continue
         fn()
         hidden = {o.name for o in bpy.data.objects
@@ -345,36 +363,62 @@ def main():
     # A name that resolves to nothing hides nothing and looks like it worked.
     # Glazing is the known-absent set here, so it is named rather than
     # silently tolerated: anything ELSE unknown is a real ghost.
+    # THE EXEMPTION IS A LIST, NOT A PREFIX. Deferring anything beginning
+    # `Glazing_` also defers `Glazing_W-KITCHEN_typo`, so a stale name would
+    # be waved through by both this gate and the agreement check above. The
+    # builder states the set -- it adds the glazing, so it knows which names
+    # exist only after export -- rather than the verifier reconstructing it
+    # from a spec whose openings are nested per wall.
+    expect_glaz = set(man.get("views_export_only") or [])
     named = {n for m in modes for n in m["hide"]}
-    ghosts = sorted(n for n in named - known if not n.startswith("Glazing_"))
-    skipped = sorted(n for n in named - known if n.startswith("Glazing_"))
-    gate("every node the manifest names exists in this scene, bar glazing",
+    ghosts = sorted(n for n in named - known if n not in expect_glaz)
+    skipped = sorted(n for n in named - known if n in expect_glaz)
+    gate("every node the manifest names exists, or the builder vouched for it",
          not ghosts,
          f"{len(ghosts)} unknown: {ghosts[:3]}" if ghosts else
          f"{len(named)} names across {len(modes)} modes; {len(skipped)} "
-         f"Glazing_ deferred to the export, which is where they exist")
+         f"deferred, each one named in views_export_only by the builder")
 
     # ---- and the numbers a SHOW DIMENSIONS overlay would draw -------------
     # Against the MODEL, not against the spec arithmetic that wrote them. The
     # overlay's job is to describe this building, so the building is the
     # authority -- rule 36, applied to a number leaving the repo.
+    # EVERY FOOTPRINT IT PUBLISHES, not just the one that was easy. Checking
+    # `overall` alone let a bad formula in either buyer-facing number ship
+    # green -- and `with_porch` is the one a dimension overlay actually draws.
+    # Each has a witness in the geometry:
+    def span(prefixes):
+        vs = [o.matrix_world @ v.co for o in bpy.data.objects
+              if o.type == "MESH" and o.name.startswith(prefixes)
+              for v in o.data.vertices]
+        return (max(v.x for v in vs) - min(v.x for v in vs),
+                max(v.y for v in vs) - min(v.y for v in vs),
+                max(v.z for v in vs)) if vs else None
+
     dims = man.get("dimensions") or {}
-    over = dims.get("overall", {})
-    corners = [o.matrix_world @ Vector(c)
-               for o in bpy.data.objects if o.type == "MESH"
-               for c in o.bound_box]
-    got_w = max(v.x for v in corners) - min(v.x for v in corners)
-    got_d = max(v.y for v in corners) - min(v.y for v in corners)
+    witness = {"main_body": ("Wall_",),                 # the heated box
+               "with_porch": ("Wall_", "Gable_"),       # walls plus porch gable
+               "overall": ("Roof_",)}                   # eave and rake
     bad_dim = []
-    if over:
-        if abs(over["width"] - got_w) > 0.02:
-            bad_dim.append(f"width {over['width']} vs {got_w:.2f} built")
-        if abs(over["depth"] - got_d) > 0.02:
-            bad_dim.append(f"depth {over['depth']} vs {got_d:.2f} built")
-    gate("the overall dimensions match the model they describe",
-         bool(over) and not bad_dim, "; ".join(bad_dim) or
-         (f"{over.get('width')} x {over.get('depth')} ft, measured off the "
-          f"geometry" if over else "no `dimensions` block"))
+    for key, pref in witness.items():
+        d, got = dims.get(key), span(pref)
+        if not d:
+            bad_dim.append(f"{key} missing from the manifest")
+            continue
+        if abs(d["width"] - got[0]) > 0.02:
+            bad_dim.append(f"{key} width {d['width']} vs {got[0]:.2f} built")
+        if abs(d["depth"] - got[1]) > 0.02:
+            bad_dim.append(f"{key} depth {d['depth']} vs {got[1]:.2f} built")
+    ridge = dims.get("height_to_ridge")
+    got_r = span(("Roof_",))
+    if ridge is None:
+        bad_dim.append("height_to_ridge missing from the manifest")
+    elif abs(ridge - got_r[2]) > 0.02:
+        bad_dim.append(f"ridge {ridge} vs {got_r[2]:.2f} built")
+    gate("every dimension the manifest publishes matches the model",
+         bool(dims) and not bad_dim, "; ".join(bad_dim[:3]) or
+         (f"{len(witness)} footprints and the ridge, each against its own "
+          f"geometry" if dims else "no `dimensions` block"))
 
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")

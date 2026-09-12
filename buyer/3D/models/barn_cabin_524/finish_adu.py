@@ -347,7 +347,8 @@ def arrangement_nodes(spec, arr_id):
     return None
 
 
-def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
+def emit_variants(out, spec, materials_present, nodes_present=frozenset(),
+                  glazing_nodes=frozenset()):
     """Write the configurator manifest the Three.js runtime reads.
 
     Every option is a baseColorFactor, so this file is the entire cost of the
@@ -466,6 +467,12 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
                 problems.append(
                     f"display-mode group {gid!r} matches no exported node — "
                     f"prefixes {prefixes} hide nothing")
+        ids = [m["id"] for m in dm["modes"]]
+        if len(set(ids)) != len(ids):
+            problems.append(f"display modes have duplicate ids: {ids}")
+        if sum(bool(m.get("default")) for m in dm["modes"]) != 1:
+            problems.append("display modes need exactly one default — the page "
+                            "has to open on something, and on one thing")
         for m in dm["modes"]:
             pref = tuple(x for g in m["hide"] for x in groups[g])
             hide = sorted(n for n in nodes_present if n.startswith(pref))
@@ -478,6 +485,14 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
                 ("desc", m.get("desc")), ("default", m.get("default")),
                 ("hide", hide)) if val is not None})
         manifest["views"] = views
+        # WHICH OF THESE EXIST ONLY AFTER EXPORT. Glazing is added here, not
+        # by build_adu, so barn_cabin_524.blend does not contain it and a
+        # verifier reading that scene cannot resolve these names. Stated by
+        # the builder, which knows, rather than reconstructed by the verifier
+        # from a nested spec -- and precise, so an unknown name that is NOT
+        # on this list is a real ghost rather than anything spelt like one.
+        manifest["views_export_only"] = sorted(
+            n for m in views for n in m["hide"] if n in glazing_nodes)
         manifest["views_note"] = (
             "Visibility modes for the viewer's SHOW INTERIOR control. Each "
             "lists the glTF node names to HIDE; show everything else. Node "
@@ -496,8 +511,15 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
                       "note": "the heated box, wall face to wall face"},
         "with_porch": {"width": w, "depth": body + porch,
                        "note": "the slab footprint; the porch is covered, not heated"},
-        "overall": {"width": w + 2 * rake, "depth": body + porch + 2 * eave,
-                    "note": f"over the {rf['eave_overhang']['raw']} eave and rake"},
+        # EAVE EXTENDS X, RAKE EXTENDS Y, and this had them the other way
+        # round. build_adu draws the roof profile from -eave to W + eave --
+        # that is the WIDTH -- and extrudes it -rake to NY + rake, which is
+        # the depth. Both overhangs are 18" here so the published numbers were
+        # right by coincidence; any spec that differed would have shipped the
+        # building's width and depth swapped.
+        "overall": {"width": w + 2 * eave, "depth": body + porch + 2 * rake,
+                    "note": f"over the {rf['eave_overhang']['raw']} eave "
+                            f"(width) and rake (depth)"},
         "height_to_ridge": rf["elevation_calibration"]["ridge_top_of_roof"]["ft"],
         "note": (
             "THREE FOOTPRINTS, AND WHICH ONE IS RIGHT DEPENDS ON THE QUESTION. "
@@ -508,6 +530,13 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
             "over-constrains siting or under-reports the encroachment."),
     }
 
+    # DO NOT PUBLISH WHAT DID NOT VALIDATE. This wrote the file and returned
+    # the problems for main() to report, so a failed run left an invalid
+    # variants.json sitting in export/ for anyone who picked it up between
+    # runs. #99 fixed exactly this for lod2 and the manifest kept the old
+    # habit. The previous good file stays where it is.
+    if problems:
+        return None, problems
     path = out / v.get("emit", "variants.json")
     path.write_text(json.dumps(manifest, indent=2) + "\n")
     return path, problems
@@ -644,6 +673,7 @@ def main():
     spec = load_spec(HERE / "spec.yaml")
     results = {}
     lod0_nodes = set()
+    lod0_glazing = set()
     lod2_nodes = None
 
     # Checked BEFORE the first export, so a build with no contract writes no
@@ -718,9 +748,11 @@ def main():
         results[lod] = info
         if lod == "lod0":
             lod0_nodes = {o.name for o in keep}
+            lod0_glazing = {o.name for o in glaz.objects}
 
     all_mats = sorted(m.name for m in bpy.data.materials)
-    vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes)
+    vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes,
+                                     glazing_nodes=lod0_glazing)
 
     # primary deliverable is a copy of lod0
     (out / "barn_cabin_524.glb").write_bytes((out / "barn_cabin_524_lod0.glb").read_bytes())
@@ -781,9 +813,17 @@ def main():
         nopts = sum(len(x["options"]) for x in spec["variants"]["sets"])
         print(f"\nconfigurator manifest: {vpath.name} — {nsets} sets, {nopts} options, "
               f"{vpath.stat().st_size} bytes, 0 extra texture bytes")
+
+    # OUTSIDE the `if vpath`, and that is the point. Refusing to publish an
+    # invalid manifest made `vpath` None on exactly the runs whose reasons
+    # matter most -- so the gate failed with nothing said, which is worse than
+    # the unpublished file it was protecting. A failure has to carry its
+    # reason out of the branch that caused it.
+    if vproblems:
+        print("\nconfigurator manifest NOT written:")
         for p_ in vproblems:
             print(f"  PROBLEM: {p_}")
-        ok &= not vproblems
+    ok &= not vproblems
 
     # ---- presence: every shipped furniture node is controlled -------------
     # The manifest is read back from disk, not from the objects that wrote it,
