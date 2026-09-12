@@ -39,6 +39,7 @@ Phases P1–P4 are complete and gated:
 | **Loft access** | The ladder laid out on the rail, dadoed, hung on real hardware, and moved out of the wall | **done** ([#100](https://github.com/captproton/yardstake-ux/pull/100)) — all of [#97](https://github.com/captproton/yardstake-ux/issues/97), plus a trim board the source describes and the model never had, plus the discovery that **the top 10" of both rails ran inside the loft floor slab**. Four review rounds, and the last two changed no geometry at all |
 | **Furniture** | The sofa moved to the window, and a walkway measured for the first time | **done** ([#102](https://github.com/captproton/yardstake-ux/pull/102)) — it sat 20½" from the ladder with half the room bare, AND across three quarters of the bedroom's pocket door. Twelve furniture gates passed on all of that |
 | **Runtime** | The page's two buttons: visibility modes and dimensions in the manifest | **done** ([#103](https://github.com/captproton/yardstake-ux/pull/103)) — views.py had known how to strip a roof since Tier 1 and a browser had no way to ask. Five review rounds, twenty-nine findings, **every one in the plumbing and none in the geometry** |
+| **Export** | Cull backfaces — 28 of 28 materials shipped `doubleSided` | **done** ([#105](https://github.com/captproton/yardstake-ux/pull/105)) — a Blender default nobody set, for the life of the model. Single is safe because **every mesh is a closed solid wound outwards**, and that is now gated on the export set rather than remembered |
 | **Export** | Five welds for mesh headroom, and #92's arithmetic corrected | **done** ([#98](https://github.com/captproton/yardstake-ux/pull/98)) — 119 → 112, and **three of the five were a mistake**; see the row below |
 | **Handoff** | The three `lod2` welds reverted, and the contract gated | **done** ([#99](https://github.com/captproton/yardstake-ux/pull/99)) — #98 changed the placement developer's file while its PR body said it had not; `lod2` is byte-identical again and the promise is now a build gate rather than a sentence |
 | **Doors** | The closet ships OPEN on the laundry half | **done** ([#93](https://github.com/captproton/yardstake-ux/pull/93)) — `default_state.bypass` had been inert for eight tiers; fourteen review findings, every one in the gates and none in the geometry |
@@ -307,9 +308,18 @@ roof, and a prefix with a typo hides nothing while looking like it worked.
 - **transmission support** for `adu_glass`, which uses
   `KHR_materials_transmission`.
 
-**And one defect that is ours:** all 28 materials are `doubleSided: true` — a
-Blender default nobody set, which disables backface culling across the whole
-building. Not fixed here; it belongs with its own gate.
+**~~And one defect that is ours~~ — fixed in [#105](https://github.com/captproton/yardstake-ux/pull/105).** All 28
+materials shipped `doubleSided: true`, a Blender default nobody set, which
+disabled backface culling across the whole building. Now **0 of 28**, at every
+level. `spec.materials.sidedness` declares `default: single` and an exception
+map of material → *why*, gated at export: a name not in `materials.library`
+fails, and so does an exception with no reason. **The map is empty** — nothing
+here needs two sides, the glass included, because the glazing is a thin SOLID
+rather than a pane.
+**And single-sided is safe only because the geometry is closed, so that is
+asserted rather than assumed.** Every exported mesh is a sealed manifold
+*wound outwards* — closure alone is not enough, since glTF culls by WINDING
+and a sealed mesh wound inside out has its exterior culled and vanishes.
 
 **Weight:** `lod0` is 960 KB, of which **865 KB is texture**. 17 PNGs at
 1024×1024 — 759 KB on disk that becomes **68 MB in graphics memory**, because
@@ -399,6 +409,14 @@ conversation first and a commit second, which is what this guarantee asks for.
 >
 > **Reverted in [#99](https://github.com/captproton/yardstake-ux/pull/99).** `lod2` is byte-identical to its pre-#98
 > state, sha `44276d83` before and after. **Nothing you hold needs changing.**
+>
+> ⚠️ **And a third time, DELIBERATELY, in [#105](https://github.com/captproton/yardstake-ux/pull/105) — your file is
+> 152 bytes smaller.** `44276d83` → `df7c26ea`. The interface the contract
+> guards is identical: 24 nodes, the same names, the same meshes, the same
+> accessor counts, the same bbox to four decimals. The only change is
+> `doubleSided` 8/8 → 0/8 — a rendering hint that makes your massing cheaper
+> to draw and changes nothing you address. Said out loud rather than left to
+> a passing gate, which is the whole lesson of #98.
 
 **The promise is now a gate.** `spec.export.lod2_contract` declares all 24 node
 names; `finish_adu.py` compares the exported list against it and **fails the
@@ -1353,3 +1371,35 @@ Keep these — they caught real errors:
     Related but distinct from rule 36: that one is about a gate recomputing
     the build's arithmetic. This is about a gate accepting the input's own
     account of itself.
+
+41. **A DEFAULT YOU NEVER SET IS STILL A DECISION — SOMEBODY ELSE'S.**
+    Every material in this model exported `doubleSided: true` for its whole
+    life, and nobody chose that: `grep` for `backface_culling`,
+    `use_backface` or `doubleSided` across every `.py` in the repo returned
+    nothing. It is Blender's export default, and it disabled backface culling
+    on every wall, floor and ceiling in the building.
+    Nothing caught it because **no gate had ever looked at a material flag**.
+    Forty-odd gates asserting dimensions, clearances, UVs, node names and
+    mesh counts, and the export's own rendering hints were simply unexamined
+    territory. It surfaced only when someone asked whether the model was
+    ready for a three.js page and the `.glb` got read field by field.
+    *Inherited defaults are the quietest kind of unverified claim*, because
+    they never appear in a diff. When a tool writes a file on your behalf,
+    read the file back and ask which of its values you actually chose.
+    And when you then set the default deliberately, **check what it rests
+    on**: single-sided is only safe while every surface belongs to a closed
+    solid, so that became a gate too — on the EXPORT set, because the first
+    version of it ran in a scene that had no glazing and the shipped glazing
+    was outside the check that licensed culling it.
+
+42. **CLOSED IS NOT THE SAME AS FACING OUTWARDS.** The gate that justified
+    single-sided materials first tested that every edge had exactly two
+    faces, which proves a mesh is SEALED. glTF culls by WINDING: a sealed
+    mesh wound inside out has its exterior culled and disappears, which is
+    precisely the failure the gate existed to prevent. Signed volume is the
+    honest test — positive means the faces face out — and reversing one wall
+    now reports `wound inside out (signed volume -2.0245)`.
+    The general form: *when a property has two independent parts, testing the
+    easier one and naming the gate after both is how a gate ends up
+    guaranteeing half of what it says.* The name said "closed solid, which is
+    why culling is safe"; only the first clause was being checked.
