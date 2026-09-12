@@ -115,8 +115,10 @@ dryer were both measured and unbuilt. `verify_geometry.py` exists so the claim
 is checkable rather than asserted — **run it before ever saying "complete"
 again.**
 
-**Tiers 1 and 2 are complete bar KTX2 compression**, which is optimisation
-rather than necessity. Tier 3's *build* half is done: cabinets, counters,
+**Tiers 1 and 2 are complete.** KTX2 was the last open item and is now a
+DECISION rather than a deferral — see the backlog: it is a web-delivery
+change rather than a model one, and not worth its costs without a named
+target device. Tier 3's *build* half is done: cabinets, counters,
 backsplash, uppers, hood, the kitchen sink and tap, and the bath vanity with
 its basin, three-hole tap and mirror. `lod0` is now **907.2 KB** against a 4 MB
 ceiling.
@@ -256,7 +258,7 @@ another party. We set the pace.
 | Tier | Scope | Plan |
 |---|---|---|
 | **1** | Schematic interior — door leaves, trim, casing, ceiling planes, distinct floor surfaces, closet walls, loft ladder + guardrail | [TIER-1](TIER-1-schematic-interior.md) — **DONE** |
-| **2** | Materially real — UVs, texel density, tileable maps, KTX2 compression, configurator-swappable finishes | [TIER-2](TIER-2-materials-and-textures.md) — **done bar KTX2**, which is optimisation only. [#58](https://github.com/captproton/yardstake-ux/pull/58) |
+| **2** | Materially real — UVs, texel density, tileable maps, configurator-swappable finishes | [TIER-2](TIER-2-materials-and-textures.md) — **DONE**. [#58](https://github.com/captproton/yardstake-ux/pull/58). KTX2 was the outstanding item and is now declined with reasons, not deferred |
 | **3** | Furnished — kitchen casework, appliances, bath fixtures, furniture | [TIER-3](TIER-3-fixtures-and-furnishing.md) — **casework, both sinks, both taps and the mirror built** ([#60](https://github.com/captproton/yardstake-ux/pull/60), [#62](https://github.com/captproton/yardstake-ux/pull/62), [#64](https://github.com/captproton/yardstake-ux/pull/64)); appliances and toilet remain |
 
 > **Note on numbering.** In earlier conversation these tiers were described
@@ -311,8 +313,9 @@ building. Not fixed here; it belongs with its own gate.
 
 **Weight:** `lod0` is 960 KB, of which **865 KB is texture**. 17 PNGs at
 1024×1024 — 759 KB on disk that becomes **68 MB in graphics memory**, because
-a card cannot read PNG and unpacks every one. That is the real argument for
-KTX2 in the backlog, and it is a phone argument rather than a desktop one.
+a card cannot read PNG and unpacks every one. That is the whole case for
+KTX2 — and it is a phone argument rather than a desktop one, which is why
+the backlog now DECLINES it rather than owing it.
 
 ---
 
@@ -765,10 +768,63 @@ In order of value:
 | **T3:** appliance finish variant | The two filmed units differ (white fridge at 2:11, stainless at 2:27), so finish is a choice. Bodies and fronts are already on one material, so this is a `spec.variants` entry and no geometry |
 | **T3:** mounted fixtures beyond the sconce | The porch light landed the `spec.fixtures.mounted` anchor and a `_lib`-candidate form ([#74](https://github.com/captproton/yardstake-ux/pull/74)). The mini-split head, meter panel, tankless heater and heat pump are all wall- or ground-mounted and all sit in `fixtures.not_measured` — they now have somewhere to go, but not one of them is drawn with a height |
 | **Export:** mesh instancing | **For file size and GPU memory, NOT for the mesh cap — see [#92](https://github.com/captproton/yardstake-ux/issues/92).** The cap counts objects, and instancing does not change the object count. `lod0` is 117 scene objects and **117 distinct meshes** — nothing is shared, so `Porch_post_1`/`_2`, the closet door pair and all four loft windows are each paid for twice or more. glTF supports many nodes to one mesh natively and Blender does it with linked duplicates. A win on geometry *already shipped*, and the thing that makes a fixture catalogue cheap. Held out of [#74](https://github.com/captproton/yardstake-ux/pull/74) deliberately: no payoff for one sconce, and it would have hidden an exporter change inside a lighting PR. Belongs with the `_lib` split |
-| **T2:** KTX2 compression | Optimisation, not necessity — `lod0` is 960.2 KB against a 4 MB ceiling. Confirm `gltf-transform` is installed first |
+| **T2:** KTX2 compression | **DECIDED: not doing it, unless a target device says otherwise.** See the reasoning below the table — it is a web-delivery change rather than a model one, it is lossy, and the case it would most help is already solved by leaving `lod2` untextured |
 | **Foundation:** vent height | The only part of the foundation still assumed. A2.0 draws the vents in *plan*, so it cannot give their height; A1.1's elevations draw no vents at all and show 5-3/4" of exposed concrete, which is schematic since an 8" vent does not fit in it. The 8" height and 4" drop below the top of foundation are ours, labelled `confidence: assumed` |
 | **Foundation:** vents in `lod2` | `Found_stemwall` is in the porch collection, so the placement developer's massing carries eight openings through it. Accurate, and harmless at 29.6 KB against a 200 KB ceiling, but it is detail they did not ask for. Filling them in `lod2` is a two-line change to the `cut_openings` branch that already strips windows and doors |
 | **UI:** wire the pickers | **The largest open item, and the only one a homeowner would notice.** `variants.json` now carries both kinds: 8 material `sets` and 3 `presence` sets, with a working `applyChoice()` and `applyLayout()` in TIER-2. Nothing in the model blocks it — and `presence` is the half that *must* be honoured, since ignoring it renders a desk through a bed ([#78](https://github.com/captproton/yardstake-ux/pull/78)) |
+
+**KTX2: the decision, not the deferral.** This sat in the table for four
+tiers as "optimisation, not necessity", which reads like work owed. It is
+not, and here is the reasoning so nobody re-derives it.
+
+**It is a WEB optimisation, not a model one.** Nothing about the building
+changes — not a dimension, not a vertex, not a material colour. It changes
+how the texture *pictures* are stored in the file and in graphics memory. It
+cannot fix or break anything the gates check, and **it is lossy**: PNG is
+lossless, Basis throws detail away to stay compressed, and the seven normal
+maps are where that shows.
+
+**What it would buy, measured rather than asserted.** A graphics card cannot
+read PNG, so the browser unpacks every one:
+
+```
+17 PNGs at 1024x1024
+759 KB on disk  ->  68 MB in graphics memory
+```
+
+The unpacked size does not depend on how well a file compressed — one of
+those images is 5.5 KB on disk and 4 MB in memory, same as the 189 KB one,
+because both are 1024². KTX2 stays compressed on the card: roughly 8–17 MB
+depending on format, and perhaps 960 KB → 450–600 KB of download.
+
+**Who would feel it.** Nobody on a desktop — 68 MB against 8 GB of VRAM is
+noise. It is an integrated-graphics and phone number. So the real question
+is not "are we mobile-first" but **"does this have to run on a three-year-old
+Android?"** Absent that requirement, the win is invisible.
+
+**And the case it would most help is already solved.** The many-buildings
+problem — where texture memory actually multiplies — was answered in
+`spec.textures.untextured_levels`: `lod2` ships **zero images**, because it
+is "viewed at 20-100 ft, plausibly several instances at once on a phone."
+What is left is one building at `lod0` in a configurator, and three.js
+shares textures between instances of the same model anyway.
+
+**What it would cost.** A **second required extension** —
+`KHR_texture_basisu` beside `KHR_draco_mesh_compression` — so the page needs
+a Basis transcoder as well as a Draco decoder, which is a constraint on
+whoever builds it and not ours to impose alone. And the **first non-Blender
+tool in the build chain**: `gltf-transform`, `toktx` and `basisu` are all
+absent, `npm` is present, and this repo has been careful about dependencies.
+
+**Resolution is not a cheaper lever, and that was checked.** Halving to 512²
+would give most of the memory win with no new tooling — and fails
+`verify_tier2`, because texel density is declared at 128 px/ft and gated, one
+1024px tile covering 8 ft. 512² is 64 px/ft.
+
+**Revisit when** there is a named device the page must run on. Then it is
+worth doing, and the format choice splits by map type: the nine albedo maps
+are neutral luminance and compress fine in ETC1S; the seven normals want
+UASTC and will be most of the remaining bytes.
 
 Two prerequisites are long discharged: **texel density is fixed at 128 px/ft**
 in `spec.texturing`, and the **window reveals are tagged and verified through
