@@ -174,6 +174,12 @@ def main():
     gate("tile size is sane for the longest wall", tile_ft >= 4.0,
          f"one {tile_px}px tile covers {tile_ft:.1f} ft")
 
+    # The closed-solid / winding check that justifies single-sided materials
+    # USED TO LIVE HERE and now lives in finish_adu.py, beside the decision it
+    # protects. This scene has no glazing -- finish_adu creates it -- so the
+    # eleven meshes that actually ship in lod0 and lod1 were outside the gate
+    # that licenses culling them. It runs on `keep`, the export set itself.
+
     w = max(len(r[0]) for r in results)
     print()
     for label, good, detail in results:

@@ -26,6 +26,7 @@ import struct
 from pathlib import Path
 
 import bpy
+import bmesh
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -38,6 +39,13 @@ FOOT_M = 0.3048
 # ---------------------------------------------------------------------------
 def make_materials(spec, textured=True):
     lib = spec["materials"]["library"]
+    _sd = spec["materials"].get("sidedness") or {}
+    two_sided = set(_sd.get("double_sided") or {})
+    # THE DEFAULT HAS TO DO SOMETHING OR IT SHOULD NOT BE THERE. It was
+    # published and ignored -- the builder hard-coded single and read only the
+    # exception list, so setting `default: double` changed nothing and the
+    # gate agreed, because it ignored the field too.
+    _default_single = _sd.get("default", "single") == "single"
     tdir = HERE / spec.get("textures", {}).get("dir", "textures/")
     out = {}
     for name, m in lib.items():
@@ -84,6 +92,11 @@ def make_materials(spec, textured=True):
             elif slot == "roughness":
                 img.colorspace_settings.name = "Non-Color"
                 nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
+        # SINGLE-SIDED UNLESS THE SPEC SAYS OTHERWISE. Blender writes
+        # glTF `doubleSided = not use_backface_culling`, and the default left
+        # every material double-sided by omission rather than by decision.
+        mat.use_backface_culling = _default_single != (name in two_sided)
+
         bsdf.inputs["Roughness"].default_value = m.get("roughness", 0.8)
         bsdf.inputs["Metallic"].default_value = m.get("metallic", 0.0)
         if m.get("emissive_linear"):
@@ -573,6 +586,8 @@ def glb_info(path):
             js = json.loads(raw[off + 8: off + 8 + clen].decode("utf-8"))
             break
         off += 8 + clen
+    sided = [(m.get("name", f"<{i}>"), bool(m.get("doubleSided")))
+             for i, m in enumerate(js.get("materials", []))]
     # POSITION accessors only — NORMAL is also VEC3 and would inflate the bbox
     pos_idx = {prim["attributes"]["POSITION"]
                for m in js.get("meshes", []) for prim in m["primitives"]
@@ -585,6 +600,7 @@ def glb_info(path):
                 lo[i] = min(lo[i], a["min"][i])
                 hi[i] = max(hi[i], a["max"][i])
     return dict(
+        sided=sided,
         size_kb=len(raw) / 1024.0,
         meshes=len(js.get("meshes", [])),
         materials=len(js.get("materials", [])),
@@ -705,6 +721,7 @@ def main():
     spec = load_spec(HERE / "spec.yaml")
     results = {}
     lod0_nodes = set()
+    sided_geo = []
     lod2_nodes = None
 
     # Checked BEFORE the first export, so a build with no contract writes no
@@ -777,6 +794,30 @@ def main():
         info["unmatched_materials"] = unmatched
         info["textured"] = textured
         results[lod] = info
+        # THE SAFETY PRECONDITION, CHECKED ON WHAT SHIPS. This lived in
+        # verify_tier2, which runs against barn_cabin_524.blend -- and glazing
+        # is created HERE, so the eleven meshes that actually ship in lod0 and
+        # lod1 were outside the gate that justifies culling them. Checked on
+        # `keep`, which is the export set by definition.
+        #
+        # CLOSURE IS NOT ENOUGH EITHER. Every edge having two faces proves the
+        # mesh is sealed; glTF culls by WINDING, so a sealed mesh wound inside
+        # out has its exterior culled and vanishes. Signed volume is the test:
+        # positive means the faces face out.
+        for o in keep:
+            if not o.data.polygons:
+                continue
+            bm = bmesh.new()
+            bm.from_mesh(o.data)
+            open_e = sum(1 for e in bm.edges if len(e.link_faces) != 2)
+            vol = bm.calc_volume(signed=True)
+            bm.free()
+            if open_e:
+                sided_geo.append(f"{lod}:{o.name} is not closed ({open_e} edges)")
+            elif vol <= 0:
+                sided_geo.append(f"{lod}:{o.name} is wound inside out "
+                                 f"(signed volume {vol:.4f})")
+
         if lod == "lod0":
             lod0_nodes = {o.name for o in keep}
 
@@ -802,6 +843,55 @@ def main():
         if i["unmatched_materials"]:
             print(f"        unmatched: {i['unmatched_materials']}")
             ok = False
+
+    # ---- sidedness: what the .glb actually says ---------------------------
+    # READ BACK OFF THE EXPORT, not off the Blender materials that wrote it.
+    # `doubleSided` is a glTF field and the exporter derives it from a Blender
+    # flag, so the only honest place to check the delivered value is the
+    # delivered file. Every material shipped double-sided for the life of this
+    # model because nobody set the Blender flag and nobody read the glTF one.
+    sd = spec["materials"].get("sidedness") or {}
+    want_two = set(sd.get("double_sided") or {})
+    # AN EXCEPTION LIST THAT NAMES NOTHING EXCUSES NOTHING, AND SAYS IT DID.
+    # A typo -- `double_sided: {glsa: "..."}` -- left every export single while
+    # the gate below stayed quiet, because it only walks the materials that
+    # SHIPPED. So the declaration is checked against the library first, the
+    # way verify_tier2 already checks the UV exemptions.
+    lib_names = set(spec["materials"]["library"])
+    decl_bad = []
+    if sd.get("default", "single") not in ("single", "double"):
+        decl_bad.append(f"materials.sidedness.default is "
+                        f"{sd.get('default')!r}; it is 'single' or 'double'")
+    for mname, why in (sd.get("double_sided") or {}).items():
+        if mname not in lib_names:
+            decl_bad.append(f"sidedness.double_sided names {mname!r}, which is "
+                            f"not in materials.library")
+        if not isinstance(why, str) or not why.strip():
+            decl_bad.append(f"sidedness.double_sided[{mname!r}] has no reason — "
+                            f"two sides costs fill rate, so say what buys it")
+    side_bad = list(decl_bad)
+    for lod, i in results.items():
+        for mname, two in i["sided"]:
+            short = mname.removeprefix("adu_")
+            if two and short not in want_two:
+                side_bad.append(f"{lod}:{mname} is doubleSided and the spec "
+                                f"does not declare it")
+            if not two and short in want_two:
+                side_bad.append(f"{lod}:{mname} is declared doubleSided and "
+                                f"shipped single")
+    n_mats = sum(len(i["sided"]) for i in results.values())
+    print("-" * 76)
+    print(f"  [{'PASS' if not sided_geo else 'FAIL'}] every exported mesh is a "
+          f"closed solid wound outwards"
+          + (f" — {sided_geo[:2]}" if sided_geo else
+             f" — culling is safe on all of it"))
+    ok &= not sided_geo
+    print(f"  [{'PASS' if not side_bad else 'FAIL'}] every material's sidedness "
+          f"matches the spec"
+          + (f" — {side_bad[:2]}" if side_bad else
+             f" — {n_mats} materials across 3 levels, "
+             f"{len(want_two)} declared double-sided"))
+    ok &= not side_bad
 
     budget = spec.get("textures", {}).get("budget_kb", {})
     over = [f"{k} {results[k]['size_kb']:.0f} KB > {v} KB"
