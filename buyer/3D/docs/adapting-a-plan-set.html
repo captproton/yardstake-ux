@@ -339,6 +339,7 @@ html{scroll-behavior:smooth}
   <nav class="index" aria-label="Sheet index">
     <h2>Sheet index</h2>
     <ol>
+      <li><a href="#start"><b>□</b><span>Before you start</span></a></li>
       <li><a href="#shape"><b>—</b><span>Shape of the job</span></a></li>
       <li><a href="#s0"><b>0</b><span>Triage the sheets</span></a></li>
       <li><a href="#s1"><b>1</b><span>Find the datum</span></a></li>
@@ -374,6 +375,115 @@ html{scroll-behavior:smooth}
       <p><code>barn_cabin_524</code> came from <code>thataduguy</code> and also had a
         walkthrough video. Sacramento&rsquo;s renderings are the same kind of evidence
         and carry the same rule — see <a href="#s2">Stage&nbsp;2</a>.</p>
+    </section>
+
+    <!-- ─── BEFORE YOU START ──────────────────────────────────────────── -->
+    <section id="start">
+      <div class="stage-head"><span class="bubble">&#9633;</span>
+        <h2>Before you start</h2></div>
+      <p>This document is the <em>judgement</em>. The interface is in the repository, and
+        you will not get far without both. Read
+        <a href="https://github.com/captproton/yardstake-ux/blob/main/buyer/3D/models/barn_cabin_524/spec.yaml"><code>spec.yaml</code></a>
+        and
+        <a href="https://github.com/captproton/yardstake-ux/blob/main/buyer/3D/models/barn_cabin_524/build_adu.py"><code>build_adu.py</code></a>
+        before writing anything.</p>
+
+      <h3>Where everything is</h3>
+      <p>All paths are relative to
+        <a href="https://github.com/captproton/yardstake-ux/tree/main/buyer/3D/models/barn_cabin_524"><code>buyer/3D/models/barn_cabin_524/</code></a>,
+        and the plan sets are in <code>buyer/3D/example&nbsp;plans/</code>.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>File</th><th>Lines</th><th>Is</th></tr></thead>
+          <tbody>
+            <tr><td><code>spec.yaml</code></td><td class="num">3,236</td><td>the single source of truth</td></tr>
+            <tr><td><code>build_adu.py</code></td><td class="num">2,618</td><td>reads the spec, emits the massing model</td></tr>
+            <tr><td><code>finish_adu.py</code></td><td class="num">1,000</td><td>materials, glazing, LODs, manifest, export gates</td></tr>
+            <tr><td><code>views.py</code></td><td class="num">747</td><td>display modes, driven by <code>spec.export.display_modes</code></td></tr>
+            <tr><td><code>verify_*.py</code></td><td class="num">~4,200</td><td>nine gates + <code>verify_lib.py</code></td></tr>
+            <tr><td><code>render_elevations.py</code></td><td class="num">—</td><td>orthographic elevations at exactly 50.0&nbsp;px/ft</td></tr>
+            <tr><td><code>tools/tier3/</code></td><td class="num">—</td><td>pixel&nbsp;&harr;&nbsp;feet calibration against the sheets</td></tr>
+            <tr><td><a href="https://github.com/captproton/yardstake-ux/blob/main/buyer/3D/models/barn_cabin_524/docs/README.md"><code>docs/README.md</code></a></td><td class="num">—</td><td>the plan, and all 42 ground rules</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>How to run it</h3>
+<pre><code><span class="c"># build the massing model from the spec</span>
+blender --background --python build_adu.py -- [--out DIR] [--no-openings]
+
+<span class="c"># materials, glazing, three LODs, variants.json — runs its own export gates</span>
+blender --background --python finish_adu.py -- [--out DIR]
+
+<span class="c"># a gate that needs the scene (eight of the nine)</span>
+blender --background barn_cabin_524.blend --python verify_tier1.py
+
+<span class="c"># a gate that reads the spec alone</span>
+python3 verify_fixtures.py
+
+<span class="c"># elevations you can lay straight onto the sheet</span>
+blender --background barn_cabin_524.blend --python render_elevations.py -- OUTDIR
+
+<span class="c"># textures — HOST python, not Blender's (needs numpy, PIL, pyyaml)</span>
+python3 make_textures.py</code></pre>
+
+      <h3>The frame, which is a house convention and not this building&rsquo;s choice</h3>
+      <p>One Blender unit is one foot; <strong>the glTF export is in metres</strong>. Z&nbsp;up.</p>
+      <div class="draw"><pre>east = +X     north = +Y     up = +Z
+
+    X   0 .. W          west wall .. east wall
+    Y   0 .. D+P        north (rear) wall .. porch outer edge
+    Z   0               MAIN FINISHED FLOOR  (grade is not modelled)
+
+Wall offsets in the spec are stated from the WEST corner for north/south
+walls, and from the NORTH corner for east/west walls.
+
+On a sheet, north is up and west is left — so the raster's row index
+increases as Y DECREASES. Get that backwards and the plan mirrors.</pre></div>
+
+      <h3>The primitives, with their signatures</h3>
+<pre><code>box(name, x0, x1, y0, y1, z0, z1, coll)      multibox(name, specs, coll)
+box_geom(x0, x1, y0, y1, z0, z1)             prism_xz(name, pts_xz, y0, y1, coll)
+prism_geom(pts, lo, hi, plane="xz")          clip_band(pts, lo, hi, idx=1)
+tube(name, path, radius, coll, sides=8, caps=True)
+multitube(name, specs, coll, sides=8)        loft(name, rings, coll, cap_first, cap_last)
+ellipse_ring(cx, cy, ax, ay, z, n=16)        arc_points(centre, radius, axis, a0, a1, n=8)
+weld(name, parts, coll)                      difference(target, cutters)
+uv_project(ob, tile_ft)                      mark_reveals(ob, thickness_axis, outward=None)</code></pre>
+
+      <h3>How the numbers come off the sheet</h3>
+      <p>This is the part that is genuinely hard, and the technique is written down in
+        the docstrings of <code>tools/tier3/frame.py</code>,
+        <code>front_elev.py</code> and <code>measure_vents.py</code> rather than
+        invented fresh each time. Four rules carry most of it:</p>
+      <ul>
+        <li><strong>Rasterise at 200&nbsp;dpi, where 1/4&Prime;&nbsp;=&nbsp;1&prime;-0&Prime;
+          is exactly 50.0&nbsp;px/ft.</strong> That is the number your calibration must
+          return. It is a <em>check</em>, not an output — a reading of 59.3 or 44.3 means
+          you grabbed the wrong edge, and both of those really happened.</li>
+        <li><strong>Anchor on interior faces, never the drawn wall band.</strong>
+          Line weight inflates it: the band measures 29&nbsp;px (~7&Prime;) where the wall
+          is 5-1/2&Prime;. Interior faces are also what fixtures physically sit against,
+          so they are the right datum twice over.</li>
+        <li><strong>Calibrate both ways and expect it to close.</strong> On A1.1 the
+          north&ndash;south interior span gave 50.01&nbsp;px/ft, and the east face then
+          landed within 0.006&nbsp;ft of its expected 21&prime;-6-1/2&Prime;. Both
+          dimensions reproducing to 1/8&Prime; is what &ldquo;calibrated&rdquo; means.</li>
+        <li><strong>Elevations are harder than plans, and settle ambiguity with known
+          answers.</strong> A shingle field puts a candidate edge on every course, and each
+          opening is drawn as <em>four</em> nested rectangles — casing, unit and two frame
+          lines — of which only one is the size callout. Which one was settled by reading
+          two windows whose sizes were already known from the plan, not by eye.</li>
+      </ul>
+
+      <div class="note scar">
+        <p class="lbl">What this document does not cover</p>
+        <p>The <strong>field-level schema</strong> of <code>spec.yaml</code> — the block
+          inventory in Stage&nbsp;4 names the blocks, not what an entry inside one looks
+          like. Which of the nine gates are generic and which assume a loft or a porch.
+          And how to choose a raster tool for a scanned rather than vector sheet. For all
+          three, the source is the answer, and it is short enough to read.</p>
+      </div>
     </section>
 
     <!-- ─── the shape of the job ──────────────────────────────────────── -->
@@ -718,8 +828,10 @@ html{scroll-behavior:smooth}
         That is what made the Stage&nbsp;1 datum proof possible. Build the equivalent for
         your set early.</p>
       <h3>The scars, compressed</h3>
-      <p>The full ground rules live in the model&rsquo;s own README — there are 42 and they
-        are all paid for. These are the ones that will bite <em>you</em>:</p>
+      <p>The full ground rules live in
+        <a href="https://github.com/captproton/yardstake-ux/blob/main/buyer/3D/models/barn_cabin_524/docs/README.md">the model&rsquo;s own README</a>
+        — there are 42 and they are all paid for. These are the ones that will bite
+        <em>you</em>:</p>
       <ul>
         <li><strong>A gate must fail closed.</strong> <code>if contract:</code> made the
           <code>lod2</code> contract skippable, so a missing spec key silently disabled
@@ -846,8 +958,11 @@ variants.json              12,141 bytes   what the page reads</code></pre>
         <li><strong><code>areas_declared: 460</code></strong>, from the sheet. Your first gate.</li>
         <li><strong>Envelope-only build.</strong> Walls, roof, slab, no openings. Check the
           footprint and the declared area. Stop there and look at it.</li>
-        <li><strong>Then openings, then finish, then fixtures</strong> — the tier order the
-          model&rsquo;s own TIER-1/2/3 docs follow.</li>
+        <li><strong>Then openings, then finish, then fixtures</strong> — the tier order of
+          <a href="https://github.com/captproton/yardstake-ux/blob/main/buyer/3D/models/barn_cabin_524/docs/TIER-1-schematic-interior.md">TIER-1</a>,
+          <a href="https://github.com/captproton/yardstake-ux/blob/main/buyer/3D/models/barn_cabin_524/docs/TIER-2-materials-and-textures.md">TIER-2</a>
+          and
+          <a href="https://github.com/captproton/yardstake-ux/blob/main/buyer/3D/models/barn_cabin_524/docs/TIER-3-fixtures-and-furnishing.md">TIER-3</a>.</li>
       </ol>
       <div class="note scar">
         <p class="lbl">Expect this, and treat it as the finding</p>
@@ -871,6 +986,7 @@ variants.json              12,141 bytes   what the page reads</code></pre>
           <li><label><input type="checkbox"><span>Every number that came from a rendering or video is in <code>discrepancies:</code> or <code>assumptions:</code>, not in a dimension</span></label></li>
           <li><label><input type="checkbox"><span>Every <code>discrepancies:</code> entry has <code>what_would_settle_it</code></span></label></li>
           <li><label><input type="checkbox"><span>The datum is proved by an independent witness, and the proof is written down</span></label></li>
+          <li><label><input type="checkbox"><span>Sheet calibration returns 50.0&nbsp;px/ft and closes on both axes, anchored on interior faces</span></label></li>
           <li><label><input type="checkbox"><span>No dimension, colour or position appears in <code>build_adu.py</code></span></label></li>
           <li><label><input type="checkbox"><span>Geometry area agrees with <code>areas_declared</code></span></label></li>
           <li><label><input type="checkbox"><span>Object count is under 120</span></label></li>
