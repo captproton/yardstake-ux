@@ -276,6 +276,30 @@ See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--d
 
 ## The second handoff — to whoever builds the page
 
+> **The page now has its own two documents**, merged in
+> [#114](https://github.com/captproton/yardstake-ux/pull/114): [`buyer/3D/docs/PAGE-PLAN.md`](../../../docs/PAGE-PLAN.md)
+> is the plan and the issue sequence ([#106](https://github.com/captproton/yardstake-ux/issues/106)–[#112](https://github.com/captproton/yardstake-ux/issues/112)),
+> and [`adapting-a-plan-set.html`](../../../docs/adapting-a-plan-set.html) is
+> the procedure for turning a permit set into a model like this one.
+>
+> **What #114 settled, by reading the reference's own source rather than
+> guessing at it.** The plan had claimed that styles, roof form and bed count
+> were "different buildings" and would have to become a model switcher. They
+> are not. Studio Home offers all three against one product: a per-model
+> composition table keyed by joining the chosen option ids with `|`, plus a
+> **second, independent lookup for the roof**. Larch ships 24 bodies
+> (2 bed counts × 3 interiors × 4 styles) and 4 roofs (2 forms × 2 styles).
+>
+> So **only the roof is composed at runtime**; interior and style are
+> pre-baked whole bodies, and material is a third orthogonal axis. The
+> pre-bake/compose boundary is [#113](https://github.com/captproton/yardstake-ux/issues/113), which is not blocking
+> any of #106–#112 and is needed before a SECOND builder arrives.
+>
+> **And a correction that belongs here**, because it is about this block: their
+> material axis swaps the *picture*, ours does not. Every option below is a
+> `baseColorFactor` over maps that ship once — which is why this model has
+> normal maps at all, and why `applyChoice()` writes a factor and never a map.
+
 `lod2` is the placement developer's. **`variants.json` is the web
 runtime's**, and until [#103](https://github.com/captproton/yardstake-ux/pull/103) it carried finishes and furniture
 only. It now carries what a configurator page actually needs under the
