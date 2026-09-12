@@ -2317,9 +2317,13 @@ materials:
       the building. verify_tier2 gates that, because it is the assumption
       this default rests on -- add a single-plane rug or a cross-plane shrub
       later and the gate fails before the render looks wrong.
-      `double_sided` is the exception list, with a reason required. It is
-      empty, and that is the finding: nothing needed two sides.
-    double_sided: []
+      `double_sided` maps a material to WHY it needs two sides, because a
+      bare list let the promise of a reason be a promise only -- nothing read
+      it and nothing could. A name here must exist in `library`, and its
+      reason must say something; both are gated at export. It is empty, and
+      that is the finding: nothing needed two sides, the glass included,
+      because the glazing is a thin SOLID and not a pane.
+    double_sided: {}
   library:
     siding:
       base_color_linear: [0.788, 0.724, 0.649]

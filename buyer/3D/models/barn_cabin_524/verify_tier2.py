@@ -174,30 +174,11 @@ def main():
     gate("tile size is sane for the longest wall", tile_ft >= 4.0,
          f"one {tile_px}px tile covers {tile_ft:.1f} ft")
 
-    # ---- the assumption behind single-sided materials ---------------------
-    # spec.materials.sidedness defaults every material to SINGLE, and that is
-    # only safe while every surface is part of a closed solid: cull the back
-    # face of a plane and it disappears from one side. This model has no
-    # planes -- everything is box, prism, tube or loft -- and that is the fact
-    # the default rests on, so it is asserted rather than remembered.
-    #
-    # A boundary edge (one face) is an open mesh; a non-manifold edge (three
-    # or more) is worse. Either breaks the assumption.
-    import bmesh as _bm
-    leaky = []
-    for o in bpy.data.objects:
-        if o.type != "MESH" or not o.data.polygons:
-            continue
-        bm = _bm.new()
-        bm.from_mesh(o.data)
-        bad = sum(1 for e in bm.edges if len(e.link_faces) != 2)
-        bm.free()
-        if bad:
-            leaky.append(f"{o.name} ({bad} edges)")
-    gate("every mesh is a closed solid, which is why culling is safe",
-         not leaky, "; ".join(leaky[:3]) or
-         f"{sum(1 for o in bpy.data.objects if o.type == 'MESH')} meshes, "
-         f"no boundary or non-manifold edges")
+    # The closed-solid / winding check that justifies single-sided materials
+    # USED TO LIVE HERE and now lives in finish_adu.py, beside the decision it
+    # protects. This scene has no glazing -- finish_adu creates it -- so the
+    # eleven meshes that actually ship in lod0 and lod1 were outside the gate
+    # that licenses culling them. It runs on `keep`, the export set itself.
 
     w = max(len(r[0]) for r in results)
     print()
