@@ -20,6 +20,8 @@ because it makes Blender's own UI read in feet, but it is not load-bearing.
 """
 import sys
 import json
+import shutil
+import os
 import struct
 from pathlib import Path
 
@@ -440,6 +442,120 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
             problems.append(
                 "presence block has no `disclosure` text — the UI obligation "
                 "is the reason presence exists, so it may not be dropped")
+    # ---- what the page needs under the viewer ----------------------------
+    # The configurator this model answers puts two buttons below the 3D view:
+    # SHOW INTERIOR and SHOW DIMENSIONS. Until now it could drive neither.
+    # views.py has known how to strip a roof since Tier 1 and it is a BLENDER
+    # tool -- the rule never reached the browser.
+    #
+    # RESOLVED TO NODE NAMES, NOT SHIPPED AS PREFIXES. A runtime should not
+    # have to string-match its way to a roof, and a prefix with a typo would
+    # hide nothing while looking like it worked. Resolving here also means a
+    # mode that matches nothing FAILS THE BUILD, below, rather than shipping
+    # a button that does not move.
+    # REQUIRED, NOT OPTIONAL. `if dm:` let a spec with no display_modes
+    # publish a manifest with no `views` and no complaint -- while views.py
+    # indexes spec.export.display_modes unconditionally at import. One
+    # consumer tolerant, the other fatal, over the same missing block.
+    dm = (spec.get("export") or {}).get("display_modes")
+    if not dm or not dm.get("groups") or not dm.get("modes"):
+        problems.append("spec.export.display_modes is missing or empty — "
+                        "views.py requires it and the page's SHOW INTERIOR "
+                        "control is built from it")
+    if dm and dm.get("groups") and dm.get("modes"):
+        groups, views = dm["groups"], []
+        # EVERY GROUP, NOT EVERY MODE. Checking that a mode hides SOMETHING is
+        # not enough: misspell `roof` and `dollhouse` still resolves the
+        # ceiling, so it hides ceilings, passes, and ships a "Show interior"
+        # button that leaves the roof on. Worse, views.py reads the same
+        # misspelling, so the two consumers agree perfectly about being wrong
+        # and the agreement gate passes too. A group that matches no node is
+        # the defect, wherever it is used.
+        # EVERY PREFIX, NOT EVERY GROUP. Checking that a group matches
+        # SOMETHING lets a typo hide inside a group that has other members:
+        # misspell `Porch_ceiling` in `ceiling` and `Ceil_` still matches, so
+        # the group resolves, the gate passes, and the porch ceiling stays up
+        # in "Show interior". Both consumers read the same typo, so the
+        # agreement gate sees nothing wrong either. Each prefix must earn its
+        # place.
+        for gid, prefixes in groups.items():
+            dead = [x for x in prefixes
+                    if not any(n.startswith(x) for n in nodes_present)]
+            if dead:
+                problems.append(
+                    f"display-mode group {gid!r} has prefixes that match no "
+                    f"exported node: {dead}")
+        ids = [m["id"] for m in dm["modes"]]
+        if len(set(ids)) != len(ids):
+            problems.append(f"display modes have duplicate ids: {ids}")
+        if sum(bool(m.get("default")) for m in dm["modes"]) != 1:
+            problems.append("display modes need exactly one default — the page "
+                            "has to open on something, and on one thing")
+        # A MISSPELT GROUP MUST FAIL LIKE EVERYTHING ELSE HERE. `groups[g]`
+        # raised KeyError, so a typo in a mode's composition aborted the whole
+        # export with a traceback -- after the LODs were written -- instead of
+        # the readable PROBLEM every other malformed input gets.
+        unknown = sorted({g for m in dm["modes"] for g in m["hide"]
+                          if g not in groups})
+        if unknown:
+            problems.append(f"display modes reference groups that do not "
+                            f"exist: {unknown} (have {sorted(groups)})")
+        for m in dm["modes"] if not unknown else []:
+            pref = tuple(x for g in m["hide"] for x in groups[g])
+            hide = sorted(n for n in nodes_present if n.startswith(pref))
+            if m["hide"] and not hide:
+                problems.append(
+                    f"display mode {m['id']!r} hides nothing — its prefixes "
+                    f"{list(pref)} match no exported node")
+            views.append({k: val for k, val in (
+                ("id", m["id"]), ("label", m["label"]),
+                ("desc", m.get("desc")), ("default", m.get("default")),
+                ("hide", hide)) if val is not None})
+        manifest["views"] = views
+        manifest["views_note"] = (
+            "Visibility modes for the viewer's SHOW INTERIOR control. Each "
+            "lists the glTF node names to HIDE; show everything else. Node "
+            "names, not prefixes, so no string matching is needed and a mode "
+            "that matches nothing fails the export instead of the page.")
+
+    # ---- the numbers the SHOW DIMENSIONS overlay needs --------------------
+    env, rf = spec["envelope"], spec["roof"]
+    w = env["main_body_width"]["ft"]
+    body = env["main_body_depth"]["ft"]
+    porch = env["porch_depth"]["ft"]
+    eave, rake = rf["eave_overhang"]["ft"], rf["rake_overhang"]["ft"]
+    manifest["dimensions"] = {
+        "units": "feet",
+        "main_body": {"width": w, "depth": body,
+                      "note": "the heated box, wall face to wall face"},
+        "with_porch": {"width": w, "depth": body + porch,
+                       "note": "the slab footprint; the porch is covered, not heated"},
+        # EAVE EXTENDS X, RAKE EXTENDS Y, and this had them the other way
+        # round. build_adu draws the roof profile from -eave to W + eave --
+        # that is the WIDTH -- and extrudes it -rake to NY + rake, which is
+        # the depth. Both overhangs are 18" here so the published numbers were
+        # right by coincidence; any spec that differed would have shipped the
+        # building's width and depth swapped.
+        "overall": {"width": w + 2 * eave, "depth": body + porch + 2 * rake,
+                    "note": f"over the {rf['eave_overhang']['raw']} eave "
+                            f"(width) and rake (depth)"},
+        "height_to_ridge": rf["elevation_calibration"]["ridge_top_of_roof"]["ft"],
+        "note": (
+            "THREE FOOTPRINTS, AND WHICH ONE IS RIGHT DEPENDS ON THE QUESTION. "
+            "A dimension overlay wants `with_porch` -- that is the building a "
+            "buyer sees. A setback check needs BOTH `with_porch` and "
+            "`overall`: many jurisdictions measure to the wall but cap eave "
+            "projection under a separate rule, so using one for both "
+            "over-constrains siting or under-reports the encroachment."),
+    }
+
+    # DO NOT PUBLISH WHAT DID NOT VALIDATE. This wrote the file and returned
+    # the problems for main() to report, so a failed run left an invalid
+    # variants.json sitting in export/ for anyone who picked it up between
+    # runs. #99 fixed exactly this for lod2 and the manifest kept the old
+    # habit. The previous good file stays where it is.
+    if problems:
+        return None, problems
     path = out / v.get("emit", "variants.json")
     path.write_text(json.dumps(manifest, indent=2) + "\n")
     return path, problems
@@ -570,7 +686,20 @@ def report_lod2_contract(want, got):
 
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else HERE / "export"
+    final_out = (Path(argv[argv.index("--out") + 1]) if "--out" in argv
+                 else HERE / "export")
+    final_out.mkdir(parents=True, exist_ok=True)
+    # EVERYTHING IS WRITTEN BESIDE THE REAL DIRECTORY AND MOVED IN AT THE END.
+    # This has been fixed three times artefact by artefact -- lod2 in #99, the
+    # manifest and then the primary .glb in this PR -- and each fix left the
+    # next one exposed: a run that failed its BUDGET gate still published new
+    # LODs and a new manifest beside the old primary, which is a generation
+    # mix that never existed as a set. Staging is the fix that does not need a
+    # fourth. Nothing in export/ changes until every gate has passed.
+    out = final_out.parent / (final_out.name + ".staging")
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
     out.mkdir(parents=True, exist_ok=True)
 
     spec = load_spec(HERE / "spec.yaml")
@@ -654,8 +783,6 @@ def main():
     all_mats = sorted(m.name for m in bpy.data.materials)
     vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes)
 
-    # primary deliverable is a copy of lod0
-    (out / "barn_cabin_524.glb").write_bytes((out / "barn_cabin_524_lod0.glb").read_bytes())
 
     print("\n" + "=" * 76)
     print("P4 EXPORT REPORT")
@@ -713,9 +840,17 @@ def main():
         nopts = sum(len(x["options"]) for x in spec["variants"]["sets"])
         print(f"\nconfigurator manifest: {vpath.name} — {nsets} sets, {nopts} options, "
               f"{vpath.stat().st_size} bytes, 0 extra texture bytes")
+
+    # OUTSIDE the `if vpath`, and that is the point. Refusing to publish an
+    # invalid manifest made `vpath` None on exactly the runs whose reasons
+    # matter most -- so the gate failed with nothing said, which is worse than
+    # the unpublished file it was protecting. A failure has to carry its
+    # reason out of the branch that caused it.
+    if vproblems:
+        print("\nconfigurator manifest NOT written:")
         for p_ in vproblems:
             print(f"  PROBLEM: {p_}")
-        ok &= not vproblems
+    ok &= not vproblems
 
     # ---- presence: every shipped furniture node is controlled -------------
     # The manifest is read back from disk, not from the objects that wrote it,
@@ -749,11 +884,25 @@ def main():
     # (For inspecting a failing build, run build_adu.py and open
     # barn_cabin_524.blend; it has the geometry, just not the materials.)
     if ok and scale_ok:
+        (out / "barn_cabin_524.glb").write_bytes(
+            (out / "barn_cabin_524_lod0.glb").read_bytes())
+        # PROMOTE AS A SET. os.replace is atomic per file on one filesystem,
+        # and the staging directory is a sibling of the real one so it always
+        # is. A reader between two replaces sees two consistent files, never
+        # a half-written one.
+        for src in sorted(out.iterdir()):
+            os.replace(src, final_out / src.name)
+        shutil.rmtree(out, ignore_errors=True)
+        print(f"\npublished {len(list(final_out.iterdir()))} files to "
+              f"{final_out}")
         blend = save_viewable_blend(spec, HERE / "barn_cabin_524_textured.blend")
         print(f"\nviewable: {blend}"
               f"  (textured lod0 — open this, not barn_cabin_524.blend)")
     else:
-        print("\nviewable .blend NOT written: the export did not pass its gates.")
+        shutil.rmtree(out, ignore_errors=True)
+        print(f"\nNOTHING PUBLISHED: the export did not pass its gates, so "
+              f"{final_out} still holds the last set that did. The staged "
+              f"files have been discarded.")
         raise SystemExit(1)
 
 

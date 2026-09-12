@@ -59,10 +59,71 @@ from mathutils import Vector
 
 # Prefix groups. Kept as prefixes, not names, so new trim or ceiling objects
 # are picked up without editing this file.
-ROOF = ("Roof_",)
-CEILING = ("Ceil_", "Porch_ceiling")
-SOUTH = ("Wall_S", "Porch_", "Gable_S")
-SHELL = ("Wall_", "Gable_", "Dormer_", "Eave_", "Roof_", "Porch_", "Glazing_")
+# WHAT EACH MODE HIDES NOW LIVES IN THE SPEC, because the configurator page
+# needs the same answer and was not getting it: this module knew how to strip
+# a roof and a web runtime had no way to ask. spec.export.display_modes is the
+# one definition; finish_adu.py resolves it into the manifest as node NAMES,
+# and these four tuples are the same lists read back for use in Blender.
+def _display_modes():
+    """spec.export.display_modes — groups AND the modes composed from them.
+
+    TWO THINGS HERE THAT REVIEW CAUGHT, both worth the comment.
+
+    The import path first. This file is documented to run as
+    `exec(open(".../views.py").read())` from Blender's console, and that does
+    NOT put this directory on sys.path -- nor does it define `__file__`. A
+    bare `from build_adu import load_spec` worked only when Blender happened
+    to be launched from the model directory. The directory is resolved from
+    the open .blend when `__file__` is absent, and put on the path first.
+
+    And the MODES, not just the groups. The first version of this read only
+    `groups` and left `dollhouse` composing `ROOF + CEILING` in code -- so a
+    spec that recomposed a mode would have finish_adu emitting the new
+    manifest while Blender applied the old one, and the "one definition"
+    this was written to create would have been two again. The agreement gate
+    would have caught it, but only after the fact.
+    """
+    import sys
+    here = None
+    if "__file__" in globals():
+        here = Path(__file__).resolve().parent
+    elif bpy.data.filepath:
+        here = Path(bpy.data.filepath).resolve().parent
+    else:
+        # UNSAVED .blend, RUN FROM THE TEXT EDITOR. `__file__` is absent and
+        # bpy.data.filepath is "" -- and Path("").resolve() is the current
+        # working directory, which is wherever Blender happened to be
+        # launched from. Reading a spec from there would be worse than
+        # reading none: the panel would register against another building's
+        # modes. Fall back to the only honest answer, which is to say so.
+        raise RuntimeError(
+            "views.py needs to find spec.yaml and cannot: the .blend is "
+            "unsaved and this script has no path. Save the .blend beside "
+            "spec.yaml, or run views.py from a file rather than pasting it.")
+    if str(here) not in sys.path:
+        sys.path.insert(0, str(here))
+    from build_adu import load_spec
+    return load_spec(here / "spec.yaml")["export"]["display_modes"]
+
+
+_DM = _display_modes()
+_G = {k: tuple(val) for k, val in _DM["groups"].items()}
+# each mode's prefixes, composed in the spec rather than here
+# A MISSPELT GROUP FAILS THE SAME WAY IT DOES IN THE EXPORTER. This used to
+# be a bare `_G[g]`, so the identical spec typo that gives finish_adu a
+# readable PROBLEM gave the Blender panel an opaque KeyError at import and no
+# panel at all. Two consumers of one spec should fail alike.
+_missing = sorted({g for m in _DM["modes"] for g in m["hide"] if g not in _G})
+if _missing:
+    raise RuntimeError(
+        f"spec.export.display_modes references groups that do not exist: "
+        f"{_missing} (have {sorted(_G)})")
+HIDES = {m["id"]: tuple(x for g in m["hide"] for x in _G[g])
+         for m in _DM["modes"]}
+ROOF = _G["roof"]
+CEILING = _G["ceiling"]
+SOUTH = _G["south"]
+SHELL = _G["shell"]
 
 
 
@@ -315,14 +376,14 @@ def full():
 
 def dollhouse():
     """Roof and ceilings off — the view a buyer spends most time in."""
-    _show(hide=ROOF + CEILING)
+    _show(hide=HIDES["dollhouse"])
     _viewport(near=0.1)
     print("[view] dollhouse — roof and ceilings hidden")
 
 
 def cutaway():
     """Dollhouse with the south wall and porch removed, for a sectional look."""
-    _show(hide=ROOF + CEILING + SOUTH)
+    _show(hide=HIDES["cutaway"])
     _viewport(near=0.1)
     print("[view] cutaway — roof, ceilings, south wall and porch hidden")
 
@@ -350,7 +411,7 @@ def walkthrough():
 
 def interior_only():
     """Interior surfaces alone — floors, ceilings, partitions, doors, trim."""
-    _show(hide=SHELL)
+    _show(hide=HIDES["interior_only"])
     _viewport(near=0.01)
     print("[view] interior only — shell hidden")
 

@@ -18,6 +18,9 @@ So each of those is now a gate.
     blender --background barn_cabin_524.blend --python verify_views.py
 """
 import copy
+import json
+import math
+import struct
 import sys
 from pathlib import Path
 
@@ -29,6 +32,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import views  # noqa: E402
 from verify_lib import inside_mesh  # noqa: E402
+from build_adu import load_spec  # noqa: E402
 
 FAILED = []
 
@@ -48,6 +52,12 @@ def _drop(st, key, opt=None):
     target = st if opt is None else st["options"][opt]
     target.pop(key, None)
     return st
+
+
+def _finite(x):
+    """A real number, which NaN and the infinities are not."""
+    return isinstance(x, (int, float)) and not isinstance(x, bool) \
+        and math.isfinite(x)
 
 
 def gate(name, ok, detail=""):
@@ -288,6 +298,253 @@ def main():
                  + (f" — STILL VISIBLE {sorted(dark)[:3]}" if dark else ""))
 
         views.layout(st["id"], next(o["id"] for o in st["options"] if o["default"]))
+
+    # ---- the manifest's visibility modes, and views.py, must agree --------
+    # THE PAGE AND THE BLENDER TOOL ARE TWO CONSUMERS OF ONE RULE. views.py
+    # has known how to strip a roof since Tier 1, and the configurator could
+    # not ask for the same thing because the rule lived in this module and
+    # never reached the runtime. It is spec.export.display_modes now, resolved
+    # into the manifest as node NAMES.
+    #
+    # Which creates the obvious hazard: two consumers, one of which could
+    # quietly stop matching the other. So drive views.py and compare what it
+    # ACTUALLY HID against what the manifest promises the page will hide --
+    # the objects, not the prefixes.
+    # UNTRUSTED, like views._manifest() already treats it. A missing,
+    # truncated or hand-edited file must produce a FAILING GATE, not a
+    # traceback out of read_text() before any gate has run.
+    # BESIDE THE BLEND, which is where views.py looks. Reading HERE/export
+    # compares the loaded scene against a checkout manifest, and those are the
+    # same file only while the .blend lives in the source tree.
+    views.full()
+    man, man_err = {}, None
+    man_path = (Path(bpy.data.filepath).resolve().parent
+                if bpy.data.filepath else HERE) / "export" / "variants.json"
+    try:
+        man = json.loads(man_path.read_text())
+        if not isinstance(man, dict):
+            man, man_err = {}, "manifest is not an object"
+    except (OSError, ValueError) as e:
+        man_err = f"{type(e).__name__}: {e}"
+
+    # VALIDATE EVERY RECORD; DO NOT FILTER. The first version kept the
+    # well-formed modes and dropped the rest, so a manifest carrying four
+    # good modes and one with a missing `id` reported PASS -- while the
+    # browser would have been handed a mode list it cannot use. A malformed
+    # record is the finding, not noise to be skipped past.
+    raw_modes = man.get("views")
+    malformed = []
+    if raw_modes is not None and not isinstance(raw_modes, list):
+        malformed.append("`views` is not a list")
+        raw_modes = []
+    for i, m in enumerate(raw_modes or []):
+        if not isinstance(m, dict):
+            malformed.append(f"mode {i} is not an object")
+        elif not isinstance(m.get("id"), str):
+            malformed.append(f"mode {i} has no string `id`")
+        elif not isinstance(m.get("hide"), list) or \
+                any(not isinstance(n, str) for n in m["hide"]):
+            malformed.append(f"mode {m['id']!r} has no list of node names")
+        # THE WHOLE CONTRACT, NOT THE PART I HAPPENED TO USE. `label` is what
+        # the page puts on the button and `default` is which view it opens
+        # on -- emit_variants enforces exactly one of the latter, and nothing
+        # here checked either, so a hand-edited manifest could ship unlabelled
+        # buttons or no starting view and pass.
+        elif not isinstance(m.get("label"), str) or not m["label"].strip():
+            malformed.append(f"mode {m['id']!r} has no label for its button")
+        elif "default" in m and not isinstance(m["default"], bool):
+            malformed.append(f"mode {m['id']!r} has a non-boolean `default`")
+    n_def = sum(1 for m in (raw_modes or [])
+                if isinstance(m, dict) and m.get("default") is True)
+    if raw_modes and n_def != 1:
+        malformed.append(f"{n_def} modes marked default — the page opens on "
+                         f"one view, not {n_def}")
+    gate("every mode record in the manifest is well formed", not malformed,
+         "; ".join(malformed[:3]) or
+         f"{len(raw_modes or [])} records, each with an id and a node list")
+    modes = (raw_modes or []) if not malformed else []
+    # AGAINST THE SPEC, NOT MERELY NON-EMPTY. "At least one mode survived"
+    # passes a hand-edited manifest carrying only `full` -- every other page
+    # control silently gone, and the agreement and ghost checks both happy
+    # because what remains is correct. The spec says which controls exist.
+    want_modes = [m["id"] for m in
+                  load_spec(HERE / "spec.yaml")["export"]["display_modes"]["modes"]]
+    got_modes = [m["id"] for m in modes]
+    gate("the manifest offers every mode the spec declares",
+         sorted(got_modes) == sorted(want_modes),
+         f"{len(got_modes)} modes: {got_modes}"
+         if sorted(got_modes) == sorted(want_modes) else
+         (f"unreadable — {man_err}" if man_err else
+          f"manifest has {got_modes}, spec declares {want_modes}"))
+
+    known = {o.name for o in bpy.data.objects if o.type == "MESH"}
+    bad_modes = []
+    for m in modes:
+        # THROUGH THE ALLOW-LIST. `getattr(views, id)` would let a manifest
+        # id reach ANY callable in that module -- `register`, or a camera
+        # preset like `front` -- and the gate could then report agreement
+        # about something that never changed visibility at all.
+        fn = views.VISIBILITY.get(m["id"])
+        if not callable(fn):
+            bad_modes.append(f"{m['id']} is not one of views.VISIBILITY "
+                             f"({sorted(views.VISIBILITY)})")
+            continue
+        fn()
+        hidden = {o.name for o in bpy.data.objects
+                  if o.type == "MESH" and o.hide_get()}
+        # ONLY WHAT THIS SCENE CAN ANSWER FOR. The manifest is resolved
+        # against the EXPORT, and the export has glazing -- finish_adu.py adds
+        # it, so barn_cabin_524.blend does not have it. Comparing the two sets
+        # raw reports eleven Glazing_ nodes as "views.py leaves them shown"
+        # when views.py is looking at a scene where they do not exist. That is
+        # #86's mistake exactly: a gate pointed at a file holding none of the
+        # objects it trips on. Every name is guaranteed to be a real EXPORT
+        # node by finish_adu, which resolves them from the exported set.
+        promised = set(m["hide"]) & known
+        # a presence set hides furniture independently of the mode, so judge
+        # only what this mode itself claims to control
+        extra = promised - hidden
+        missed = {n for n in hidden - promised if not n.startswith("Furn_")}
+        if extra:
+            bad_modes.append(f"{m['id']}: the manifest says hide "
+                             f"{sorted(extra)[:3]}, views.py leaves them shown")
+        if missed:
+            bad_modes.append(f"{m['id']}: views.py hides {sorted(missed)[:3]}, "
+                             f"the manifest never names them")
+    views.full()
+    gate("every mode hides in the page exactly what it hides in Blender",
+         not bad_modes, "; ".join(bad_modes[:2]) or
+         f"{len(modes)} modes agree, object for object")
+
+    # A name that resolves to nothing hides nothing and looks like it worked.
+    # Glazing is the known-absent set here, so it is named rather than
+    # silently tolerated: anything ELSE unknown is a real ghost.
+    # THE EXEMPTION IS A LIST, NOT A PREFIX. Deferring anything beginning
+    # `Glazing_` also defers `Glazing_W-KITCHEN_typo`, so a stale name would
+    # be waved through by both this gate and the agreement check above. The
+    # builder states the set -- it adds the glazing, so it knows which names
+    # exist only after export -- rather than the verifier reconstructing it
+    # from a spec whose openings are nested per wall.
+    # THE WITNESS CANNOT BE THE THING UNDER TEST. The first version read
+    # `views_export_only` out of the same manifest this gate exists to check,
+    # so a ghost added to BOTH that list and a mode's `hide` was exempt by its
+    # own say-so — and the agreement check skipped it too, because it is not
+    # in the scene. Ask the .glb instead: it is the artefact the page loads,
+    # and it is not the file being validated.
+    def glb_node_names(path):
+        raw = path.read_bytes()
+        if raw[:4] != b"glTF":
+            return None
+        off = 12
+        while off < len(raw):
+            clen, ctype = struct.unpack_from("<II", raw, off)
+            if ctype == 0x4E4F534A:
+                js = json.loads(raw[off + 8:off + 8 + clen].decode("utf-8"))
+                # AND ITS SHAPE. A JSON chunk whose `nodes` is not a list, or
+                # holds something that is not an object, raised TypeError or
+                # AttributeError straight past the caller's guard -- which
+                # only catches read and parse errors. Malformed is malformed
+                # however it is malformed.
+                if not isinstance(js, dict):
+                    raise ValueError("glTF JSON chunk is not an object")
+                nodes = js.get("nodes", [])
+                if not isinstance(nodes, list):
+                    raise ValueError("glTF `nodes` is not a list")
+                return {n["name"] for n in nodes
+                        if isinstance(n, dict) and isinstance(n.get("name"), str)}
+            off += 8 + clen
+        return None
+
+    # GUARDED, like the manifest read above. Missing, truncated or malformed
+    # and this raised out of read_bytes / unpack_from / json.loads before any
+    # gate could report -- the same unguarded-parse mistake as the manifest,
+    # one function along.
+    try:
+        exported = glb_node_names(man_path.parent / "barn_cabin_524_lod0.glb")
+    except (OSError, ValueError, struct.error) as e:
+        exported, glb_err = None, f"{type(e).__name__}: {e}"
+    else:
+        glb_err = None
+    gate("the exported .glb can be read for its node names", bool(exported),
+         f"{len(exported)} nodes in lod0" if exported else
+         f"could not parse lod0 ({glb_err or 'no glTF chunk'}) — the "
+         f"exemption below has no witness")
+    # AGAINST THE EXPORT, WHICH IS WHAT THE PAGE LOADS. Measuring against
+    # the source .blend let a manifest name an object that exists here and is
+    # NOT shipped in lod0 -- it passed as "known" while the browser would
+    # find nothing. The scene is the right yardstick only for the Blender
+    # agreement check above; for "does this node exist", the .glb is.
+    named = {n for m in modes for n in m["hide"]}
+    ghosts = sorted(named - exported) if exported is not None else []
+    skipped = sorted(named - known) if exported is not None else []
+    gate("every node the manifest names is in the exported .glb",
+         not ghosts,
+         f"{len(ghosts)} unknown: {ghosts[:3]}" if ghosts else
+         f"{len(named)} names across {len(modes)} modes, every one in "
+         f"lod0; {len(skipped)} of them not in this .blend (glazing, added "
+         f"at export)")
+
+    # ---- and the numbers a SHOW DIMENSIONS overlay would draw -------------
+    # Against the MODEL, not against the spec arithmetic that wrote them. The
+    # overlay's job is to describe this building, so the building is the
+    # authority -- rule 36, applied to a number leaving the repo.
+    # EVERY FOOTPRINT IT PUBLISHES, not just the one that was easy. Checking
+    # `overall` alone let a bad formula in either buyer-facing number ship
+    # green -- and `with_porch` is the one a dimension overlay actually draws.
+    # Each has a witness in the geometry:
+    def span(prefixes):
+        vs = [o.matrix_world @ v.co for o in bpy.data.objects
+              if o.type == "MESH" and o.name.startswith(prefixes)
+              for v in o.data.vertices]
+        return (max(v.x for v in vs) - min(v.x for v in vs),
+                max(v.y for v in vs) - min(v.y for v in vs),
+                max(v.z for v in vs)) if vs else None
+
+    dims = man.get("dimensions") if isinstance(man.get("dimensions"), dict) else {}
+    witness = {"main_body": ("Wall_",),                 # the heated box
+               # THE SLAB IS THE FOOTPRINT. Walls plus the porch gable happen
+               # to measure 30 ft, so this read right while never looking at
+               # the porch at all -- build the slab short and the gate would
+               # still have passed on the gable's say-so.
+               "with_porch": ("Wall_", "Gable_", "Porch_slab"),
+               "overall": ("Roof_",)}                   # eave and rake
+    bad_dim = []
+    # THE UNIT IS PART OF THE NUMBER. Every comparison below is in feet
+    # because the scene is; a manifest that says "meters" over the same
+    # figures is wrong in the only way a runtime would act on, and nothing
+    # was checking it.
+    if dims.get("units") != "feet":
+        bad_dim.append(f"units say {dims.get('units')!r}, and every number "
+                       f"here is in feet")
+    for key, pref in witness.items():
+        d, got = dims.get(key), span(pref)
+        # FINITE, not merely numeric. json.loads accepts NaN, isinstance
+        # says it is a float, and `abs(nan - got) > 0.02` is FALSE -- so a
+        # NaN width sailed through every check here while the browser's
+        # JSON.parse would reject the file outright.
+        if not isinstance(d, dict) or not _finite(d.get("width")) \
+                or not _finite(d.get("depth")):
+            bad_dim.append(f"{key} missing or malformed in the manifest")
+            continue
+        if got is None:
+            bad_dim.append(f"{key} has no witness in this scene ({pref})")
+            continue
+        if abs(d["width"] - got[0]) > 0.02:
+            bad_dim.append(f"{key} width {d['width']} vs {got[0]:.2f} built")
+        if abs(d["depth"] - got[1]) > 0.02:
+            bad_dim.append(f"{key} depth {d['depth']} vs {got[1]:.2f} built")
+    ridge = dims.get("height_to_ridge")
+    got_r = span(("Roof_",))
+    if not _finite(ridge):
+        bad_dim.append("height_to_ridge missing or not a finite number")
+    elif got_r is None:
+        bad_dim.append("no Roof_ geometry to measure the ridge against")
+    elif abs(ridge - got_r[2]) > 0.02:
+        bad_dim.append(f"ridge {ridge} vs {got_r[2]:.2f} built")
+    gate("every dimension the manifest publishes matches the model",
+         bool(dims) and not bad_dim, "; ".join(bad_dim[:3]) or
+         (f"{len(witness)} footprints and the ridge, each against its own "
+          f"geometry" if dims else "no `dimensions` block"))
 
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
