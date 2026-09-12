@@ -38,6 +38,7 @@ FOOT_M = 0.3048
 # ---------------------------------------------------------------------------
 def make_materials(spec, textured=True):
     lib = spec["materials"]["library"]
+    two_sided = set((spec["materials"].get("sidedness") or {}).get("double_sided") or [])
     tdir = HERE / spec.get("textures", {}).get("dir", "textures/")
     out = {}
     for name, m in lib.items():
@@ -84,6 +85,11 @@ def make_materials(spec, textured=True):
             elif slot == "roughness":
                 img.colorspace_settings.name = "Non-Color"
                 nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
+        # SINGLE-SIDED UNLESS THE SPEC SAYS OTHERWISE. Blender writes
+        # glTF `doubleSided = not use_backface_culling`, and the default left
+        # every material double-sided by omission rather than by decision.
+        mat.use_backface_culling = name not in two_sided
+
         bsdf.inputs["Roughness"].default_value = m.get("roughness", 0.8)
         bsdf.inputs["Metallic"].default_value = m.get("metallic", 0.0)
         if m.get("emissive_linear"):
@@ -573,6 +579,8 @@ def glb_info(path):
             js = json.loads(raw[off + 8: off + 8 + clen].decode("utf-8"))
             break
         off += 8 + clen
+    sided = [(m.get("name", f"<{i}>"), bool(m.get("doubleSided")))
+             for i, m in enumerate(js.get("materials", []))]
     # POSITION accessors only — NORMAL is also VEC3 and would inflate the bbox
     pos_idx = {prim["attributes"]["POSITION"]
                for m in js.get("meshes", []) for prim in m["primitives"]
@@ -585,6 +593,7 @@ def glb_info(path):
                 lo[i] = min(lo[i], a["min"][i])
                 hi[i] = max(hi[i], a["max"][i])
     return dict(
+        sided=sided,
         size_kb=len(raw) / 1024.0,
         meshes=len(js.get("meshes", [])),
         materials=len(js.get("materials", [])),
@@ -802,6 +811,33 @@ def main():
         if i["unmatched_materials"]:
             print(f"        unmatched: {i['unmatched_materials']}")
             ok = False
+
+    # ---- sidedness: what the .glb actually says ---------------------------
+    # READ BACK OFF THE EXPORT, not off the Blender materials that wrote it.
+    # `doubleSided` is a glTF field and the exporter derives it from a Blender
+    # flag, so the only honest place to check the delivered value is the
+    # delivered file. Every material shipped double-sided for the life of this
+    # model because nobody set the Blender flag and nobody read the glTF one.
+    want_two = set((spec["materials"].get("sidedness") or {})
+                   .get("double_sided") or [])
+    side_bad = []
+    for lod, i in results.items():
+        for mname, two in i["sided"]:
+            short = mname.removeprefix("adu_")
+            if two and short not in want_two:
+                side_bad.append(f"{lod}:{mname} is doubleSided and the spec "
+                                f"does not declare it")
+            if not two and short in want_two:
+                side_bad.append(f"{lod}:{mname} is declared doubleSided and "
+                                f"shipped single")
+    n_mats = sum(len(i["sided"]) for i in results.values())
+    print("-" * 76)
+    print(f"  [{'PASS' if not side_bad else 'FAIL'}] every material's sidedness "
+          f"matches the spec"
+          + (f" — {side_bad[:2]}" if side_bad else
+             f" — {n_mats} materials across 3 levels, "
+             f"{len(want_two)} declared double-sided"))
+    ok &= not side_bad
 
     budget = spec.get("textures", {}).get("budget_kb", {})
     over = [f"{k} {results[k]['size_kb']:.0f} KB > {v} KB"

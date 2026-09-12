@@ -2299,6 +2299,27 @@ materials:
   sampled_hue_linear:
     siding_shaded: [0.521, 0.479, 0.429]   # warm — R > G > B
     roof_sunlit:   [0.468, 0.503, 0.533]   # cool — B > G > R
+  sidedness:
+    default: single
+    confidence: derived
+    note: >
+      EVERY MATERIAL SHIPPED doubleSided AND NOBODY CHOSE THAT. It is
+      Blender's export default -- nothing in this repo ever set backface
+      culling -- so all 28 arrived with culling switched off, which costs
+      roughly double the fragment work on every wall, floor and ceiling and
+      invites z-fighting wherever surfaces are coplanar. This model has a lot
+      of those: floor finishes over subfloors, trim against walls, the dado
+      laminations in the ladder rails.
+      SINGLE IS SAFE HERE BECAUSE THE GEOMETRY IS CLOSED, and that is
+      measured rather than assumed: every mesh in the model is a manifold
+      solid with no boundary edges, because everything is built from `box`,
+      `prism`, `tube` and `loft`. There is not one plane or cross-plane in
+      the building. verify_tier2 gates that, because it is the assumption
+      this default rests on -- add a single-plane rug or a cross-plane shrub
+      later and the gate fails before the render looks wrong.
+      `double_sided` is the exception list, with a reason required. It is
+      empty, and that is the finding: nothing needed two sides.
+    double_sided: []
   library:
     siding:
       base_color_linear: [0.788, 0.724, 0.649]
