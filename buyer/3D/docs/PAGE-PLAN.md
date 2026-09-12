@@ -21,6 +21,10 @@ models**:
 | `richmond_plans` | one 1-bed bungalow permit set |
 | `sacramento_adus` | A1 "Laurel" 460 sf and A2 "Willow", with renderings |
 
+The procedure for turning one of those plan sets into a model is written up in
+[ADAPTING-A-PLAN-SET.md](ADAPTING-A-PLAN-SET.md), which ends with a worked
+first day on Laurel.
+
 Model two is already planned on `adu/laurel-a1-460-plan`, and it was chosen
 **precisely because it shares almost no typology with the barn cabin**:
 
@@ -168,13 +172,19 @@ Sequenced. Each is small enough to review.
 
 | # | | why it is where it is |
 |---|---|---|
-| 1 | **Model index + manifest identity** | the page cannot list models it has to be told about |
-| 2 | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox |
-| 3 | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer |
-| 4 | **The option rail** | `sets` and `presence`, rendered generically |
-| 5 | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
-| 6 | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
-| 7 | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills |
+| [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about |
+| [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox |
+| [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer |
+| [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically |
+| [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
+| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
+| [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills |
+
+Not in the sequence, because nothing above is blocked on it:
+
+| # | | |
+|---|---|---|
+| [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
 
 **Open questions, which are the user's rather than the model's:**
 
