@@ -59,7 +59,7 @@ def levels_for(export: Path, model_id: str):
 
 
 def scan():
-    rows = []
+    rows, seen = [], {}
     if not MODELS.is_dir():
         return rows
     for d in sorted(p for p in MODELS.iterdir() if p.is_dir()):
@@ -74,6 +74,10 @@ def scan():
             # rather than produce a row with holes in it.
             raise SystemExit(f"models.json: {manifest} is unreadable: {e}")
 
+        if not isinstance(m, dict):
+            raise SystemExit(
+                f"models.json: {manifest} is valid JSON but its root is a "
+                f"{type(m).__name__}, not an object")
         ident = m.get("model")
         if not isinstance(ident, dict):
             raise SystemExit(
@@ -81,7 +85,20 @@ def scan():
                 f"(found {type(ident).__name__}). Re-export it: finish_adu.py "
                 f"publishes the block this index is built from.")
 
-        model_id = ident.get("id") or d.name
+        # NO FALLBACK TO THE DIRECTORY NAME. The id is the key the page
+        # looks models up by; substituting `d.name` would make a manifest
+        # with no identity look valid and publish a filesystem fact as one.
+        model_id = ident.get("id")
+        if not isinstance(model_id, str) or not model_id.strip():
+            raise SystemExit(
+                f"models.json: {manifest} has no usable `model.id` "
+                f"(found {model_id!r}). Re-export it.")
+        if model_id in seen:
+            raise SystemExit(
+                f"models.json: id {model_id!r} is published by both "
+                f"{seen[model_id]} and {rel(d)}; a page selecting by id could "
+                f"reach only one. A copied manifest keeps its old id.")
+        seen[model_id] = rel(d)
         lods, primary = levels_for(d / "export", model_id)
         if not lods and not primary:
             raise SystemExit(
@@ -93,6 +110,7 @@ def scan():
             "name": ident.get("name"),
             "area_sf": ident.get("area_sf"),
             "area_key": ident.get("area_key"),
+            "area_source": ident.get("area_source"),
             "storeys": ident.get("storeys"),
             "dir": rel(d),
             "manifest": rel(manifest),
@@ -143,8 +161,16 @@ def main():
         except ValueError as e:
             print(f"FAIL  {INDEX.name} is not valid JSON: {e}")
             return 1
-        if have.get("models") != fresh["models"]:
-            hi = {r["id"] for r in have.get("models", [])}
+        rows = have.get("models") if isinstance(have, dict) else None
+        if not isinstance(rows, list) or not all(isinstance(r, dict)
+                                                 for r in rows):
+            print(f"FAIL  {INDEX.name} is not an object with a `models` list "
+                  f"of objects; run build_index.py")
+            return 1
+        # THE WHOLE DOCUMENT, not just the rows: the note is generated too,
+        # and a hand-edited one is exactly the drift this check exists for.
+        if have != fresh:
+            hi = {r.get("id") for r in rows}
             fi = {r["id"] for r in fresh["models"]}
             print(f"FAIL  {INDEX.name} is stale — re-run build_index.py")
             for extra in sorted(fi - hi):
@@ -152,7 +178,7 @@ def main():
             for gone in sorted(hi - fi):
                 print(f"        indexed but not on disk: {gone}")
             if hi == fi:
-                print(f"        same models, changed rows")
+                print(f"        same models, changed rows or note")
             return 1
         print(f"PASS  {INDEX.name} matches a fresh scan "
               f"({len(fresh['models'])} model(s))")

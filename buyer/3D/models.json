@@ -6,6 +6,7 @@
       "name": "Barn Cabin",
       "area_sf": 528,
       "area_key": "total_living_sf",
+      "area_source": "A1.1 'EXISTING S.F. NOTES'",
       "storeys": {
         "count": 1,
         "loft": true,
