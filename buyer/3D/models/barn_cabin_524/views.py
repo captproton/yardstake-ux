@@ -84,8 +84,22 @@ def _display_modes():
     would have caught it, but only after the fact.
     """
     import sys
-    here = (Path(__file__).resolve().parent if "__file__" in globals()
-            else Path(bpy.data.filepath).resolve().parent)
+    here = None
+    if "__file__" in globals():
+        here = Path(__file__).resolve().parent
+    elif bpy.data.filepath:
+        here = Path(bpy.data.filepath).resolve().parent
+    else:
+        # UNSAVED .blend, RUN FROM THE TEXT EDITOR. `__file__` is absent and
+        # bpy.data.filepath is "" -- and Path("").resolve() is the current
+        # working directory, which is wherever Blender happened to be
+        # launched from. Reading a spec from there would be worse than
+        # reading none: the panel would register against another building's
+        # modes. Fall back to the only honest answer, which is to say so.
+        raise RuntimeError(
+            "views.py needs to find spec.yaml and cannot: the .blend is "
+            "unsaved and this script has no path. Save the .blend beside "
+            "spec.yaml, or run views.py from a file rather than pasting it.")
     if str(here) not in sys.path:
         sys.path.insert(0, str(here))
     from build_adu import load_spec

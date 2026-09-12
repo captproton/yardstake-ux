@@ -452,8 +452,16 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset(),
     # hide nothing while looking like it worked. Resolving here also means a
     # mode that matches nothing FAILS THE BUILD, below, rather than shipping
     # a button that does not move.
-    dm = spec.get("export", {}).get("display_modes")
-    if dm:
+    # REQUIRED, NOT OPTIONAL. `if dm:` let a spec with no display_modes
+    # publish a manifest with no `views` and no complaint -- while views.py
+    # indexes spec.export.display_modes unconditionally at import. One
+    # consumer tolerant, the other fatal, over the same missing block.
+    dm = (spec.get("export") or {}).get("display_modes")
+    if not dm or not dm.get("groups") or not dm.get("modes"):
+        problems.append("spec.export.display_modes is missing or empty — "
+                        "views.py requires it and the page's SHOW INTERIOR "
+                        "control is built from it")
+    if dm and dm.get("groups") and dm.get("modes"):
         groups, views = dm["groups"], []
         # EVERY GROUP, NOT EVERY MODE. Checking that a mode hides SOMETHING is
         # not enough: misspell `roof` and `dollhouse` still resolves the
@@ -485,14 +493,6 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset(),
                 ("desc", m.get("desc")), ("default", m.get("default")),
                 ("hide", hide)) if val is not None})
         manifest["views"] = views
-        # WHICH OF THESE EXIST ONLY AFTER EXPORT. Glazing is added here, not
-        # by build_adu, so barn_cabin_524.blend does not contain it and a
-        # verifier reading that scene cannot resolve these names. Stated by
-        # the builder, which knows, rather than reconstructed by the verifier
-        # from a nested spec -- and precise, so an unknown name that is NOT
-        # on this list is a real ghost rather than anything spelt like one.
-        manifest["views_export_only"] = sorted(
-            n for m in views for n in m["hide"] if n in glazing_nodes)
         manifest["views_note"] = (
             "Visibility modes for the viewer's SHOW INTERIOR control. Each "
             "lists the glTF node names to HIDE; show everything else. Node "
@@ -754,8 +754,6 @@ def main():
     vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes,
                                      glazing_nodes=lod0_glazing)
 
-    # primary deliverable is a copy of lod0
-    (out / "barn_cabin_524.glb").write_bytes((out / "barn_cabin_524_lod0.glb").read_bytes())
 
     print("\n" + "=" * 76)
     print("P4 EXPORT REPORT")
@@ -857,11 +855,20 @@ def main():
     # (For inspecting a failing build, run build_adu.py and open
     # barn_cabin_524.blend; it has the geometry, just not the materials.)
     if ok and scale_ok:
+        # THE PRIMARY DELIVERABLE IS PUBLISHED LAST, with the viewable blend.
+        # It used to be copied straight after the LOD loop, so a run that
+        # failed its manifest validation still left a NEW barn_cabin_524.glb
+        # beside a stale variants.json -- a geometry/manifest pair that never
+        # existed together. lod2 has been pre-gated since #99 and the manifest
+        # since this PR; this is the third artefact, and the same rule.
+        (out / "barn_cabin_524.glb").write_bytes(
+            (out / "barn_cabin_524_lod0.glb").read_bytes())
         blend = save_viewable_blend(spec, HERE / "barn_cabin_524_textured.blend")
         print(f"\nviewable: {blend}"
               f"  (textured lod0 — open this, not barn_cabin_524.blend)")
     else:
-        print("\nviewable .blend NOT written: the export did not pass its gates.")
+        print("\nviewable .blend and primary .glb NOT written: the export "
+              "did not pass its gates.")
         raise SystemExit(1)
 
 
