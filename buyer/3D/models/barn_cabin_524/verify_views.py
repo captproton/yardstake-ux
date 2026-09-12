@@ -19,6 +19,7 @@ So each of those is now a gate.
 """
 import copy
 import json
+import math
 import struct
 import sys
 from pathlib import Path
@@ -51,6 +52,12 @@ def _drop(st, key, opt=None):
     target = st if opt is None else st["options"][opt]
     target.pop(key, None)
     return st
+
+
+def _finite(x):
+    """A real number, which NaN and the infinities are not."""
+    return isinstance(x, (int, float)) and not isinstance(x, bool) \
+        and math.isfinite(x)
 
 
 def gate(name, ok, detail=""):
@@ -338,6 +345,20 @@ def main():
         elif not isinstance(m.get("hide"), list) or \
                 any(not isinstance(n, str) for n in m["hide"]):
             malformed.append(f"mode {m['id']!r} has no list of node names")
+        # THE WHOLE CONTRACT, NOT THE PART I HAPPENED TO USE. `label` is what
+        # the page puts on the button and `default` is which view it opens
+        # on -- emit_variants enforces exactly one of the latter, and nothing
+        # here checked either, so a hand-edited manifest could ship unlabelled
+        # buttons or no starting view and pass.
+        elif not isinstance(m.get("label"), str) or not m["label"].strip():
+            malformed.append(f"mode {m['id']!r} has no label for its button")
+        elif "default" in m and not isinstance(m["default"], bool):
+            malformed.append(f"mode {m['id']!r} has a non-boolean `default`")
+    n_def = sum(1 for m in (raw_modes or [])
+                if isinstance(m, dict) and m.get("default") is True)
+    if raw_modes and n_def != 1:
+        malformed.append(f"{n_def} modes marked default — the page opens on "
+                         f"one view, not {n_def}")
     gate("every mode record in the manifest is well formed", not malformed,
          "; ".join(malformed[:3]) or
          f"{len(raw_modes or [])} records, each with an id and a node list")
@@ -419,7 +440,18 @@ def main():
             clen, ctype = struct.unpack_from("<II", raw, off)
             if ctype == 0x4E4F534A:
                 js = json.loads(raw[off + 8:off + 8 + clen].decode("utf-8"))
-                return {n["name"] for n in js.get("nodes", []) if "name" in n}
+                # AND ITS SHAPE. A JSON chunk whose `nodes` is not a list, or
+                # holds something that is not an object, raised TypeError or
+                # AttributeError straight past the caller's guard -- which
+                # only catches read and parse errors. Malformed is malformed
+                # however it is malformed.
+                if not isinstance(js, dict):
+                    raise ValueError("glTF JSON chunk is not an object")
+                nodes = js.get("nodes", [])
+                if not isinstance(nodes, list):
+                    raise ValueError("glTF `nodes` is not a list")
+                return {n["name"] for n in nodes
+                        if isinstance(n, dict) and isinstance(n.get("name"), str)}
             off += 8 + clen
         return None
 
@@ -437,15 +469,20 @@ def main():
          f"{len(exported)} nodes in lod0" if exported else
          f"could not parse lod0 ({glb_err or 'no glTF chunk'}) — the "
          f"exemption below has no witness")
-    expect_glaz = (exported or set()) - known
+    # AGAINST THE EXPORT, WHICH IS WHAT THE PAGE LOADS. Measuring against
+    # the source .blend let a manifest name an object that exists here and is
+    # NOT shipped in lod0 -- it passed as "known" while the browser would
+    # find nothing. The scene is the right yardstick only for the Blender
+    # agreement check above; for "does this node exist", the .glb is.
     named = {n for m in modes for n in m["hide"]}
-    ghosts = sorted(n for n in named - known if n not in expect_glaz)
-    skipped = sorted(n for n in named - known if n in expect_glaz)
-    gate("every node the manifest names is in this scene or in the .glb",
+    ghosts = sorted(named - exported) if exported is not None else []
+    skipped = sorted(named - known) if exported is not None else []
+    gate("every node the manifest names is in the exported .glb",
          not ghosts,
          f"{len(ghosts)} unknown: {ghosts[:3]}" if ghosts else
-         f"{len(named)} names across {len(modes)} modes; {len(skipped)} "
-         f"deferred, each one present in the exported .glb")
+         f"{len(named)} names across {len(modes)} modes, every one in "
+         f"lod0; {len(skipped)} of them not in this .blend (glazing, added "
+         f"at export)")
 
     # ---- and the numbers a SHOW DIMENSIONS overlay would draw -------------
     # Against the MODEL, not against the spec arithmetic that wrote them. The
@@ -481,8 +518,12 @@ def main():
                        f"here is in feet")
     for key, pref in witness.items():
         d, got = dims.get(key), span(pref)
-        if not isinstance(d, dict) or not isinstance(d.get("width"), (int, float)) \
-                or not isinstance(d.get("depth"), (int, float)):
+        # FINITE, not merely numeric. json.loads accepts NaN, isinstance
+        # says it is a float, and `abs(nan - got) > 0.02` is FALSE -- so a
+        # NaN width sailed through every check here while the browser's
+        # JSON.parse would reject the file outright.
+        if not isinstance(d, dict) or not _finite(d.get("width")) \
+                or not _finite(d.get("depth")):
             bad_dim.append(f"{key} missing or malformed in the manifest")
             continue
         if got is None:
@@ -494,8 +535,8 @@ def main():
             bad_dim.append(f"{key} depth {d['depth']} vs {got[1]:.2f} built")
     ridge = dims.get("height_to_ridge")
     got_r = span(("Roof_",))
-    if not isinstance(ridge, (int, float)):
-        bad_dim.append("height_to_ridge missing or not a number")
+    if not _finite(ridge):
+        bad_dim.append("height_to_ridge missing or not a finite number")
     elif got_r is None:
         bad_dim.append("no Roof_ geometry to measure the ridge against")
     elif abs(ridge - got_r[2]) > 0.02:

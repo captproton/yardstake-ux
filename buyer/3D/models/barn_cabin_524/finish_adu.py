@@ -349,8 +349,7 @@ def arrangement_nodes(spec, arr_id):
     return None
 
 
-def emit_variants(out, spec, materials_present, nodes_present=frozenset(),
-                  glazing_nodes=frozenset()):
+def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     """Write the configurator manifest the Three.js runtime reads.
 
     Every option is a baseColorFactor, so this file is the entire cost of the
@@ -472,11 +471,20 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset(),
         # misspelling, so the two consumers agree perfectly about being wrong
         # and the agreement gate passes too. A group that matches no node is
         # the defect, wherever it is used.
+        # EVERY PREFIX, NOT EVERY GROUP. Checking that a group matches
+        # SOMETHING lets a typo hide inside a group that has other members:
+        # misspell `Porch_ceiling` in `ceiling` and `Ceil_` still matches, so
+        # the group resolves, the gate passes, and the porch ceiling stays up
+        # in "Show interior". Both consumers read the same typo, so the
+        # agreement gate sees nothing wrong either. Each prefix must earn its
+        # place.
         for gid, prefixes in groups.items():
-            if not any(n.startswith(tuple(prefixes)) for n in nodes_present):
+            dead = [x for x in prefixes
+                    if not any(n.startswith(x) for n in nodes_present)]
+            if dead:
                 problems.append(
-                    f"display-mode group {gid!r} matches no exported node — "
-                    f"prefixes {prefixes} hide nothing")
+                    f"display-mode group {gid!r} has prefixes that match no "
+                    f"exported node: {dead}")
         ids = [m["id"] for m in dm["modes"]]
         if len(set(ids)) != len(ids):
             problems.append(f"display modes have duplicate ids: {ids}")
@@ -697,7 +705,6 @@ def main():
     spec = load_spec(HERE / "spec.yaml")
     results = {}
     lod0_nodes = set()
-    lod0_glazing = set()
     lod2_nodes = None
 
     # Checked BEFORE the first export, so a build with no contract writes no
@@ -772,11 +779,9 @@ def main():
         results[lod] = info
         if lod == "lod0":
             lod0_nodes = {o.name for o in keep}
-            lod0_glazing = {o.name for o in glaz.objects}
 
     all_mats = sorted(m.name for m in bpy.data.materials)
-    vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes,
-                                     glazing_nodes=lod0_glazing)
+    vpath, vproblems = emit_variants(out, spec, set(all_mats), lod0_nodes)
 
 
     print("\n" + "=" * 76)
