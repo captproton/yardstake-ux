@@ -38,6 +38,7 @@ Phases P1–P4 are complete and gated:
 | **Loft access** | The ladder rebuilt from the builder's own transcript | **done** ([#96](https://github.com/captproton/yardstake-ux/pull/96)) — nine rungs at 12" on a 20° rake, dadoed into 1"×3½" rails that run 3 ft over the loft as handles |
 | **Loft access** | The ladder laid out on the rail, dadoed, hung on real hardware, and moved out of the wall | **done** ([#100](https://github.com/captproton/yardstake-ux/pull/100)) — all of [#97](https://github.com/captproton/yardstake-ux/issues/97), plus a trim board the source describes and the model never had, plus the discovery that **the top 10" of both rails ran inside the loft floor slab**. Four review rounds, and the last two changed no geometry at all |
 | **Furniture** | The sofa moved to the window, and a walkway measured for the first time | **done** ([#102](https://github.com/captproton/yardstake-ux/pull/102)) — it sat 20½" from the ladder with half the room bare, AND across three quarters of the bedroom's pocket door. Twelve furniture gates passed on all of that |
+| **Runtime** | The page's two buttons: visibility modes and dimensions in the manifest | **done** ([#103](https://github.com/captproton/yardstake-ux/pull/103)) — views.py had known how to strip a roof since Tier 1 and a browser had no way to ask. Five review rounds, twenty-nine findings, **every one in the plumbing and none in the geometry** |
 | **Export** | Five welds for mesh headroom, and #92's arithmetic corrected | **done** ([#98](https://github.com/captproton/yardstake-ux/pull/98)) — 119 → 112, and **three of the five were a mistake**; see the row below |
 | **Handoff** | The three `lod2` welds reverted, and the contract gated | **done** ([#99](https://github.com/captproton/yardstake-ux/pull/99)) — #98 changed the placement developer's file while its PR body said it had not; `lod2` is byte-identical again and the promise is now a build gate rather than a sentence |
 | **Doors** | The closet ships OPEN on the laundry half | **done** ([#93](https://github.com/captproton/yardstake-ux/pull/93)) — `default_state.bypass` had been inert for eight tiers; fourteen review findings, every one in the gates and none in the geometry |
@@ -267,6 +268,51 @@ price**, matching how Studio-Home presents default appliances. The furniture is
 architectural fill-in-the-space — schematic and unbranded, there to read scale.
 Disclosure alongside any price is a UI requirement the model cannot enforce.
 See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--decided).
+
+---
+
+## The second handoff — to whoever builds the page
+
+`lod2` is the placement developer's. **`variants.json` is the web
+runtime's**, and until [#103](https://github.com/captproton/yardstake-ux/pull/103) it carried finishes and furniture
+only. It now carries what a configurator page actually needs under the
+viewer, because the reference this model answers puts two controls there and
+the model could drive neither.
+
+| block | what it is |
+|---|---|
+| `sets` | 8 material swaps, 23 options — every one a `baseColorFactor`, **0 extra texture bytes** |
+| `presence` | 3 furniture arrangements — node names to SHOW; hide everything else named in the block |
+| `views` | 4 visibility modes — node names to HIDE. `full` / `dollhouse` / `cutaway` / `interior_only` |
+| `dimensions` | three footprints and the ridge, in feet |
+
+**Three footprints, and which one depends on the question.** `main_body`
+22×24 is the heated box. `with_porch` 22×30 is the slab — what a buyer sees
+and what a dimension overlay should draw. `overall` 25×33 goes over the 18"
+eave and rake. **A setback check needs both of the last two**: many
+jurisdictions measure to the wall but cap eave projection separately, so one
+number over-constrains siting or under-reports the encroachment.
+
+**Node names, not prefixes.** A runtime should not string-match its way to a
+roof, and a prefix with a typo hides nothing while looking like it worked.
+
+**Three things the page must supply**, confirmed by reading the `.glb`:
+
+- **a Draco decoder.** `extensionsRequired: ["KHR_draco_mesh_compression"]` —
+  required, not optional. Without `DRACOLoader` nothing renders at all.
+- **lighting.** `cameras 0`, no `KHR_lights_punctual`. The file has no lights
+  and no camera; the reference's studio look is an environment map.
+- **transmission support** for `adu_glass`, which uses
+  `KHR_materials_transmission`.
+
+**And one defect that is ours:** all 28 materials are `doubleSided: true` — a
+Blender default nobody set, which disables backface culling across the whole
+building. Not fixed here; it belongs with its own gate.
+
+**Weight:** `lod0` is 960 KB, of which **865 KB is texture**. 17 PNGs at
+1024×1024 — 759 KB on disk that becomes **68 MB in graphics memory**, because
+a card cannot read PNG and unpacks every one. That is the real argument for
+KTX2 in the backlog, and it is a phone argument rather than a desktop one.
 
 ---
 
@@ -1216,3 +1262,38 @@ Keep these — they caught real errors:
     the object IS the thing the gate's name promises. A door leaf, a fixture
     body, a trim board: each is evidence ABOUT a function and none of them is
     the function.
+
+39. **WHEN YOU FIX A CLASS OF DEFECT ONE INSTANCE AT A TIME, THE FIXES QUEUE
+    UP BEHIND EACH OTHER.** [#103](https://github.com/captproton/yardstake-ux/pull/103) published an invalid
+    artefact four times, and each fix exposed the next one:
+    *`lod2`* got a pre-write gate in [#99](https://github.com/captproton/yardstake-ux/pull/99). Then the *manifest*
+    was still written before it validated. Then the *primary `.glb`* was
+    still copied before the manifest validated. Then a run that failed its
+    **size budget** — a gate late in the report — still wrote new LODs and a
+    new manifest beside the old primary.
+    Four correct fixes, four rounds of review, one unchanged shape: *a build
+    that publishes as it goes cannot be made safe by moving individual writes
+    later.* The answer was to stage the whole export beside the real
+    directory and promote it with `os.replace` only after every gate passes.
+    **Ask, on the second instance: is this one bug or one shape?** The tell
+    is that the fix reads as "and also move this one" rather than "and this
+    is why it cannot happen".
+    *And a reviewer raising the same thing twice is data.* It was raised
+    twice here before the shape changed, which is one round later than it
+    needed to be.
+
+40. **THE WITNESS CANNOT BE THE THING UNDER TEST, AND IT IS EASY TO MAKE IT
+    ONE BY ACCIDENT.** [#103](https://github.com/captproton/yardstake-ux/pull/103) verified the manifest's node
+    names against an exemption list **published in that same manifest** — so
+    a name added to both the `hide` list and the exemption list excused
+    itself, and the agreement check skipped it too because it was not in the
+    scene. The fix was to parse the exported `.glb` for its node names: the
+    artefact the page loads, and not the file being validated.
+    That version was written one commit AFTER replacing a `Glazing_` prefix
+    exemption for being too broad — so the second attempt reintroduced the
+    first attempt's flaw in a subtler form.
+    **When a gate needs to excuse something, ask where the excuse comes
+    from.** If it comes from the input, the gate has stopped being a gate.
+    Related but distinct from rule 36: that one is about a gate recomputing
+    the build's arithmetic. This is about a gate accepting the input's own
+    account of itself.
