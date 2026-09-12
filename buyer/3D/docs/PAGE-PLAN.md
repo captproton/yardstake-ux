@@ -22,7 +22,7 @@ models**:
 | `sacramento_adus` | A1 "Laurel" 460 sf and A2 "Willow", with renderings |
 
 The procedure for turning one of those plan sets into a model is written up in
-[ADAPTING-A-PLAN-SET.md](ADAPTING-A-PLAN-SET.md), which ends with a worked
+[adapting-a-plan-set.html](adapting-a-plan-set.html), which ends with a worked
 first day on Laurel.
 
 Model two is already planned on `adu/laurel-a1-460-plan`, and it was chosen
