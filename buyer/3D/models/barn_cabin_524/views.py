@@ -109,6 +109,15 @@ def _display_modes():
 _DM = _display_modes()
 _G = {k: tuple(val) for k, val in _DM["groups"].items()}
 # each mode's prefixes, composed in the spec rather than here
+# A MISSPELT GROUP FAILS THE SAME WAY IT DOES IN THE EXPORTER. This used to
+# be a bare `_G[g]`, so the identical spec typo that gives finish_adu a
+# readable PROBLEM gave the Blender panel an opaque KeyError at import and no
+# panel at all. Two consumers of one spec should fail alike.
+_missing = sorted({g for m in _DM["modes"] for g in m["hide"] if g not in _G})
+if _missing:
+    raise RuntimeError(
+        f"spec.export.display_modes references groups that do not exist: "
+        f"{_missing} (have {sorted(_G)})")
 HIDES = {m["id"]: tuple(x for g in m["hide"] for x in _G[g])
          for m in _DM["modes"]}
 ROOF = _G["roof"]

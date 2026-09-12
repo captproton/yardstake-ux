@@ -342,10 +342,19 @@ def main():
          "; ".join(malformed[:3]) or
          f"{len(raw_modes or [])} records, each with an id and a node list")
     modes = (raw_modes or []) if not malformed else []
-    gate("the manifest carries visibility modes at all", bool(modes),
-         f"{len(modes)} modes: {[m['id'] for m in modes]}" if modes else
+    # AGAINST THE SPEC, NOT MERELY NON-EMPTY. "At least one mode survived"
+    # passes a hand-edited manifest carrying only `full` -- every other page
+    # control silently gone, and the agreement and ghost checks both happy
+    # because what remains is correct. The spec says which controls exist.
+    want_modes = [m["id"] for m in
+                  load_spec(HERE / "spec.yaml")["export"]["display_modes"]["modes"]]
+    got_modes = [m["id"] for m in modes]
+    gate("the manifest offers every mode the spec declares",
+         sorted(got_modes) == sorted(want_modes),
+         f"{len(got_modes)} modes: {got_modes}"
+         if sorted(got_modes) == sorted(want_modes) else
          (f"unreadable — {man_err}" if man_err else
-          "no `views` block — the page cannot offer SHOW INTERIOR"))
+          f"manifest has {got_modes}, spec declares {want_modes}"))
 
     known = {o.name for o in bpy.data.objects if o.type == "MESH"}
     bad_modes = []
@@ -414,10 +423,20 @@ def main():
             off += 8 + clen
         return None
 
-    exported = glb_node_names(man_path.parent / "barn_cabin_524_lod0.glb")
+    # GUARDED, like the manifest read above. Missing, truncated or malformed
+    # and this raised out of read_bytes / unpack_from / json.loads before any
+    # gate could report -- the same unguarded-parse mistake as the manifest,
+    # one function along.
+    try:
+        exported = glb_node_names(man_path.parent / "barn_cabin_524_lod0.glb")
+    except (OSError, ValueError, struct.error) as e:
+        exported, glb_err = None, f"{type(e).__name__}: {e}"
+    else:
+        glb_err = None
     gate("the exported .glb can be read for its node names", bool(exported),
          f"{len(exported)} nodes in lod0" if exported else
-         "could not parse lod0 — the exemption below has no witness")
+         f"could not parse lod0 ({glb_err or 'no glTF chunk'}) — the "
+         f"exemption below has no witness")
     expect_glaz = (exported or set()) - known
     named = {n for m in modes for n in m["hide"]}
     ghosts = sorted(n for n in named - known if n not in expect_glaz)
@@ -446,7 +465,11 @@ def main():
 
     dims = man.get("dimensions") if isinstance(man.get("dimensions"), dict) else {}
     witness = {"main_body": ("Wall_",),                 # the heated box
-               "with_porch": ("Wall_", "Gable_"),       # walls plus porch gable
+               # THE SLAB IS THE FOOTPRINT. Walls plus the porch gable happen
+               # to measure 30 ft, so this read right while never looking at
+               # the porch at all -- build the slab short and the gate would
+               # still have passed on the gable's say-so.
+               "with_porch": ("Wall_", "Gable_", "Porch_slab"),
                "overall": ("Roof_",)}                   # eave and rake
     bad_dim = []
     # THE UNIT IS PART OF THE NUMBER. Every comparison below is in feet

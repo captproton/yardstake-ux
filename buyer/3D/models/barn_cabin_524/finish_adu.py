@@ -20,6 +20,8 @@ because it makes Blender's own UI read in feet, but it is not load-bearing.
 """
 import sys
 import json
+import shutil
+import os
 import struct
 from pathlib import Path
 
@@ -481,7 +483,16 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset(),
         if sum(bool(m.get("default")) for m in dm["modes"]) != 1:
             problems.append("display modes need exactly one default — the page "
                             "has to open on something, and on one thing")
-        for m in dm["modes"]:
+        # A MISSPELT GROUP MUST FAIL LIKE EVERYTHING ELSE HERE. `groups[g]`
+        # raised KeyError, so a typo in a mode's composition aborted the whole
+        # export with a traceback -- after the LODs were written -- instead of
+        # the readable PROBLEM every other malformed input gets.
+        unknown = sorted({g for m in dm["modes"] for g in m["hide"]
+                          if g not in groups})
+        if unknown:
+            problems.append(f"display modes reference groups that do not "
+                            f"exist: {unknown} (have {sorted(groups)})")
+        for m in dm["modes"] if not unknown else []:
             pref = tuple(x for g in m["hide"] for x in groups[g])
             hide = sorted(n for n in nodes_present if n.startswith(pref))
             if m["hide"] and not hide:
@@ -667,7 +678,20 @@ def report_lod2_contract(want, got):
 
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else HERE / "export"
+    final_out = (Path(argv[argv.index("--out") + 1]) if "--out" in argv
+                 else HERE / "export")
+    final_out.mkdir(parents=True, exist_ok=True)
+    # EVERYTHING IS WRITTEN BESIDE THE REAL DIRECTORY AND MOVED IN AT THE END.
+    # This has been fixed three times artefact by artefact -- lod2 in #99, the
+    # manifest and then the primary .glb in this PR -- and each fix left the
+    # next one exposed: a run that failed its BUDGET gate still published new
+    # LODs and a new manifest beside the old primary, which is a generation
+    # mix that never existed as a set. Staging is the fix that does not need a
+    # fourth. Nothing in export/ changes until every gate has passed.
+    out = final_out.parent / (final_out.name + ".staging")
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
     out.mkdir(parents=True, exist_ok=True)
 
     spec = load_spec(HERE / "spec.yaml")
@@ -855,20 +879,25 @@ def main():
     # (For inspecting a failing build, run build_adu.py and open
     # barn_cabin_524.blend; it has the geometry, just not the materials.)
     if ok and scale_ok:
-        # THE PRIMARY DELIVERABLE IS PUBLISHED LAST, with the viewable blend.
-        # It used to be copied straight after the LOD loop, so a run that
-        # failed its manifest validation still left a NEW barn_cabin_524.glb
-        # beside a stale variants.json -- a geometry/manifest pair that never
-        # existed together. lod2 has been pre-gated since #99 and the manifest
-        # since this PR; this is the third artefact, and the same rule.
         (out / "barn_cabin_524.glb").write_bytes(
             (out / "barn_cabin_524_lod0.glb").read_bytes())
+        # PROMOTE AS A SET. os.replace is atomic per file on one filesystem,
+        # and the staging directory is a sibling of the real one so it always
+        # is. A reader between two replaces sees two consistent files, never
+        # a half-written one.
+        for src in sorted(out.iterdir()):
+            os.replace(src, final_out / src.name)
+        shutil.rmtree(out, ignore_errors=True)
+        print(f"\npublished {len(list(final_out.iterdir()))} files to "
+              f"{final_out}")
         blend = save_viewable_blend(spec, HERE / "barn_cabin_524_textured.blend")
         print(f"\nviewable: {blend}"
               f"  (textured lod0 — open this, not barn_cabin_524.blend)")
     else:
-        print("\nviewable .blend and primary .glb NOT written: the export "
-              "did not pass its gates.")
+        shutil.rmtree(out, ignore_errors=True)
+        print(f"\nNOTHING PUBLISHED: the export did not pass its gates, so "
+              f"{final_out} still holds the last set that did. The staged "
+              f"files have been discarded.")
         raise SystemExit(1)
 
 
