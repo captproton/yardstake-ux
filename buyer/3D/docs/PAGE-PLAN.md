@@ -21,6 +21,10 @@ models**:
 | `richmond_plans` | one 1-bed bungalow permit set |
 | `sacramento_adus` | A1 "Laurel" 460 sf and A2 "Willow", with renderings |
 
+The procedure for turning one of those plan sets into a model is written up in
+[adapting-a-plan-set.html](adapting-a-plan-set.html), which ends with a worked
+first day on Laurel.
+
 Model two is already planned on `adu/laurel-a1-460-plan`, and it was chosen
 **precisely because it shares almost no typology with the barn cabin**:
 
@@ -71,21 +75,91 @@ Read off the `.glb` rather than assumed:
 
 ---
 
-## What is *not* a page problem
+## Styles, roof form and bed count — what the reference actually does
 
-**Styles / Roof form / Studio-vs-1-Bed.** The reference page offers four
-styles, two roof shapes and a bedroom-count switch. Those are **different
-buildings** — the first two change the envelope, the third moves partitions.
-Our `presence` sets swap furnishings inside a fixed plan.
+**This section used to be a guess, and the guess was wrong.** It said those
+three controls were "different buildings" and would become a model switcher.
+They are not. The reference page offers all three against one product. Read
+off its own source, so nobody re-derives it:
 
-This is the one thing that could stop a faithful clone, and it is a product
-decision rather than an engineering gap: *is a model "the product", or one
-configuration of a family?* With six Concord plans and two Sacramento models
-arriving, the family answer looks likely — in which case those controls become
-a **model switcher**, not a morph, and the prototype should treat them that
-way.
+Every Studio Home model ships a **composition table** in its product JSON, and
+the configurator holds a fifteen-line reader:
 
-**Pricing** is a Rails concern. The page needs a slot, not a number.
+```js
+const A = w.optionKeys ?? ["interiorOption","styleOption","bedroomOption"];
+const M = {...i.defaultConfiguration, ...e};   // defaults, then the choices
+const S = A.map(O => M[O] ?? "").join("|");    // compose a lookup key
+const P = w.files?.[S];
+P?.obj ? n.push({id:`larch_${S}`, url:P.obj})
+       : t.base?.obj && n.push({id:"base", url:t.base.obj});   // fallback
+const N = uI(t.larchRoofs, M);                 // a SECOND, independent lookup
+N?.obj && n.push({id:`roof_larch_${N.key}`, url:N.obj, optional:true});
+```
+
+**Join the chosen option ids with `|`, look up a file, load it.** Larch's
+twenty-eight `.obj` files split in two:
+
+| | axes | files |
+|---|---|---|
+| **body** | 2 bed counts × 3 interiors × 4 styles | **24** — the whole cross product, pre-baked |
+| **roof** | 2 forms × 2 styles | **4**, named by size (`roof-490-cross-gable…`) |
+
+So composition is **half real**:
+
+- **The roof genuinely is a separate additive part** — its own mesh, its own
+  axes, `optional: true`, and namespaced by the shell's square footage rather
+  than the model name. That is layering, and it works.
+- **Interior layout and style are not composed at all.** Shell and interior
+  ship as one file **per combination of all three axes** — 2 bed counts × 3
+  interiors × 4 styles, which is where the 24 comes from. And style changes
+  *geometry*, not a texture: `…_center-hall_craft` and `…_center-hall_trad`
+  are different files with the same interior.
+
+**Material and colour are a third, orthogonal axis** — flooring, counters,
+cabinets and siding are plain PNG/JPG applied over whichever body loaded.
+
+**That axis is our `sets` block, but the mechanism is not the same, and the
+difference is the page's to implement.** They swap the *picture*: a different
+image file per option. We swap a **`baseColorFactor`** — all 8 sets declare
+`property: "baseColorFactor"`, 23 options are RGBA values, and
+`export/variants.json` references no image at all. The albedo, normal and
+roughness maps ship **once** in the base asset and every option tints the same
+ones.
+
+That is the cheaper arrangement and it is why ours has normal maps to begin
+with: one texture set serves N options instead of N texture sets serving N
+options. It also means `applyChoice()` writes a factor, never a map — and that
+the manifest's colours are **linear**, which is the first of the two traps
+documented in TIER-2.
+
+Four things follow that are ours to act on:
+
+1. **The key-join pattern is worth copying.** It serialises into a URL,
+   degrades to `base` rather than an empty viewer when a combination is
+   missing, and our `presence` options are already ids.
+2. **They pay the cross product in files**, per model, and Robinia, Rowan and
+   Raintree each carry their own set. It is the price of never solving an
+   alignment problem — and it is why *"one builder wants to move a wall"* is
+   outside this design entirely. A continuous parameter cannot live in a
+   lookup table.
+3. **They have tried runtime assembly and retreated.** The bundle still
+   carries a dead branch that places `frontPanel / backPanel / leftPanel /
+   rightPanel / roof` procedurally from width and depth in inches, and another
+   that loads `base.left` + `base.right` halves. Larch uses neither. Only the
+   roof is composed at runtime. That is a measured result, not an oversight.
+4. **Their reader has five copy-pasted branches** — one each for Laurel,
+   Robinia, Larch, Rowan and Raintree, identical but for the roof helper.
+   Model-specific code in the page is what this plan's central rule already
+   forbids; this is what breaking it looks like at five models. Read one
+   generic `combinations` block, not a branch per builder.
+
+Tracked as [#113](https://github.com/captproton/yardstake-ux/issues/113), which sets out the three tiers of variant
+and says which of them we can already do.
+
+**Pricing** is a Rails concern. The page needs a slot, not a number. The
+reference agrees — it ships pricing as three separate bundles
+(`studio-pricing-data.js`, `studio-pricing-runtime.js`,
+`studio-price-components.js`) that the viewer never touches.
 
 ---
 
@@ -111,18 +185,27 @@ Sequenced. Each is small enough to review.
 
 | # | | why it is where it is |
 |---|---|---|
-| 1 | **Model index + manifest identity** | the page cannot list models it has to be told about |
-| 2 | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox |
-| 3 | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer |
-| 4 | **The option rail** | `sets` and `presence`, rendered generically |
-| 5 | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
-| 6 | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
-| 7 | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills |
+| [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about |
+| [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox |
+| [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer |
+| [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically |
+| [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
+| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
+| [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills |
+
+Not in the sequence, because nothing above is blocked on it:
+
+| # | | |
+|---|---|---|
+| [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
 
 **Open questions, which are the user's rather than the model's:**
 
-1. Is a model "the product" or one of a family? Decides whether the style
-   controls are a switcher or dead UI.
+1. ~~Is a model "the product" or one of a family?~~ **Answered, and not by
+   us.** The reference offers styles, interiors and bed count against one
+   product, so a model is the product *and* the options are real. The live
+   question is narrower and it is a cost question: **which variants do we
+   pre-bake, and which do we compose?** [#113](https://github.com/captproton/yardstake-ux/issues/113).
 2. Where does the price range come from?
 3. Is there a target device? It decides KTX2, which is currently **declined
    with reasons** — 68 MB of texture memory that nobody on a desktop feels.
