@@ -71,21 +71,78 @@ Read off the `.glb` rather than assumed:
 
 ---
 
-## What is *not* a page problem
+## Styles, roof form and bed count — what the reference actually does
 
-**Styles / Roof form / Studio-vs-1-Bed.** The reference page offers four
-styles, two roof shapes and a bedroom-count switch. Those are **different
-buildings** — the first two change the envelope, the third moves partitions.
-Our `presence` sets swap furnishings inside a fixed plan.
+**This section used to be a guess, and the guess was wrong.** It said those
+three controls were "different buildings" and would become a model switcher.
+They are not. The reference page offers all three against one product. Read
+off its own source, so nobody re-derives it:
 
-This is the one thing that could stop a faithful clone, and it is a product
-decision rather than an engineering gap: *is a model "the product", or one
-configuration of a family?* With six Concord plans and two Sacramento models
-arriving, the family answer looks likely — in which case those controls become
-a **model switcher**, not a morph, and the prototype should treat them that
-way.
+Every Studio Home model ships a **composition table** in its product JSON, and
+the configurator holds a fifteen-line reader:
 
-**Pricing** is a Rails concern. The page needs a slot, not a number.
+```js
+const A = w.optionKeys ?? ["interiorOption","styleOption","bedroomOption"];
+const M = {...i.defaultConfiguration, ...e};   // defaults, then the choices
+const S = A.map(O => M[O] ?? "").join("|");    // compose a lookup key
+const P = w.files?.[S];
+P?.obj ? n.push({id:`larch_${S}`, url:P.obj})
+       : t.base?.obj && n.push({id:"base", url:t.base.obj});   // fallback
+const N = uI(t.larchRoofs, M);                 // a SECOND, independent lookup
+N?.obj && n.push({id:`roof_larch_${N.key}`, url:N.obj, optional:true});
+```
+
+**Join the chosen option ids with `|`, look up a file, load it.** Larch's
+twenty-eight `.obj` files split in two:
+
+| | axes | files |
+|---|---|---|
+| **body** | 2 bed counts × 3 interiors × 4 styles | **24** — the whole cross product, pre-baked |
+| **roof** | 2 forms × 2 styles | **4**, named by size (`roof-490-cross-gable…`) |
+
+So composition is **half real**:
+
+- **The roof genuinely is a separate additive part** — its own mesh, its own
+  axes, `optional: true`, and namespaced by the shell's square footage rather
+  than the model name. That is layering, and it works.
+- **Interior layout and style are not composed at all.** Shell and interior
+  ship as one file, once per style, and style changes *geometry* — not a
+  texture. `…_center-hall_craft` and `…_center-hall_trad` are different files
+  with the same interior.
+
+**Material and colour are a third, orthogonal axis** — flooring, counters,
+cabinets and siding are plain PNG/JPG applied over whichever body loaded. That
+is our `sets` block exactly, and ours is the better one: theirs has no PBR, no
+normal maps, and no compression.
+
+Four things follow that are ours to act on:
+
+1. **The key-join pattern is worth copying.** It serialises into a URL,
+   degrades to `base` rather than an empty viewer when a combination is
+   missing, and our `presence` options are already ids.
+2. **They pay the cross product in files**, per model, and Robinia, Rowan and
+   Raintree each carry their own set. It is the price of never solving an
+   alignment problem — and it is why *"one builder wants to move a wall"* is
+   outside this design entirely. A continuous parameter cannot live in a
+   lookup table.
+3. **They have tried runtime assembly and retreated.** The bundle still
+   carries a dead branch that places `frontPanel / backPanel / leftPanel /
+   rightPanel / roof` procedurally from width and depth in inches, and another
+   that loads `base.left` + `base.right` halves. Larch uses neither. Only the
+   roof is composed at runtime. That is a measured result, not an oversight.
+4. **Their reader has five copy-pasted branches** — one each for Laurel,
+   Robinia, Larch, Rowan and Raintree, identical but for the roof helper.
+   Model-specific code in the page is what this plan's central rule already
+   forbids; this is what breaking it looks like at five models. Read one
+   generic `combinations` block, not a branch per builder.
+
+Tracked as [#113](https://github.com/captproton/yardstake-ux/issues/113), which sets out the three tiers of variant
+and says which of them we can already do.
+
+**Pricing** is a Rails concern. The page needs a slot, not a number. The
+reference agrees — it ships pricing as three separate bundles
+(`studio-pricing-data.js`, `studio-pricing-runtime.js`,
+`studio-price-components.js`) that the viewer never touches.
 
 ---
 
@@ -121,8 +178,11 @@ Sequenced. Each is small enough to review.
 
 **Open questions, which are the user's rather than the model's:**
 
-1. Is a model "the product" or one of a family? Decides whether the style
-   controls are a switcher or dead UI.
+1. ~~Is a model "the product" or one of a family?~~ **Answered, and not by
+   us.** The reference offers styles, interiors and bed count against one
+   product, so a model is the product *and* the options are real. The live
+   question is narrower and it is a cost question: **which variants do we
+   pre-bake, and which do we compose?** [#113](https://github.com/captproton/yardstake-ux/issues/113).
 2. Where does the price range come from?
 3. Is there a target device? It decides KTX2, which is currently **declined
    with reasons** — 68 MB of texture memory that nobody on a desktop feels.
