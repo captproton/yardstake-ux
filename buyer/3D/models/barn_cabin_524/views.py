@@ -59,10 +59,23 @@ from mathutils import Vector
 
 # Prefix groups. Kept as prefixes, not names, so new trim or ceiling objects
 # are picked up without editing this file.
-ROOF = ("Roof_",)
-CEILING = ("Ceil_", "Porch_ceiling")
-SOUTH = ("Wall_S", "Porch_", "Gable_S")
-SHELL = ("Wall_", "Gable_", "Dormer_", "Eave_", "Roof_", "Porch_", "Glazing_")
+# WHAT EACH MODE HIDES NOW LIVES IN THE SPEC, because the configurator page
+# needs the same answer and was not getting it: this module knew how to strip
+# a roof and a web runtime had no way to ask. spec.export.display_modes is the
+# one definition; finish_adu.py resolves it into the manifest as node NAMES,
+# and these four tuples are the same lists read back for use in Blender.
+def _groups():
+    from build_adu import load_spec
+    here = Path(__file__).resolve().parent
+    g = load_spec(here / "spec.yaml")["export"]["display_modes"]["groups"]
+    return {k: tuple(v) for k, v in g.items()}
+
+
+_G = _groups()
+ROOF = _G["roof"]
+CEILING = _G["ceiling"]
+SOUTH = _G["south"]
+SHELL = _G["shell"]
 
 
 

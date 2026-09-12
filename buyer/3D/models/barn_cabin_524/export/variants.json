@@ -423,5 +423,104 @@
     }
   ],
   "presence_note": "Visibility swaps, and a SEPARATE mechanism from `sets`. Each option lists the glTF node names to show; every other node named anywhere in this block must be hidden. THE MODEL SHIPS ALL ARRANGEMENTS, so a runtime that ignores this block renders a bed and a desk through each other -- honour `default` on first load.",
-  "disclosure": "Furniture and appliances shown for scale; not included. THE MODEL CANNOT ENFORCE THIS -- it is carried here so the UI has no excuse for omitting it, and it is the reason presence exists at all: a buyer switching the bedroom to a home office is choosing a layout, not ordering a desk."
+  "disclosure": "Furniture and appliances shown for scale; not included. THE MODEL CANNOT ENFORCE THIS -- it is carried here so the UI has no excuse for omitting it, and it is the reason presence exists at all: a buyer switching the bedroom to a home office is choosing a layout, not ordering a desk.",
+  "views": [
+    {
+      "id": "full",
+      "label": "Exterior",
+      "default": true,
+      "hide": []
+    },
+    {
+      "id": "dollhouse",
+      "label": "Show interior",
+      "desc": "Roof and ceilings off \u2014 the view a buyer spends most time in.",
+      "hide": [
+        "Ceil_flat_under_loft",
+        "Ceil_vault_living",
+        "Ceil_vault_loft",
+        "Porch_ceiling",
+        "Roof_dormer_E",
+        "Roof_dormer_W",
+        "Roof_main"
+      ]
+    },
+    {
+      "id": "cutaway",
+      "label": "Cutaway",
+      "desc": "Dollhouse with the south wall and porch removed, for a sectional look.",
+      "hide": [
+        "Ceil_flat_under_loft",
+        "Ceil_vault_living",
+        "Ceil_vault_loft",
+        "Gable_S_porch",
+        "Porch_ceiling",
+        "Porch_post_1",
+        "Porch_post_2",
+        "Porch_slab",
+        "Roof_dormer_E",
+        "Roof_dormer_W",
+        "Roof_main",
+        "Wall_S"
+      ]
+    },
+    {
+      "id": "interior_only",
+      "label": "Interior only",
+      "desc": "Interior surfaces alone \u2014 floors, ceilings, partitions, doors, trim.",
+      "hide": [
+        "Dormer_cheek_E",
+        "Dormer_cheek_W",
+        "Dormer_face_E",
+        "Dormer_face_W",
+        "Eave_band_E",
+        "Eave_band_W",
+        "Gable_N",
+        "Gable_S_porch",
+        "Glazing_D-FRONT_lites",
+        "Glazing_W-BATH",
+        "Glazing_W-BED-EGRESS",
+        "Glazing_W-GABLE-S",
+        "Glazing_W-KITCHEN",
+        "Glazing_W-LIVING-S1",
+        "Glazing_W-LIVING-S2",
+        "Glazing_W-LOFT-1_E",
+        "Glazing_W-LOFT-1_W",
+        "Glazing_W-LOFT-2_E",
+        "Glazing_W-LOFT-2_W",
+        "Porch_ceiling",
+        "Porch_post_1",
+        "Porch_post_2",
+        "Porch_slab",
+        "Roof_dormer_E",
+        "Roof_dormer_W",
+        "Roof_main",
+        "Wall_E",
+        "Wall_N",
+        "Wall_S",
+        "Wall_W"
+      ]
+    }
+  ],
+  "views_note": "Visibility modes for the viewer's SHOW INTERIOR control. Each lists the glTF node names to HIDE; show everything else. Node names, not prefixes, so no string matching is needed and a mode that matches nothing fails the export instead of the page.",
+  "dimensions": {
+    "units": "feet",
+    "main_body": {
+      "width": 22.0,
+      "depth": 24.0,
+      "note": "the heated box, wall face to wall face"
+    },
+    "with_porch": {
+      "width": 22.0,
+      "depth": 30.0,
+      "note": "the slab footprint; the porch is covered, not heated"
+    },
+    "overall": {
+      "width": 25.0,
+      "depth": 33.0,
+      "note": "over the 18\" eave and rake"
+    },
+    "height_to_ridge": 17.807,
+    "note": "THREE FOOTPRINTS, AND WHICH ONE IS RIGHT DEPENDS ON THE QUESTION. A dimension overlay wants `with_porch` -- that is the building a buyer sees. A setback check needs BOTH `with_porch` and `overall`: many jurisdictions measure to the wall but cap eave projection under a separate rule, so using one for both over-constrains siting or under-reports the encroachment."
+  }
 }

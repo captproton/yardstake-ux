@@ -440,6 +440,74 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
             problems.append(
                 "presence block has no `disclosure` text — the UI obligation "
                 "is the reason presence exists, so it may not be dropped")
+    # ---- what the page needs under the viewer ----------------------------
+    # The configurator this model answers puts two buttons below the 3D view:
+    # SHOW INTERIOR and SHOW DIMENSIONS. Until now it could drive neither.
+    # views.py has known how to strip a roof since Tier 1 and it is a BLENDER
+    # tool -- the rule never reached the browser.
+    #
+    # RESOLVED TO NODE NAMES, NOT SHIPPED AS PREFIXES. A runtime should not
+    # have to string-match its way to a roof, and a prefix with a typo would
+    # hide nothing while looking like it worked. Resolving here also means a
+    # mode that matches nothing FAILS THE BUILD, below, rather than shipping
+    # a button that does not move.
+    dm = spec.get("export", {}).get("display_modes")
+    if dm:
+        groups, views = dm["groups"], []
+        # EVERY GROUP, NOT EVERY MODE. Checking that a mode hides SOMETHING is
+        # not enough: misspell `roof` and `dollhouse` still resolves the
+        # ceiling, so it hides ceilings, passes, and ships a "Show interior"
+        # button that leaves the roof on. Worse, views.py reads the same
+        # misspelling, so the two consumers agree perfectly about being wrong
+        # and the agreement gate passes too. A group that matches no node is
+        # the defect, wherever it is used.
+        for gid, prefixes in groups.items():
+            if not any(n.startswith(tuple(prefixes)) for n in nodes_present):
+                problems.append(
+                    f"display-mode group {gid!r} matches no exported node — "
+                    f"prefixes {prefixes} hide nothing")
+        for m in dm["modes"]:
+            pref = tuple(x for g in m["hide"] for x in groups[g])
+            hide = sorted(n for n in nodes_present if n.startswith(pref))
+            if m["hide"] and not hide:
+                problems.append(
+                    f"display mode {m['id']!r} hides nothing — its prefixes "
+                    f"{list(pref)} match no exported node")
+            views.append({k: val for k, val in (
+                ("id", m["id"]), ("label", m["label"]),
+                ("desc", m.get("desc")), ("default", m.get("default")),
+                ("hide", hide)) if val is not None})
+        manifest["views"] = views
+        manifest["views_note"] = (
+            "Visibility modes for the viewer's SHOW INTERIOR control. Each "
+            "lists the glTF node names to HIDE; show everything else. Node "
+            "names, not prefixes, so no string matching is needed and a mode "
+            "that matches nothing fails the export instead of the page.")
+
+    # ---- the numbers the SHOW DIMENSIONS overlay needs --------------------
+    env, rf = spec["envelope"], spec["roof"]
+    w = env["main_body_width"]["ft"]
+    body = env["main_body_depth"]["ft"]
+    porch = env["porch_depth"]["ft"]
+    eave, rake = rf["eave_overhang"]["ft"], rf["rake_overhang"]["ft"]
+    manifest["dimensions"] = {
+        "units": "feet",
+        "main_body": {"width": w, "depth": body,
+                      "note": "the heated box, wall face to wall face"},
+        "with_porch": {"width": w, "depth": body + porch,
+                       "note": "the slab footprint; the porch is covered, not heated"},
+        "overall": {"width": w + 2 * rake, "depth": body + porch + 2 * eave,
+                    "note": f"over the {rf['eave_overhang']['raw']} eave and rake"},
+        "height_to_ridge": rf["elevation_calibration"]["ridge_top_of_roof"]["ft"],
+        "note": (
+            "THREE FOOTPRINTS, AND WHICH ONE IS RIGHT DEPENDS ON THE QUESTION. "
+            "A dimension overlay wants `with_porch` -- that is the building a "
+            "buyer sees. A setback check needs BOTH `with_porch` and "
+            "`overall`: many jurisdictions measure to the wall but cap eave "
+            "projection under a separate rule, so using one for both "
+            "over-constrains siting or under-reports the encroachment."),
+    }
+
     path = out / v.get("emit", "variants.json")
     path.write_text(json.dumps(manifest, indent=2) + "\n")
     return path, problems

@@ -946,6 +946,45 @@ windows:
 
 # ---------------------------------------------------------------------------
 export:
+  # ---- what the configurator page needs beyond the .glb --------------------
+  # The reference this model is built to answer (studio-home.com/products/...)
+  # puts two buttons under the viewer: SHOW INTERIOR and SHOW DIMENSIONS. The
+  # model could drive neither. views.py has known how to strip the roof since
+  # Tier 1, but it is a BLENDER tool -- the rule never reached the runtime, so
+  # a web page had the geometry and no way to ask for the inside of it.
+  display_modes:
+    confidence: derived
+    note: >
+      DECLARED HERE AND NOWHERE ELSE. views.py reads these groups, and
+      finish_adu.py resolves them against the nodes actually exported, so the
+      manifest carries NAMES rather than prefixes: a runtime should not have
+      to do string matching to find a roof, and a typo in a prefix would
+      otherwise hide nothing and look like it worked.
+      The groups are composed rather than listed flat because `cutaway` is
+      `dollhouse` plus the south wall, and saying so keeps the two from
+      drifting apart when a prefix changes.
+    groups:
+      roof: ["Roof_"]
+      ceiling: ["Ceil_", "Porch_ceiling"]
+      south: ["Wall_S", "Porch_", "Gable_S"]
+      shell: ["Wall_", "Gable_", "Dormer_", "Eave_", "Roof_", "Porch_", "Glazing_"]
+    modes:
+    - id: full
+      label: "Exterior"
+      hide: []
+      default: true
+    - id: dollhouse
+      label: "Show interior"
+      hide: [roof, ceiling]
+      desc: "Roof and ceilings off — the view a buyer spends most time in."
+    - id: cutaway
+      label: "Cutaway"
+      hide: [roof, ceiling, south]
+      desc: "Dollhouse with the south wall and porch removed, for a sectional look."
+    - id: interior_only
+      label: "Interior only"
+      hide: [shell]
+      desc: "Interior surfaces alone — floors, ceilings, partitions, doors, trim."
   lod2_contract:
     note: >
       THE PLACEMENT DEVELOPER'S FILE, AND NOW A CHECKED PROMISE. lod2 has been

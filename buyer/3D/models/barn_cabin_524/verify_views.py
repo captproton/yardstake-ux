@@ -18,6 +18,7 @@ So each of those is now a gate.
     blender --background barn_cabin_524.blend --python verify_views.py
 """
 import copy
+import json
 import sys
 from pathlib import Path
 
@@ -288,6 +289,92 @@ def main():
                  + (f" — STILL VISIBLE {sorted(dark)[:3]}" if dark else ""))
 
         views.layout(st["id"], next(o["id"] for o in st["options"] if o["default"]))
+
+    # ---- the manifest's visibility modes, and views.py, must agree --------
+    # THE PAGE AND THE BLENDER TOOL ARE TWO CONSUMERS OF ONE RULE. views.py
+    # has known how to strip a roof since Tier 1, and the configurator could
+    # not ask for the same thing because the rule lived in this module and
+    # never reached the runtime. It is spec.export.display_modes now, resolved
+    # into the manifest as node NAMES.
+    #
+    # Which creates the obvious hazard: two consumers, one of which could
+    # quietly stop matching the other. So drive views.py and compare what it
+    # ACTUALLY HID against what the manifest promises the page will hide --
+    # the objects, not the prefixes.
+    views.full()
+    man = json.loads((HERE / "export" / "variants.json").read_text())
+    modes = man.get("views") or []
+    gate("the manifest carries visibility modes at all", bool(modes),
+         f"{len(modes)} modes: {[m['id'] for m in modes]}" if modes else
+         "no `views` block — the page cannot offer SHOW INTERIOR")
+
+    known = {o.name for o in bpy.data.objects if o.type == "MESH"}
+    bad_modes = []
+    for m in modes:
+        fn = getattr(views, m["id"], None)
+        if not callable(fn):
+            bad_modes.append(f"{m['id']} names no view in views.py")
+            continue
+        fn()
+        hidden = {o.name for o in bpy.data.objects
+                  if o.type == "MESH" and o.hide_get()}
+        # ONLY WHAT THIS SCENE CAN ANSWER FOR. The manifest is resolved
+        # against the EXPORT, and the export has glazing -- finish_adu.py adds
+        # it, so barn_cabin_524.blend does not have it. Comparing the two sets
+        # raw reports eleven Glazing_ nodes as "views.py leaves them shown"
+        # when views.py is looking at a scene where they do not exist. That is
+        # #86's mistake exactly: a gate pointed at a file holding none of the
+        # objects it trips on. Every name is guaranteed to be a real EXPORT
+        # node by finish_adu, which resolves them from the exported set.
+        promised = set(m["hide"]) & known
+        # a presence set hides furniture independently of the mode, so judge
+        # only what this mode itself claims to control
+        extra = promised - hidden
+        missed = {n for n in hidden - promised if not n.startswith("Furn_")}
+        if extra:
+            bad_modes.append(f"{m['id']}: the manifest says hide "
+                             f"{sorted(extra)[:3]}, views.py leaves them shown")
+        if missed:
+            bad_modes.append(f"{m['id']}: views.py hides {sorted(missed)[:3]}, "
+                             f"the manifest never names them")
+    views.full()
+    gate("every mode hides in the page exactly what it hides in Blender",
+         not bad_modes, "; ".join(bad_modes[:2]) or
+         f"{len(modes)} modes agree, object for object")
+
+    # A name that resolves to nothing hides nothing and looks like it worked.
+    # Glazing is the known-absent set here, so it is named rather than
+    # silently tolerated: anything ELSE unknown is a real ghost.
+    named = {n for m in modes for n in m["hide"]}
+    ghosts = sorted(n for n in named - known if not n.startswith("Glazing_"))
+    skipped = sorted(n for n in named - known if n.startswith("Glazing_"))
+    gate("every node the manifest names exists in this scene, bar glazing",
+         not ghosts,
+         f"{len(ghosts)} unknown: {ghosts[:3]}" if ghosts else
+         f"{len(named)} names across {len(modes)} modes; {len(skipped)} "
+         f"Glazing_ deferred to the export, which is where they exist")
+
+    # ---- and the numbers a SHOW DIMENSIONS overlay would draw -------------
+    # Against the MODEL, not against the spec arithmetic that wrote them. The
+    # overlay's job is to describe this building, so the building is the
+    # authority -- rule 36, applied to a number leaving the repo.
+    dims = man.get("dimensions") or {}
+    over = dims.get("overall", {})
+    corners = [o.matrix_world @ Vector(c)
+               for o in bpy.data.objects if o.type == "MESH"
+               for c in o.bound_box]
+    got_w = max(v.x for v in corners) - min(v.x for v in corners)
+    got_d = max(v.y for v in corners) - min(v.y for v in corners)
+    bad_dim = []
+    if over:
+        if abs(over["width"] - got_w) > 0.02:
+            bad_dim.append(f"width {over['width']} vs {got_w:.2f} built")
+        if abs(over["depth"] - got_d) > 0.02:
+            bad_dim.append(f"depth {over['depth']} vs {got_d:.2f} built")
+    gate("the overall dimensions match the model they describe",
+         bool(over) and not bad_dim, "; ".join(bad_dim) or
+         (f"{over.get('width')} x {over.get('depth')} ft, measured off the "
+          f"geometry" if over else "no `dimensions` block"))
 
     print("=" * 96)
     print(f"RESULT: {'ALL PASS' if not FAILED else 'FAILED: ' + ', '.join(FAILED)}")
