@@ -95,8 +95,17 @@ def write_json(path: Path, obj) -> None:
     path.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + "\n")
 
 
+def existing(path: Path) -> Path:
+    """A setup's target must already exist. A setup that CREATED its target
+    would still run after the real target was renamed or removed -- and report
+    the gate's response to a file the case was never meant to test."""
+    if not path.is_file():
+        raise AssertionError(f"probe target {path} does not exist")
+    return path
+
+
 def write(path_of: Callable[[Path], Path], text: str):
-    return lambda root: path_of(root).write_text(text)
+    return lambda root: existing(path_of(root)).write_text(text)
 
 
 def edit(path_of: Callable[[Path], Path], change: Callable):
@@ -109,19 +118,22 @@ def edit(path_of: Callable[[Path], Path], change: Callable):
 
 
 def replace(path_of: Callable[[Path], Path], *pairs):
-    """Text replacements; each `old` must be present, or the case is stale."""
+    """Text replacements; each `old` must appear exactly once, or the case is stale."""
     def setup(root: Path) -> None:
-        text = path_of(root).read_text()
+        text = existing(path_of(root)).read_text()
         for old, new in pairs:
-            if old not in text:
-                raise AssertionError(f"probe text not found in {path_of(root).name}: {old!r}")
-            text = text.replace(old, new)
+            # EXACTLY ONCE: with a second copy of the snippet elsewhere, a probe
+            # would break the wrong place once the intended one was removed.
+            count = text.count(old)
+            if count != 1:
+                raise AssertionError(f"expected probe text once in {path_of(root).name}, found {count}: {old!r}")
+            text = text.replace(old, new, 1)
         path_of(root).write_text(text)
     return setup
 
 
 def append(path_of: Callable[[Path], Path], text: str):
-    return lambda root: path_of(root).write_text(path_of(root).read_text() + text)
+    return lambda root: existing(path_of(root)).write_text(path_of(root).read_text() + text)
 
 
 def steps(*setups):
@@ -230,8 +242,12 @@ def make_base(dst: Path, with_blender_model: bool = False) -> Path:
         thumb = row.get("thumbnail") if isinstance(row, dict) else None
         if not isinstance(thumb, str):
             continue
-        src = (THREE_D / "prototype" / thumb).resolve()
-        target = (dst / "prototype" / thumb).resolve()
+        try:
+            src = (THREE_D / "prototype" / thumb).resolve()
+            target = (dst / "prototype" / thumb).resolve()
+        except (OSError, ValueError):  # e.g. an embedded null byte
+            print(f"probes: not copying thumbnail {thumb!r}: it is not a usable path", file=sys.stderr)
+            continue
         if not (inside(src, THREE_D) and inside(target, dst)):
             print(f"probes: not copying thumbnail {thumb!r}: it resolves outside "
                   f"buyer/3D or the temporary base", file=sys.stderr)
@@ -274,10 +290,6 @@ def load_contract(root: Path):
 def run_case(case, base: Path, blender: Optional[str]) -> Result:
     if isinstance(case, ContractCase):
         return run_contract_case(case, base)
-    if case.needs_blender and not blender:
-        return Result(case, ok=True, skipped=True,
-                      reason="Blender not found (set BLENDER=/path/to/blender to run it)")
-
     with tempfile.TemporaryDirectory(prefix="probe-") as tmp:
         work = Path(tmp) / "3D"
         shutil.copytree(base, work, symlinks=True)
@@ -287,6 +299,12 @@ def run_case(case, base: Path, blender: Optional[str]) -> Result:
             except Exception:
                 return Result(case, ok=False, reason="setup failed -- the case is stale",
                               detail=traceback.format_exc().splitlines()[-3:])
+        # SKIP ONLY AFTER THE SETUP SUCCEEDS. Most machines have no Blender, and
+        # a Blender case skipped before its setup would never report that the
+        # setup had gone stale -- it would stop testing without saying so.
+        if case.needs_blender and not blender:
+            return Result(case, ok=True, skipped=True,
+                          reason="Blender not found (set BLENDER=/path/to/blender to run it)")
         outputs, reasons = [], []
         for run in case.runs:
             if run.blender:

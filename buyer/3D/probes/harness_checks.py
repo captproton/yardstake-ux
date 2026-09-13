@@ -143,6 +143,42 @@ def relative_blender():
         return (found is not None and Path(found).is_absolute(), f"BLENDER=./blender found as {found}")
 
 
+def null_byte_thumbnail():
+    def check(tmp, base):
+        return ((base / "prototype" / "models.json").is_file(),
+                "base built from an index whose thumbnail holds a null byte")
+    return with_fake('{"models": [{"thumbnail": "a\\u0000b.png"}]}', check)
+
+
+def write_to_a_missing_target():
+    def check(tmp, base):
+        case = Case("harness", "missing target", suite.write(lambda root: root / "gone.json", "{}"), [Run("x.py")])
+        result = run_case(case, base, None)
+        return (not result.ok and "stale" in result.reason, result.reason)
+    return with_fake('{"models": []}', check)
+
+
+def replace_with_two_matches():
+    def check(tmp, base):
+        # The fake index.html has "body" twice: <body> and </body>.
+        case = Case("harness", "two matches", suite.replace(suite.index_html, ("body", "BODY")), [Run("x.py")])
+        result = run_case(case, base, None)
+        return (not result.ok and "stale" in result.reason, result.reason)
+    return with_fake('{"models": []}', check)
+
+
+def blender_missing_with_a_stale_setup():
+    def check(tmp, base):
+        stale = Case("harness", "stale Blender case",
+                     suite.write(lambda root: root / "gone.yaml", "x"), [Run("finish_adu.py", blender=True)])
+        sound = Case("harness", "sound Blender case", None, [Run("finish_adu.py", blender=True)])
+        r_stale, r_sound = run_case(stale, base, None), run_case(sound, base, None)
+        ok = (not r_stale.ok and not r_stale.skipped and "stale" in r_stale.reason) and r_sound.skipped
+        return ok, (f"stale setup: {'SKIP' if r_stale.skipped else r_stale.reason}; "
+                    f"sound setup: {'SKIP' if r_sound.skipped else r_sound.reason}")
+    return with_fake('{"models": []}', check)
+
+
 CHECKS = [
     ("a thumbnail path that escapes the base is not copied", escaping_thumbnail),
     ("an index that is not JSON does not stop the base", malformed_index),
@@ -153,6 +189,10 @@ CHECKS = [
     ("an import map that is not there makes the case stale", stale_import_map),
     ("a JSON example that is not there makes the case stale", stale_json_example),
     ("a relative BLENDER path is made absolute", relative_blender),
+    ("a thumbnail holding a null byte does not stop the base", null_byte_thumbnail),
+    ("a write to a target that no longer exists makes the case stale", write_to_a_missing_target),
+    ("a replacement that matches twice makes the case stale", replace_with_two_matches),
+    ("without Blender, a stale Blender setup is stale, not skipped", blender_missing_with_a_stale_setup),
 ]
 
 
