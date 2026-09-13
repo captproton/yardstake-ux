@@ -1,9 +1,11 @@
-// app.js — the viewer shell (#107) and the two controls under it (#108).
+// app.js — the viewer shell (#107), the two controls under it (#108) and the
+// option rail beside it (#109).
 //
 // THE PAGE KNOWS NOTHING ABOUT ANY BUILDING. It reads an index, picks a row,
-// reads that row's manifest for the header and the controls, and loads the
-// row's .glb levels. No model id, display name, room, node, material or view
-// id appears in this file, and verify_prototype.py fails if one does.
+// reads that row's manifest for the header, the controls and the rail, and
+// loads the row's .glb levels. No model id, display name, room, node,
+// material, set, option or view id appears in this file, and
+// verify_prototype.py fails if one does.
 //
 // Served from buyer/3D, so this page is /prototype/index.html and the index's
 // ../models/<id>/ paths resolve. A server rooted at prototype/ reaches nothing.
@@ -38,7 +40,8 @@ const VIEW_DIRECTION = new THREE.Vector3(0.7, 0.45, 1).normalize();
 const LEVEL = /^lod(\d+)$/;
 
 // UNITS ARE READ, NEVER ASSUMED. A manifest in a unit this page does not know
-// gets no overlay rather than an overlay at the wrong scale.
+// gets no overlay rather than an overlay at the wrong scale. Keep in step with
+// model_contract.DIMENSION_UNITS; verify_prototype.py gate 4 checks.
 const UNITS = {
   feet: { metres: 0.3048, label: 'ft' },
   foot: { metres: 0.3048, label: 'ft' },
@@ -55,6 +58,15 @@ const UNITS = {
 // away the difference a setback check needs. Any other footprint a manifest
 // declares is listed after these, in the manifest's own order.
 const FOOTPRINT_ORDER = ['with_porch', 'main_body', 'overall'];
+
+// The only material property and the only node property this page applies.
+// A block that asks for anything else is refused whole, not half-applied.
+const SET_PROPERTY = 'baseColorFactor';
+const PRESENCE_PROPERTY = 'visible';
+
+// The disclosure is buyer-facing copy, shown verbatim. A paragraph of notes
+// for developers is not copy; model_contract.DISCLOSURE_MAX_CHARS agrees.
+const DISCLOSURE_MAX_CHARS = 200;
 
 const $ = (id) => document.getElementById(id);
 
@@ -121,12 +133,21 @@ async function main() {
       pose: viewer.pose,
       visibility: viewer.visibility,
       overlay: viewer.overlay,
+      tints: viewer.tints,
+      presence: viewer.presence,
+      material: viewer.material,
+      isVisible: viewer.isVisible,
     };
-    // The controls need something on screen to act on, so they appear with
-    // the first level and keep working when full detail replaces it.
+    // The controls and the rail need something on screen to act on, so they
+    // appear with the first level. Every choice is re-applied when full
+    // detail replaces it: its materials and nodes are new objects.
     if (i === 0) {
       const problems = [];
       renderControls(readViews(manifest, problems), readDimensions(manifest, problems), viewer);
+      const presence = readPresence(manifest, problems);
+      if (presence.failClosed.length) viewer.setPresence(presence.failClosed, []);
+      renderRail(readSets(manifest, problems), presence.groups,
+        readDisclosure(manifest, problems), viewer);
       window.__viewer = { ...window.__viewer, manifestProblems: problems };
     }
   }
@@ -149,15 +170,15 @@ function orderLevels(row, base) {
 }
 
 // ── manifest blocks: whole or not at all ──────────────────────────────────
-// An ABSENT block renders no control, quietly: a model with no loft need not
-// describe one (#111). A PRESENT block that is malformed ANYWHERE renders no
+// An ABSENT block renders no control, quietly: a model need not describe what
+// it lacks (#111). A PRESENT block that is malformed ANYWHERE renders no
 // control either, and says why -- on the console and in
 // window.__viewer.manifestProblems. Acting on the entries that happen to
-// parse would show a mode that hides less than it claims, or a legend that
-// omits a footprint the manifest publishes, and nothing would look wrong.
-// The same rules are model_contract.views_problems() and
-// dimensions_problems(), which verify_index.py and finish_adu.py run, so a
-// malformed block should never reach this page at all.
+// parse would show a mode that hides less than it claims, a legend that omits
+// a footprint, or a finish that tints half its materials, and nothing would
+// look wrong. The same rules are model_contract.display_problems(), which
+// finish_adu.py and verify_index.py run, so a malformed block should never
+// reach this page at all.
 
 const DIMENSION_FIELDS = new Set(['units', 'note', 'height_to_ridge']);
 
@@ -165,13 +186,17 @@ const positive = (n) => typeof n === 'number' && Number.isFinite(n) && n > 0;
 const text = (s) => typeof s === 'string' && s.trim() !== '';
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+function refuse(problems, block, problem) {
+  problems.push(`${block}: ${problem}`);
+  console.error(`Ignoring the manifest's ${block}: ${problem}`);
+}
+
 function readViews(manifest, problems) {
   const views = manifest?.views;
   if (views == null) return [];
   const problem = viewsProblem(views);
   if (problem) {
-    problems.push(`views: ${problem}`);
-    console.error(`Ignoring the manifest's views: ${problem}`);
+    refuse(problems, 'views', problem);
     return [];
   }
   return views.map((v) => ({
@@ -209,8 +234,7 @@ function readDimensions(manifest, problems) {
   if (d == null) return null;
   const problem = dimensionsProblem(d);
   if (problem) {
-    problems.push(`dimensions: ${problem}`);
-    console.error(`Ignoring the manifest's dimensions: ${problem}`);
+    refuse(problems, 'dimensions', problem);
     return null;
   }
   const rank = (key) => {
@@ -246,6 +270,125 @@ function dimensionsProblem(d) {
     footprints += 1;
   }
   return footprints ? null : 'no footprint';
+}
+
+// The option list both rail blocks share: non-empty, unique ids, labels, at
+// most one default. `each` checks what an option of that block carries.
+function optionsProblem(options, at, each) {
+  if (!Array.isArray(options) || !options.length) return `${at}.options is not a non-empty list`;
+  const ids = new Set();
+  let defaults = 0;
+  for (const [j, o] of options.entries()) {
+    const oat = `${at}.options[${j}]`;
+    if (!isObject(o)) return `${oat} is not an object`;
+    if (!text(o.id)) return `${oat}.id is not a non-empty string`;
+    if (ids.has(o.id)) return `${oat}.id repeats an earlier id`;
+    ids.add(o.id);
+    if (!text(o.label)) return `${oat}.label is not a non-empty string`;
+    if (o.default !== undefined && typeof o.default !== 'boolean') return `${oat}.default is not true or false`;
+    if (o.default === true) defaults += 1;
+    const problem = each(o, oat);
+    if (problem) return problem;
+  }
+  return defaults > 1 ? `${at} has more than one default option` : null;
+}
+
+function groupsProblem(groups, block, property, each, extra) {
+  if (!Array.isArray(groups)) return 'not a list';
+  const ids = new Set();
+  for (const [i, g] of groups.entries()) {
+    const at = `${block}[${i}]`;
+    if (!isObject(g)) return `${at} is not an object`;
+    if (!text(g.id)) return `${at}.id is not a non-empty string`;
+    if (ids.has(g.id)) return `${at}.id repeats an earlier id`;
+    ids.add(g.id);
+    if (!text(g.label)) return `${at}.label is not a non-empty string`;
+    if (g.property !== property) return `${at}.property is not ${property}, the only one this page applies`;
+    const problem = extra(g, at) ?? optionsProblem(g.options, at, each);
+    if (problem) return problem;
+  }
+  return null;
+}
+
+// COLOURS ARE LINEAR, as glTF requires of baseColorFactor. Three or four
+// numbers from 0 to 1; an alpha other than 1 would need transparency this
+// page does not set up, so it is refused rather than dropped.
+function colourProblem(o, at) {
+  const v = o.value;
+  if (!Array.isArray(v) || (v.length !== 3 && v.length !== 4)
+      || !v.every((n) => typeof n === 'number' && n >= 0 && n <= 1)) {
+    return `${at}.value is not three or four numbers from 0 to 1`;
+  }
+  return v.length === 4 && v[3] !== 1 ? `${at}.value has an alpha other than 1, which this page does not render` : null;
+}
+
+function readSets(manifest, problems) {
+  const sets = manifest?.sets;
+  if (sets == null) return [];
+  const problem = groupsProblem(sets, 'sets', SET_PROPERTY, colourProblem, (g, at) => (
+    !Array.isArray(g.targets) || !g.targets.length || !g.targets.every(text)
+      ? `${at}.targets is not a non-empty list of names` : null));
+  if (problem) {
+    refuse(problems, 'sets', problem);
+    return [];
+  }
+  return sets.map((s) => ({
+    id: s.id,
+    label: s.label,
+    targets: s.targets,
+    options: s.options.map((o) => ({ id: o.id, label: o.label, isDefault: o.default === true, rgb: o.value.slice(0, 3) })),
+  }));
+}
+
+// PRESENCE FAILS CLOSED. The model ships every arrangement at once, so a
+// refused presence block must not leave them all on screen through each
+// other. Every node the block names -- as far as it can be read -- is hidden,
+// and no layout control renders: the building shows unfurnished, which is
+// plain rather than broken.
+function readPresence(manifest, problems) {
+  const presence = manifest?.presence;
+  if (presence == null) return { groups: [], failClosed: [] };
+  const problem = groupsProblem(presence, 'presence', PRESENCE_PROPERTY, (o, at) => (
+    !Array.isArray(o.show) || !o.show.every((n) => typeof n === 'string')
+      ? `${at}.show is not a list of strings` : null
+  ), (g, at) => (g.room !== undefined && typeof g.room !== 'string' ? `${at}.room is not a string` : null));
+  if (problem) {
+    refuse(problems, 'presence', problem);
+    const named = [];
+    for (const g of Array.isArray(presence) ? presence : []) {
+      for (const o of Array.isArray(g?.options) ? g.options : []) {
+        for (const n of Array.isArray(o?.show) ? o.show : []) if (typeof n === 'string') named.push(n);
+      }
+    }
+    return { groups: [], failClosed: named };
+  }
+  return {
+    groups: presence.map((g) => ({
+      id: g.id,
+      label: g.label,
+      options: g.options.map((o) => ({ id: o.id, label: o.label, isDefault: o.default === true, show: o.show })),
+    })),
+    failClosed: [],
+  };
+}
+
+function readDisclosure(manifest, problems) {
+  const d = manifest?.disclosure;
+  if (d == null) {
+    if (Array.isArray(manifest?.presence) && manifest.presence.length) {
+      refuse(problems, 'disclosure', 'the manifest shows furniture and carries no disclosure');
+    }
+    return '';
+  }
+  if (!text(d)) {
+    refuse(problems, 'disclosure', 'not a non-empty string');
+    return '';
+  }
+  if (d.length > DISCLOSURE_MAX_CHARS) {
+    refuse(problems, 'disclosure', `${d.length} characters is notes, not copy (at most ${DISCLOSURE_MAX_CHARS})`);
+    return '';
+  }
+  return d;
 }
 
 // ── the viewer ────────────────────────────────────────────────────────────
@@ -297,11 +440,18 @@ function createViewer(container) {
   const loader = new GLTFLoader();
   loader.setDRACOLoader(new DRACOLoader().setDecoderPath(DRACO_DECODERS));
 
+  const sanitize = (name) => THREE.PropertyBinding.sanitizeNodeName(name);
+
   let current = null;
   let fitted = null; // the box and centre of the first level shown
   let info = null;
-  let hidden = new Set(); // node names the current view mode hides
+  let hidden = new Set(); // nodes the current view mode hides
+  let controlled = new Set(); // nodes any layout option names
+  let shown = new Set(); // of those, the ones the chosen layouts show
   let visibility = { found: 0, missing: [] };
+  let presenceState = { controlled: 0, found: 0, missing: [] };
+  const tints = new Map(); // material name → linear RGB, from the chosen finishes
+  let tintState = { found: 0, missing: [] };
   let overlay = null;
   let overlayInfo = null;
 
@@ -419,21 +569,51 @@ function createViewer(container) {
     };
   }
 
-  // VIEW MODES HIDE NODES BY EXACT NAME -- never by prefix, so a runtime does
-  // not string-match its way to a roof. Names go through the same
-  // sanitisation GLTFLoader applies, so a name the file can carry is a name
-  // the scene can find. A level that lacks a named node (massing has no
-  // ceilings) simply has nothing to hide there.
-  function applyHidden() {
-    if (!current) return { found: 0, missing: [...hidden] };
-    const seen = new Set();
+  // VISIBILITY HAS TWO SOURCES, AND BOTH MUST AGREE TO SHOW A NODE. The view
+  // mode hides nodes by exact name (never by prefix); the layouts hide every
+  // node any layout names except the ones the chosen layouts show. A node is
+  // visible only if the view mode does not hide it AND, when a layout names
+  // it, a chosen layout shows it. Names go through the same sanitisation
+  // GLTFLoader applies. A level that lacks a named node -- massing has no
+  // ceilings and no furniture -- simply has nothing to hide there.
+  function applyVisibility() {
+    if (!current) return;
+    const seenHidden = new Set();
+    const seenControlled = new Set();
     current.traverse((o) => {
       if (o === current) return;
-      const hide = hidden.has(o.name);
-      if (hide) seen.add(o.name);
-      o.visible = !hide;
+      const name = o.name;
+      if (hidden.has(name)) seenHidden.add(name);
+      if (controlled.has(name)) seenControlled.add(name);
+      o.visible = !hidden.has(name) && (!controlled.has(name) || shown.has(name));
     });
-    return { found: seen.size, missing: [...hidden].filter((n) => !seen.has(n)) };
+    visibility = { found: seenHidden.size, missing: [...hidden].filter((n) => !seenHidden.has(n)) };
+    presenceState = {
+      controlled: controlled.size,
+      found: seenControlled.size,
+      missing: [...controlled].filter((n) => !seenControlled.has(n)),
+    };
+  }
+
+  // FINISHES WRITE A LINEAR COLOUR, NEVER A MAP. glTF's baseColorFactor is
+  // linear and three.js keeps material.color in its linear working space, so
+  // the manifest's numbers go in through setRGB(..., LinearSRGBColorSpace).
+  // color.set('#rrggbb') would decode them as sRGB a second time and wash every
+  // finish out. Matched by material name; one name can be several material
+  // objects, since the loader clones a material a mesh needs to vary.
+  function applyTints() {
+    if (!current) return;
+    const seen = new Set();
+    current.traverse((o) => {
+      if (!o.isMesh) return;
+      for (const m of [].concat(o.material)) {
+        const rgb = m && tints.get(m.name);
+        if (!rgb) continue;
+        m.color.setRGB(rgb[0], rgb[1], rgb[2], THREE.LinearSRGBColorSpace);
+        seen.add(m.name);
+      }
+    });
+    tintState = { found: seen.size, missing: [...tints.keys()].filter((n) => !seen.has(n)) };
   }
 
   // THE DIMENSION OVERLAY. The manifest gives each footprint's width and
@@ -441,7 +621,7 @@ function createViewer(container) {
   // building's plan box. That is exact when the footprint is symmetric within
   // the box -- a slab with even eaves around it -- and wrong for one pushed to
   // an end by an appendage, which is why the overlay draws only the first
-  // footprint and lists the rest rather than placing them all.
+  // footprint and lists the rest rather than placing them all (#119).
   function buildOverlay(dims) {
     const fp = dims.footprints[0];
     const w = fp.width * dims.unit.metres;
@@ -477,10 +657,10 @@ function createViewer(container) {
 
     const group = new THREE.Group();
     group.add(lines);
-    const label = (text, x, z) => {
+    const label = (content, x, z) => {
       const el = document.createElement('div');
       el.className = 'dimension-label';
-      el.textContent = text;
+      el.textContent = content;
       const obj = new CSS2DObject(el);
       obj.position.set(x, y, z);
       group.add(obj);
@@ -529,7 +709,11 @@ function createViewer(container) {
         dispose(current);
       }
       current = root;
-      visibility = applyHidden(); // the chosen view mode survives a level swap
+      // Every choice survives a level swap: the new level's materials and
+      // nodes are new objects, so the chosen finishes, layouts and view mode
+      // are applied to them again.
+      applyTints();
+      applyVisibility();
       const box = new THREE.Box3().setFromObject(root);
       if (!fitted) {
         info = frame(box);
@@ -552,9 +736,20 @@ function createViewer(container) {
       return info;
     },
     setHidden(names) {
-      hidden = new Set(names.map((n) => THREE.PropertyBinding.sanitizeNodeName(n)));
-      visibility = applyHidden();
+      hidden = new Set(names.map(sanitize));
+      applyVisibility();
       return visibility;
+    },
+    setPresence(controlledNames, shownNames) {
+      controlled = new Set(controlledNames.map(sanitize));
+      shown = new Set(shownNames.map(sanitize));
+      applyVisibility();
+      return presenceState;
+    },
+    setTint(targets, rgb) {
+      for (const name of targets) tints.set(name, rgb);
+      applyTints();
+      return tintState;
     },
     setDimensions(dims) {
       removeOverlay();
@@ -566,6 +761,28 @@ function createViewer(container) {
     },
     // For tests: which of the current mode's nodes this level has.
     visibility: () => ({ hidden: [...hidden], ...visibility }),
+    // For tests: which layout-controlled nodes this level has, and which show.
+    presence: () => ({ ...presenceState, shown: [...shown] }),
+    // For tests: which tinted material names this level has.
+    tints: () => ({ tinted: [...tints.keys()], ...tintState }),
+    // For tests: is the named node rendered -- visible, and every ancestor
+    // visible? null when this level has no such node.
+    isVisible(name) {
+      const node = current?.getObjectByName(sanitize(name));
+      if (!node) return null;
+      for (let o = node; o && o !== current; o = o.parent) if (!o.visible) return false;
+      return true;
+    },
+    // For tests: a material's colour as the building has it -- sRGB hex, and
+    // the linear numbers the manifest wrote.
+    material(name) {
+      let hit = null;
+      current?.traverse((o) => {
+        if (hit || !o.isMesh) return;
+        hit = [].concat(o.material).find((m) => m?.name === name) ?? null;
+      });
+      return hit && { name, hex: `#${hit.color.getHexString()}`, linear: [hit.color.r, hit.color.g, hit.color.b] };
+    },
     // For tests: what the dimension overlay is drawing, or null.
     overlay: () => overlayInfo && {
       ...overlayInfo,
@@ -665,6 +882,125 @@ function renderControls(views, dimensions, viewer) {
   $('controls').hidden = !any;
 }
 
+// THE RAIL IS WHATEVER THE MANIFEST OFFERS: every finish group and every
+// layout group, in its order, with its labels. Nothing here knows how many
+// there are or what they are called, so a model with no covered entry simply
+// brings one group fewer. Each group starts on its default option (or its
+// first) and APPLIES it -- for layouts that is not optional, because the model
+// ships every arrangement at once.
+function renderRail(sets, presence, disclosure, viewer) {
+  const rail = $('rail');
+  const choices = { sets: {}, presence: {} };
+  const publish = () => {
+    window.__viewer = { ...window.__viewer, choices: structuredClone(choices) };
+  };
+
+  if (sets.length) {
+    const section = railSection(rail, 'Finishes');
+    sets.forEach((set, i) => {
+      choiceGroup(section, set, `set-${i}`, true, (option) => {
+        viewer.setTint(set.targets, option.rgb);
+        choices.sets[set.id] = option.id;
+        publish();
+      });
+    });
+  }
+
+  if (presence.length) {
+    const section = railSection(rail, 'Layout');
+    const controlled = presence.flatMap((g) => g.options.flatMap((o) => o.show));
+    const chosen = new Map();
+    presence.forEach((group, i) => {
+      choiceGroup(section, group, `presence-${i}`, false, (option) => {
+        chosen.set(group, option);
+        viewer.setPresence(controlled, [...chosen.values()].flatMap((o) => o.show));
+        choices.presence[group.id] = option.id;
+        publish();
+      });
+    });
+  }
+
+  // REQUIRED COPY, ON SCREEN. The model cannot enforce what the disclosure
+  // says, so the page shows it as text in the rail -- pinned to the rail's
+  // foot so it stays in view while the options scroll -- never as a tooltip.
+  if (disclosure) {
+    const p = document.createElement('p');
+    p.className = 'disclosure';
+    p.textContent = disclosure;
+    rail.append(p);
+  }
+
+  rail.hidden = !(sets.length || presence.length || disclosure);
+  publish();
+}
+
+function railSection(rail, title) {
+  const section = document.createElement('section');
+  section.className = 'rail-section';
+  const h2 = document.createElement('h2');
+  h2.textContent = title;
+  section.append(h2);
+  rail.append(section);
+  return section;
+}
+
+// One radio group per manifest group: native inputs, so the keyboard and
+// assistive technology get a real choice. Finishes show a swatch chip.
+function choiceGroup(parent, group, name, swatches, onSelect) {
+  const fieldset = document.createElement('fieldset');
+  fieldset.className = swatches ? 'swatches' : 'layouts';
+  const legend = document.createElement('legend');
+  const title = document.createElement('span');
+  title.textContent = group.label;
+  const current = document.createElement('span');
+  current.className = 'current';
+  legend.append(title, current);
+  fieldset.append(legend);
+
+  const select = (option) => {
+    current.textContent = option.label;
+    onSelect(option);
+  };
+  const initial = group.options.find((o) => o.isDefault) ?? group.options[0];
+
+  group.options.forEach((option, j) => {
+    const label = document.createElement('label');
+    label.className = 'choice';
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = name;
+    input.value = String(j);
+    input.checked = option === initial;
+    input.addEventListener('change', () => {
+      if (input.checked) select(option);
+    });
+    label.append(input);
+    if (swatches) {
+      const chip = document.createElement('span');
+      chip.className = 'swatch';
+      chip.style.backgroundColor = swatchColour(option.rgb);
+      label.append(chip);
+    }
+    const caption = document.createElement('span');
+    caption.className = 'choice-label';
+    caption.textContent = option.label;
+    label.append(caption);
+    fieldset.append(label);
+  });
+
+  parent.append(fieldset);
+  select(initial);
+}
+
+// A SWATCH IS THE sRGB ENCODING OF THE SAME COLOUR the building is given, not
+// the manifest's numbers. Those are linear; CSS is sRGB. Painting the linear
+// numbers into a chip makes every dark finish look lighter than the building,
+// which reads as a fault in the model. getHexString() encodes from three.js's
+// linear working space to sRGB -- the same encoding material.color reports.
+function swatchColour(rgb) {
+  return `#${new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.LinearSRGBColorSpace).getHexString()}`;
+}
+
 // Every footprint, with the manifest's own note on what it measures. The
 // first is the one drawn; the rest are listed, never merged into it.
 function renderLegend(legend, dims) {
@@ -672,11 +1008,11 @@ function renderLegend(legend, dims) {
     const size = `${formatLength(fp.width)} × ${formatLength(fp.depth)} ${dims.unit.label}`;
     return `${fp.key.replaceAll('_', ' ')} ${size}${fp.note ? ` — ${fp.note}` : ''}`;
   };
-  const line = (heading, text) => {
+  const line = (heading, content) => {
     const li = document.createElement('li');
     const strong = document.createElement('strong');
     strong.textContent = `${heading} `;
-    li.append(strong, text);
+    li.append(strong, content);
     legend.append(li);
   };
   const [drawn, ...others] = dims.footprints;

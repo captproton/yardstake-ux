@@ -516,6 +516,13 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
             problems.append(
                 "presence block has no `disclosure` text — the UI obligation "
                 "is the reason presence exists, so it may not be dropped")
+        # `disclosure` is COPY: the page shows it verbatim, so the reasoning
+        # behind it travels separately, for whoever reads the manifest. They
+        # were one string until #109 put it on screen with the reasoning in
+        # capitals after it. model_contract caps the copy's length.
+        disc_note = (pres_spec.get("disclosure_note") or "").strip()
+        if disc_note:
+            manifest["disclosure_note"] = disc_note
     # ---- what the page needs under the viewer ----------------------------
     # The configurator this model answers puts two buttons below the 3D view:
     # SHOW INTERIOR and SHOW DIMENSIONS. Until now it could drive neither.

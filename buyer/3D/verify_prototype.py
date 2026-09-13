@@ -267,9 +267,18 @@ def main():
         unit_problems.append(
             f"units differ — only app.js: {sorted(page_units - contract_units)}, "
             f"only model_contract: {sorted(contract_units - page_units)}")
+    # The same for the disclosure's length limit: a limit only one side
+    # enforces is copy one side accepts and the other refuses to show.
+    lim = re.search(r"const DISCLOSURE_MAX_CHARS = (\d+);", (PROTO / "app.js").read_text())
+    page_limit = int(lim.group(1)) if lim else None
+    if page_limit != model_contract.DISCLOSURE_MAX_CHARS:
+        unit_problems.append(
+            f"DISCLOSURE_MAX_CHARS differs — app.js: {page_limit}, "
+            f"model_contract: {model_contract.DISCLOSURE_MAX_CHARS}")
     problems += unit_problems
     print(f"  [{'PASS' if not unit_problems else 'FAIL'}] app.js and model_contract "
-          f"accept the same units — {', '.join(sorted(page_units)) or 'none found'}")
+          f"agree on units and the disclosure limit — "
+          f"{', '.join(sorted(page_units)) or 'no units found'}; {page_limit} characters")
 
     print("-" * 76)
     if problems:
