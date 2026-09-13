@@ -379,19 +379,29 @@ def presence_problems(presence, where="presence"):
 
 
 def disclosure_problems(manifest):
+    problems = []
+    note = manifest.get("disclosure_note")
+    if note is not None and not isinstance(note, str):
+        problems.append(f"disclosure_note must be a string when present, "
+                        f"found {type(note).__name__}")
     d = manifest.get("disclosure")
     presence = manifest.get("presence")
     if d is None:
         if isinstance(presence, list) and presence:
-            return ["disclosure is required: the manifest shows furniture, and "
-                    "the model cannot say it is not included"]
-        return []
+            problems.append("disclosure is required: the manifest shows "
+                            "furniture, and the model cannot say it is not "
+                            "included")
+        return problems
     if not _text(d):
-        return ["disclosure must be a non-empty string when present"]
+        return problems + ["disclosure must be a non-empty string when present"]
+    # CHARACTERS ARE CODE POINTS on both sides: len() here, [...text].length in
+    # prototype/app.js. JavaScript's String.length counts UTF-16 units and
+    # would read one emoji as two, so the two limits would disagree.
     if len(d) > DISCLOSURE_MAX_CHARS:
-        return [f"disclosure is {len(d)} characters; it is copy shown verbatim, "
-                f"at most {DISCLOSURE_MAX_CHARS} -- put notes somewhere else"]
-    return []
+        problems.append(f"disclosure is {len(d)} characters; it is copy shown "
+                        f"verbatim, at most {DISCLOSURE_MAX_CHARS} -- put notes "
+                        f"somewhere else")
+    return problems
 
 
 def display_problems(manifest):

@@ -509,9 +509,14 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
         # KeyError: everything else here reports through `problems` and gets a
         # readable gate line, and a crash mid-export would leave the caller
         # guessing which of the manifest's many keys was wrong.
-        disc = (pres_spec.get("disclosure") or "").strip()
-        if disc:
-            manifest["disclosure"] = disc
+        # TYPES BEFORE .strip(): a number or a list in the spec is a problem to
+        # report on the gate line, not an AttributeError that aborts the export.
+        disc = pres_spec.get("disclosure")
+        if disc is not None and not isinstance(disc, str):
+            problems.append(f"presence `disclosure` must be text, found "
+                            f"{type(disc).__name__}")
+        elif (disc or "").strip():
+            manifest["disclosure"] = disc.strip()
         else:
             problems.append(
                 "presence block has no `disclosure` text — the UI obligation "
@@ -520,9 +525,12 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
         # behind it travels separately, for whoever reads the manifest. They
         # were one string until #109 put it on screen with the reasoning in
         # capitals after it. model_contract caps the copy's length.
-        disc_note = (pres_spec.get("disclosure_note") or "").strip()
-        if disc_note:
-            manifest["disclosure_note"] = disc_note
+        disc_note = pres_spec.get("disclosure_note")
+        if disc_note is not None and not isinstance(disc_note, str):
+            problems.append(f"presence `disclosure_note` must be text, found "
+                            f"{type(disc_note).__name__}")
+        elif (disc_note or "").strip():
+            manifest["disclosure_note"] = disc_note.strip()
     # ---- what the page needs under the viewer ----------------------------
     # The configurator this model answers puts two buttons below the 3D view:
     # SHOW INTERIOR and SHOW DIMENSIONS. Until now it could drive neither.

@@ -96,11 +96,22 @@ async function main() {
   renderPicker(rows, row, params);
   const viewer = createViewer($('viewer'));
 
-  // The manifest's own identity block is the header's source, so a page that
-  // loaded one model needs nothing else. The index row carries the same
-  // fields, and stands in if the manifest cannot be read.
-  const manifest = await fetchJSON(new URL(row.manifest, indexUrl)).catch(() => null);
-  renderHeader(manifest?.model ?? row);
+  // THE MANIFEST IS REQUIRED, AND FAILING TO READ IT IS A LOAD FAILURE. It is
+  // not "a model with no options": a model ships every furniture arrangement
+  // at once, and only the manifest names the nodes to hide. Loading the model
+  // without it would render them all through each other, so the page stops
+  // and says why instead. (An ABSENT block inside a manifest that loaded is
+  // different, and quiet -- that model simply has nothing of that kind.)
+  let manifest;
+  try {
+    manifest = await fetchJSON(new URL(row.manifest, indexUrl));
+  } catch (err) {
+    throw new Error(`its manifest could not be read (${err.message})`);
+  }
+  if (!isObject(manifest)) throw new Error('its manifest is not an object');
+  // The manifest's own identity block is the header's source; the index row
+  // carries the same fields.
+  renderHeader(isObject(manifest.model) ? manifest.model : row);
 
   const levels = orderLevels(row, indexUrl);
   if (!levels.length) throw new Error(`${row.id} lists no level to load`);
@@ -357,7 +368,10 @@ function readPresence(manifest, problems) {
     const named = [];
     for (const g of Array.isArray(presence) ? presence : []) {
       for (const o of Array.isArray(g?.options) ? g.options : []) {
-        for (const n of Array.isArray(o?.show) ? o.show : []) if (typeof n === 'string') named.push(n);
+        // A malformed `show` may be one name rather than a list of them; hide
+        // that name too, or it stays on screen despite the refusal.
+        const show = o?.show;
+        for (const n of Array.isArray(show) ? show : [show]) if (typeof n === 'string') named.push(n);
       }
     }
     return { groups: [], failClosed: named };
@@ -384,8 +398,12 @@ function readDisclosure(manifest, problems) {
     refuse(problems, 'disclosure', 'not a non-empty string');
     return '';
   }
-  if (d.length > DISCLOSURE_MAX_CHARS) {
-    refuse(problems, 'disclosure', `${d.length} characters is notes, not copy (at most ${DISCLOSURE_MAX_CHARS})`);
+  // CHARACTERS ARE CODE POINTS, as Python's len() counts them in
+  // model_contract. String.length counts UTF-16 units and reads one emoji as
+  // two, so a disclosure the contract passed could be refused here.
+  const characters = [...d].length;
+  if (characters > DISCLOSURE_MAX_CHARS) {
+    refuse(problems, 'disclosure', `${characters} characters is notes, not copy (at most ${DISCLOSURE_MAX_CHARS})`);
     return '';
   }
   return d;
