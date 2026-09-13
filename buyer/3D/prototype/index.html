@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADU configurator</title>
+<!--
+  three.js is pinned HERE and nowhere else. app.js derives the matching Draco
+  decoder path from THREE.REVISION, so a version bump is one edit to this map
+  and verify_prototype.py fails if the two entries disagree or float.
+-->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #23211d;
+    --muted: #6b675f;
+    --paper: #f2f0eb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 1rem;
+    padding: 1rem 1.25rem 0.5rem;
+  }
+  h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+  #model-facts { margin: 0; color: var(--muted); }
+  #model-picker { margin-left: auto; font: inherit; }
+  main { position: relative; min-height: 0; }
+  #viewer { position: absolute; inset: 0; }
+  #viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #status {
+    position: absolute;
+    left: 50%;
+    bottom: 1.25rem;
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.85);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="model-name">&nbsp;</h1>
+  <p id="model-facts"></p>
+  <select id="model-picker" aria-label="Model" hidden></select>
+</header>
+<main>
+  <div id="viewer" aria-label="3D model viewer"></div>
+  <p id="status" role="status">Loading…</p>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
