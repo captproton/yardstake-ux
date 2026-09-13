@@ -278,9 +278,140 @@ def dimensions_problems(dims, where="dimensions"):
     return problems
 
 
+# ── the blocks the option rail renders (#109) ────────────────────────────────
+# Mirrors groupsProblem(), optionsProblem(), colourProblem(), readPresence()
+# and readDisclosure() in prototype/app.js.
+
+SET_PROPERTY = "baseColorFactor"
+PRESENCE_PROPERTY = "visible"
+# The disclosure is buyer-facing copy the page shows verbatim. A paragraph of
+# notes for developers is not copy -- keep in step with app.js.
+DISCLOSURE_MAX_CHARS = 200
+
+
+def _options_problems(options, at, each):
+    if not isinstance(options, list) or not options:
+        return [f"{at}.options must be a non-empty list"]
+    problems, ids, defaults = [], set(), 0
+    for j, o in enumerate(options):
+        oat = f"{at}.options[{j}]"
+        if not isinstance(o, dict):
+            problems.append(f"{oat} must be an object")
+            continue
+        if not _text(o.get("id")):
+            problems.append(f"{oat}.id must be a non-empty string, found {o.get('id')!r}")
+        elif o["id"] in ids:
+            problems.append(f"{oat}.id {o['id']!r} repeats an earlier id")
+        else:
+            ids.add(o["id"])
+        if not _text(o.get("label")):
+            problems.append(f"{oat}.label must be a non-empty string, found {o.get('label')!r}")
+        if "default" in o and not isinstance(o["default"], bool):
+            problems.append(f"{oat}.default must be true or false when present")
+        if o.get("default") is True:
+            defaults += 1
+        problems += each(o, oat)
+    if defaults > 1:
+        problems.append(f"{at} has {defaults} default options; at most one")
+    return problems
+
+
+def _groups_problems(groups, where, prop, each, extra):
+    if groups is None:
+        return []
+    if not isinstance(groups, list):
+        return [f"{where} must be a list, found {type(groups).__name__}"]
+    problems, ids = [], set()
+    for i, g in enumerate(groups):
+        at = f"{where}[{i}]"
+        if not isinstance(g, dict):
+            problems.append(f"{at} must be an object")
+            continue
+        if not _text(g.get("id")):
+            problems.append(f"{at}.id must be a non-empty string, found {g.get('id')!r}")
+        elif g["id"] in ids:
+            problems.append(f"{at}.id {g['id']!r} repeats an earlier id")
+        else:
+            ids.add(g["id"])
+        if not _text(g.get("label")):
+            problems.append(f"{at}.label must be a non-empty string, found {g.get('label')!r}")
+        if g.get("property") != prop:
+            problems.append(f"{at}.property must be {prop!r}, the only one the "
+                            f"page applies, found {g.get('property')!r}")
+        problems += extra(g, at)
+        problems += _options_problems(g.get("options"), at, each)
+    return problems
+
+
+def _colour_problems(o, at):
+    # LINEAR, as glTF requires of baseColorFactor. An alpha other than 1 needs
+    # transparency the page does not set up, so it is refused, not dropped.
+    v = o.get("value")
+    if not (isinstance(v, list) and len(v) in (3, 4)
+            and all(_number(n) and 0 <= n <= 1 for n in v)):
+        return [f"{at}.value must be three or four numbers from 0 to 1, found {v!r}"]
+    if len(v) == 4 and v[3] != 1:
+        return [f"{at}.value has an alpha of {v[3]!r}; the page renders only 1"]
+    return []
+
+
+def sets_problems(sets, where="sets"):
+    def targets(g, at):
+        t = g.get("targets")
+        if not (isinstance(t, list) and t and all(_text(n) for n in t)):
+            return [f"{at}.targets must be a non-empty list of material names"]
+        return []
+    return _groups_problems(sets, where, SET_PROPERTY, _colour_problems, targets)
+
+
+def presence_problems(presence, where="presence"):
+    def show(o, at):
+        s = o.get("show")
+        if not (isinstance(s, list) and all(isinstance(n, str) for n in s)):
+            return [f"{at}.show must be a list of strings"]
+        return []
+
+    def room(g, at):
+        if "room" in g and not isinstance(g["room"], str):
+            return [f"{at}.room must be a string when present"]
+        return []
+    return _groups_problems(presence, where, PRESENCE_PROPERTY, show, room)
+
+
+def disclosure_problems(manifest):
+    problems = []
+    note = manifest.get("disclosure_note")
+    if note is not None and not isinstance(note, str):
+        problems.append(f"disclosure_note must be a string when present, "
+                        f"found {type(note).__name__}")
+    d = manifest.get("disclosure")
+    presence = manifest.get("presence")
+    if d is None:
+        if isinstance(presence, list) and presence:
+            problems.append("disclosure is required: the manifest shows "
+                            "furniture, and the model cannot say it is not "
+                            "included")
+        return problems
+    if not _text(d):
+        return problems + ["disclosure must be a non-empty string when present"]
+    # CHARACTERS ARE CODE POINTS on both sides: len() here, [...text].length in
+    # prototype/app.js. JavaScript's String.length counts UTF-16 units and
+    # would read one emoji as two, so the two limits would disagree.
+    if len(d) > DISCLOSURE_MAX_CHARS:
+        problems.append(f"disclosure is {len(d)} characters; it is copy shown "
+                        f"verbatim, at most {DISCLOSURE_MAX_CHARS} -- put notes "
+                        f"somewhere else")
+    return problems
+
+
 def display_problems(manifest):
-    """Every problem in a manifest's `views` and `dimensions` blocks."""
+    """Every problem in the blocks the page renders controls from: `sets`,
+    `presence` and `disclosure` (the rail), `views` and `dimensions` (the
+    controls under the viewer)."""
     if not isinstance(manifest, dict):
         return [f"manifest must be an object, found {type(manifest).__name__}"]
-    return (views_problems(manifest.get("views"))
+    return (sets_problems(manifest.get("sets"))
+            + presence_problems(manifest.get("presence"))
+            + disclosure_problems(manifest)
+            + views_problems(manifest.get("views"))
             + dimensions_problems(manifest.get("dimensions")))

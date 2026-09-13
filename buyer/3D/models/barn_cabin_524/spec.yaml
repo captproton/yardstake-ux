@@ -1110,11 +1110,17 @@ variants:
     # carries what the runtime needs while the spec stays semantic and cannot
     # drift from the build.
     property: visible
-    disclosure: >
-      Furniture and appliances shown for scale; not included. THE MODEL CANNOT
-      ENFORCE THIS -- it is carried here so the UI has no excuse for omitting
-      it, and it is the reason presence exists at all: a buyer switching the
-      bedroom to a home office is choosing a layout, not ordering a desk.
+    # `disclosure` is COPY: the page shows it to a buyer verbatim, and
+    # model_contract caps it at 200 characters. The reasoning for it is
+    # `disclosure_note`, which finish_adu carries into the manifest for people
+    # reading it. They were one string until #109 put this on screen and the
+    # reasoning arrived after it, in capitals.
+    disclosure: "Furniture and appliances shown for scale; not included."
+    disclosure_note: >
+      THE MODEL CANNOT ENFORCE THIS -- it is carried here so the UI has no
+      excuse for omitting it, and it is the reason presence exists at all: a
+      buyer switching the bedroom to a home office is choosing a layout, not
+      ordering a desk.
     sets:
     - id: bedroom_layout
       label: "Bedroom"

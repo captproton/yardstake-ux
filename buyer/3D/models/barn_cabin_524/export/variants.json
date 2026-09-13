@@ -437,7 +437,8 @@
     }
   ],
   "presence_note": "Visibility swaps, and a SEPARATE mechanism from `sets`. Each option lists the glTF node names to show; every other node named anywhere in this block must be hidden. THE MODEL SHIPS ALL ARRANGEMENTS, so a runtime that ignores this block renders a bed and a desk through each other -- honour `default` on first load.",
-  "disclosure": "Furniture and appliances shown for scale; not included. THE MODEL CANNOT ENFORCE THIS -- it is carried here so the UI has no excuse for omitting it, and it is the reason presence exists at all: a buyer switching the bedroom to a home office is choosing a layout, not ordering a desk.",
+  "disclosure": "Furniture and appliances shown for scale; not included.",
+  "disclosure_note": "THE MODEL CANNOT ENFORCE THIS -- it is carried here so the UI has no excuse for omitting it, and it is the reason presence exists at all: a buyer switching the bedroom to a home office is choosing a layout, not ordering a desk.",
   "views": [
     {
       "id": "full",

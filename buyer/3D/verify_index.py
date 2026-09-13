@@ -211,11 +211,12 @@ def main():
           f"what its .glb contains — {n_names} name(s) checked"
           + (f", {len(unmatched)} unmatched" if unmatched else ""))
 
-    # ── 8. the page's two blocks are whole or absent ──────────────────────
-    # `views` and `dimensions` drive the controls under the viewer, and the
-    # page refuses a block that is malformed anywhere rather than acting on
-    # the entries that parse (#108). Catch it here, where it is a failed gate,
-    # not there, where it is a missing control nobody notices.
+    # ── 8. every block the page renders is whole or absent ────────────────
+    # `sets`, `presence` and `disclosure` drive the option rail; `views` and
+    # `dimensions` the controls under the viewer. The page refuses a block
+    # that is malformed anywhere rather than acting on the entries that parse
+    # (#108, #109). Catch it here, where it is a failed gate, not there, where
+    # it is a missing control nobody notices.
     shapes = []
     for r in good:
         path = ROOT / r["manifest"]
@@ -225,8 +226,8 @@ def main():
             continue  # gate 7 already reports an unreadable manifest
         shapes += [f"{r['id']}: {p}" for p in model_contract.display_problems(m)]
     problems += shapes
-    print(f"  [{'PASS' if not shapes else 'FAIL'}] every manifest's views and "
-          f"dimensions are well-formed or absent"
+    print(f"  [{'PASS' if not shapes else 'FAIL'}] every manifest's sets, presence, "
+          f"disclosure, views and dimensions are well-formed or absent"
           + (f" — {len(shapes)} problem(s)" if shapes else ""))
 
     print("-" * 76)
