@@ -204,7 +204,7 @@ def main():
         n_names += len(want_mats) + len(want_nodes)
         unmatched += [f"{rid}: material {x} is a swap target but not in {glb}"
                       for x in sorted(want_mats - have_mats)]
-        unmatched += [f"{rid}: node {x} is a presence option but not in {glb}"
+        unmatched += [f"{rid}: node {x} is named by presence or views but not in {glb}"
                       for x in sorted(want_nodes - have_nodes)]
     problems += unmatched
     print(f"  [{'PASS' if not unmatched else 'FAIL'}] every manifest names only "

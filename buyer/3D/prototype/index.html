@@ -23,12 +23,13 @@
     --ink: #23211d;
     --muted: #6b675f;
     --paper: #f2f0eb;
+    --line: #d6d2c9;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
     color: var(--ink);
     background: var(--paper);
@@ -46,6 +47,16 @@
   main { position: relative; min-height: 0; }
   #viewer { position: absolute; inset: 0; }
   #viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #viewer .labels { position: absolute; inset: 0; pointer-events: none; }
+  .dimension-label {
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.25rem;
+    background: rgb(35 33 29 / 0.88);
+    color: #fff;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
   #status {
     position: absolute;
     left: 50%;
@@ -58,6 +69,41 @@
     color: var(--muted);
     white-space: nowrap;
   }
+
+  /* The two controls under the viewer, as the reference page places them. */
+  #controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1.25rem 1rem;
+    border-top: 1px solid var(--line);
+  }
+  #controls[hidden] { display: none; }
+  #view-modes { display: inline-flex; flex-wrap: wrap; gap: 0; }
+  #controls button {
+    font: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  #view-modes button + button { border-left-width: 0; }
+  #controls button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  #controls button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  #dimensions-legend {
+    flex-basis: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  #dimensions-legend strong { color: var(--ink); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -70,6 +116,11 @@
   <div id="viewer" aria-label="3D model viewer"></div>
   <p id="status" role="status">Loading…</p>
 </main>
+<footer id="controls" hidden>
+  <div id="view-modes" role="group" aria-label="View" hidden></div>
+  <button id="dimensions-toggle" type="button" aria-pressed="false" hidden>Show dimensions</button>
+  <ul id="dimensions-legend" aria-label="Footprints" hidden></ul>
+</footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>

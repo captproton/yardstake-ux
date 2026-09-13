@@ -165,9 +165,10 @@ def glb_names(path):
 
 
 def manifest_names(manifest):
-    """(material targets, presence node names) a variants.json asks the page
-    to touch. Raises ValueError on a manifest whose blocks have the wrong
-    shape, rather than a TypeError from iterating one."""
+    """(material targets, node names) a variants.json asks the page to touch:
+    the materials its `sets` tint, and the nodes its `presence` options show
+    and its `views` modes hide. Raises ValueError on a manifest whose blocks
+    have the wrong shape, rather than a TypeError from iterating one."""
     def objects(v, where):
         if not isinstance(v, list) or not all(isinstance(x, dict) for x in v):
             raise ValueError(f"`{where}` is not a list of objects")
@@ -188,4 +189,7 @@ def manifest_names(manifest):
             for key in ("show", "hide"):
                 nodes.update(strings(o.get(key, []),
                                      f"presence[].options[].{key}"))
+    # A view mode that hides a node the file lacks hides nothing, silently.
+    for v in objects(manifest.get("views", []), "views"):
+        nodes.update(strings(v.get("hide", []), "views[].hide"))
     return mats, nodes
