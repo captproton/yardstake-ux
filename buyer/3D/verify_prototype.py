@@ -64,10 +64,12 @@ def load_json(path, problems, what):
 def read_text(path, unreadable):
     """A file's text, or "" with the reason recorded in `unreadable` (keyed by
     path). An unreadable page file or document is a failed gate, never a
-    traceback -- the rule load_json() already applies to JSON."""
+    traceback -- the rule load_json() already applies to JSON. Unreadable
+    means either: the filesystem refused (OSError), or the bytes are not text
+    (UnicodeDecodeError, which is a ValueError, not an OSError)."""
     try:
         return path.read_text()
-    except OSError as e:
+    except (OSError, UnicodeError) as e:
         unreadable.setdefault(path, f"{rel(path)} is unreadable: {e}")
         return ""
 

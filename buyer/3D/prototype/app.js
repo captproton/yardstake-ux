@@ -716,7 +716,9 @@ function renderCommerce(modelId, disclosure, offered) {
       disclosure: disclosure || null,
       link: location.href,
     };
-    const handled = !document.dispatchEvent(new CustomEvent(EVENTS.quote, { detail, cancelable: true }));
+    // Listeners get a copy. A listener that edits it without cancelling must
+    // not change the dialog or the record below, which use the page's own.
+    const handled = !document.dispatchEvent(new CustomEvent(EVENTS.quote, { detail: structuredClone(detail), cancelable: true }));
     window.__viewer = { ...window.__viewer, quote: { handled, detail: structuredClone(detail) } };
     if (!handled) showQuote(detail, state === 'current' ? shown : null, offered);
   });
