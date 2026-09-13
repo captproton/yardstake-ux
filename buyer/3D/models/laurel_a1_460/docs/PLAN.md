@@ -6,9 +6,25 @@ Second ADU model. Subject: **Sacramento County Permit Ready ADU, Model A1
 (20 sheets, Laura Miller Design, El Dorado Hills CA; drawn 2024-04-04;
 2022 California Residential Code).
 
+**The sheet set is not in git.** `example plans/sacramento_adus/` is ignored
+(`buyer/3D/.gitignore`), so the PDF (13.6 MB) and `a1-laurel-rendering.jpg`
+exist only in the main working tree. The link above works there, and not on
+GitHub or in a separate worktree. Point tools at the main tree's copy.
+
 This plan assumes the ladder, the gates and the ground rules from
 [`../../barn_cabin_524/docs/README.md`](../../barn_cabin_524/docs/README.md).
 Read rules 1–33 there before writing anything here. Nothing below repeats them.
+
+**Updated 2026-09-13, after the configurator page (#106–#112).** This plan was
+written before the page existed. The page now reads every exported model
+through an index and a manifest, and it refuses what does not meet the
+contract. Laurel is the first model built *for* that page. The section
+"What the configurator page requires" below lists what that adds, and the
+sequence now includes the two page issues a second real model needs:
+[#117](https://github.com/captproton/yardstake-ux/issues/117) (the front) and
+[#119](https://github.com/captproton/yardstake-ux/issues/119) (footprint positions).
+Laurel's export also closes the last box of
+[#111](https://github.com/captproton/yardstake-ux/issues/111).
 
 ---
 
@@ -96,6 +112,52 @@ only. S1.0 and T24 carry no massing.
 
 ---
 
+## What the configurator page requires
+
+The page ([`../../../docs/PAGE-PLAN.md`](../../../docs/PAGE-PLAN.md)) names no
+building. Everything it shows comes from `prototype/models.json`, written by
+`build_index.py`, and from each model's `export/variants.json`. So Laurel
+reaches the page only through that contract, and **no file in `prototype/`
+may change to show it**. `verify_prototype.py` gate 1 fails if the page names
+anything Laurel publishes.
+
+What the export must carry, and what checks it:
+
+| requirement | from | checked by |
+|---|---|---|
+| identity: `id`, `name`, `area_sf`, `area_key`, `area_source`, `storeys` | #106 | `model_contract.identity_problems()` in `finish_adu.py`; `verify_index.py` |
+| `views`, `dimensions`, `sets`, `presence`, `disclosure` **whole or refused**: a malformed block renders no control at all | #108, #109 | `model_contract.display_problems()` |
+| finish colours **linear** `baseColorFactor`, alpha 1 | #109 | `display_problems()`; the page swatches them in sRGB |
+| a `disclosure` whenever `presence` shows furniture, at most 200 characters | #109 | `display_problems()` |
+| every material a set tints and every node a layout or view names **exists in the .glb** | #106 | `verify_index.py` |
+| dimension `units` the page knows | #108 | `display_problems()`; gate 4 keeps the page and contract agreeing |
+
+What the page **assumes** today, which Laurel may break:
+
+- **The front faces +Z.** A model exported another way opens showing its
+  back. [#117](https://github.com/captproton/yardstake-ux/issues/117) declares
+  the front in the manifest. It is step 6 below, just before Laurel's export
+  in step 7.
+- **A footprint is centred on the building.** The manifest gives sizes, not
+  positions, so the overlay centres the footprint it draws. Laurel has no
+  porch, so it has no `with_porch`, and the overlay falls back to the next
+  footprint. That is exact only if the footprint is symmetric within the
+  bounding box; overhangs and the optional entry canopy may not be.
+  [#119](https://github.com/captproton/yardstake-ux/issues/119) declares
+  positions. It is step 9, before the configurator work in step 10.
+
+What Laurel **proves** for the page: the last box of
+[#111](https://github.com/captproton/yardstake-ux/issues/111), that a second
+exported model lands as an index row with no page code. The generated
+fixtures could not prove it, because `make_fixtures.py` writes its own index
+instead of going through `build_index.py`.
+
+What the page does **not** need from Laurel: prices. The estimate and quote
+slots ([`../../../docs/COMMERCE.md`](../../../docs/COMMERCE.md)) are the Rails
+app's, joined on option ids.
+
+---
+
 ## P0 — extract the kit (prerequisite, own PR)
 
 Nothing model-specific ships in this phase. Move only what already contains
@@ -118,23 +180,35 @@ buyer/3D/models/barn_cabin_524/   spec.yaml + typology build + its own gates
 buyer/3D/models/laurel_a1_460/    same shape
 ```
 
-Two rules for this PR.
+Three rules for this PR.
 
 - **The barn cabin must build byte-identical after the move.** Its three
   exported levels, its manifest and all its gates are the regression test. If
   `lod2` changes, the extraction was not a move.
+- **The page and its probes must not notice.** `model_contract.py` moves into
+  `adu_kit/schema/`, and six places import it today: `build_index.py`,
+  `verify_index.py`, `verify_prototype.py`, `finish_adu.py`,
+  `prototype/fixtures/make_fixtures.py`, and the probe suite, which copies it
+  by path (`probes/suite.py` `ROOT_FILES`) and loads it for contract cases.
+  The PR passes when `build_index.py --check`, both verify scripts,
+  `make_fixtures.py --check`, `run_probes.py` (all cases) and
+  `run_probes.py --self-check` pass unchanged. A probe case that has to be
+  edited to pass is a behaviour change, and it gets its own PR.
 - **Leave the gates where they are.** Several `verify_*.py` scripts embed
   barn-cabin expectations inside otherwise generic checks. They get promoted
   one at a time, in P2 and P3 below, when Laurel proves which assertion was
   about buildings and which was about that building. Rule 29 applies: a gate
   generalised against a typology it has seen once cannot disagree with it.
 
-**Fix the lod2 contract in the same PR.** It currently encodes a concrete
-bounding-box floor, which moved when the crawlspace replaced the slab. Laurel
-is slab on grade and will not match. The contract must assert *per model* that
-origin, axes, units and the declared floor datum have not moved since the
-recorded baseline, and carry that baseline in the model directory rather than
-in shared code.
+**Finish the lod2 contract in the same PR.** Part of it has landed since this
+plan was written: the lod2 **node** contract is declared per model, in the
+barn cabin's `spec.export.lod2_contract`, and `finish_adu.py` compares the
+export against it. What this plan asked for beyond that is still to confirm
+against the code, not assume: that origin, axes, units and the declared floor
+datum are asserted *per model* against a baseline kept in the model
+directory. The bounding-box floor moved when the crawlspace replaced the
+slab (the page's fixtures record −0.972 m), and Laurel is slab on grade, so
+no shared constant can hold it.
 
 ---
 
@@ -229,8 +303,20 @@ Check the rendering for colour only, then confirm any sampled colour against a
 second source before trusting it. Rule 4 exists because a "siding" colour patch
 was once something else entirely.
 
-Exit gate: three levels exported with Draco, manifest validates against the
-kit schema, the lod2 baseline is recorded, and the mesh budget gate passes.
+Exit gate: three levels exported with Draco, the lod2 baseline is recorded,
+the mesh budget gate passes, and **the page takes Laurel with no page code**:
+
+- the manifest passes `identity_problems()` and `display_problems()` (the
+  requirements table above), which `finish_adu.py` runs before writing it
+- `build_index.py` adds Laurel as a second row, and `build_index.py --check`,
+  `verify_index.py` and `verify_prototype.py` pass with **no change to any
+  file in `prototype/`**
+- Laurel opens from its front (#117) and loads, frames and orbits in the
+  browser, chosen from the model picker
+- the probe suite passes. Its cases break the barn cabin deliberately; a
+  second row must not change what any of them report.
+
+That closes [#111](https://github.com/captproton/yardstake-ux/issues/111).
 
 ---
 
@@ -255,6 +341,14 @@ project and will need its own placement rule relative to the slab.
 Furniture reuses the barn cabin's arrangements through the `presence` block.
 The bedroom-versus-office swap transfers directly.
 
+For the configurator (Tier 2): the stucco / fibre-cement swap is a `sets`
+group with linear colours; every layout ships in the file and `presence`
+names each node it shows; and a furnished manifest carries a `disclosure`.
+Laurel has no loft and no porch, so it has **no** porch layout group and no
+`with_porch` footprint. That is not a gap to fill: the page renders the
+groups a model has (#111). Its dimensions footprints need positions (#119)
+before the overlay is trusted for it.
+
 ---
 
 ## Risks
@@ -278,16 +372,19 @@ The bedroom-versus-office swap transfers directly.
 
 Each line is one pull request.
 
-1. Extract the kit; barn cabin builds byte-identical; lod2 contract made per-model.
+1. Extract the kit; barn cabin builds byte-identical; the page, its fixtures and every probe pass unchanged; lod2 contract finished per model.
 2. `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand.
 3. `spec.yaml` P1, with the roof form settled and cited.
 4. `build.py` P2 massing and openings.
 5. P3 overlay, plus the plate-height gate, proved by perturbation.
-6. P4 materials, the stucco/siding swap, three levels, manifest, baseline.
-7. Tier 1 finishes and trim.
-8. Tier 2 textures and configurator.
-9. Tier 3 fixtures, including the water heater and the mini-split.
-10. Furniture and arrangements.
+6. **[#117](https://github.com/captproton/yardstake-ux/issues/117): declare the model's front** in the manifest, so the viewer stops assuming +Z. A page change, proved on the barn cabin and the fixtures before Laurel depends on it.
+7. P4 materials, the stucco/siding swap, three levels, manifest, baseline. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
+8. Tier 1 finishes and trim.
+9. **[#119](https://github.com/captproton/yardstake-ux/issues/119): declare where each footprint sits**, so the overlay stops centring. A page change, before Laurel's dimensions are trusted.
+10. Tier 2 textures and configurator: `sets`, `presence`, `views`, `dimensions`, `disclosure` meeting the page's contract.
+11. Tier 3 fixtures, including the water heater and the mini-split.
+12. Furniture and arrangements.
 
 Steps 1 and 2 are the ones that pay for themselves across Richmond and the six
-Concord sets. Everything from 3 onward is this building only.
+Concord sets. Steps 6 and 9 pay for themselves on every model after Laurel.
+Everything else is this building only.
