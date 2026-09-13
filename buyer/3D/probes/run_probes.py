@@ -5,6 +5,7 @@ run_probes.py — run every probe against a copy of buyer/3D (#121).
     python3 buyer/3D/probes/run_probes.py --only rail  cases whose group or name contains "rail"
     python3 buyer/3D/probes/run_probes.py --list     list the cases without running them
     python3 buyer/3D/probes/run_probes.py -v         show the matching output line for passing cases too
+    python3 buyer/3D/probes/run_probes.py --self-check  check the harness itself (harness_checks.py)
 
 Exits 1 if any case does not behave as expected. The Blender case is skipped,
 with a message, when Blender is not found (set BLENDER to point at it).
@@ -37,7 +38,13 @@ def main() -> int:
     parser.add_argument("--only", help="run cases whose group or name contains this text")
     parser.add_argument("--list", action="store_true", help="list the cases and exit")
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("--self-check", action="store_true",
+                        help="check the harness's own failure modes instead of running the cases")
     args = parser.parse_args()
+
+    if args.self_check:
+        import harness_checks
+        return harness_checks.main()
 
     cases = [c for m in MODULES for c in m.CASES]
     if args.only:

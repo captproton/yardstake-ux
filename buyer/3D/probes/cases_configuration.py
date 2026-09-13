@@ -30,7 +30,12 @@ def _with(d: dict, **changes) -> dict:
 def _json_example(body: str):
     def setup(root: Path) -> None:
         text = config_doc(root).read_text()
-        config_doc(root).write_text(re.sub(r"```json\n.*?\n```", f"```json\n{body}\n```", text, count=1, flags=re.S))
+        new, count = re.subn(r"```json\n.*?\n```", lambda m: f"```json\n{body}\n```", text, count=1, flags=re.S)
+        # The JSON example replaced, or the case is stale rather than silently
+        # checking the unchanged document.
+        if count != 1:
+            raise AssertionError("no ```json example block in CONFIGURATION.md to replace")
+        config_doc(root).write_text(new)
     return setup
 
 

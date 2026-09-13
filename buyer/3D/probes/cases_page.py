@@ -12,9 +12,14 @@ G = "#116 page"
 def _import_map(body: str):
     def setup(root: Path) -> None:
         html = index_html(root).read_text()
-        index_html(root).write_text(re.sub(
+        new, count = re.subn(
             r'(<script type="importmap">)(.*?)(</script>)',
-            lambda m: m.group(1) + body + m.group(3), html, flags=re.S))
+            lambda m: m.group(1) + body + m.group(3), html, flags=re.S)
+        # Exactly one import map replaced, or the case is stale: it would run
+        # against an unbroken page and could pass without testing anything.
+        if count != 1:
+            raise AssertionError(f"expected one import map in index.html, replaced {count}")
+        index_html(root).write_text(new)
     return setup
 
 

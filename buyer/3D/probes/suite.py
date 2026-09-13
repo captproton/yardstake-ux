@@ -147,6 +147,7 @@ class Run:
     args: tuple = ()
     fails: bool = True
     blender: bool = False  # run inside Blender, from the barn cabin's directory
+    timeout: int = 900  # seconds; a run that exceeds it is a failed case, not a hang
 
 
 def both(build_fails: bool = True, verify_fails: bool = True) -> list:
@@ -215,23 +216,52 @@ def make_base(dst: Path, with_blender_model: bool = False) -> Path:
         if (model / "export").is_dir():
             shutil.copytree(model / "export", out / "export")
     # The thumbnails the index publishes, so gate 2 can resolve them.
-    for row in read_json(dst / "prototype" / "models.json").get("models", []):
+    #
+    # THE INDEX IS INPUT, EVEN HERE. A malformed models.json is exactly what
+    # the cases exist to report, so it must not stop the base being built; it
+    # just means no thumbnails are copied. And a thumbnail path is contained:
+    # one with enough `..` could otherwise read from outside buyer/3D or write
+    # outside this temporary base -- the one thing the suite promises not to do.
+    try:
+        rows = read_json(dst / "prototype" / "models.json").get("models")
+    except (ValueError, OSError, AttributeError):
+        rows = None
+    for row in rows if isinstance(rows, list) else []:
         thumb = row.get("thumbnail") if isinstance(row, dict) else None
-        if isinstance(thumb, str):
-            src = (THREE_D / "prototype" / thumb).resolve()
-            target = (dst / "prototype" / thumb).resolve()
-            if src.is_file() and not target.exists():
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src, target)
+        if not isinstance(thumb, str):
+            continue
+        src = (THREE_D / "prototype" / thumb).resolve()
+        target = (dst / "prototype" / thumb).resolve()
+        if not (inside(src, THREE_D) and inside(target, dst)):
+            print(f"probes: not copying thumbnail {thumb!r}: it resolves outside "
+                  f"buyer/3D or the temporary base", file=sys.stderr)
+            continue
+        if src.is_file() and not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, target)
     return dst
+
+
+def inside(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
 
 
 def find_blender() -> Optional[str]:
     for candidate in (os.environ.get("BLENDER"), shutil.which("blender"),
                       "/Applications/Blender.app/Contents/MacOS/Blender"):
         if candidate and Path(candidate).exists():
-            return candidate
+            # Absolute: the Blender case runs from the copy's model directory,
+            # where a relative BLENDER=./path no longer points anywhere.
+            return str(Path(candidate).resolve())
     return None
+
+
+def _text(data) -> str:
+    return data.decode(errors="replace") if isinstance(data, bytes) else (data or "")
 
 
 def load_contract(root: Path):
@@ -265,10 +295,21 @@ def run_case(case, base: Path, blender: Optional[str]) -> Result:
             else:
                 cmd = [sys.executable, run.script, *run.args]
                 cwd = work
-            p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=900)
+            label = " ".join([run.script, *run.args])
+            # A HANG OR A LAUNCH FAILURE IS A FAILED CASE, not the end of the
+            # suite: the runner's own contract is a result for every case and
+            # a summary, never a traceback.
+            try:
+                p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=run.timeout)
+            except subprocess.TimeoutExpired as e:
+                outputs.append(_text(e.stdout) + _text(e.stderr))
+                reasons.append(f"{label} timed out after {run.timeout}s")
+                continue
+            except OSError as e:
+                reasons.append(f"{label} could not be started: {e}")
+                continue
             out = p.stdout + p.stderr
             outputs.append(out)
-            label = " ".join([run.script, *run.args])
             if (p.returncode != 0) != run.fails:
                 reasons.append(f"{label} exited {p.returncode}, expected "
                                f"{'non-zero' if run.fails else '0'}")
@@ -297,6 +338,12 @@ def run_contract_case(case: ContractCase, base: Path) -> Result:
                       detail=traceback.format_exc().splitlines()[-3:])
     if not isinstance(problems, list):
         return Result(case, ok=False, reason=f"returned {type(problems).__name__}, not a list")
+    # Every problem is text. A contract regression that returns None among
+    # them is a failed case, not a TypeError in the search below.
+    strange = [p for p in problems if not isinstance(p, str)]
+    if strange:
+        return Result(case, ok=False, reason=f"returned {len(strange)} problem(s) that are not text",
+                      detail=[repr(p) for p in strange[:3]])
     if case.contains is None:
         return Result(case, ok=not problems, reason="" if not problems else "expected no problems",
                       detail=problems[:3])
