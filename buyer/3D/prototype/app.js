@@ -94,14 +94,19 @@ function setStatus(text) {
 // model is still loading -- so the page listens from the start and keeps the
 // latest. Each is a snapshot taken on arrival: a host that changes its own
 // object afterwards does not change the estimate on screen.
-const UNCLONEABLE = Symbol('uncloneable');
+const NOT_PLAIN_DATA = Symbol('not plain data');
 const estimateInbox = { latest: undefined, deliver: null };
 document.addEventListener(EVENTS.estimate, (e) => {
   let value;
   try {
     value = structuredClone(e.detail ?? null);
+    // AN ESTIMATE IS PLAIN JSON. structuredClone also copies a BigInt or a
+    // reference loop, which JSON cannot hold -- and the page compares an
+    // estimate's configuration as JSON, so either would throw there instead
+    // of being refused here.
+    JSON.stringify(value);
   } catch {
-    value = UNCLONEABLE;
+    value = NOT_PLAIN_DATA;
   }
   if (estimateInbox.deliver) estimateInbox.deliver(value);
   else estimateInbox.latest = value;
@@ -675,7 +680,7 @@ function renderCommerce(modelId, disclosure, offered) {
   // `value` is already the page's own copy: parsed from #commerce-data, or
   // snapshotted by the estimate inbox on arrival.
   function accept(value, source) {
-    const problem = value === UNCLONEABLE ? 'not plain data'
+    const problem = value === NOT_PLAIN_DATA ? 'not plain data'
       : value === null ? null : estimateProblem(value, modelId);
     if (problem) {
       problems.push(`${source}: ${problem}`);

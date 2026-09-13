@@ -79,6 +79,8 @@ Either or both:
   clear it. The latest one sent before the footer appears is applied when it
   does, and wins over `#commerce-data`, since it's later. The page copies each
   estimate as it arrives, so changing your object afterwards changes nothing.
+  An estimate must be plain JSON data. One JSON can't represent (a `BigInt`,
+  a reference loop, a function) is refused as `not plain data`.
 
 ## Events
 
