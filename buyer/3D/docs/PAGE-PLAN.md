@@ -175,6 +175,7 @@ buyer/3D/prototype/
                       view modes and the dimension overlay under the viewer      (#108, done)
                       the option rail: finishes, layouts, disclosure             (#109, done)
                       the configuration, kept in the address bar                 (#110, done)
+                      the commerce footer: an estimate the host supplies, the quote (#112, done)
   models.json         the index — which models exist                             (#106, done)
   fixtures/           four generated models and their own index, for ?index=fixtures/models.json:
                       a slab box (2 finish sets, a bench layout, 3 view modes, no `with_porch`);
@@ -186,10 +187,13 @@ buyer/3D/
   build_index.py      writes prototype/models.json from every exported model
   verify_index.py     gates it, no Blender
   verify_prototype.py gates the page: it names nothing any model publishes, three.js
-                      is pinned, the fixture meets the contract — no browser
-  model_contract.py   what a valid identity, index row and .glb read are —
-                      imported by finish_adu.py, build_index.py, verify_index.py
+                      is pinned, the fixture meets the contract, both documents match
+                      the page — no browser
+  model_contract.py   what a valid identity, index row, .glb read, configuration and
+                      estimate are — imported by finish_adu.py, build_index.py,
+                      verify_index.py, verify_prototype.py
   docs/CONFIGURATION.md  what a buyer chose, as a link and as the object Rails persists
+  docs/COMMERCE.md       the estimate Rails supplies and the events the page sends (#112)
   probes/run_probes.py   the probe suite: every break-one-thing case, against a copy (#121, done);
                          --self-check checks the harness itself
 ```
@@ -362,19 +366,53 @@ at `prototype/` cannot reach a single model. Locally:
   disabling each new check (the freshness comparison, leftover reporting,
   leftover removal, the level reads, the level order) turned its cases BAD.
 
+**What the commerce slots settled**
+([#125](https://github.com/captproton/yardstake-ux/pull/125)):
+
+- **The page prices nothing, and still demos.** With no estimate the footer
+  is the quote button alone, with the disclosure beside it. An estimate comes
+  from the host, as a `#commerce-data` block or an `adu:estimate` event, and
+  is checked whole. A refused one shows no figure: never a half-read range,
+  and never the previous estimate.
+- **A price is never shown for a building the buyer didn't choose.** An
+  estimate may name the configuration it priced. It's shown only while that
+  is still the configuration; after a change the footer says it is updating.
+- **Open question 2 doesn't block the page.** The contract serves all three
+  answers: one range per model, a range that moves with each choice (answer
+  each `adu:configuration`), or no number (handle `adu:quote`). Deltas would
+  join on option ids in Rails, not live in `variants.json`.
+- **Events are a trust boundary.** Three review rounds found the same
+  kind of hole three ways: an estimate sent during start-up was lost; the
+  page kept objects a listener could edit, or a script could forge an
+  `adu:configuration` to make a stale estimate look current; and a `BigInt`
+  or a loop inside an estimate threw instead of being refused, once stopping
+  the page from loading. The rules now: listen from the start, copy
+  everything that crosses, never read back an event the page sends, and
+  accept only plain JSON.
+- **An unreadable file is a failed gate.** Every page file and document is
+  read through one guard, whether the filesystem refuses or the bytes are
+  not text.
+- **Proved both ways.** Each JavaScript finding failed in the browser on the
+  unfixed page before passing, and each Python fix turned its probes BAD
+  when undone. 27 commerce cases, 139 in the suite. A browser test caught
+  itself running a cached `app.js`; the resource size shows which copy ran.
+- **Left for later:** on a narrow screen the rail's disclosure and the
+  footer's sit next to each other; one should hide there.
+
 ---
 
 ## Issues
 
 Sequenced. Each is small enough to review.
 
-**Next** (as of #124):
+**The sequence is complete** (as of #125). The page configures an ADU from
+its manifest: it lists models, frames them, offers view modes, dimensions,
+finishes and layouts, keeps the configuration in a link, and hands an
+estimate slot and a quote to Rails, all without naming any building. What
+remains is below: #111's second-export box, the issues outside the
+sequence, and the open questions.
 
-1. **[#112](https://github.com/captproton/yardstake-ux/issues/112) — mostly layout.** The call to action sends the configuration
-   object #110 defined, so the data it needs already exists. Its *content*
-   waits on open question 2, where the price range comes from.
-
-**Done:** [#121](https://github.com/captproton/yardstake-ux/issues/121), the probe suite ([#123](https://github.com/captproton/yardstake-ux/pull/123)) — first, as planned, because
+**Done:** [#112](https://github.com/captproton/yardstake-ux/issues/112), the commerce slots ([#125](https://github.com/captproton/yardstake-ux/pull/125)). [#121](https://github.com/captproton/yardstake-ux/issues/121), the probe suite ([#123](https://github.com/captproton/yardstake-ux/pull/123)) — first, as planned, because
 the probes that proved every gate lived only outside the repo.
 [#111](https://github.com/captproton/yardstake-ux/issues/111), a model with parts missing ([#124](https://github.com/captproton/yardstake-ux/pull/124)) — all but the box
 carried from #106, so the issue stays open until a second model is exported.
@@ -387,7 +425,7 @@ carried from #106, so the issue stays open until a second model is exported.
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically — **done** ([#120](https://github.com/captproton/yardstake-ux/pull/120)); linear colours in, sRGB swatches out, layouts applied on load |
 | [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist — **done** ([#122](https://github.com/captproton/yardstake-ux/pull/122)); the contract is [`CONFIGURATION.md`](CONFIGURATION.md) |
 | [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft — **done except one box** ([#124](https://github.com/captproton/yardstake-ux/pull/124)): the barn cabin reduced (its own `.glb` files, minus a layout group, two view modes and `with_porch`) renders a working page; the identity-only fixture loads and orbits with no controls and no rail; fixtures must match their generator. **Open:** the box carried from #106 — a real second export lands as a row with no page code — until a second model is exported |
-| [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills. The CTA sends the configuration object in [`CONFIGURATION.md`](CONFIGURATION.md); the price range is open question 2 |
+| [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills — **done** ([#125](https://github.com/captproton/yardstake-ux/pull/125)); the contract is [`COMMERCE.md`](COMMERCE.md). The quote carries the configuration from [`CONFIGURATION.md`](CONFIGURATION.md); the footer works with no price, and serves every answer to open question 2 |
 
 Not in the sequence, because nothing above is blocked on it:
 
@@ -405,7 +443,10 @@ Not in the sequence, because nothing above is blocked on it:
    product, so a model is the product *and* the options are real. The live
    question is narrower and it is a cost question: **which variants do we
    pre-bake, and which do we compose?** [#113](https://github.com/captproton/yardstake-ux/issues/113).
-2. Where does the price range come from?
+2. Where does the price range come from? **Still open, and no longer
+   blocking.** [`COMMERCE.md`](COMMERCE.md) serves one range per model, a
+   range that moves with each choice, or no number at all. The answer decides
+   what Rails builds, not what the page does.
 3. Is there a target device? It decides KTX2, which is currently **declined
    with reasons** — 68 MB of texture memory that nobody on a desktop feels.
 4. **Are the dark finish values what you intend?** The page decodes them
