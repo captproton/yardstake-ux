@@ -14,14 +14,15 @@ def inside_mesh(ob, p):
 
     TWO TESTS, AND BOTH ARE NEEDED.
 
-    The bounding box alone is useless against this model's merged meshes --
-    `Appl_body` is one mesh holding the fridge, the range, the dishwasher and
-    the bedroom-closet washer/dryer, so its box covers most of the building.
+    The bounding box alone is useless against a merged mesh: one mesh that
+    welds several separate objects together has a box covering all of them
+    and the space between.
 
     But the nearest-surface test alone is ALSO wrong: closest_point_on_mesh
     gives a meaningless answer for a point far outside an open or lofted
-    shell, which is how a sofa in the living room was once reported as being
-    inside a toilet in the bathroom.
+    shell, so a point in one room can be reported as inside an object in
+    another. (Both happened on the barn cabin; its verify_lib.py keeps the
+    known-answer cases.)
 
     Inside implies inside the bounding box, so the box is a sound prefilter
     and the surface test then does the real work.

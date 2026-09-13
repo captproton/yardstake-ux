@@ -38,7 +38,9 @@ from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E40
                        ft)
 # Feet to metres, the Draco .glb writer and the .glb reader know no building,
 # so they live in the kit (#126). FOOT_M comes with them.
-from adu_kit.export import FOOT_M, export_glb, glb_info  # noqa: E402
+# to_metres is not called here any more; it stays importable from this module,
+# as every moved name does.
+from adu_kit.export import FOOT_M, to_metres, export_glb, glb_info  # noqa: E402,F401
 
 
 # ---------------------------------------------------------------------------
