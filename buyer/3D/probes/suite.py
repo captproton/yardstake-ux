@@ -217,6 +217,10 @@ def make_base(dst: Path, with_blender_model: bool = False) -> Path:
         shutil.copy2(THREE_D / name, dst / name)
     shutil.copytree(THREE_D / "prototype", dst / "prototype",
                     ignore=shutil.ignore_patterns("__pycache__", "zz_*"))
+    # The kit a model's Blender scripts import (#126). A copy without it
+    # would fail the Blender case on an import, not on what it tests.
+    shutil.copytree(THREE_D / "adu_kit", dst / "adu_kit",
+                    ignore=shutil.ignore_patterns("__pycache__"))
     for model in sorted(p for p in (THREE_D / "models").iterdir() if p.is_dir()):
         out = dst / "models" / model.name
         if with_blender_model and model.name == BARN:

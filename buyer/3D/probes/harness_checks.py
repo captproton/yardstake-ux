@@ -28,6 +28,8 @@ def fake_three_d(root: Path, index_text: str) -> Path:
     (root / "prototype").mkdir(exist_ok=True)
     (root / "prototype" / "models.json").write_text(index_text)
     (root / "prototype" / "index.html").write_text("<html><body>no import map here</body></html>")
+    # make_base() copies the kit a model's Blender scripts import (#126).
+    (root / "adu_kit").mkdir(exist_ok=True)
     (root / "models" / suite.BARN).mkdir(parents=True)
     return root
 

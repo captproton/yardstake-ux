@@ -184,6 +184,8 @@ buyer/3D/prototype/
                       group, two view modes and `with_porch`. The directory must be
                       exactly what make_fixtures.py generates (gate 3, --check)
 buyer/3D/
+  adu_kit/            what every model's Blender scripts share: the geometry kernel,
+                      the .glb export, inside_mesh() (#126)
   build_index.py      writes prototype/models.json from every exported model
   verify_index.py     gates it, no Blender
   verify_prototype.py gates the page: it names nothing any model publishes, three.js
@@ -203,7 +205,7 @@ as `barn_cabin_524` does today.
 
 **Run the probe suite before merging** a change to `verify_index.py`,
 `verify_prototype.py`, `build_index.py`, `model_contract.py`,
-`finish_adu.py`, `prototype/app.js` or the fixtures:
+`finish_adu.py`, `adu_kit/`, `prototype/app.js` or the fixtures:
 `python3 buyer/3D/probes/run_probes.py`. Every gate passing on a clean tree
 says nothing about whether it still catches its case; the suite does. It
 breaks a temporary copy, never the working tree. A change that adds a gate
