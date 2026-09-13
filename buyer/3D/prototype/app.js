@@ -274,7 +274,7 @@ function createViewer(container) {
     };
   }
 
-  return {
+  const api = {
     load: (url) => loader.loadAsync(url.href),
     show(root) {
       root.traverse((o) => {
@@ -289,7 +289,25 @@ function createViewer(container) {
         dispose(current);
       }
       current = root;
-      if (!fitted) info = frame(new THREE.Box3().setFromObject(root));
+      const box = new THREE.Box3().setFromObject(root);
+      if (!fitted) {
+        info = frame(box);
+      } else if (!fitted.box.containsBox(box)) {
+        // FULL DETAIL CAN REACH PAST ITS MASSING -- a footing below the
+        // stemwall is the case in hand. Grow the fitted box to cover both, and
+        // back the camera off only if the building no longer fits, so a buyer
+        // who is already orbiting keeps their view. The ground stays at the
+        // floor frame() set: it should not drop when detail lands.
+        fitted.box.union(box);
+        if (!api.fits()) {
+          const dir = viewDirection(); // read before the position is written
+          const needed = fitDistance(fitted.box, controls.target, dir, camera.aspect);
+          controls.maxDistance = Math.max(controls.maxDistance, needed * 4);
+          camera.position.copy(controls.target).addScaledVector(dir, needed);
+          controls.update();
+        }
+        info = { ...info, size: fitted.box.getSize(new THREE.Vector3()).toArray() };
+      }
       return info;
     },
     // For tests: where the camera is, relative to what it orbits.
@@ -319,6 +337,7 @@ function createViewer(container) {
       return true;
     },
   };
+  return api;
 }
 
 function dispose(root) {

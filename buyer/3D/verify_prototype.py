@@ -60,8 +60,11 @@ def load_json(path, problems, what):
 
 
 def published_names(index_path, problems):
-    """{name: what it is} for every model in an index: identity, manifest
-    blocks, and the material and node names inside its full-detail .glb.
+    """{name: what it is} for every model in an index: identity from the row
+    AND from the manifest's own `model` block (the header reads the latter),
+    manifest blocks, and the material and node names inside EVERY level's
+    .glb -- the page loads the coarse level too, and nothing requires its
+    names to be a subset of full detail's.
     Anything that cannot be read is a problem, since a name that was never
     collected is a name the gate cannot catch."""
     root = index_path.parent
@@ -91,6 +94,10 @@ def published_names(index_path, problems):
 
         manifest = load_json(root / r["manifest"], problems, "manifest")
         if isinstance(manifest, dict):
+            ident = manifest.get("model")
+            if isinstance(ident, dict):
+                add(ident.get("id"), "model id")
+                add(ident.get("name"), "model name")
             try:
                 mats, nodes = model_contract.manifest_names(manifest)
             except ValueError as e:
@@ -114,16 +121,18 @@ def published_names(index_path, problems):
         elif manifest is not None:
             problems.append(f"manifest {r['manifest']} is not an object")
 
-        glb = r["levels"].get("lod0") or r["primary"]
-        try:
-            g_mats, g_nodes = model_contract.glb_names(root / glb)
-        except (ValueError, OSError) as e:
-            problems.append(f"{glb} is unreadable: {e}")
-            continue
-        for m in g_mats:
-            add(m, "material")
-        for n in g_nodes:
-            add(n, "node")
+        glbs = list(dict.fromkeys(
+            [*r["levels"].values(), *([r["primary"]] if r["primary"] else [])]))
+        for glb in glbs:
+            try:
+                g_mats, g_nodes = model_contract.glb_names(root / glb)
+            except (ValueError, OSError) as e:
+                problems.append(f"{glb} is unreadable: {e}")
+                continue
+            for m in g_mats:
+                add(m, "material")
+            for n in g_nodes:
+                add(n, "node")
     return names
 
 
@@ -210,8 +219,12 @@ def main():
     rows = fixture.get("models") if isinstance(fixture, dict) else None
     if fixture is not None and not isinstance(rows, list):
         fixture_problems.append("the fixture index has no `models` list")
+    elif isinstance(rows, list) and not rows:
+        fixture_problems.append("the fixture index lists no models, so it "
+                                "proves nothing about a second model")
+    rows = rows if isinstance(rows, list) else []
     root = FIXTURE_INDEX.parent
-    for i, r in enumerate(rows or []):
+    for i, r in enumerate(rows):
         bad = model_contract.row_problems(r, f"fixture row {i}")
         fixture_problems += bad
         if bad:
@@ -224,13 +237,17 @@ def main():
         if isinstance(manifest, dict):
             fixture_problems += model_contract.identity_problems(
                 manifest.get("model"), f"fixture {r['id']} model")
+    def string_ids(v):
+        # Only well-formed ids: a list id is unhashable, and gate 1 already
+        # reports a malformed row.
+        items = v if isinstance(v, list) else []
+        return {x["id"] for x in items
+                if isinstance(x, dict) and isinstance(x.get("id"), str)}
+
     real = load_json(build_index.INDEX, fixture_problems, "index")
-    real_ids = {x.get("id") for x in real.get("models", []) if isinstance(x, dict)} \
-        if isinstance(real, dict) else set()
-    fixture_ids = {x.get("id") for x in rows or [] if isinstance(x, dict)}
+    real_ids = string_ids(real.get("models") if isinstance(real, dict) else None)
     fixture_problems += [f"fixture id {c} collides with a real model"
-                         for c in sorted(i for i in real_ids & fixture_ids
-                                         if isinstance(i, str))]
+                         for c in sorted(real_ids & string_ids(rows))]
     problems += fixture_problems
     print(f"  [{'PASS' if not fixture_problems else 'FAIL'}] the fixture index "
           f"meets the model contract")
