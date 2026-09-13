@@ -174,6 +174,7 @@ buyer/3D/prototype/
   app.js              ES modules: index → manifest header → levels, coarse first  (#107, done)
                       view modes and the dimension overlay under the viewer      (#108, done)
                       the option rail: finishes, layouts, disclosure             (#109, done)
+                      the configuration, kept in the address bar                 (#110, done)
   models.json         the index — which models exist                             (#106, done)
   fixtures/           three generated models and their own index, for ?index=fixtures/models.json:
                       2 finish sets, a bench layout, 3 view modes, no `with_porch`;
@@ -185,6 +186,7 @@ buyer/3D/
                       is pinned, the fixture meets the contract — no browser
   model_contract.py   what a valid identity, index row and .glb read are —
                       imported by finish_adu.py, build_index.py, verify_index.py
+  docs/CONFIGURATION.md  what a buyer chose, as a link and as the object Rails persists
 ```
 
 Every model contributes its own directory of `.glb` + `variants.json`, exactly
@@ -265,6 +267,34 @@ at `prototype/` cannot reach a single model. Locally:
   (Charcoal quartz is a medium grey, `#69696a`). The page decodes the values
   correctly; if they look wrong, the fix is in `spec.yaml`.
 
+**What the configuration settled**
+([#122](https://github.com/captproton/yardstake-ux/pull/122)) — the contract is [`CONFIGURATION.md`](CONFIGURATION.md):
+
+- **A link is a configured building.** `?model=…&view=…&set.<group>=…&presence.<group>=…`,
+  rewritten with `replaceState` as the buyer chooses, so the address bar is
+  always the configuration and a choice adds no history entry. The same
+  value, as JSON, is what Rails will store and send with a quote.
+- **Ids, never values; every group, not only non-defaults.** A link must
+  survive a colour being corrected and a default being changed.
+- **A stale link falls back and says so.** An unknown model (which used to
+  show the first model silently), view, option or group is reported on the
+  console and in `window.__viewer.configurationProblems`, and the address is
+  rewritten to what is actually shown.
+- **One shape for "no views":** `view` is omitted, never `null` — in the
+  page's published object, the document, and the check.
+- **Ids are data, not keys to trust.** Id-keyed collections have no
+  prototype, so a link naming `set.__proto__` is reported like any unknown
+  group instead of vanishing.
+- **Rails has a check to run.** `model_contract.configuration_problems()`
+  validates a stored configuration against its manifest and never raises on
+  malformed input; `verify_prototype.py` gate 5 holds the document's example
+  and link to the real manifest.
+- **A process finding.** The command that opened #122 ran a probe that
+  failed and did not stop on it, so the PR went up with a traceback in gate
+  5; the fix followed in the same PR. The probes are the only thing that
+  proves a gate still catches its case, and they are not yet in the repo —
+  [#121](https://github.com/captproton/yardstake-ux/issues/121).
+
 ---
 
 ## Issues
@@ -277,7 +307,7 @@ Sequenced. Each is small enough to review.
 | [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox — **done** ([#116](https://github.com/captproton/yardstake-ux/pull/116)); proved against a generated second model in `prototype/fixtures/` |
 | [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer — **done** ([#118](https://github.com/captproton/yardstake-ux/pull/118)); the manifest's modes and footprints, whole or refused |
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically — **done** ([#120](https://github.com/captproton/yardstake-ux/pull/120)); linear colours in, sRGB swatches out, layouts applied on load |
-| [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
+| [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist — **done** ([#122](https://github.com/captproton/yardstake-ux/pull/122)); the contract is [`CONFIGURATION.md`](CONFIGURATION.md) |
 | [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
 | [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills |
 
@@ -288,6 +318,7 @@ Not in the sequence, because nothing above is blocked on it:
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
 | [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model |
 | [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn |
+| [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | about 60 break-one-thing checks that proved every gate live outside the repo; one command, run against a copy. Needed before the next change to a gate |
 
 **Open questions, which are the user's rather than the model's:**
 

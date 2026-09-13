@@ -335,6 +335,13 @@ See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--d
 > `disclosure_note`, split in `spec.yaml` so the rail does not show it. Dark
 > finishes read lighter on screen than their names; that is these values,
 > decoded correctly, so if they are wrong the fix is here.
+>
+> **#110 merged** in [#122](https://github.com/captproton/yardstake-ux/pull/122): a buyer's choices are now saved as **ids** in a link
+> and, later, in Rails ([`CONFIGURATION.md`](../../../docs/CONFIGURATION.md)). That makes the ids below
+> part of a published contract. **Correcting a value is free** — a link names
+> `sage`, not its colour — but **renaming or removing a set, option or view
+> id breaks every saved link that used it**: the page falls back to the
+> default and reports the stale id. Rename only when you mean to.
 
 `lod2` is the placement developer's. **`variants.json` is the web
 runtime's**, and until [#103](https://github.com/captproton/yardstake-ux/pull/103) it carried finishes and furniture
