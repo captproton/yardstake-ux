@@ -299,6 +299,15 @@ See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--d
 > material axis swaps the *picture*, ours does not. Every option below is a
 > `baseColorFactor` over maps that ship once — which is why this model has
 > normal maps at all, and why `applyChoice()` writes a factor and never a map.
+>
+> **#106 merged** in [#115](https://github.com/captproton/yardstake-ux/pull/115): the page starts from
+> [`prototype/models.json`](../../../prototype/models.json), which `build_index.py`
+> generates and `verify_index.py` gates without Blender. This model's
+> `variants.json` now opens with a **`model` block** — id, display name, area
+> with its key and source, storeys, thumbnail — and `finish_adu.py` refuses to
+> write it unless `model_contract.py` passes it. The published area is
+> **528**, not the 524 in the id; see `discrepancies`. Index paths start
+> `../models/`, so **serve `buyer/3D`**, not `prototype/`.
 
 `lod2` is the placement developer's. **`variants.json` is the web
 runtime's**, and until [#103](https://github.com/captproton/yardstake-ux/pull/103) it carried finishes and furniture
@@ -308,6 +317,7 @@ the model could drive neither.
 
 | block | what it is |
 |---|---|
+| `model` | identity for the header — id, display name, area with its source, storeys, thumbnail. Validated by `model_contract.py` |
 | `sets` | 8 material swaps, 23 options — every one a `baseColorFactor`, **0 extra texture bytes** |
 | `presence` | 3 furniture arrangements — node names to SHOW; hide everything else named in the block |
 | `views` | 4 visibility modes — node names to HIDE. `full` / `dollhouse` / `cutaway` / `interior_only` |

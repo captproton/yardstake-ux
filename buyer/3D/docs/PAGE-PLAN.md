@@ -46,6 +46,7 @@ the string `barn_cabin`, a room name, or a set id, that is a defect.
 
 | block | contents | page uses it for |
 |---|---|---|
+| `model` | id, display name, area with its key and source, storeys, thumbnail | the header, without a second fetch |
 | `sets` | 8 sets, 23 options — each a `baseColorFactor` | the finishes rail |
 | `presence` | 3 room arrangements, node names to **show** | the layout rail |
 | `views` | 4 modes, node names to **hide** | SHOW INTERIOR |
@@ -171,11 +172,21 @@ Static, no build step, so Rails can serve it as-is:
 buyer/3D/prototype/
   index.html          the page
   app.js              ES modules, three.js pinned from a CDN
-  models.json         the index — which models exist
+  models.json         the index — which models exist        (#106, done)
+buyer/3D/
+  build_index.py      writes prototype/models.json from every exported model
+  verify_index.py     gates it, no Blender
+  model_contract.py   what a valid identity, index row and .glb read are —
+                      imported by finish_adu.py, build_index.py, verify_index.py
 ```
 
 Every model contributes its own directory of `.glb` + `variants.json`, exactly
 as `barn_cabin_524` does today.
+
+**Serve `buyer/3D`, not `prototype/`.** Every path in `models.json` is relative
+to the index and climbs out of it (`../models/<id>/…`), so the page lives at
+`/prototype/index.html` under a server rooted one level up. A server rooted
+at `prototype/` cannot reach a single model.
 
 ---
 
@@ -185,7 +196,7 @@ Sequenced. Each is small enough to review.
 
 | # | | why it is where it is |
 |---|---|---|
-| [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about |
+| [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about — **done** ([#115](https://github.com/captproton/yardstake-ux/pull/115)); its one unprovable box, a real second export, moved to #111 |
 | [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox |
 | [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer |
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically |
