@@ -187,10 +187,18 @@ buyer/3D/
   model_contract.py   what a valid identity, index row and .glb read are —
                       imported by finish_adu.py, build_index.py, verify_index.py
   docs/CONFIGURATION.md  what a buyer chose, as a link and as the object Rails persists
+  probes/run_probes.py   the probe suite: every break-one-thing case, against a copy (#121)
 ```
 
 Every model contributes its own directory of `.glb` + `variants.json`, exactly
 as `barn_cabin_524` does today.
+
+**Run the probe suite before merging** a change to `verify_index.py`,
+`verify_prototype.py`, `build_index.py`, `model_contract.py`,
+`finish_adu.py`, `prototype/app.js` or the fixtures:
+`python3 buyer/3D/probes/run_probes.py`. Every gate passing on a clean tree
+says nothing about whether it still catches its case; the suite does. It
+breaks a temporary copy, never the working tree.
 
 **Serve `buyer/3D`, not `prototype/`.** Every path in `models.json` is relative
 to the index and climbs out of it (`../models/<id>/…`), so the page lives at
