@@ -30,6 +30,10 @@ import bmesh
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+# buyer/3D, for model_contract: the identity schema this file, build_index.py
+# and verify_index.py share. Appended, so nothing there shadows this model's.
+sys.path.append(str(HERE.parents[1]))
+from model_contract import identity_problems  # noqa: E402
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 
@@ -429,8 +433,65 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
         if stray:
             problems.append(f"furniture nodes no presence set controls: {stray}")
 
+    # ── IDENTITY ──────────────────────────────────────────────────────────
+    # `"model": "barn_cabin_524"` was a STRING LITERAL IN THE BUILDER, which
+    # is rule 4 broken in the one file that hands the page its contract: the
+    # spec owns every name, and this one was typed here. It also gave the page
+    # nothing to render a header with -- an id is not a display name, and
+    # `barn_cabin_524` is not a thing to show a buyer.
+    #
+    # WHICH AREA, NAMED RATHER THAN PICKED. `areas_declared` holds five
+    # numbers that mean different things. The spec names the key and the
+    # source string rides along, so a card that says "528 sf" can say which
+    # 528 -- and so that the next model, whose sheet counts area differently,
+    # says so instead of being silently coerced into this one's convention.
+    #
+    # THIS BLOCK ONLY FINDS THE AREA RECORD. Whether what it finds is valid --
+    # a string name, a positive area WITH its source, a storeys block of the
+    # right shape -- is model_contract.identity_problems(), run on the built
+    # block below, and the same function build_index.py and verify_index.py
+    # run. Checking presence here and types elsewhere is how a truthy
+    # `display_name: 123` and an area record with no `source` got published.
+    meta = spec["meta"]
+    idx = meta.get("index") or {}
+    area_key = idx.get("area_key")
+    if not (isinstance(area_key, str) and area_key):
+        problems.append("meta.index.area_key is unset; the index cannot "
+                        "publish an area it was not told to publish")
+        area_key_ok = False
+    else:
+        area_key_ok = True
+    area = (spec.get("areas_declared") or {}).get(area_key) if area_key_ok else None
+    if area_key_ok and area is None:
+        problems.append(f"meta.index.area_key is {area_key!r}, which is not a "
+                        f"key of areas_declared")
+    elif area is not None and not isinstance(area, dict):
+        problems.append(f"areas_declared.{area_key} must be an object with "
+                        f"`value` and `source`, found {area!r}")
+    area = area if isinstance(area, dict) else {}
+
     manifest = {
-        "model": "barn_cabin_524",
+        "model": {
+            "id": meta.get("model_id"),
+            "name": meta.get("display_name"),
+            "area_sf": area.get("value"),
+            "area_key": area_key,
+            "area_source": area.get("source"),
+            "storeys": idx.get("storeys"),
+            # Relative to the MODEL DIRECTORY, so the index can rebase it and
+            # nothing downstream has to know where this model lives. Optional:
+            # a model with no render yet publishes null rather than a path
+            # that 404s, and the page falls back.
+            "thumbnail": idx.get("thumbnail"),
+            "note": (
+                "`id` is an identifier and `name` is what a buyer reads; they "
+                "are not interchangeable and this model is why. The id says "
+                "524 -- it came from the source PDF's filename -- and every "
+                "measurable thing says 528: the sheet's own S.F. notes, and "
+                "22'-0\" x 24'-0\" = 528.0 sf of built geometry. See "
+                "spec.discrepancies."
+                "the-model-id-says-524-and-every-measurable-thing-says-528."),
+        },
         "note": ("Runtime material swaps. Each option sets baseColorFactor on the "
                  "named materials; the albedo maps are neutral, so no textures "
                  "need loading and none ship per option."),
@@ -567,6 +628,7 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     # variants.json sitting in export/ for anyone who picked it up between
     # runs. #99 fixed exactly this for lod2 and the manifest kept the old
     # habit. The previous good file stays where it is.
+    problems += identity_problems(manifest["model"], "model")
     if problems:
         return None, problems
     path = out / v.get("emit", "variants.json")
