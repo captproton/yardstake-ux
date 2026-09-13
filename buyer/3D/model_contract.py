@@ -404,6 +404,54 @@ def disclosure_problems(manifest):
     return problems
 
 
+# ── a saved configuration (#110) ─────────────────────────────────────────────
+# docs/CONFIGURATION.md is the contract: option ids, never values; every group
+# chosen; the model named. These are the rules the Rails app applies before it
+# trusts a stored or posted configuration.
+
+CONFIGURATION_FIELDS = ("model", "view", "sets", "presence")
+
+
+def configuration_problems(config, manifest, where="configuration"):
+    """A configuration against the manifest of the model it names. Assumes the
+    manifest itself passed display_problems()."""
+    if not isinstance(config, dict):
+        return [f"{where} must be an object, found {type(config).__name__}"]
+    problems = [f"{where} has an unknown field {k!r}"
+                for k in config if k not in CONFIGURATION_FIELDS]
+    ident = manifest.get("model") if isinstance(manifest.get("model"), dict) else {}
+    if not _text(config.get("model")):
+        problems.append(f"{where}.model must be a model id, found {config.get('model')!r}")
+    elif config["model"] != ident.get("id"):
+        problems.append(f"{where}.model is {config['model']!r} but the manifest is "
+                        f"for {ident.get('id')!r}")
+
+    views = [v.get("id") for v in manifest.get("views") or [] if isinstance(v, dict)]
+    view = config.get("view")
+    if views and view not in views:
+        problems.append(f"{where}.view {view!r} is not one of the manifest's views {views}")
+    elif not views and view is not None:
+        problems.append(f"{where}.view is {view!r} but the manifest has no views")
+
+    for kind in ("sets", "presence"):
+        groups = {g.get("id"): {o.get("id") for o in g.get("options") or [] if isinstance(o, dict)}
+                  for g in manifest.get(kind) or [] if isinstance(g, dict)}
+        chosen = config.get(kind, {})
+        if not isinstance(chosen, dict):
+            problems.append(f"{where}.{kind} must be an object of group id to option id")
+            continue
+        for group, options in groups.items():
+            if group not in chosen:
+                problems.append(f"{where}.{kind} has no choice for {group!r}; "
+                                f"every group is written")
+            elif chosen[group] not in options:
+                problems.append(f"{where}.{kind}.{group} is {chosen[group]!r}, "
+                                f"which is not one of {sorted(options)}")
+        problems += [f"{where}.{kind}.{g} names a group the manifest does not have"
+                     for g in chosen if g not in groups]
+    return problems
+
+
 def display_problems(manifest):
     """Every problem in the blocks the page renders controls from: `sets`,
     `presence` and `disclosure` (the rail), `views` and `dimensions` (the

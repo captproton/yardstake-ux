@@ -91,7 +91,16 @@ async function main() {
   const index = await fetchJSON(indexUrl);
   const rows = Array.isArray(index?.models) ? index.models : [];
   if (!rows.length) throw new Error(`${indexUrl.pathname} lists no models`);
-  const row = rows.find((r) => r.id === params.get('model')) ?? rows[0];
+  // A LINK IS TO A CONFIGURED MODEL (#110). A model id the index does not
+  // have is said out loud, not silently swapped for the first model.
+  const configurationProblems = [];
+  const wantedModel = params.get('model');
+  const row = rows.find((r) => r.id === wantedModel) ?? rows[0];
+  if (wantedModel !== null && row.id !== wantedModel) {
+    const text = `model: the index has no ${JSON.stringify(wantedModel)}; showing ${JSON.stringify(row.id)}`;
+    configurationProblems.push(text);
+    console.warn(`Configuration link: ${text}`);
+  }
 
   renderPicker(rows, row, params);
   const viewer = createViewer($('viewer'));
@@ -154,12 +163,15 @@ async function main() {
     // detail replaces it: its materials and nodes are new objects.
     if (i === 0) {
       const problems = [];
-      renderControls(readViews(manifest, problems), readDimensions(manifest, problems), viewer);
+      const config = createConfiguration(row.id, params, configurationProblems);
+      const views = readViews(manifest, problems);
+      const sets = readSets(manifest, problems);
       const presence = readPresence(manifest, problems);
+      renderControls(views, readDimensions(manifest, problems), viewer, config);
       if (presence.failClosed.length) viewer.setPresence(presence.failClosed, []);
-      renderRail(readSets(manifest, problems), presence.groups,
-        readDisclosure(manifest, problems), viewer);
+      renderRail(sets, presence.groups, readDisclosure(manifest, problems), viewer, config);
       window.__viewer = { ...window.__viewer, manifestProblems: problems };
+      config.start({ sets, presence: presence.groups, views });
     }
   }
   setStatus('');
@@ -407,6 +419,92 @@ function readDisclosure(manifest, problems) {
     return '';
   }
   return d;
+}
+
+// ── the configuration: what a buyer chose, and what Rails will persist ────
+// docs/CONFIGURATION.md is the contract. OPTION IDS, NEVER VALUES: a saved
+// link must survive a colour being corrected. EVERY CHOICE IS WRITTEN, not just
+// the ones that differ from a default, because a default can change and a
+// link must keep showing the building it was made from. The address bar is
+// kept equal to the current configuration with replaceState, so choosing a
+// finish does not add a history entry.
+//
+//   ?model=<id>&view=<id>&set.<group>=<option>&presence.<group>=<option>
+//
+// A link that names something this model does not have -- a group, or an
+// option in a group -- falls back to the default and SAYS SO, on the console
+// and in window.__viewer.configurationProblems. A link saved before an option
+// was renamed must not silently show a different building.
+function createConfiguration(modelId, params, problems) {
+  const requested = { view: params.get('view'), sets: {}, presence: {} };
+  for (const [key, value] of params) {
+    const m = /^(set|presence)\.(.+)$/.exec(key);
+    if (m) requested[m[1] === 'set' ? 'sets' : 'presence'][m[2]] = value;
+  }
+  const current = { model: modelId, view: null, sets: {}, presence: {} };
+  let live = false;
+
+  const warn = (text) => {
+    problems.push(text);
+    console.warn(`Configuration link: ${text}`);
+  };
+  const prefix = (kind) => (kind === 'sets' ? 'set' : 'presence');
+
+  function write() {
+    const next = new URLSearchParams();
+    if (params.has('index')) next.set('index', params.get('index'));
+    next.set('model', current.model);
+    if (current.view !== null) next.set('view', current.view);
+    for (const kind of ['sets', 'presence']) {
+      for (const [group, option] of Object.entries(current[kind])) next.set(`${prefix(kind)}.${group}`, option);
+    }
+    history.replaceState(null, '', `${location.pathname}?${next}`);
+    window.__viewer = {
+      ...window.__viewer,
+      configuration: structuredClone(current),
+      configurationProblems: [...problems],
+    };
+  }
+
+  return {
+    // The option a group starts on: the link's, when it names one of this
+    // group's options; otherwise the default, and a problem saying why.
+    initial(kind, groupId, options) {
+      const wanted = kind === 'views' ? requested.view : requested[kind][groupId];
+      const fallback = options.find((o) => o.isDefault) ?? options[0];
+      if (wanted == null) return fallback;
+      const hit = options.find((o) => o.id === wanted);
+      if (hit) return hit;
+      const where = kind === 'views' ? 'view' : `${prefix(kind)}.${groupId}`;
+      warn(`${where} has no option ${JSON.stringify(wanted)}; showing ${JSON.stringify(fallback.id)}`);
+      return fallback;
+    },
+    chooseView(id) {
+      current.view = id;
+      if (live) write();
+    },
+    choose(kind, groupId, optionId) {
+      current[kind][groupId] = optionId;
+      if (live) write();
+    },
+    // Once every control has taken its starting choice: report what the link
+    // named that this model has no group for, then publish the configuration.
+    start({ sets, presence, views }) {
+      const known = { sets: new Set(sets.map((g) => g.id)), presence: new Set(presence.map((g) => g.id)) };
+      for (const kind of ['sets', 'presence']) {
+        for (const [group, option] of Object.entries(requested[kind])) {
+          if (!known[kind].has(group)) {
+            warn(`${prefix(kind)}.${group}=${option} names a group this model does not have; ignored`);
+          }
+        }
+      }
+      if (requested.view !== null && !views.length) {
+        warn(`view=${requested.view} names a view this model does not have; ignored`);
+      }
+      live = true;
+      write();
+    },
+  };
 }
 
 // ── the viewer ────────────────────────────────────────────────────────────
@@ -852,7 +950,7 @@ function dispose(root) {
 // THE CONTROLS ARE WHATEVER THE MANIFEST OFFERS: its modes, in its order,
 // with its labels. Nothing here counts them. A block that is absent, or a
 // single mode that offers no choice, renders no control at all.
-function renderControls(views, dimensions, viewer) {
+function renderControls(views, dimensions, viewer, config) {
   let any = false;
 
   if (views.length) {
@@ -862,6 +960,7 @@ function renderControls(views, dimensions, viewer) {
       for (const [v, b] of buttons) b.setAttribute('aria-pressed', String(v === view));
       viewer.setHidden(view.hide);
       window.__viewer = { ...window.__viewer, view: view.id };
+      config.chooseView(view.id);
     };
     // ONE MODE IS NOT A CHOICE, but it is still how the manifest says the
     // model should be seen: apply it, and render no buttons.
@@ -878,7 +977,7 @@ function renderControls(views, dimensions, viewer) {
       group.hidden = false;
       any = true;
     }
-    select(views.find((v) => v.isDefault) ?? views[0]);
+    select(config.initial('views', null, views));
   }
 
   if (dimensions) {
@@ -903,10 +1002,10 @@ function renderControls(views, dimensions, viewer) {
 // THE RAIL IS WHATEVER THE MANIFEST OFFERS: every finish group and every
 // layout group, in its order, with its labels. Nothing here knows how many
 // there are or what they are called, so a model with no covered entry simply
-// brings one group fewer. Each group starts on its default option (or its
-// first) and APPLIES it -- for layouts that is not optional, because the model
-// ships every arrangement at once.
-function renderRail(sets, presence, disclosure, viewer) {
+// brings one group fewer. Each group starts on the link's choice, else its
+// default option (or its first), and APPLIES it -- for layouts that is not
+// optional, because the model ships every arrangement at once.
+function renderRail(sets, presence, disclosure, viewer, config) {
   const rail = $('rail');
   const choices = { sets: {}, presence: {} };
   const publish = () => {
@@ -916,9 +1015,10 @@ function renderRail(sets, presence, disclosure, viewer) {
   if (sets.length) {
     const section = railSection(rail, 'Finishes');
     sets.forEach((set, i) => {
-      choiceGroup(section, set, `set-${i}`, true, (option) => {
+      choiceGroup(section, set, `set-${i}`, true, config.initial('sets', set.id, set.options), (option) => {
         viewer.setTint(set.targets, option.rgb);
         choices.sets[set.id] = option.id;
+        config.choose('sets', set.id, option.id);
         publish();
       });
     });
@@ -929,10 +1029,11 @@ function renderRail(sets, presence, disclosure, viewer) {
     const controlled = presence.flatMap((g) => g.options.flatMap((o) => o.show));
     const chosen = new Map();
     presence.forEach((group, i) => {
-      choiceGroup(section, group, `presence-${i}`, false, (option) => {
+      choiceGroup(section, group, `presence-${i}`, false, config.initial('presence', group.id, group.options), (option) => {
         chosen.set(group, option);
         viewer.setPresence(controlled, [...chosen.values()].flatMap((o) => o.show));
         choices.presence[group.id] = option.id;
+        config.choose('presence', group.id, option.id);
         publish();
       });
     });
@@ -964,7 +1065,7 @@ function railSection(rail, title) {
 
 // One radio group per manifest group: native inputs, so the keyboard and
 // assistive technology get a real choice. Finishes show a swatch chip.
-function choiceGroup(parent, group, name, swatches, onSelect) {
+function choiceGroup(parent, group, name, swatches, initial, onSelect) {
   const fieldset = document.createElement('fieldset');
   fieldset.className = swatches ? 'swatches' : 'layouts';
   const legend = document.createElement('legend');
@@ -979,8 +1080,6 @@ function choiceGroup(parent, group, name, swatches, onSelect) {
     current.textContent = option.label;
     onSelect(option);
   };
-  const initial = group.options.find((o) => o.isDefault) ?? group.options[0];
-
   group.options.forEach((option, j) => {
     const label = document.createElement('label');
     label.className = 'choice';
@@ -1066,8 +1165,12 @@ function renderPicker(rows, chosen, params) {
   }
   picker.hidden = false;
   picker.addEventListener('change', () => {
-    params.set('model', picker.value);
-    location.search = params.toString();
+    // A different model starts from its own defaults: carry the index, not
+    // the last model's choices, whose ids mean nothing to the next one.
+    const next = new URLSearchParams();
+    if (params.has('index')) next.set('index', params.get('index'));
+    next.set('model', picker.value);
+    location.search = next.toString();
   });
 }
 
