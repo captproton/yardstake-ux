@@ -51,7 +51,7 @@ the string `barn_cabin`, a room name, or a set id, that is a defect.
 | `presence` | 3 room arrangements, node names to **show** | the layout rail |
 | `views` | 4 modes, node names to **hide** | SHOW INTERIOR |
 | `dimensions` | 3 footprints + ridge, in feet | SHOW DIMENSIONS |
-| `disclosure` | the furniture-not-included text | required UI copy |
+| `disclosure` | the furniture-not-included text — copy only, at most 200 characters; the reasoning is `disclosure_note` | required UI copy, on screen |
 
 Plus `barn_cabin_524.glb` (960 KB, Draco), `lod1` (234 KB), `lod2` (30 KB).
 
@@ -173,9 +173,11 @@ buyer/3D/prototype/
   index.html          the page; three.js 0.186.0 pinned once, in its import map   (#107, done)
   app.js              ES modules: index → manifest header → levels, coarse first  (#107, done)
                       view modes and the dimension overlay under the viewer      (#108, done)
+                      the option rail: finishes, layouts, disclosure             (#109, done)
   models.json         the index — which models exist                             (#106, done)
   fixtures/           three generated models and their own index, for ?index=fixtures/models.json:
-                      3 view modes and no `with_porch`; identity only; one view mode
+                      2 finish sets, a bench layout, 3 view modes, no `with_porch`;
+                      identity only; one view mode
 buyer/3D/
   build_index.py      writes prototype/models.json from every exported model
   verify_index.py     gates it, no Blender
@@ -233,6 +235,36 @@ at `prototype/` cannot reach a single model. Locally:
   `verify_prototype.py` gate 4 fails if `app.js` and `model_contract` accept
   different units.
 
+**What the option rail settled**
+([#120](https://github.com/captproton/yardstake-ux/pull/120)):
+
+- **Linear in, sRGB out.** A finish writes the manifest's linear value with
+  `setRGB(…, LinearSRGBColorSpace)`; its swatch chip is the sRGB encoding of
+  the same colour. All 23 options checked: every chip equals its material's
+  own colour. Charcoal's chip is `#6c6e6f`; painting the manifest's numbers
+  would have given `#262829`.
+- **Layouts are applied on load, and combine with view modes.** A node is
+  visible only if the view mode does not hide it *and*, when a layout names
+  it, a chosen layout shows it — checked under all four modes.
+- **Presence fails closed.** A malformed `presence` block hides every node it
+  names and renders no layout control: unfurnished is plain, every
+  arrangement at once is broken. It cannot hide a node the manifest never
+  names; `finish_adu.py`'s check that every furniture node is controlled
+  covers that at export.
+- **A manifest that cannot be read stops the page.** Error, no model. It is
+  not "a model with no options" — without it nothing can hide the
+  arrangements the model ships together.
+- **The disclosure is copy.** The barn cabin's had a paragraph of reasoning
+  after the sentence, in capitals, which would have gone on screen.
+  `spec.yaml` now splits it into `disclosure` and `disclosure_note`;
+  `model_contract` caps the copy at 200 characters, counted as code points on
+  both sides, and gate 4 keeps the two limits equal.
+- **Not browser-verified:** re-applying choices when full detail replaces the
+  coarse level — the detail loaded before a click could land.
+- **Open, and the owner's call:** dark finishes read lighter than their names
+  (Charcoal quartz is a medium grey, `#69696a`). The page decodes the values
+  correctly; if they look wrong, the fix is in `spec.yaml`.
+
 ---
 
 ## Issues
@@ -244,7 +276,7 @@ Sequenced. Each is small enough to review.
 | [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about — **done** ([#115](https://github.com/captproton/yardstake-ux/pull/115)); its one unprovable box, a real second export, moved to #111 |
 | [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox — **done** ([#116](https://github.com/captproton/yardstake-ux/pull/116)); proved against a generated second model in `prototype/fixtures/` |
 | [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer — **done** ([#118](https://github.com/captproton/yardstake-ux/pull/118)); the manifest's modes and footprints, whole or refused |
-| [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically |
+| [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically — **done** ([#120](https://github.com/captproton/yardstake-ux/pull/120)); linear colours in, sRGB swatches out, layouts applied on load |
 | [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
 | [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
 | [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills |

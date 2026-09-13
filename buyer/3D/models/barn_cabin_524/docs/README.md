@@ -325,6 +325,16 @@ See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--d
 > would draw `main_body` 0.914 m off, since nothing here says where a
 > footprint sits ([#119](https://github.com/captproton/yardstake-ux/issues/119)). A malformed block is now refused whole —
 > by `finish_adu.py` before it writes, and by the page if one gets through.
+>
+> **#109 merged** in [#120](https://github.com/captproton/yardstake-ux/pull/120): the `sets` and `presence` blocks below drive the
+> option rail. Every one of the 23 finish values reaches its materials
+> exactly, and every swatch shows the sRGB encoding of the same colour; all
+> 11 furniture nodes are controlled, and each layout default is applied on
+> load. **`disclosure` is now copy only** — "Furniture and appliances shown for
+> scale; not included." — and the reasoning that used to follow it is
+> `disclosure_note`, split in `spec.yaml` so the rail does not show it. Dark
+> finishes read lighter on screen than their names; that is these values,
+> decoded correctly, so if they are wrong the fix is here.
 
 `lod2` is the placement developer's. **`variants.json` is the web
 runtime's**, and until [#103](https://github.com/captproton/yardstake-ux/pull/103) it carried finishes and furniture
