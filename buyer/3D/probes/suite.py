@@ -42,7 +42,7 @@ BARN = "barn_cabin_524"
 
 # What the checks read. Anything else under buyer/3D is not needed to run them.
 ROOT_FILES = ("model_contract.py", "build_index.py", "verify_index.py", "verify_prototype.py")
-DOC_FILES = ("docs/CONFIGURATION.md",)
+DOC_FILES = ("docs/CONFIGURATION.md", "docs/COMMERCE.md")
 # A model directory for the Blender case, without what an export never reads.
 BLENDER_SKIP = ("renders", "refs", "docs", "tools", "__pycache__", "*.blend", "*.blend1")
 

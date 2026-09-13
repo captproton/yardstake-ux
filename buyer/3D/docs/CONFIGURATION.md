@@ -3,7 +3,8 @@
 The configurator page ([`../prototype/`](../prototype/)) holds everything a buyer
 has chosen as one small value. The address bar always carries it, so a link
 reproduces a configured building. The Rails app will store the same value and
-send it with a quote request. This document is the contract between the two.
+send it with a quote request ([`COMMERCE.md`](COMMERCE.md)). This document is
+the contract between the two.
 `verify_prototype.py` checks that the example below is valid for the real
 manifest and that its URL decodes to it, so this page can't quietly drift.
 
