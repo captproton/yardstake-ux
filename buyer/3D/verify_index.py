@@ -20,21 +20,21 @@ whether the generator was right would pass on any index the generator could
 produce, including a wrong one.
 
 A BROKEN INDEX IS A FAILED GATE, NOT A TRACEBACK. The file is parsed once and
-its shape checked before any gate touches it; every later gate works from that
-one parsed value.
+its shape checked before any gate touches it. Each row is judged by
+`model_contract.row_problems()` -- the same contract build_index.py holds
+itself to -- and only rows that meet it reach the gates that read their
+fields, so a malformed id or level can fail gate 3 but cannot crash gate 1.
 """
 import json
-import struct
 from pathlib import Path
 
 import build_index
+import model_contract
 
-HERE = Path(__file__).resolve().parent
-INDEX = HERE / "models.json"
-
-# Fields a page needs to render a card at all. `thumbnail` is NOT here: a
-# model with no render yet is a real state (#111), and the page falls back.
-REQUIRED = ("id", "name", "area_sf", "storeys", "dir", "manifest", "levels")
+INDEX = build_index.INDEX
+# Paths in the index are relative to the index's own directory, which is how
+# the page resolves them -- never to this script's directory.
+ROOT = INDEX.parent
 
 # Paths a browser fetches as files. `dir` is the one directory; a directory
 # named `x.glb` satisfies `.exists()` and still cannot be fetched.
@@ -49,7 +49,7 @@ def load_index(problems):
     try:
         doc = json.loads(INDEX.read_text())
     except (ValueError, OSError) as e:
-        problems.append(f"models.json is not valid JSON: {e}")
+        problems.append(f"models.json is unreadable or not valid JSON: {e}")
         return {}, []
     if not isinstance(doc, dict):
         problems.append(f"models.json's root is a {type(doc).__name__}, "
@@ -60,35 +60,7 @@ def load_index(problems):
         problems.append(f"models.json's `models` is a {type(rows).__name__}, "
                         f"not a list")
         return doc, []
-    bad = [i for i, r in enumerate(rows) if not isinstance(r, dict)]
-    if bad:
-        problems.append(f"models.json rows {bad} are not objects")
-    return doc, [r for r in rows if isinstance(r, dict)]
-
-
-def glb_names(path):
-    """Material and node names from a .glb's JSON chunk, read without Blender.
-
-    Returns (materials, nodes) or raises ValueError with a readable reason.
-    """
-    b = path.read_bytes()
-    if len(b) < 20 or b[:4] != b"glTF":
-        raise ValueError("not a binary glTF (no glTF magic)")
-    length, kind = struct.unpack("<I4s", b[12:20])
-    if kind != b"JSON" or 20 + length > len(b):
-        raise ValueError("first chunk is not a complete JSON chunk")
-    g = json.loads(b[20:20 + length])
-    return ({m.get("name") for m in g.get("materials", [])},
-            {n.get("name") for n in g.get("nodes", [])})
-
-
-def manifest_names(manifest):
-    """The material and node names a variants.json asks the page to touch."""
-    mats = {t for st in manifest.get("sets", []) for t in st.get("targets", [])}
-    nodes = {n for st in manifest.get("presence", [])
-             for o in st.get("options", [])
-             for key in ("show", "hide") for n in o.get(key, [])}
-    return mats, nodes
+    return doc, rows
 
 
 def main():
@@ -98,11 +70,16 @@ def main():
     print("=" * 76)
 
     doc, have = load_index(problems)
+    verdicts = [model_contract.row_problems(r, f"row {i}")
+                for i, r in enumerate(have)]
+    # Rows that meet the contract: string id and name, relative-path strings,
+    # a full-detail level. Every gate that reads a row's fields reads these.
+    good = [r for r, bad in zip(have, verdicts) if not bad]
 
     # ── 1. the committed index still describes what is on disk ────────────
-    # build() exits on a manifest it cannot index (bad shape, no id, a
-    # duplicate id). Here that is a failed gate with the generator's own
-    # message, not an exit that skips the rest of the report.
+    # build() exits on a manifest it cannot index (bad identity, a duplicate
+    # id, no full-detail .glb). Here that is a failed gate with the
+    # generator's own message, not an exit that skips the rest of the report.
     n_before = len(problems)
     try:
         fresh_doc = build_index.build()
@@ -110,14 +87,13 @@ def main():
         problems.append(f"a fresh scan failed: {e}")
         fresh_doc = None
     if fresh_doc is not None:
-        fresh = fresh_doc["models"]
-        hi = {r.get("id") for r in have}
-        fi = {r.get("id") for r in fresh}
+        hi = {r["id"] for r in good}
+        fi = {r["id"] for r in fresh_doc["models"]}
         for extra in sorted(fi - hi):
             problems.append(f"{extra} is exported on disk but missing from "
                             f"the index — an unindexed model is invisible to "
                             f"the page")
-        for gone in sorted(hi - fi, key=str):
+        for gone in sorted(hi - fi):
             problems.append(f"{gone} is in the index but not on disk")
         # THE WHOLE DOCUMENT: the note is generated too, and a hand-edited
         # one must not pass a gate that says "matches a fresh scan".
@@ -125,56 +101,53 @@ def main():
             problems.append("the index names the right models but its rows or "
                             "note differ from a fresh scan — re-run "
                             "build_index.py")
-    ok = len(problems) == n_before and not (have == [] and doc == {})
+    ok = len(problems) == n_before and doc != {}
     print(f"  [{'PASS' if ok else 'FAIL'}] the index matches a fresh scan — "
           f"{len(have)} model(s): "
-          f"{', '.join(sorted(str(r.get('id')) for r in have)) or 'none'}")
+          f"{', '.join(sorted(r['id'] for r in good)) or 'none'}")
 
     # ── 1b. ids are unique ────────────────────────────────────────────────
     # The checks above compare SETS of ids, which collapse duplicates. A page
     # selecting by id reaches only one of two rows that share one.
-    ids = [r.get("id") for r in have]
-    dupes = sorted({str(i) for i in ids if ids.count(i) > 1})
+    ids = [r["id"] for r in good]
+    dupes = sorted({i for i in ids if ids.count(i) > 1})
     problems += [f"id {d} appears in more than one row" for d in dupes]
     print(f"  [{'PASS' if not dupes else 'FAIL'}] every id is unique"
           + (f" — duplicated: {', '.join(dupes)}" if dupes else ""))
 
     # ── 2. every path resolves, checked by stat and not by the generator ──
     missing, n_paths = [], 0
-    for r in have:
-        rid = r.get("id")
-        checks = [("dir", r.get("dir"), Path.is_dir)]
-        checks += [(k, r.get(k), Path.is_file) for k in FILE_KEYS]
-        levels = r.get("levels")
-        if isinstance(levels, dict):
-            checks += [(f"levels.{lod}", v, Path.is_file)
-                       for lod, v in levels.items()]
+    for r in good:
+        checks = [("dir", r["dir"], Path.is_dir)]
+        checks += [(k, r[k], Path.is_file) for k in FILE_KEYS]
+        checks += [(f"levels.{lod}", v, Path.is_file)
+                   for lod, v in r["levels"].items()]
         for key, v, kind in checks:
-            if not v:
+            if v is None:
                 continue
             n_paths += 1
-            if not isinstance(v, str) or not kind(HERE / v):
+            if not kind(ROOT / v):
                 want = "directory" if kind is Path.is_dir else "file"
-                missing.append(f"{rid}.{key} -> {v} (not a {want})")
+                missing.append(f"{r['id']}.{key} -> {v} (not a {want})")
     problems += [f"path does not resolve: {m}" for m in missing]
     print(f"  [{'PASS' if not missing else 'FAIL'}] every path resolves — "
           f"{n_paths} checked" + (f", {len(missing)} broken" if missing else ""))
 
-    # ── 3. a row carries what a card needs ────────────────────────────────
-    thin = []
-    for r in have:
-        for f in REQUIRED:
-            if r.get(f) in (None, "", {}, []):
-                thin.append(f"{r.get('id') or '?'}.{f}")
-    problems += [f"index row is missing {t}" for t in thin]
-    print(f"  [{'PASS' if not thin else 'FAIL'}] every row can render a card — "
-          f"{', '.join(REQUIRED)}")
+    # ── 3. every row meets the index contract ─────────────────────────────
+    # model_contract.row_problems: every key present; id, name, area_key and
+    # area_source non-empty strings; area_sf a positive number; storeys a
+    # {count, loft} block; paths relative strings; levels named lod<N>; and
+    # a full-detail file, lod0 or primary. `thumbnail` may be null (#111).
+    thin = [p for bad in verdicts for p in bad]
+    problems += thin
+    print(f"  [{'PASS' if not thin else 'FAIL'}] every row meets the index "
+          f"contract" + (f" — {len(thin)} problem(s)" if thin else ""))
 
     # ── 4. the barn cabin is a row, not a special case ────────────────────
     # THE POINT OF THE WHOLE ISSUE, ASKED DIRECTLY. Every row must be reachable
     # by the same generic access, with no key that only one model has and no
     # field a page would have to branch on.
-    shapes = {tuple(sorted(r)) for r in have}
+    shapes = {tuple(sorted(r)) for r in have if isinstance(r, dict)}
     if len(shapes) > 1:
         problems.append(f"index rows do not share a shape: {sorted(shapes)} — "
                         f"a page would have to know which model it loaded")
@@ -185,8 +158,8 @@ def main():
     # A row may name itself; the NOTE may not. Both the id and the display
     # name count -- "Barn Cabin" is a building name as much as the id is.
     note = doc.get("note") if isinstance(doc.get("note"), str) else ""
-    leaked = sorted({n for r in have for n in (r.get("id"), r.get("name"))
-                     if isinstance(n, str) and n and n in note})
+    leaked = sorted({n for r in good for n in (r["id"], r["name"])
+                     if n in note})
     problems += [f"the index's own note names {m}" for m in leaked]
     print(f"  [{'PASS' if not leaked else 'FAIL'}] the index's scaffolding "
           f"names no building")
@@ -208,25 +181,25 @@ def main():
     # screen, and a presence option whose node is not in the file shows an
     # empty room; neither throws in a browser. Checked against lod0, the full-
     # detail level -- coarser levels drop furniture by design -- and read from
-    # the .glb itself, since the index's promise is about what ships.
+    # the .glb itself, since the index's promise is about what ships. The
+    # contract guarantees every good row HAS a full-detail file, so the only
+    # row skipped here is one whose file gate 2 already reports missing.
     unmatched, n_names = [], 0
-    for r in have:
-        rid = r.get("id")
-        levels = r.get("levels") if isinstance(r.get("levels"), dict) else {}
-        glb, manifest = levels.get("lod0") or r.get("primary"), r.get("manifest")
-        if not (isinstance(glb, str) and isinstance(manifest, str)
-                and (HERE / glb).is_file() and (HERE / manifest).is_file()):
-            continue  # gate 2 already reports a missing file
+    for r in good:
+        rid = r["id"]
+        glb, manifest = r["levels"].get("lod0") or r["primary"], r["manifest"]
+        if not ((ROOT / glb).is_file() and (ROOT / manifest).is_file()):
+            continue
         try:
-            have_mats, have_nodes = glb_names(HERE / glb)
+            have_mats, have_nodes = model_contract.glb_names(ROOT / glb)
         except (ValueError, OSError) as e:
             unmatched.append(f"{rid}: {glb} unreadable: {e}")
             continue
         try:
-            m = json.loads((HERE / manifest).read_text())
-            want_mats, want_nodes = manifest_names(m)
-        except (ValueError, OSError, AttributeError, TypeError) as e:
-            unmatched.append(f"{rid}: {manifest} unreadable: {e!r}")
+            want_mats, want_nodes = model_contract.manifest_names(
+                json.loads((ROOT / manifest).read_text()))
+        except (ValueError, OSError) as e:
+            unmatched.append(f"{rid}: {manifest} unreadable: {e}")
             continue
         n_names += len(want_mats) + len(want_nodes)
         unmatched += [f"{rid}: material {x} is a swap target but not in {glb}"

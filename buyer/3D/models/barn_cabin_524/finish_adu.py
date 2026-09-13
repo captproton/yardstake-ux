@@ -30,6 +30,10 @@ import bmesh
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+# buyer/3D, for model_contract: the identity schema this file, build_index.py
+# and verify_index.py share. Appended, so nothing there shadows this model's.
+sys.path.append(str(HERE.parents[1]))
+from model_contract import identity_problems  # noqa: E402
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 
@@ -441,27 +445,38 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     # source string rides along, so a card that says "528 sf" can say which
     # 528 -- and so that the next model, whose sheet counts area differently,
     # says so instead of being silently coerced into this one's convention.
+    #
+    # THIS BLOCK ONLY FINDS THE AREA RECORD. Whether what it finds is valid --
+    # a string name, a positive area WITH its source, a storeys block of the
+    # right shape -- is model_contract.identity_problems(), run on the built
+    # block below, and the same function build_index.py and verify_index.py
+    # run. Checking presence here and types elsewhere is how a truthy
+    # `display_name: 123` and an area record with no `source` got published.
     meta = spec["meta"]
     idx = meta.get("index") or {}
     area_key = idx.get("area_key")
-    if not area_key:
+    if not (isinstance(area_key, str) and area_key):
         problems.append("meta.index.area_key is unset; the index cannot "
                         "publish an area it was not told to publish")
-    area = (spec.get("areas_declared") or {}).get(area_key) if area_key else None
-    if area_key and area is None:
+        area_key_ok = False
+    else:
+        area_key_ok = True
+    area = (spec.get("areas_declared") or {}).get(area_key) if area_key_ok else None
+    if area_key_ok and area is None:
         problems.append(f"meta.index.area_key is {area_key!r}, which is not a "
                         f"key of areas_declared")
-    if not meta.get("display_name"):
-        problems.append("meta.display_name is unset; the page would have to "
-                        "show the directory name")
+    elif area is not None and not isinstance(area, dict):
+        problems.append(f"areas_declared.{area_key} must be an object with "
+                        f"`value` and `source`, found {area!r}")
+    area = area if isinstance(area, dict) else {}
 
     manifest = {
         "model": {
-            "id": meta["model_id"],
+            "id": meta.get("model_id"),
             "name": meta.get("display_name"),
-            "area_sf": (area or {}).get("value"),
+            "area_sf": area.get("value"),
             "area_key": area_key,
-            "area_source": (area or {}).get("source"),
+            "area_source": area.get("source"),
             "storeys": idx.get("storeys"),
             # Relative to the MODEL DIRECTORY, so the index can rebase it and
             # nothing downstream has to know where this model lives. Optional:
@@ -613,6 +628,7 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     # variants.json sitting in export/ for anyone who picked it up between
     # runs. #99 fixed exactly this for lod2 and the manifest kept the old
     # habit. The previous good file stays where it is.
+    problems += identity_problems(manifest["model"], "model")
     if problems:
         return None, problems
     path = out / v.get("emit", "variants.json")

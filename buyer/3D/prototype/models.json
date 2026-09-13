@@ -13,15 +13,15 @@
         "raw": "main floor + loft storage above",
         "source": "A1.1 main floor plan and loft plan"
       },
-      "dir": "models/barn_cabin_524",
-      "manifest": "models/barn_cabin_524/export/variants.json",
+      "dir": "../models/barn_cabin_524",
+      "manifest": "../models/barn_cabin_524/export/variants.json",
       "levels": {
-        "lod0": "models/barn_cabin_524/export/barn_cabin_524_lod0.glb",
-        "lod1": "models/barn_cabin_524/export/barn_cabin_524_lod1.glb",
-        "lod2": "models/barn_cabin_524/export/barn_cabin_524_lod2.glb"
+        "lod0": "../models/barn_cabin_524/export/barn_cabin_524_lod0.glb",
+        "lod1": "../models/barn_cabin_524/export/barn_cabin_524_lod1.glb",
+        "lod2": "../models/barn_cabin_524/export/barn_cabin_524_lod2.glb"
       },
-      "primary": "models/barn_cabin_524/export/barn_cabin_524.glb",
-      "thumbnail": "models/barn_cabin_524/renders/ortho_front_S.png"
+      "primary": "../models/barn_cabin_524/export/barn_cabin_524.glb",
+      "thumbnail": "../models/barn_cabin_524/renders/ortho_front_S.png"
     }
   ]
 }
