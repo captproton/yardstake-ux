@@ -339,23 +339,45 @@ at `prototype/` cannot reach a single model. Locally:
   checks — swatches against materials, layouts under view modes, framing —
   were one-off JavaScript and belong in a browser test runner.
 
+**What a model with parts missing settled**
+([#124](https://github.com/captproton/yardstake-ux/pull/124)):
+
+- **Taking parts away breaks nothing.** The reduced barn cabin renders two
+  layout groups and two view buttons with no problems and no console errors;
+  the identity-only model loads and orbits with no controls and no rail.
+- **Missing `with_porch` falls back, but in the wrong place.** The overlay
+  draws `main_body`, labelled correctly, 0.914 m from the real heated box,
+  because a manifest gives footprints no position — measured here, carried
+  by [#119](https://github.com/captproton/yardstake-ux/issues/119).
+- **A fixture is only as good as its freshness.** The reduced fixture is
+  derived from the barn cabin's manifest, not copied, and generation stops
+  if the barn cabin no longer has what it removes. Gate 3 and
+  `make_fixtures.py --check` require the directory to be exactly what the
+  generator makes: a stale, missing or leftover file fails, and a normal run
+  removes leftovers, so "re-run make_fixtures.py" is always the remedy.
+- **Every published level is read.** A missing or corrupt lod0 *or* lod2 in
+  the barn cabin is a named generation failure, not a traceback and not a
+  pass; fixture rows list levels in `build_index.py`'s order.
+- **Three review rounds, each proved.** 20 fixture cases, 112 in the suite;
+  disabling each new check (the freshness comparison, leftover reporting,
+  leftover removal, the level reads, the level order) turned its cases BAD.
+
 ---
 
 ## Issues
 
 Sequenced. Each is small enough to review.
 
-**Next, in this order** (as of #123):
+**Next** (as of #124):
 
-1. **[#111](https://github.com/captproton/yardstake-ux/issues/111) — mostly done already.** The three fixtures and the
-   whole-or-refused rules cover it; what remains is below, in its row. Its
-   new cases go into `probes/cases_*.py`, so the suite keeps proving them.
-2. **[#112](https://github.com/captproton/yardstake-ux/issues/112) — mostly layout.** The call to action sends the configuration
+1. **[#112](https://github.com/captproton/yardstake-ux/issues/112) — mostly layout.** The call to action sends the configuration
    object #110 defined, so the data it needs already exists. Its *content*
    waits on open question 2, where the price range comes from.
 
 **Done:** [#121](https://github.com/captproton/yardstake-ux/issues/121), the probe suite ([#123](https://github.com/captproton/yardstake-ux/pull/123)) — first, as planned, because
 the probes that proved every gate lived only outside the repo.
+[#111](https://github.com/captproton/yardstake-ux/issues/111), a model with parts missing ([#124](https://github.com/captproton/yardstake-ux/pull/124)) — all but the box
+carried from #106, so the issue stays open until a second model is exported.
 
 | # | | why it is where it is |
 |---|---|---|
@@ -364,7 +386,7 @@ the probes that proved every gate lived only outside the repo.
 | [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer — **done** ([#118](https://github.com/captproton/yardstake-ux/pull/118)); the manifest's modes and footprints, whole or refused |
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically — **done** ([#120](https://github.com/captproton/yardstake-ux/pull/120)); linear colours in, sRGB swatches out, layouts applied on load |
 | [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist — **done** ([#122](https://github.com/captproton/yardstake-ux/pull/122)); the contract is [`CONFIGURATION.md`](CONFIGURATION.md) |
-| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft. **Largely covered** by #118 and #120: the three fixtures (three view modes and no `with_porch`; identity only; one view mode) and whole-or-refused blocks. **Left:** a fixture with only `model` and a `.glb`, shown to load and orbit with no controls and no rail; its cases added to #121's suite. The box carried from #106 — a real second export lands as a row with no page code — stays open until a second model is exported |
+| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft — **done except one box** ([#124](https://github.com/captproton/yardstake-ux/pull/124)): the barn cabin reduced (its own `.glb` files, minus a layout group, two view modes and `with_porch`) renders a working page; the identity-only fixture loads and orbits with no controls and no rail; fixtures must match their generator. **Open:** the box carried from #106 — a real second export lands as a row with no page code — until a second model is exported |
 | [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills. The CTA sends the configuration object in [`CONFIGURATION.md`](CONFIGURATION.md); the price range is open question 2 |
 
 Not in the sequence, because nothing above is blocked on it:
