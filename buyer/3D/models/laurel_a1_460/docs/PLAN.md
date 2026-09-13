@@ -117,15 +117,19 @@ only. S1.0 and T24 carry no massing.
 The page ([`../../../docs/PAGE-PLAN.md`](../../../docs/PAGE-PLAN.md)) names no
 building. Everything it shows comes from `prototype/models.json`, written by
 `build_index.py`, and from each model's `export/variants.json`. So Laurel
-reaches the page only through that contract, and **no file in `prototype/`
-may change to show it**. `verify_prototype.py` gate 1 fails if the page names
-anything Laurel publishes.
+reaches the page only through that contract, and **the page's code may not
+change to show it**: `prototype/index.html` and `prototype/app.js` stay as they
+are. The generated index `prototype/models.json` does change, by gaining
+Laurel's row, and `build_index.py --check` holds it to a fresh scan.
+`verify_prototype.py` gate 1 fails if the page names anything Laurel
+publishes.
 
 What the export must carry, and what checks it:
 
 | requirement | from | checked by |
 |---|---|---|
 | identity: `id`, `name`, `area_sf`, `area_key`, `area_source`, `storeys` | #106 | `model_contract.identity_problems()` in `finish_adu.py`; `verify_index.py` |
+| `front`: which end of the box is the building's front (`+x`, `-x`, `+z`, `-z`, in the glTF frame), in the `model` block and the index row, and checked at export: the entry door must sit at that end | #117 (step 6) | `identity_problems()` and `row_problems()`; `finish_adu.py`'s geometry check; `verify_index.py` |
 | `views`, `dimensions`, `sets`, `presence`, `disclosure` **whole or refused**: a malformed block renders no control at all | #108, #109 | `model_contract.display_problems()` |
 | finish colours **linear** `baseColorFactor`, alpha 1 | #109 | `display_problems()`; the page swatches them in sRGB |
 | a `disclosure` whenever `presence` shows furniture, at most 200 characters | #109 | `display_problems()` |
@@ -200,14 +204,17 @@ moves `model_contract.py` into `schema/`. Three rules for both.
   exported levels, its manifest and all its gates are the regression test. If
   `lod2` changes, the extraction was not a move.
 - **The page and its probes must not notice.** `model_contract.py` moves into
-  `adu_kit/schema/`, and six places import it today: `build_index.py`,
-  `verify_index.py`, `verify_prototype.py`, `finish_adu.py`,
+  `adu_kit/schema/`, and six places reach it by its current location today:
+  `build_index.py`, `verify_index.py`, `verify_prototype.py`, `finish_adu.py`,
   `prototype/fixtures/make_fixtures.py`, and the probe suite, which copies it
-  by path (`probes/suite.py` `ROOT_FILES`) and loads it for contract cases.
-  The PR passes when `build_index.py --check`, both verify scripts,
-  `make_fixtures.py --check`, `run_probes.py` (all cases) and
-  `run_probes.py --self-check` pass unchanged. A probe case that has to be
-  edited to pass is a behaviour change, and it gets its own PR.
+  by path (`probes/suite.py` `ROOT_FILES`) and loads it from that path for
+  contract cases. **Those references are updated in the same PR** — the
+  imports, the copy list and the loader; a move cannot leave them pointing at
+  a file that is gone. What must not change is behaviour: `build_index.py
+  --check`, both verify scripts, `make_fixtures.py --check`, every probe case
+  and `run_probes.py --self-check` pass and report what they did before. A
+  probe **case** (its setup, what it runs, or the message it expects) that has
+  to be edited to pass is a behaviour change, and it gets its own PR.
 - **Leave the gates where they are.** Several `verify_*.py` scripts embed
   barn-cabin expectations inside otherwise generic checks. They get promoted
   one at a time, in P2 and P3 below, when Laurel proves which assertion was
@@ -325,9 +332,10 @@ mesh budget gate passes, and **the page takes Laurel with no page code**:
 
 - the manifest passes `identity_problems()` and `display_problems()` (the
   requirements table above), which `finish_adu.py` runs before writing it
-- `build_index.py` adds Laurel as a second row, and `build_index.py --check`,
-  `verify_index.py` and `verify_prototype.py` pass with **no change to any
-  file in `prototype/`**
+- `build_index.py` adds Laurel as a second row of the generated
+  `prototype/models.json`, and `build_index.py --check`, `verify_index.py`
+  and `verify_prototype.py` pass with **no change to the page's code**
+  (`prototype/index.html`, `prototype/app.js`)
 - Laurel opens from its front (#117) and loads, frames and orbits in the
   browser, chosen from the model picker
 - the probe suite passes. Its cases break the barn cabin deliberately; a
@@ -389,7 +397,7 @@ before the overlay is trusted for it.
 
 Each line is one pull request.
 
-1. [#126](https://github.com/captproton/yardstake-ux/issues/126) Extract the kit, in two PRs: **A** the kernel, export helpers and `inside_mesh()`, with the barn cabin byte-identical and every gate unchanged; **B** `model_contract.py` into `schema/`, with the page, its fixtures and every probe unchanged.
+1. [#126](https://github.com/captproton/yardstake-ux/issues/126) Extract the kit, in two PRs: **A** the kernel, export helpers and `inside_mesh()`, with the barn cabin byte-identical and every gate unchanged; **B** `model_contract.py` into `schema/`, its imports, copy list and loader updated, and the page, its fixtures and every probe reporting what they did before.
 2. [#127](https://github.com/captproton/yardstake-ux/issues/127) `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand.
 3. [#128](https://github.com/captproton/yardstake-ux/issues/128) `spec.yaml` P1, with the roof form settled and cited.
 4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings.
