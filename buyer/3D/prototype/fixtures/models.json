@@ -70,8 +70,8 @@
       "dir": "models/fixture_barn_reduced",
       "manifest": "models/fixture_barn_reduced/export/variants.json",
       "levels": {
-        "lod2": "../../models/barn_cabin_524/export/barn_cabin_524_lod2.glb",
-        "lod0": "../../models/barn_cabin_524/export/barn_cabin_524_lod0.glb"
+        "lod0": "../../models/barn_cabin_524/export/barn_cabin_524_lod0.glb",
+        "lod2": "../../models/barn_cabin_524/export/barn_cabin_524_lod2.glb"
       },
       "primary": null,
       "thumbnail": null

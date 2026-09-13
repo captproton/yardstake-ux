@@ -220,8 +220,8 @@ def barn_reduced():
     spec = {
         "identity": ident,
         "levels": {
-            "lod2": f"../../models/{BARN}/export/{BARN}_lod2.glb",
             "lod0": f"../../models/{BARN}/export/{BARN}_lod0.glb",
+            "lod2": f"../../models/{BARN}/export/{BARN}_lod2.glb",
         },
         "names_from": BARN_EXPORT / f"{BARN}_lod0.glb",
         "presence": [g for g in m["presence"] if g.get("id") != REMOVED_PRESENCE],
@@ -348,6 +348,15 @@ def render_model(spec, files):
         levels = spec["levels"]
         # Guarded like the manifest read: a missing or corrupt export is a
         # generation failure with a message, not a traceback from --check.
+        # Every level the row publishes is read, not only the one the names
+        # come from: the page loads lod2 first, so a broken lod2 is a broken
+        # fixture even when lod0 is fine.
+        for name, path in sorted(levels.items()):
+            try:
+                model_contract.glb_names(HERE / path)
+            except (ValueError, OSError) as e:
+                raise SystemExit(f"make_fixtures.py: {model_id} cannot read "
+                                 f"its {name}, {path}: {e}")
         try:
             have_mats, have_nodes = model_contract.glb_names(spec["names_from"])
         except (ValueError, OSError) as e:
@@ -374,7 +383,9 @@ def render_model(spec, files):
         "storeys": ident["storeys"],
         "dir": f"models/{model_id}",
         "manifest": f"{export}/variants.json",
-        "levels": levels,
+        # In build_index.py's order (sorted: lod0 first, coarsest last), so a
+        # fixture row reads like a real one to anything iterating the index.
+        "levels": dict(sorted(levels.items())),
         "primary": None,
         "thumbnail": None,
     }

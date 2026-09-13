@@ -1,10 +1,13 @@
 """#111 — the fixtures that stand in for a model with parts missing, and the
 rule that the fixture directory is exactly what make_fixtures.py generates
 (verify_prototype.py gate 3 and `make_fixtures.py --check`)."""
+import importlib.util
+import json
 from pathlib import Path
 
 from suite import (Case, ContractCase, Run, barn_glb, edit, existing,
-                   fixture_export, manifest, page_gates, read_json, write)
+                   fixture_export, fixture_index, manifest, page_gates,
+                   read_json, write)
 
 G = "#111 fixtures"
 REDUCED = "models/fixture_barn_reduced/export/variants.json"
@@ -32,6 +35,24 @@ def _leftover_fixture(root: Path) -> None:
 def _bare_is_only_model(mc, root: Path) -> list:
     keys = sorted(read_json(_bare(root)))
     return [] if keys == ["model"] else [f"the identity-only fixture has keys {keys}"]
+
+
+def _levels_in_index_order(mc, root: Path) -> list:
+    # build_index.py writes `levels` sorted (lod0 first, coarsest last). A
+    # fixture row must read the same to anything iterating the index -- both
+    # what the generator renders now and what is committed.
+    spec = importlib.util.spec_from_file_location(
+        "probe_make_fixtures", root / "prototype" / "fixtures" / "make_fixtures.py")
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+    rendered = json.loads(generator.render()["models.json"])
+    problems = []
+    for where, index in (("rendered", rendered), ("committed", read_json(fixture_index(root)))):
+        for row in index["models"]:
+            order = list(row["levels"])
+            if order != sorted(order):
+                problems.append(f"{where} {row['id']} levels are in the order {order}")
+    return problems
 
 
 CASES = [
@@ -83,7 +104,15 @@ CASES = [
     Case(G, "a missing barn cabin lod0 is a readable --check failure",
          lambda root: existing(barn_glb(root)).unlink(),
          _check(), "fixture_barn_reduced cannot read"),
+    Case(G, "a corrupt barn cabin lod2 is a readable --check failure",
+         lambda root: existing(barn_glb(root, "lod2")).write_bytes(b"not a glb"),
+         _check(), "fixture_barn_reduced cannot read its lod2"),
+    Case(G, "a missing barn cabin lod2 is a readable --check failure",
+         lambda root: existing(barn_glb(root, "lod2")).unlink(),
+         _check(), "fixture_barn_reduced cannot read its lod2"),
     Case(G, "clean: every fixture matches make_fixtures.py", None,
          _check(fails=False), "fixture file(s) match make_fixtures.py"),
     ContractCase(G, "the identity-only fixture is only `model`", _bare_is_only_model),
+    ContractCase(G, "fixture rows list their levels in build_index.py's order",
+                 _levels_in_index_order),
 ]
