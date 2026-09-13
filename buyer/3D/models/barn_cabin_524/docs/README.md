@@ -308,6 +308,15 @@ See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--d
 > write it unless `model_contract.py` passes it. The published area is
 > **528**, not the 524 in the id; see `discrepancies`. Index paths start
 > `../models/`, so **serve `buyer/3D`**, not `prototype/`.
+>
+> **#107 merged** in [#116](https://github.com/captproton/yardstake-ux/pull/116): [`prototype/index.html`](../../../prototype/index.html)
+> loads, lights, orbits and frames any indexed model, and this one is the
+> first it shows. Two facts it read off this model's `.glb`: **the front
+> faces +Z** in the export — the covered entry and entry door are at the
+> maximum-Z end, which the axis notes in `adapting-a-plan-set.html` would put
+> at −Z ([#117](https://github.com/captproton/yardstake-ux/issues/117)) — and
+> **`lod0`'s box floor is −1.175 m**, at the footing, where `lod1` and `lod2`
+> stop at −0.972 m. The viewer grounds the building at the coarse floor.
 
 `lod2` is the placement developer's. **`variants.json` is the web
 runtime's**, and until [#103](https://github.com/captproton/yardstake-ux/pull/103) it carried finishes and furniture

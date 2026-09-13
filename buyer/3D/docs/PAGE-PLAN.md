@@ -170,12 +170,15 @@ Static, no build step, so Rails can serve it as-is:
 
 ```
 buyer/3D/prototype/
-  index.html          the page
-  app.js              ES modules, three.js pinned from a CDN
-  models.json         the index — which models exist        (#106, done)
+  index.html          the page; three.js 0.186.0 pinned once, in its import map   (#107, done)
+  app.js              ES modules: index → manifest header → levels, coarse first  (#107, done)
+  models.json         the index — which models exist                             (#106, done)
+  fixtures/           a generated second model and its own index, for ?index=fixtures/models.json
 buyer/3D/
   build_index.py      writes prototype/models.json from every exported model
   verify_index.py     gates it, no Blender
+  verify_prototype.py gates the page: it names nothing any model publishes, three.js
+                      is pinned, the fixture meets the contract — no browser
   model_contract.py   what a valid identity, index row and .glb read are —
                       imported by finish_adu.py, build_index.py, verify_index.py
 ```
@@ -186,7 +189,24 @@ as `barn_cabin_524` does today.
 **Serve `buyer/3D`, not `prototype/`.** Every path in `models.json` is relative
 to the index and climbs out of it (`../models/<id>/…`), so the page lives at
 `/prototype/index.html` under a server rooted one level up. A server rooted
-at `prototype/` cannot reach a single model.
+at `prototype/` cannot reach a single model. Locally:
+`python3 -m http.server 8316 --directory buyer/3D`, then `/prototype/`.
+
+**What the viewer shell found, reading the `.glb` rather than the notes**
+([#116](https://github.com/captproton/yardstake-ux/pull/116)):
+
+- **The front faces +Z in the export** — the covered entry, its posts and the
+  entry door sit at the maximum-Z end. The axis notes in
+  [`adapting-a-plan-set.html`](adapting-a-plan-set.html) imply −Z. The viewer
+  follows the file, and the page's one remaining assumption about a building
+  is which end to show first: [#117](https://github.com/captproton/yardstake-ux/issues/117).
+- **The box floor depends on the level.** `lod0` reaches the footing at
+  −1.175 m; `lod1` and `lod2` stop at −0.972 m. The ground sits at the floor
+  of the level shown first, the coarsest, and does not drop when detail lands.
+- **Framing fits the box's eight corners, not a sphere**, and refits on
+  resize and when a finer level reaches past the coarse box — without
+  undoing a buyer's orbit. `window.__viewer.fits()` and `.pose()` are the
+  hooks a browser test reads.
 
 ---
 
@@ -197,7 +217,7 @@ Sequenced. Each is small enough to review.
 | # | | why it is where it is |
 |---|---|---|
 | [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about — **done** ([#115](https://github.com/captproton/yardstake-ux/pull/115)); its one unprovable box, a real second export, moved to #111 |
-| [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox |
+| [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox — **done** ([#116](https://github.com/captproton/yardstake-ux/pull/116)); proved against a generated second model in `prototype/fixtures/` |
 | [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer |
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically |
 | [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
@@ -209,6 +229,7 @@ Not in the sequence, because nothing above is blocked on it:
 | # | | |
 |---|---|---|
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
+| [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model |
 
 **Open questions, which are the user's rather than the model's:**
 
