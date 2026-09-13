@@ -291,7 +291,7 @@ def main():
     text = config_doc.read_text() if config_doc.is_file() else ""
     json_block = re.search(r"```json\n(.*?)\n```", text, re.S)
     link_block = re.search(r"```text\n(/prototype/\?.*?)\n```", text, re.S)
-    example = None
+    example, parsed = None, False
     if not config_doc.is_file():
         config_problems.append("docs/CONFIGURATION.md is missing")
     elif not json_block or not link_block:
@@ -299,8 +299,14 @@ def main():
     else:
         try:
             example = json.loads(json_block.group(1))
+            parsed = True
         except ValueError as e:
             config_problems.append(f"the example configuration is not JSON: {e}")
+    # JSON that parses to null, a list or a string is not a configuration, and
+    # must fail -- it used to skip every check below and print PASS.
+    if parsed and not isinstance(example, dict):
+        config_problems.append(f"the example configuration must be a JSON object, "
+                               f"found {type(example).__name__}")
     if isinstance(example, dict):
         real = load_json(build_index.INDEX, config_problems, "index")
         rows = real.get("models") if isinstance(real, dict) else None
@@ -309,12 +315,15 @@ def main():
         rows = rows if isinstance(rows, list) else []
         row = next((r for r in rows if isinstance(r, dict)
                     and r.get("id") == example.get("model")), None)
+        row_bad = (model_contract.row_problems(row, "the example's index row")
+                   if row is not None else [])
         if row is None:
             config_problems.append(f"the example names model {example.get('model')!r}, "
                                    f"which the index does not have")
-        elif not isinstance(row.get("manifest"), str):
-            config_problems.append(f"the index row for {row.get('id')!r} has no "
-                                   f"manifest path to check the example against")
+        elif row_bad:
+            # The row meets the index contract before anything is read from
+            # it; a missing `manifest` used to raise KeyError here.
+            config_problems += row_bad
         else:
             manifest = load_json(build_index.INDEX.parent / row["manifest"],
                                  config_problems, "manifest")

@@ -436,12 +436,17 @@ function readDisclosure(manifest, problems) {
 // and in window.__viewer.configurationProblems. A link saved before an option
 // was renamed must not silently show a different building.
 function createConfiguration(modelId, params, problems) {
-  const requested = { view: params.get('view'), sets: {}, presence: {} };
+  // NULL-PROTOTYPE OBJECTS for everything keyed by an id. Ids come from the URL
+  // and from manifests, and a plain object treats `__proto__` as its prototype
+  // rather than as a key: `set.__proto__=old` would vanish unreported, and a
+  // group with that id would be lost.
+  const idMap = () => Object.create(null);
+  const requested = { view: params.get('view'), sets: idMap(), presence: idMap() };
   for (const [key, value] of params) {
     const m = /^(set|presence)\.(.+)$/.exec(key);
     if (m) requested[m[1] === 'set' ? 'sets' : 'presence'][m[2]] = value;
   }
-  const current = { model: modelId, view: null, sets: {}, presence: {} };
+  const current = { model: modelId, view: null, sets: idMap(), presence: idMap() };
   let live = false;
 
   const warn = (text) => {
@@ -449,6 +454,18 @@ function createConfiguration(modelId, params, problems) {
     console.warn(`Configuration link: ${text}`);
   };
   const prefix = (kind) => (kind === 'sets' ? 'set' : 'presence');
+
+  // The configuration as docs/CONFIGURATION.md defines it: `view` is OMITTED
+  // when the model has no views, never null. Object.fromEntries defines own
+  // keys, so an id like `__proto__` survives into the published object.
+  function published() {
+    return {
+      model: current.model,
+      ...(current.view !== null ? { view: current.view } : {}),
+      sets: Object.fromEntries(Object.entries(current.sets)),
+      presence: Object.fromEntries(Object.entries(current.presence)),
+    };
+  }
 
   function write() {
     const next = new URLSearchParams();
@@ -461,7 +478,7 @@ function createConfiguration(modelId, params, problems) {
     history.replaceState(null, '', `${location.pathname}?${next}`);
     window.__viewer = {
       ...window.__viewer,
-      configuration: structuredClone(current),
+      configuration: published(),
       configurationProblems: [...problems],
     };
   }
@@ -1007,7 +1024,8 @@ function renderControls(views, dimensions, viewer, config) {
 // optional, because the model ships every arrangement at once.
 function renderRail(sets, presence, disclosure, viewer, config) {
   const rail = $('rail');
-  const choices = { sets: {}, presence: {} };
+  // Keyed by manifest group ids: no prototype, so no id is special.
+  const choices = { sets: Object.create(null), presence: Object.create(null) };
   const publish = () => {
     window.__viewer = { ...window.__viewer, choices: structuredClone(choices) };
   };

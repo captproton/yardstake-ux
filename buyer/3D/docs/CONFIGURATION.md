@@ -34,7 +34,7 @@ manifest and that its URL decodes to it, so this page can't quietly drift.
 | field | holds | from |
 |---|---|---|
 | `model` | the model's id | `prototype/models.json` → `models[].id` |
-| `view` | the chosen view mode's id; omitted when the model has no `views` | `variants.json` → `views[].id` |
+| `view` | the chosen view mode's id; **omitted**, never `null`, when the model has no `views` | `variants.json` → `views[].id` |
 | `sets` | for **every** finish group, the chosen option's id | `sets[].id` → `sets[].options[].id` |
 | `presence` | for **every** layout group, the chosen option's id | `presence[].id` → `presence[].options[].id` |
 
@@ -75,8 +75,8 @@ response. Each unknown thing falls back and is **reported**, on the console
 | the link names | the page shows | and reports |
 |---|---|---|
 | a model the index doesn't have | the index's first model | `model: the index has no "…"; showing "…"` |
-| an option a group doesn't have | that group's default | `set.<group> has no option "…"; showing "…"` |
-| a view the model doesn't have | the default view | `view has no option "…"; showing "…"` |
+| an option a group doesn't have | that group's default, or its first option when it declares none | `set.<group> has no option "…"; showing "…"` |
+| a view the model doesn't have | the default view, or the first when none is declared | `view has no option "…"; showing "…"` |
 | a group this model doesn't have | nothing for it | `set.<group>=… names a group this model does not have; ignored` |
 | a view when the model has none | no view | `view=… names a view this model does not have; ignored` |
 
@@ -90,7 +90,8 @@ check it against the manifest of the model it names with the same rules as
 `model_contract.configuration_problems()`:
 - `model` matches the manifest's `model.id`
 - every group the manifest offers is chosen, and every chosen id exists in its group
-- `view` is one of the manifest's views, or absent when it has none
+- `view` is present, and one of the manifest's views, exactly when the manifest has views; absent (not `null`) when it has none
+- every chosen id is a string
 - no other fields
 
 A configuration that fails is a stale one. Show the buyer what changed rather
