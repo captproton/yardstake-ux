@@ -169,18 +169,32 @@ Target layout:
 buyer/3D/adu_kit/
   kernel.py        box, weld, multibox, tube, loft, ellipse_ring, prism,
                    uv_project, mark_reveals, difference, world_bbox, ft
-  verify_lib.py    moved as-is
-  textures.py      from make_textures.py
-  export.py        to_metres, export_glb, Draco, base-colour patch,
-                   variants manifest emission, glb_info
-  views.py         camera presets and the sidebar panel
-  sheets.py        NEW — the coordinate-aware PDF harvester (see P1)
-  schema/          spec schema, manifest schema, the lod2 contract
+  verify_lib.py    inside_mesh() only
+  export.py        to_metres, export_glb, glb_info
+  sheets.py        NEW — the coordinate-aware PDF harvester (step 2, #127)
+  schema/          model_contract.py (step 1, second PR)
 buyer/3D/models/barn_cabin_524/   spec.yaml + typology build + its own gates
 buyer/3D/models/laurel_a1_460/    same shape
 ```
 
-Three rules for this PR.
+**Narrowed against the code for #126, by this phase's own rule.** The
+first draft listed more; reading it showed some of that knows the barn
+cabin, so it stays with the barn cabin until Laurel proves what is generic:
+
+- `verify_lib.py`'s known-answer cases (`inside_mesh_cases`) name barn-cabin
+  objects and coordinates. Only `inside_mesh()` moves.
+- `views.py` names this building's rooms (`Floor_bath`, the kitchen) in its
+  camera presets.
+- `make_textures.py`: the generators are generic, but `main()` names the
+  barn cabin's materials. The generators move when Laurel's textures use
+  them (step 10, #133).
+- The base-colour patch and the variants manifest emission read the barn
+  cabin's spec shape. They move when Laurel's export shows which parts are
+  generic (step 7, #131).
+
+It is **two PRs**, so a problem shows up as the page's or the kernel's, not
+both: **A** moves the kernel, the export helpers and `inside_mesh()`; **B**
+moves `model_contract.py` into `schema/`. Three rules for both.
 
 - **The barn cabin must build byte-identical after the move.** Its three
   exported levels, its manifest and all its gates are the regression test. If
@@ -200,15 +214,17 @@ Three rules for this PR.
   about buildings and which was about that building. Rule 29 applies: a gate
   generalised against a typology it has seen once cannot disagree with it.
 
-**Finish the lod2 contract in the same PR.** Part of it has landed since this
-plan was written: the lod2 **node** contract is declared per model, in the
-barn cabin's `spec.export.lod2_contract`, and `finish_adu.py` compares the
-export against it. What this plan asked for beyond that is still to confirm
-against the code, not assume: that origin, axes, units and the declared floor
-datum are asserted *per model* against a baseline kept in the model
-directory. The bounding-box floor moved when the crawlspace replaced the
-slab (the page's fixtures record −0.972 m), and Laurel is slab on grade, so
-no shared constant can hold it.
+**The lod2 contract: checked for #126, and only half there.** The lod2
+**node** contract is declared per model, in the barn cabin's
+`spec.export.lod2_contract`, and `finish_adu.py` compares the export against
+it. But nothing asserts origin, axes or the floor datum against a per-model
+baseline: besides the node contract, `finish_adu.py` checks only that the
+export's width matches the spec (its scale gate). The bounding-box floor
+moved when the crawlspace replaced the slab (the page's fixtures record
+−0.972 m), and Laurel is slab on grade, so no shared constant can hold it.
+Adding that assertion is a new gate, not a move, so it is **not** part of
+step 1. It lands with Laurel's export (step 7, #131), which is the first
+model whose floor differs.
 
 ---
 
@@ -303,8 +319,9 @@ Check the rendering for colour only, then confirm any sampled colour against a
 second source before trusting it. Rule 4 exists because a "siding" colour patch
 was once something else entirely.
 
-Exit gate: three levels exported with Draco, the lod2 baseline is recorded,
-the mesh budget gate passes, and **the page takes Laurel with no page code**:
+Exit gate: three levels exported with Draco, the lod2 baseline is recorded
+**and asserted per model** (origin, axes, units, floor datum; see P0), the
+mesh budget gate passes, and **the page takes Laurel with no page code**:
 
 - the manifest passes `identity_problems()` and `display_problems()` (the
   requirements table above), which `finish_adu.py` runs before writing it
@@ -372,7 +389,7 @@ before the overlay is trusted for it.
 
 Each line is one pull request.
 
-1. [#126](https://github.com/captproton/yardstake-ux/issues/126) Extract the kit; barn cabin builds byte-identical; the page, its fixtures and every probe pass unchanged; lod2 contract finished per model.
+1. [#126](https://github.com/captproton/yardstake-ux/issues/126) Extract the kit, in two PRs: **A** the kernel, export helpers and `inside_mesh()`, with the barn cabin byte-identical and every gate unchanged; **B** `model_contract.py` into `schema/`, with the page, its fixtures and every probe unchanged.
 2. [#127](https://github.com/captproton/yardstake-ux/issues/127) `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand.
 3. [#128](https://github.com/captproton/yardstake-ux/issues/128) `spec.yaml` P1, with the roof form settled and cited.
 4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings.
