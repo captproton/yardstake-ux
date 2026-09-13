@@ -24,6 +24,7 @@ its shape checked before any gate touches it; every later gate works from that
 one parsed value.
 """
 import json
+import struct
 from pathlib import Path
 
 import build_index
@@ -63,6 +64,31 @@ def load_index(problems):
     if bad:
         problems.append(f"models.json rows {bad} are not objects")
     return doc, [r for r in rows if isinstance(r, dict)]
+
+
+def glb_names(path):
+    """Material and node names from a .glb's JSON chunk, read without Blender.
+
+    Returns (materials, nodes) or raises ValueError with a readable reason.
+    """
+    b = path.read_bytes()
+    if len(b) < 20 or b[:4] != b"glTF":
+        raise ValueError("not a binary glTF (no glTF magic)")
+    length, kind = struct.unpack("<I4s", b[12:20])
+    if kind != b"JSON" or 20 + length > len(b):
+        raise ValueError("first chunk is not a complete JSON chunk")
+    g = json.loads(b[20:20 + length])
+    return ({m.get("name") for m in g.get("materials", [])},
+            {n.get("name") for n in g.get("nodes", [])})
+
+
+def manifest_names(manifest):
+    """The material and node names a variants.json asks the page to touch."""
+    mats = {t for st in manifest.get("sets", []) for t in st.get("targets", [])}
+    nodes = {n for st in manifest.get("presence", [])
+             for o in st.get("options", [])
+             for key in ("show", "hide") for n in o.get(key, [])}
+    return mats, nodes
 
 
 def main():
@@ -176,6 +202,41 @@ def main():
     print(f"  [{'PASS' if not stranded else 'FAIL'}] every model with a spec "
           f"is exported" + (f" — unexported: {', '.join(stranded)}"
                             if stranded else ""))
+
+    # ── 7. the manifest names only what its .glb contains ─────────────────
+    # A swap set whose target material is not in the file changes nothing on
+    # screen, and a presence option whose node is not in the file shows an
+    # empty room; neither throws in a browser. Checked against lod0, the full-
+    # detail level -- coarser levels drop furniture by design -- and read from
+    # the .glb itself, since the index's promise is about what ships.
+    unmatched, n_names = [], 0
+    for r in have:
+        rid = r.get("id")
+        levels = r.get("levels") if isinstance(r.get("levels"), dict) else {}
+        glb, manifest = levels.get("lod0") or r.get("primary"), r.get("manifest")
+        if not (isinstance(glb, str) and isinstance(manifest, str)
+                and (HERE / glb).is_file() and (HERE / manifest).is_file()):
+            continue  # gate 2 already reports a missing file
+        try:
+            have_mats, have_nodes = glb_names(HERE / glb)
+        except (ValueError, OSError) as e:
+            unmatched.append(f"{rid}: {glb} unreadable: {e}")
+            continue
+        try:
+            m = json.loads((HERE / manifest).read_text())
+            want_mats, want_nodes = manifest_names(m)
+        except (ValueError, OSError, AttributeError, TypeError) as e:
+            unmatched.append(f"{rid}: {manifest} unreadable: {e!r}")
+            continue
+        n_names += len(want_mats) + len(want_nodes)
+        unmatched += [f"{rid}: material {x} is a swap target but not in {glb}"
+                      for x in sorted(want_mats - have_mats)]
+        unmatched += [f"{rid}: node {x} is a presence option but not in {glb}"
+                      for x in sorted(want_nodes - have_nodes)]
+    problems += unmatched
+    print(f"  [{'PASS' if not unmatched else 'FAIL'}] every manifest names only "
+          f"what its .glb contains — {n_names} name(s) checked"
+          + (f", {len(unmatched)} unmatched" if unmatched else ""))
 
     print("-" * 76)
     if problems:
