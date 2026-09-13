@@ -3,8 +3,8 @@ rule that the fixture directory is exactly what make_fixtures.py generates
 (verify_prototype.py gate 3 and `make_fixtures.py --check`)."""
 from pathlib import Path
 
-from suite import (Case, ContractCase, Run, edit, existing, fixture_export,
-                   manifest, page_gates, read_json, write)
+from suite import (Case, ContractCase, Run, barn_glb, edit, existing,
+                   fixture_export, manifest, page_gates, read_json, write)
 
 G = "#111 fixtures"
 REDUCED = "models/fixture_barn_reduced/export/variants.json"
@@ -72,6 +72,17 @@ CASES = [
     Case(G, "the barn cabin has no finish sets: generated, not a KeyError",
          edit(manifest, lambda m: m.pop("sets")),
          _check(), f"{REDUCED} differs"),
+    Case(G, "re-running make_fixtures.py removes a leftover, and --check then passes",
+         _leftover_fixture,
+         [Run("prototype/fixtures/make_fixtures.py", fails=False),
+          Run("prototype/fixtures/make_fixtures.py", ("--check",), fails=False)],
+         "removed models/fixture_retired/export/variants.json (no longer generated)"),
+    Case(G, "a corrupt barn cabin lod0 is a readable --check failure",
+         lambda root: existing(barn_glb(root)).write_bytes(b"not a glb"),
+         _check(), "fixture_barn_reduced cannot read"),
+    Case(G, "a missing barn cabin lod0 is a readable --check failure",
+         lambda root: existing(barn_glb(root)).unlink(),
+         _check(), "fixture_barn_reduced cannot read"),
     Case(G, "clean: every fixture matches make_fixtures.py", None,
          _check(fails=False), "fixture file(s) match make_fixtures.py"),
     ContractCase(G, "the identity-only fixture is only `model`", _bare_is_only_model),
