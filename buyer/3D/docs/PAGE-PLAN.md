@@ -172,8 +172,10 @@ Static, no build step, so Rails can serve it as-is:
 buyer/3D/prototype/
   index.html          the page; three.js 0.186.0 pinned once, in its import map   (#107, done)
   app.js              ES modules: index → manifest header → levels, coarse first  (#107, done)
+                      view modes and the dimension overlay under the viewer      (#108, done)
   models.json         the index — which models exist                             (#106, done)
-  fixtures/           a generated second model and its own index, for ?index=fixtures/models.json
+  fixtures/           three generated models and their own index, for ?index=fixtures/models.json:
+                      3 view modes and no `with_porch`; identity only; one view mode
 buyer/3D/
   build_index.py      writes prototype/models.json from every exported model
   verify_index.py     gates it, no Blender
@@ -208,6 +210,29 @@ at `prototype/` cannot reach a single model. Locally:
   undoing a buyer's orbit. `window.__viewer.fits()` and `.pose()` are the
   hooks a browser test reads.
 
+**What the two controls settled**
+([#118](https://github.com/captproton/yardstake-ux/pull/118)):
+
+- **A manifest block is whole or refused.** `views` or `dimensions` absent:
+  no control, quietly (#111). Present but malformed *anywhere*: no control,
+  a console error, and an entry in `window.__viewer.manifestProblems` —
+  never a mode that hides less than it says, or a legend missing a
+  footprint. The same rules are `model_contract.views_problems()` and
+  `dimensions_problems()`, run by `finish_adu.py` before it writes,
+  `verify_index.py` gate 8, and the fixtures; gate 7 now checks every node a
+  view hides is in the `.glb` (55 names).
+- **Modes are the manifest's, not the page's.** Its order, its labels, its
+  default; four buttons for the barn cabin, three for a fixture, none for
+  one mode — which is still applied — or for none.
+- **Footprints are listed, one is drawn.** The overlay draws `with_porch`,
+  else `main_body`, else `overall`, and the legend lists every footprint
+  with the manifest's own note. Sizes carry no position, so the drawn one is
+  centred: exact for `with_porch` and `overall` here, 0.914 m out for
+  `main_body` — [#119](https://github.com/captproton/yardstake-ux/issues/119).
+- **Units are read, and kept in step.** An unknown unit refuses the block;
+  `verify_prototype.py` gate 4 fails if `app.js` and `model_contract` accept
+  different units.
+
 ---
 
 ## Issues
@@ -218,7 +243,7 @@ Sequenced. Each is small enough to review.
 |---|---|---|
 | [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about — **done** ([#115](https://github.com/captproton/yardstake-ux/pull/115)); its one unprovable box, a real second export, moved to #111 |
 | [#107](https://github.com/captproton/yardstake-ux/issues/107) | **Viewer shell** | Draco, environment, orbit, framing from the model's own bbox — **done** ([#116](https://github.com/captproton/yardstake-ux/pull/116)); proved against a generated second model in `prototype/fixtures/` |
-| [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer |
+| [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer — **done** ([#118](https://github.com/captproton/yardstake-ux/pull/118)); the manifest's modes and footprints, whole or refused |
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically |
 | [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist |
 | [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
@@ -230,6 +255,7 @@ Not in the sequence, because nothing above is blocked on it:
 |---|---|---|
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
 | [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model |
+| [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn |
 
 **Open questions, which are the user's rather than the model's:**
 

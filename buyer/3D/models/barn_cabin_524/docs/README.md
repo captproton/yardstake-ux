@@ -317,6 +317,14 @@ See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--d
 > at −Z ([#117](https://github.com/captproton/yardstake-ux/issues/117)) — and
 > **`lod0`'s box floor is −1.175 m**, at the footing, where `lod1` and `lod2`
 > stop at −0.972 m. The viewer grounds the building at the coarse floor.
+>
+> **#108 merged** in [#118](https://github.com/captproton/yardstake-ux/pull/118): the `views` and `dimensions` blocks below
+> now drive the two controls under the viewer. All 7, 12 and 30 node names
+> resolve in `lod0`, and `verify_index.py` checks them against the `.glb`.
+> The overlay draws `with_porch` exactly where the slab and walls are; it
+> would draw `main_body` 0.914 m off, since nothing here says where a
+> footprint sits ([#119](https://github.com/captproton/yardstake-ux/issues/119)). A malformed block is now refused whole —
+> by `finish_adu.py` before it writes, and by the page if one gets through.
 
 `lod2` is the placement developer's. **`variants.json` is the web
 runtime's**, and until [#103](https://github.com/captproton/yardstake-ux/pull/103) it carried finishes and furniture
