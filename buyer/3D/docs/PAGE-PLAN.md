@@ -301,6 +301,21 @@ at `prototype/` cannot reach a single model. Locally:
 
 Sequenced. Each is small enough to review.
 
+**Next, in this order** (as of #122):
+
+1. **[#121](https://github.com/captproton/yardstake-ux/issues/121) — the probe suite, before any more page work.** It sits in the
+   not-in-sequence table because no page issue is blocked on it, but it is
+   the most urgent thing on this page. The ~60 probes that proved every gate
+   exist only outside the repo and are lost when the session that wrote them
+   ends; they caught a real defect in three of the last five PRs, one of
+   which shipped; and every issue below touches the gates, `model_contract`
+   or `app.js` again. #121 gives #111 a place to add its cases instead of
+   rebuilding the scaffolding.
+2. **[#111](https://github.com/captproton/yardstake-ux/issues/111) — mostly done already.** The three fixtures and the
+   whole-or-refused rules cover it; what remains is below, in its row.
+3. **[#112](https://github.com/captproton/yardstake-ux/issues/112) — mostly layout.** The call to action sends the configuration
+   object #110 defined, so the data it needs already exists.
+
 | # | | why it is where it is |
 |---|---|---|
 | [#106](https://github.com/captproton/yardstake-ux/issues/106) | **Model index + manifest identity** | the page cannot list models it has to be told about — **done** ([#115](https://github.com/captproton/yardstake-ux/pull/115)); its one unprovable box, a real second export, moved to #111 |
@@ -308,8 +323,8 @@ Sequenced. Each is small enough to review.
 | [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer — **done** ([#118](https://github.com/captproton/yardstake-ux/pull/118)); the manifest's modes and footprints, whole or refused |
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically — **done** ([#120](https://github.com/captproton/yardstake-ux/pull/120)); linear colours in, sRGB swatches out, layouts applied on load |
 | [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist — **done** ([#122](https://github.com/captproton/yardstake-ux/pull/122)); the contract is [`CONFIGURATION.md`](CONFIGURATION.md) |
-| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft |
-| [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills |
+| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft. **Largely covered** by #118 and #120: the three fixtures (three view modes and no `with_porch`; identity only; one view mode) and whole-or-refused blocks. **Left:** a fixture with only `model` and a `.glb`, shown to load and orbit with no controls and no rail; its cases added to #121's suite. The box carried from #106 — a real second export lands as a row with no page code — stays open until a second model is exported |
+| [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills. The CTA sends the configuration object in [`CONFIGURATION.md`](CONFIGURATION.md); the price range is open question 2 |
 
 Not in the sequence, because nothing above is blocked on it:
 
@@ -318,7 +333,7 @@ Not in the sequence, because nothing above is blocked on it:
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
 | [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model |
 | [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn |
-| [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | about 60 break-one-thing checks that proved every gate live outside the repo; one command, run against a copy. Needed before the next change to a gate |
+| [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | about 60 break-one-thing checks that proved every gate live outside the repo; one command, run against a copy. Needed before the next change to a gate — **next**, ahead of #111; see above |
 
 **Open questions, which are the user's rather than the model's:**
 
@@ -330,3 +345,10 @@ Not in the sequence, because nothing above is blocked on it:
 2. Where does the price range come from?
 3. Is there a target device? It decides KTX2, which is currently **declined
    with reasons** — 68 MB of texture memory that nobody on a desktop feels.
+4. **Are the dark finish values what you intend?** The page decodes them
+   correctly, and they read lighter than their names: Charcoal quartz shows
+   as a medium grey (`#69696a`), because 0.14 linear is 14% reflectance. If
+   that is wrong, the fix is the values in `spec.yaml`, not the page.
+5. **Commit `.claude/launch.json`?** It starts the preview server rooted at
+   `buyer/3D` on port 8316. Committed, anyone previewing the page gets the
+   same server; left local, each person sets their own up.
