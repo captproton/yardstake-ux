@@ -30,19 +30,20 @@
   html, body { height: 100%; margin: 0; }
 
   /* Header across the top; the viewer and its controls on the left; the
-     option rail on the right. On a narrow screen they stack. */
+     option rail on the right; the estimate and quote across the foot. On a
+     narrow screen they stack. */
   body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--rail);
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: "header header" "stage rail";
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "header header" "stage rail" "commerce commerce";
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
     color: var(--ink);
     background: var(--paper);
   }
   body:has(#rail[hidden]) {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "header" "stage";
+    grid-template-areas: "header" "stage" "commerce";
   }
   header {
     grid-area: header;
@@ -212,13 +213,69 @@
     font-size: 0.8rem;
   }
 
+  /* The commerce slots (#112): whatever the host supplies, and the quote. */
+  #commerce {
+    grid-area: commerce;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.5rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--line);
+  }
+  #commerce[hidden] { display: none; }
+  #estimate { display: grid; gap: 0.1rem; }
+  /* A display rule outranks the hidden attribute; without this the heading
+     shows over no estimate at all. */
+  #estimate[hidden] { display: none; }
+  .estimate-heading {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  #estimate-list { color: var(--muted); font-size: 0.85rem; }
+  #estimate-range { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+  #estimate-note, #estimate-updating { color: var(--muted); font-size: 0.8rem; }
+  .quote-disclosure { flex: 1 1 16rem; margin: 0; font-size: 0.8rem; }
+  #quote {
+    margin-left: auto;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.4rem;
+    border: 0;
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+  }
+  #quote:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  #quote-dialog {
+    width: min(32rem, calc(100vw - 2rem));
+    padding: 1.25rem;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+  }
+  #quote-dialog::backdrop { background: rgb(35 33 29 / 0.4); }
+  #quote-dialog h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+  #quote-summary { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; margin: 0 0 0.75rem; }
+  #quote-summary dt { color: var(--muted); }
+  #quote-summary dd { margin: 0; }
+  #quote-dialog p { margin: 0 0 0.75rem; font-size: 0.85rem; }
+  #quote-json { max-height: 12rem; overflow: auto; padding: 0.5rem; background: #fff; font-size: 0.75rem; }
+  #quote-dialog form { text-align: right; }
+
   @media (max-width: 800px) {
     html, body { height: auto; }
     body,
     body:has(#rail[hidden]) {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto auto auto;
-      grid-template-areas: "header" "stage" "rail";
+      grid-template-rows: auto auto auto auto;
+      grid-template-areas: "header" "stage" "rail" "commerce";
     }
     .stage { height: 70vh; }
     #rail { overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
@@ -243,6 +300,31 @@
   </footer>
 </div>
 <aside id="rail" aria-label="Options" hidden></aside>
+<!--
+  The commerce slots (#112). The page prices nothing: a host renders an
+  estimate as <script type="application/json" id="commerce-data"> or sends
+  one as an adu:estimate event, and receives adu:quote. docs/COMMERCE.md.
+-->
+<footer id="commerce" aria-label="Estimate and quote" hidden>
+  <div id="estimate" role="status" hidden>
+    <span class="estimate-heading">Project cost estimate</span>
+    <s id="estimate-list" hidden></s>
+    <strong id="estimate-range" hidden></strong>
+    <span id="estimate-note" hidden></span>
+    <span id="estimate-updating" hidden>Updating the estimate for your choices…</span>
+  </div>
+  <p id="quote-disclosure" class="quote-disclosure" hidden></p>
+  <button id="quote" type="button">Get your quote</button>
+</footer>
+<dialog id="quote-dialog" aria-labelledby="quote-title">
+  <h2 id="quote-title">Your configuration</h2>
+  <dl id="quote-summary"></dl>
+  <p id="quote-estimate" hidden></p>
+  <p id="quote-dialog-disclosure" hidden></p>
+  <p>No quote service is connected to this page, so nothing was sent. This is the configuration a quote would carry:</p>
+  <pre id="quote-json"></pre>
+  <form method="dialog"><button type="submit">Close</button></form>
+</dialog>
 <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -473,6 +473,82 @@ def configuration_problems(config, manifest, where="configuration"):
     return problems
 
 
+# ── the estimate: what the host prices, never the page (#112) ───────────────
+# docs/COMMERCE.md is the contract. The page renders an estimate and computes
+# none: pricing is regional, changes often, and has no drawing to trace to.
+ESTIMATE_FIELDS = ("model", "currency", "low", "high", "list", "note", "configuration")
+ESTIMATE_NOTE_MAX_CHARS = 200
+CURRENCY = re.compile(r"^[A-Z]{3}$")
+
+
+def estimate_problems(estimate, manifest, where="estimate"):
+    """An estimate the host supplies, against the manifest of the model it prices.
+
+    None is no pricing, which is a supported state, not a problem. TYPE-SAFE
+    like configuration_problems(): malformed input is a reported problem, never
+    a TypeError."""
+    if estimate is None:
+        return []
+    if not isinstance(estimate, dict):
+        return [f"{where} must be an object or null, found {type(estimate).__name__}"]
+    if not isinstance(manifest, dict):
+        return [f"{where} cannot be checked: the manifest is not an object"]
+
+    def amount(v):
+        # NaN fails both comparisons; a bool is not an amount.
+        return isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < v < float("inf")
+
+    def bounds(obj, at):
+        if not (amount(obj.get("low")) and amount(obj.get("high"))):
+            return [f"{at} needs a positive low and high, found "
+                    f"{obj.get('low')!r} and {obj.get('high')!r}"]
+        if obj["low"] > obj["high"]:
+            return [f"{at} has low {obj['low']!r} above high {obj['high']!r}"]
+        return []
+
+    problems = [f"{where} has an unknown field {k!r}"
+                for k in estimate if k not in ESTIMATE_FIELDS]
+    ident = manifest.get("model") if isinstance(manifest.get("model"), dict) else {}
+    if not _text(estimate.get("model")):
+        problems.append(f"{where}.model must be a model id, found {estimate.get('model')!r}")
+    elif estimate["model"] != ident.get("id"):
+        problems.append(f"{where}.model is {estimate['model']!r} but the manifest is "
+                        f"for {ident.get('id')!r}")
+    currency = estimate.get("currency")
+    if not isinstance(currency, str) or not CURRENCY.match(currency):
+        problems.append(f"{where}.currency must be a three-letter code such as 'USD', "
+                        f"found {currency!r}")
+    own = bounds(estimate, where)
+    problems += own
+    # A STRUCK-THROUGH FIGURE IS A CLAIM OF A DISCOUNT, so it must be at or
+    # above the price it is struck through above.
+    if "list" in estimate:
+        lst = estimate["list"]
+        if not isinstance(lst, dict):
+            problems.append(f"{where}.list must be an object with low and high")
+        else:
+            problems += [f"{where}.list has an unknown field {k!r}"
+                         for k in lst if k not in ("low", "high")]
+            listed = bounds(lst, f"{where}.list")
+            problems += listed
+            if not (own or listed) and (lst["low"] < estimate["low"] or lst["high"] < estimate["high"]):
+                problems.append(f"{where}.list is below the estimate; a struck-through "
+                                f"figure below the price is not a discount")
+    if "note" in estimate:
+        note = estimate["note"]
+        if not _text(note):
+            problems.append(f"{where}.note must be non-empty text")
+        elif len(note) > ESTIMATE_NOTE_MAX_CHARS:
+            problems.append(f"{where}.note is {len(note)} characters; at most "
+                            f"{ESTIMATE_NOTE_MAX_CHARS}")
+    # An estimate MAY say which configuration it priced. The page then shows it
+    # only while that is still the buyer's configuration.
+    if "configuration" in estimate:
+        problems += configuration_problems(estimate["configuration"], manifest,
+                                           f"{where}.configuration")
+    return problems
+
+
 def display_problems(manifest):
     """Every problem in the blocks the page renders controls from: `sets`,
     `presence` and `disclosure` (the rail), `views` and `dimensions` (the

@@ -371,6 +371,75 @@ def main():
     print(f"  [{'PASS' if not config_problems else 'FAIL'}] the documented "
           f"configuration is valid for its manifest, and its link matches")
 
+    # ── 6. commerce: the documented estimate, the fields, the events ──────
+    # docs/COMMERCE.md is the contract with Rails for the estimate and the
+    # quote (#112). Its example must be an estimate the real manifest accepts;
+    # the page and model_contract must accept the same estimate fields and
+    # note length, or an estimate one side passes the other refuses; and every
+    # event the page sends or listens for must be named in the document, or a
+    # host has no way to learn it exists.
+    commerce_doc = HERE / "docs" / "COMMERCE.md"
+    commerce_problems = []
+    app = (PROTO / "app.js").read_text()
+    ctext = commerce_doc.read_text() if commerce_doc.is_file() else ""
+    estimate_block = re.search(r"```json\n(.*?)\n```", ctext, re.S)
+    if not commerce_doc.is_file():
+        commerce_problems.append("docs/COMMERCE.md is missing")
+    elif not estimate_block:
+        commerce_problems.append("docs/COMMERCE.md needs a ```json estimate example")
+    else:
+        try:
+            estimate = json.loads(estimate_block.group(1))
+        except ValueError as e:
+            commerce_problems.append(f"the example estimate is not JSON: {e}")
+        else:
+            if not isinstance(estimate, dict):
+                commerce_problems.append(f"the example estimate must be a JSON object, "
+                                         f"found {type(estimate).__name__}")
+            else:
+                real = load_json(build_index.INDEX, commerce_problems, "index")
+                rows = real.get("models") if isinstance(real, dict) else None
+                rows = rows if isinstance(rows, list) else []
+                row = next((r for r in rows if isinstance(r, dict)
+                            and r.get("id") == estimate.get("model")), None)
+                row_bad = (model_contract.row_problems(row, "the estimate's index row")
+                           if row is not None else [])
+                if row is None:
+                    commerce_problems.append(f"the example estimate names model "
+                                             f"{estimate.get('model')!r}, which the index does not have")
+                elif row_bad:
+                    commerce_problems += row_bad
+                else:
+                    manifest = load_json(build_index.INDEX.parent / row["manifest"],
+                                         commerce_problems, "manifest")
+                    if isinstance(manifest, dict):
+                        commerce_problems += model_contract.estimate_problems(
+                            estimate, manifest, "the documented estimate")
+    fields = re.search(r"const ESTIMATE_FIELDS = \[(.*?)\];", app, re.S)
+    page_fields = set(re.findall(r"'(\w+)'", fields.group(1))) if fields else None
+    if page_fields is None:
+        commerce_problems.append("app.js has no `const ESTIMATE_FIELDS = [...];` to compare")
+    elif page_fields != set(model_contract.ESTIMATE_FIELDS):
+        contract_fields = set(model_contract.ESTIMATE_FIELDS)
+        commerce_problems.append(
+            f"ESTIMATE_FIELDS differs — only app.js: {sorted(page_fields - contract_fields)}, "
+            f"only model_contract: {sorted(contract_fields - page_fields)}")
+    note = re.search(r"const ESTIMATE_NOTE_MAX_CHARS = (\d+);", app)
+    page_note = int(note.group(1)) if note else None
+    if page_note != model_contract.ESTIMATE_NOTE_MAX_CHARS:
+        commerce_problems.append(
+            f"ESTIMATE_NOTE_MAX_CHARS differs — app.js: {page_note}, "
+            f"model_contract: {model_contract.ESTIMATE_NOTE_MAX_CHARS}")
+    page_events = set(re.findall(r"'(adu:[a-z-]+)'", app))
+    if not page_events:
+        commerce_problems.append("app.js names no adu: event; the quote slot sends nothing")
+    commerce_problems += [f"app.js uses event {e!r}, which docs/COMMERCE.md does not name"
+                          for e in sorted(page_events) if f"`{e}`" not in ctext]
+    problems += commerce_problems
+    print(f"  [{'PASS' if not commerce_problems else 'FAIL'}] the documented estimate "
+          f"is valid for its manifest, and the page agrees with the commerce contract — "
+          f"{', '.join(sorted(page_events)) or 'no events'}")
+
     print("-" * 76)
     if problems:
         print(f"{len(problems)} PROBLEM(S):")

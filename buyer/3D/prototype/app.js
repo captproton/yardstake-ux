@@ -1,5 +1,6 @@
-// app.js — the viewer shell (#107), the two controls under it (#108) and the
-// option rail beside it (#109).
+// app.js — the viewer shell (#107), the two controls under it (#108), the
+// option rail beside it (#109), the configuration (#110) and the commerce
+// slots under them all (#112).
 //
 // THE PAGE KNOWS NOTHING ABOUT ANY BUILDING. It reads an index, picks a row,
 // reads that row's manifest for the header, the controls and the rail, and
@@ -67,6 +68,19 @@ const PRESENCE_PROPERTY = 'visible';
 // The disclosure is buyer-facing copy, shown verbatim. A paragraph of notes
 // for developers is not copy; model_contract.DISCLOSURE_MAX_CHARS agrees.
 const DISCLOSURE_MAX_CHARS = 200;
+
+// THE PAGE PRICES NOTHING (#112). An estimate is supplied by the host and only
+// checked and rendered here; docs/COMMERCE.md is the contract. Keep the fields
+// and the note limit in step with model_contract.ESTIMATE_FIELDS and
+// ESTIMATE_NOTE_MAX_CHARS; verify_prototype.py gate 6 checks, and checks that
+// every event below is named in the document.
+const ESTIMATE_FIELDS = ['model', 'currency', 'low', 'high', 'list', 'note', 'configuration'];
+const ESTIMATE_NOTE_MAX_CHARS = 200;
+const EVENTS = {
+  configuration: 'adu:configuration', // the page → the host: what the buyer chose
+  estimate: 'adu:estimate', // the host → the page: an estimate, or null
+  quote: 'adu:quote', // the page → the host: the buyer asked for a quote; cancelable
+};
 
 const $ = (id) => document.getElementById(id);
 
@@ -167,10 +181,13 @@ async function main() {
       const views = readViews(manifest, problems);
       const sets = readSets(manifest, problems);
       const presence = readPresence(manifest, problems);
+      const disclosure = readDisclosure(manifest, problems);
       renderControls(views, readDimensions(manifest, problems), viewer, config);
       if (presence.failClosed.length) viewer.setPresence(presence.failClosed, []);
-      renderRail(sets, presence.groups, readDisclosure(manifest, problems), viewer, config);
+      renderRail(sets, presence.groups, disclosure, viewer, config);
       window.__viewer = { ...window.__viewer, manifestProblems: problems };
+      // Listening before the configuration starts, so the first one is seen.
+      renderCommerce(row.id, disclosure, { views, sets, presence: presence.groups });
       config.start({ sets, presence: presence.groups, views });
     }
   }
@@ -481,6 +498,9 @@ function createConfiguration(modelId, params, problems) {
       configuration: published(),
       configurationProblems: [...problems],
     };
+    // The host prices what the buyer chose (docs/COMMERCE.md); a fresh object,
+    // so no listener can change the page's own.
+    document.dispatchEvent(new CustomEvent(EVENTS.configuration, { detail: published() }));
   }
 
   return {
@@ -522,6 +542,182 @@ function createConfiguration(modelId, params, problems) {
       write();
     },
   };
+}
+
+// ── commerce: an estimate the host supplies, and the quote it receives ────
+// docs/COMMERCE.md is the contract. THE ESTIMATE IS A SLOT, NOT A
+// CALCULATION: it arrives in a #commerce-data script block the server renders,
+// or at any time as an adu:estimate event, and is checked whole -- a refused
+// estimate shows NO figure, never a half-read range and never the previous
+// estimate, which may be for a building the buyer has since changed. An
+// estimate that names the configuration it priced is shown only while that is
+// still the configuration. No estimate at all is a supported state: the quote
+// button stands alone.
+
+function estimateProblem(e, modelId) {
+  if (!isObject(e)) return 'not an object';
+  const unknown = Object.keys(e).find((k) => !ESTIMATE_FIELDS.includes(k));
+  if (unknown !== undefined) return `unknown field ${JSON.stringify(unknown)}`;
+  if (e.model !== modelId) return `it prices ${JSON.stringify(e.model)}, not the model on screen`;
+  if (typeof e.currency !== 'string' || !/^[A-Z]{3}$/.test(e.currency)) {
+    return `currency ${JSON.stringify(e.currency)} is not a three-letter code`;
+  }
+  try {
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: e.currency });
+  } catch {
+    return `currency ${e.currency} is not one this browser can format`;
+  }
+  const bounds = (o, at) => {
+    if (!positive(o.low) || !positive(o.high)) return `${at} needs a positive low and high`;
+    return o.low > o.high ? `${at} has its low above its high` : null;
+  };
+  const own = bounds(e, 'the range');
+  if (own) return own;
+  if (e.list !== undefined) {
+    if (!isObject(e.list) || Object.keys(e.list).some((k) => k !== 'low' && k !== 'high')) {
+      return 'list is not an object of low and high';
+    }
+    const listed = bounds(e.list, 'list');
+    if (listed) return listed;
+    // A struck-through figure claims a discount.
+    if (e.list.low < e.low || e.list.high < e.high) return 'list is below the estimate, which is not a discount';
+  }
+  if (e.note !== undefined && (!text(e.note) || [...e.note].length > ESTIMATE_NOTE_MAX_CHARS)) {
+    return `note is not text of at most ${ESTIMATE_NOTE_MAX_CHARS} characters`;
+  }
+  // The full check of a configuration is Rails' (model_contract); the page
+  // needs only to know it is one, of this model, to compare it with its own.
+  if (e.configuration !== undefined && (!isObject(e.configuration) || e.configuration.model !== modelId)) {
+    return 'configuration is not a configuration of the model on screen';
+  }
+  return null;
+}
+
+// Two configurations are the same when their JSON is, whatever order their
+// keys were written in.
+function canonical(value) {
+  return JSON.stringify(value, (_, v) => (isObject(v)
+    ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : v));
+}
+
+function renderCommerce(modelId, disclosure, offered) {
+  const bar = $('commerce');
+  const problems = [];
+  let estimate = null; // the accepted estimate, or null
+  let configuration = null; // the buyer's, as last published
+  let state = 'none'; // none | current | stale
+  let shown = null; // the figures on screen, as text
+
+  function render() {
+    state = estimate === null ? 'none'
+      : estimate.configuration === undefined || (configuration && canonical(estimate.configuration) === canonical(configuration))
+        ? 'current' : 'stale';
+    $('estimate').hidden = state === 'none';
+    $('estimate-updating').hidden = state !== 'stale';
+    shown = null;
+    for (const id of ['estimate-list', 'estimate-range', 'estimate-note']) {
+      $(id).textContent = '';
+      $(id).hidden = true;
+    }
+    if (state === 'current') {
+      const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: estimate.currency, maximumFractionDigits: 0 });
+      const range = (o) => (o.low === o.high ? money.format(o.low) : `${money.format(o.low)} – ${money.format(o.high)}`);
+      shown = { range: range(estimate), list: estimate.list ? range(estimate.list) : null, note: estimate.note ?? null };
+      for (const [id, value] of [['estimate-range', shown.range], ['estimate-list', shown.list], ['estimate-note', shown.note]]) {
+        if (value === null) continue;
+        $(id).textContent = value;
+        $(id).hidden = false;
+      }
+    }
+    window.__viewer = {
+      ...window.__viewer,
+      commerce: {
+        state,
+        estimate: estimate && structuredClone(estimate),
+        shown,
+        problems: [...problems],
+      },
+    };
+  }
+
+  function accept(value, source) {
+    const problem = value === null ? null : estimateProblem(value, modelId);
+    if (problem) {
+      problems.push(`${source}: ${problem}`);
+      console.error(`Ignoring the estimate from ${source}: ${problem}`);
+    }
+    estimate = value === null || problem ? null : structuredClone(value);
+    render();
+  }
+
+  const supplied = document.getElementById('commerce-data');
+  if (supplied) {
+    let value;
+    try {
+      value = JSON.parse(supplied.textContent);
+    } catch (err) {
+      problems.push(`#commerce-data: not JSON (${err.message})`);
+      console.error(`Ignoring the estimate from #commerce-data: not JSON (${err.message})`);
+    }
+    if (value !== undefined) accept(value, '#commerce-data');
+  }
+  document.addEventListener(EVENTS.estimate, (e) => accept(e.detail ?? null, EVENTS.estimate));
+  document.addEventListener(EVENTS.configuration, (e) => {
+    configuration = e.detail;
+    render();
+  });
+
+  // REQUIRED COPY AT THE POINT OF QUOTING, not only in the rail: on a narrow
+  // screen the rail is a scroll away from this button.
+  if (disclosure) {
+    $('quote-disclosure').textContent = disclosure;
+    $('quote-disclosure').hidden = false;
+  }
+
+  $('quote').addEventListener('click', () => {
+    const detail = {
+      configuration: structuredClone(configuration),
+      estimate: state === 'current' ? structuredClone(estimate) : null,
+      disclosure: disclosure || null,
+      link: location.href,
+    };
+    const handled = !document.dispatchEvent(new CustomEvent(EVENTS.quote, { detail, cancelable: true }));
+    window.__viewer = { ...window.__viewer, quote: { handled, detail: structuredClone(detail) } };
+    if (!handled) showQuote(detail, state === 'current' ? shown : null, offered);
+  });
+
+  render();
+  bar.hidden = false;
+}
+
+// NOBODY HANDLED THE QUOTE -- the prototype, with no Rails behind it. Show
+// what would have been sent, and say plainly that nothing was.
+function showQuote(detail, figures, { views, sets, presence }) {
+  const summary = $('quote-summary');
+  summary.replaceChildren();
+  const row = (term, value) => {
+    const dt = document.createElement('dt');
+    dt.textContent = term;
+    const dd = document.createElement('dd');
+    dd.textContent = value;
+    summary.append(dt, dd);
+  };
+  const config = detail.configuration ?? {};
+  const view = views.find((v) => v.id === config.view);
+  if (view && views.length >= 2) row('View', view.label);
+  for (const [groups, chosen] of [[sets, config.sets], [presence, config.presence]]) {
+    for (const g of groups) {
+      const option = g.options.find((o) => o.id === chosen?.[g.id]);
+      if (option) row(g.label, option.label);
+    }
+  }
+  $('quote-estimate').textContent = figures ? `Project cost estimate: ${figures.range}` : '';
+  $('quote-estimate').hidden = !figures;
+  $('quote-dialog-disclosure').textContent = detail.disclosure ?? '';
+  $('quote-dialog-disclosure').hidden = !detail.disclosure;
+  $('quote-json').textContent = JSON.stringify(detail.configuration, null, 2);
+  $('quote-dialog').showModal();
 }
 
 // ── the viewer ────────────────────────────────────────────────────────────
