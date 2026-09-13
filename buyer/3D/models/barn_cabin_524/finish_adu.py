@@ -33,7 +33,7 @@ sys.path.insert(0, str(HERE))
 # buyer/3D, for model_contract: the identity schema this file, build_index.py
 # and verify_index.py share. Appended, so nothing there shadows this model's.
 sys.path.append(str(HERE.parents[1]))
-from model_contract import identity_problems  # noqa: E402
+from model_contract import display_problems, identity_problems  # noqa: E402
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 
@@ -629,6 +629,9 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     # runs. #99 fixed exactly this for lod2 and the manifest kept the old
     # habit. The previous good file stays where it is.
     problems += identity_problems(manifest["model"], "model")
+    # The page refuses a views or dimensions block that is malformed anywhere
+    # (#108); refuse to publish one, with the same rules.
+    problems += display_problems(manifest)
     if problems:
         return None, problems
     path = out / v.get("emit", "variants.json")

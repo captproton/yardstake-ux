@@ -1,9 +1,9 @@
-// app.js — the viewer shell (#107).
+// app.js — the viewer shell (#107) and the two controls under it (#108).
 //
 // THE PAGE KNOWS NOTHING ABOUT ANY BUILDING. It reads an index, picks a row,
-// reads that row's manifest for the header, and loads the row's .glb levels.
-// No model id, display name, room, node or material appears in this file, and
-// verify_prototype.py fails if one does.
+// reads that row's manifest for the header and the controls, and loads the
+// row's .glb levels. No model id, display name, room, node, material or view
+// id appears in this file, and verify_prototype.py fails if one does.
 //
 // Served from buyer/3D, so this page is /prototype/index.html and the index's
 // ../models/<id>/ paths resolve. A server rooted at prototype/ reaches nothing.
@@ -16,6 +16,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 // THE DRACO DECODER MUST MATCH THE LOADER'S RELEASE. The import map in
 // index.html pins the release; REVISION reads it back, so the version is
@@ -29,11 +30,31 @@ const DRACO_DECODERS =
 // THE FRONT FACES +Z IN THE EXPORTED FILE, read off the .glb rather than off
 // the axis notes: the covered entry, its posts and the entry door all sit at
 // the maximum-Z end of the box. The first view looks at that end from a three-
-// quarter angle above it. No manifest declares a front yet; until one does,
-// this is an export convention the page assumes, and the only one.
+// quarter angle above it, and the width dimension is drawn along it. No
+// manifest declares a front yet (#117); until one does, this is an export
+// convention the page assumes, and the only one.
 const VIEW_DIRECTION = new THREE.Vector3(0.7, 0.45, 1).normalize();
 
 const LEVEL = /^lod(\d+)$/;
+
+// UNITS ARE READ, NEVER ASSUMED. A manifest in a unit this page does not know
+// gets no overlay rather than an overlay at the wrong scale.
+const UNITS = {
+  feet: { metres: 0.3048, label: 'ft' },
+  foot: { metres: 0.3048, label: 'ft' },
+  ft: { metres: 0.3048, label: 'ft' },
+  metres: { metres: 1, label: 'm' },
+  meters: { metres: 1, label: 'm' },
+  m: { metres: 1, label: 'm' },
+};
+
+// WHICH FOOTPRINT THE OVERLAY DRAWS. The manifest carries several and says
+// which question each answers; the overlay draws the building a buyer sees --
+// the whole slab first, then the heated box, then the extent over the eaves --
+// and LISTS every footprint beside it. Collapsing them into one "size" throws
+// away the difference a setback check needs. Any other footprint a manifest
+// declares is listed after these, in the manifest's own order.
+const FOOTPRINT_ORDER = ['with_porch', 'main_body', 'overall'];
 
 const $ = (id) => document.getElementById(id);
 
@@ -90,6 +111,7 @@ async function main() {
     }
     const framed = viewer.show(gltf.scene);
     window.__viewer = {
+      ...window.__viewer,
       state: last ? 'ready' : 'loading',
       model: row.id,
       level: level.name,
@@ -97,7 +119,16 @@ async function main() {
       ...framed,
       fits: viewer.fits,
       pose: viewer.pose,
+      visibility: viewer.visibility,
+      overlay: viewer.overlay,
     };
+    // The controls need something on screen to act on, so they appear with
+    // the first level and keep working when full detail replaces it.
+    if (i === 0) {
+      const problems = [];
+      renderControls(readViews(manifest, problems), readDimensions(manifest, problems), viewer);
+      window.__viewer = { ...window.__viewer, manifestProblems: problems };
+    }
   }
   setStatus('');
 }
@@ -117,12 +148,120 @@ function orderLevels(row, base) {
   return levels.length > 2 ? [levels[0], levels[levels.length - 1]] : levels;
 }
 
+// ── manifest blocks: whole or not at all ──────────────────────────────────
+// An ABSENT block renders no control, quietly: a model with no loft need not
+// describe one (#111). A PRESENT block that is malformed ANYWHERE renders no
+// control either, and says why -- on the console and in
+// window.__viewer.manifestProblems. Acting on the entries that happen to
+// parse would show a mode that hides less than it claims, or a legend that
+// omits a footprint the manifest publishes, and nothing would look wrong.
+// The same rules are model_contract.views_problems() and
+// dimensions_problems(), which verify_index.py and finish_adu.py run, so a
+// malformed block should never reach this page at all.
+
+const DIMENSION_FIELDS = new Set(['units', 'note', 'height_to_ridge']);
+
+const positive = (n) => typeof n === 'number' && Number.isFinite(n) && n > 0;
+const text = (s) => typeof s === 'string' && s.trim() !== '';
+const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+function readViews(manifest, problems) {
+  const views = manifest?.views;
+  if (views == null) return [];
+  const problem = viewsProblem(views);
+  if (problem) {
+    problems.push(`views: ${problem}`);
+    console.error(`Ignoring the manifest's views: ${problem}`);
+    return [];
+  }
+  return views.map((v) => ({
+    id: v.id,
+    label: v.label,
+    desc: v.desc ?? '',
+    isDefault: v.default === true,
+    hide: v.hide,
+  }));
+}
+
+function viewsProblem(views) {
+  if (!Array.isArray(views)) return 'not a list';
+  const ids = new Set();
+  let defaults = 0;
+  for (const [i, v] of views.entries()) {
+    const at = `views[${i}]`;
+    if (!isObject(v)) return `${at} is not an object`;
+    if (!text(v.id)) return `${at}.id is not a non-empty string`;
+    if (ids.has(v.id)) return `${at}.id repeats an earlier id`;
+    ids.add(v.id);
+    if (!text(v.label)) return `${at}.label is not a non-empty string`;
+    if (v.desc !== undefined && typeof v.desc !== 'string') return `${at}.desc is not a string`;
+    if (v.default !== undefined && typeof v.default !== 'boolean') return `${at}.default is not true or false`;
+    if (v.default === true) defaults += 1;
+    if (!Array.isArray(v.hide) || !v.hide.every((n) => typeof n === 'string')) {
+      return `${at}.hide is not a list of strings`;
+    }
+  }
+  return defaults > 1 ? 'more than one view is the default' : null;
+}
+
+function readDimensions(manifest, problems) {
+  const d = manifest?.dimensions;
+  if (d == null) return null;
+  const problem = dimensionsProblem(d);
+  if (problem) {
+    problems.push(`dimensions: ${problem}`);
+    console.error(`Ignoring the manifest's dimensions: ${problem}`);
+    return null;
+  }
+  const rank = (key) => {
+    const i = FOOTPRINT_ORDER.indexOf(key);
+    return i < 0 ? FOOTPRINT_ORDER.length : i;
+  };
+  const footprints = Object.entries(d)
+    .filter(([key]) => !DIMENSION_FIELDS.has(key))
+    .map(([key, v]) => ({ key, width: v.width, depth: v.depth, note: v.note ?? '' }))
+    .sort((a, b) => rank(a.key) - rank(b.key));
+  return {
+    unit: UNITS[d.units.toLowerCase()],
+    footprints,
+    ridge: d.height_to_ridge ?? null,
+  };
+}
+
+function dimensionsProblem(d) {
+  if (!isObject(d)) return 'not an object';
+  if (typeof d.units !== 'string' || !UNITS[d.units.toLowerCase()]) {
+    return `units ${JSON.stringify(d.units)} is not a unit this page knows`;
+  }
+  if (d.note !== undefined && typeof d.note !== 'string') return 'note is not a string';
+  if (d.height_to_ridge !== undefined && !positive(d.height_to_ridge)) {
+    return 'height_to_ridge is not a positive number';
+  }
+  let footprints = 0;
+  for (const [key, v] of Object.entries(d)) {
+    if (DIMENSION_FIELDS.has(key)) continue;
+    if (!isObject(v)) return `${key} is neither a footprint nor units, note or height_to_ridge`;
+    if (!positive(v.width) || !positive(v.depth)) return `${key} needs a positive width and depth`;
+    if (v.note !== undefined && typeof v.note !== 'string') return `${key}.note is not a string`;
+    footprints += 1;
+  }
+  return footprints ? null : 'no footprint';
+}
+
+// ── the viewer ────────────────────────────────────────────────────────────
+
 function createViewer(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.shadowMap.enabled = true;
   container.append(renderer.domElement);
+
+  // Dimension labels are HTML, laid over the canvas, so they stay crisp and
+  // readable at any zoom.
+  const labels = new CSS2DRenderer();
+  labels.domElement.className = 'labels';
+  container.append(labels.domElement);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf2f0eb);
@@ -161,6 +300,10 @@ function createViewer(container) {
   let current = null;
   let fitted = null; // the box and centre of the first level shown
   let info = null;
+  let hidden = new Set(); // node names the current view mode hides
+  let visibility = { found: 0, missing: [] };
+  let overlay = null;
+  let overlayInfo = null;
 
   // KEEP THE BUILDING IN FRAME WHEN THE PANE CHANGES SHAPE, without undoing
   // the buyer's orbit or zoom. The camera keeps its direction and its target,
@@ -173,6 +316,7 @@ function createViewer(container) {
     if (!w || !h) return;
     const before = fitted && fitDistance(fitted.box, fitted.center, viewDirection(), camera.aspect);
     renderer.setSize(w, h, false);
+    labels.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     if (before) {
@@ -193,6 +337,7 @@ function createViewer(container) {
   renderer.setAnimationLoop(() => {
     controls.update();
     renderer.render(scene, camera);
+    labels.render(scene, camera);
   });
 
   function viewDirection() {
@@ -274,6 +419,101 @@ function createViewer(container) {
     };
   }
 
+  // VIEW MODES HIDE NODES BY EXACT NAME -- never by prefix, so a runtime does
+  // not string-match its way to a roof. Names go through the same
+  // sanitisation GLTFLoader applies, so a name the file can carry is a name
+  // the scene can find. A level that lacks a named node (massing has no
+  // ceilings) simply has nothing to hide there.
+  function applyHidden() {
+    if (!current) return { found: 0, missing: [...hidden] };
+    const seen = new Set();
+    current.traverse((o) => {
+      if (o === current) return;
+      const hide = hidden.has(o.name);
+      if (hide) seen.add(o.name);
+      o.visible = !hide;
+    });
+    return { found: seen.size, missing: [...hidden].filter((n) => !seen.has(n)) };
+  }
+
+  // THE DIMENSION OVERLAY. The manifest gives each footprint's width and
+  // depth, not where it sits, so the drawn footprint is centred on the
+  // building's plan box. That is exact when the footprint is symmetric within
+  // the box -- a slab with even eaves around it -- and wrong for one pushed to
+  // an end by an appendage, which is why the overlay draws only the first
+  // footprint and lists the rest rather than placing them all.
+  function buildOverlay(dims) {
+    const fp = dims.footprints[0];
+    const w = fp.width * dims.unit.metres;
+    const d = fp.depth * dims.unit.metres;
+    const c = fitted.box.getCenter(new THREE.Vector3());
+    const y = info.floor + fitted.box.getSize(new THREE.Vector3()).y * 0.004;
+    const x0 = c.x - w / 2;
+    const x1 = c.x + w / 2;
+    const z0 = c.z - d / 2;
+    const z1 = c.z + d / 2;
+    const gap = Math.max(w, d) * 0.08; // dimension lines stand off the footprint
+    const tick = gap * 0.35;
+
+    const segments = [
+      // the footprint itself
+      [x0, z0, x1, z0], [x1, z0, x1, z1], [x1, z1, x0, z1], [x0, z1, x0, z0],
+      // width, along the front edge, with end ticks
+      [x0, z1 + gap, x1, z1 + gap],
+      [x0, z1 + gap - tick, x0, z1 + gap + tick], [x1, z1 + gap - tick, x1, z1 + gap + tick],
+      // depth, along the +X side, with end ticks
+      [x1 + gap, z0, x1 + gap, z1],
+      [x1 + gap - tick, z0, x1 + gap + tick, z0], [x1 + gap - tick, z1, x1 + gap + tick, z1],
+    ];
+    const positions = segments.flatMap(([ax, az, bx, bz]) => [ax, y, az, bx, y, bz]);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    // Drawn over the building, so the whole footprint reads even where walls
+    // stand on it.
+    const lines = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({
+      color: 0x23211d, depthTest: false, transparent: true, opacity: 0.9,
+    }));
+    lines.renderOrder = 10;
+
+    const group = new THREE.Group();
+    group.add(lines);
+    const label = (text, x, z) => {
+      const el = document.createElement('div');
+      el.className = 'dimension-label';
+      el.textContent = text;
+      const obj = new CSS2DObject(el);
+      obj.position.set(x, y, z);
+      group.add(obj);
+    };
+    label(`${formatLength(fp.width)} ${dims.unit.label}`, c.x, z1 + gap);
+    label(`${formatLength(fp.depth)} ${dims.unit.label}`, x1 + gap, c.z);
+
+    overlayInfo = {
+      footprint: fp.key,
+      width: w,
+      depth: d,
+      centre: [c.x, c.z],
+      x: [x0, x1],
+      z: [z0, z1],
+      y,
+    };
+    return group;
+  }
+
+  function removeOverlay() {
+    if (!overlay) return;
+    scene.remove(overlay);
+    // Removing a group does not tell its children, so their label elements
+    // would stay in the page: remove them explicitly.
+    overlay.traverse((o) => {
+      if (o.isCSS2DObject) o.element.remove();
+      o.geometry?.dispose();
+      o.material?.dispose();
+    });
+    overlay = null;
+    overlayInfo = null;
+  }
+
   const api = {
     load: (url) => loader.loadAsync(url.href),
     show(root) {
@@ -289,6 +529,7 @@ function createViewer(container) {
         dispose(current);
       }
       current = root;
+      visibility = applyHidden(); // the chosen view mode survives a level swap
       const box = new THREE.Box3().setFromObject(root);
       if (!fitted) {
         info = frame(box);
@@ -309,6 +550,26 @@ function createViewer(container) {
         info = { ...info, size: fitted.box.getSize(new THREE.Vector3()).toArray() };
       }
       return info;
+    },
+    setHidden(names) {
+      hidden = new Set(names.map((n) => THREE.PropertyBinding.sanitizeNodeName(n)));
+      visibility = applyHidden();
+      return visibility;
+    },
+    setDimensions(dims) {
+      removeOverlay();
+      if (dims && fitted) {
+        overlay = buildOverlay(dims);
+        scene.add(overlay);
+      }
+      return overlayInfo;
+    },
+    // For tests: which of the current mode's nodes this level has.
+    visibility: () => ({ hidden: [...hidden], ...visibility }),
+    // For tests: what the dimension overlay is drawing, or null.
+    overlay: () => overlayInfo && {
+      ...overlayInfo,
+      labels: [...container.querySelectorAll('.dimension-label')].map((el) => el.textContent),
     },
     // For tests: where the camera is, relative to what it orbits.
     pose() {
@@ -349,6 +610,83 @@ function dispose(root) {
       m.dispose();
     }
   });
+}
+
+// ── the page around the viewer ────────────────────────────────────────────
+
+// THE CONTROLS ARE WHATEVER THE MANIFEST OFFERS: its modes, in its order,
+// with its labels. Nothing here counts them. A block that is absent, or a
+// single mode that offers no choice, renders no control at all.
+function renderControls(views, dimensions, viewer) {
+  let any = false;
+
+  if (views.length) {
+    const group = $('view-modes');
+    let buttons = [];
+    const select = (view) => {
+      for (const [v, b] of buttons) b.setAttribute('aria-pressed', String(v === view));
+      viewer.setHidden(view.hide);
+      window.__viewer = { ...window.__viewer, view: view.id };
+    };
+    // ONE MODE IS NOT A CHOICE, but it is still how the manifest says the
+    // model should be seen: apply it, and render no buttons.
+    if (views.length >= 2) {
+      buttons = views.map((view) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = view.label;
+        if (view.desc) b.title = view.desc;
+        b.addEventListener('click', () => select(view));
+        group.append(b);
+        return [view, b];
+      });
+      group.hidden = false;
+      any = true;
+    }
+    select(views.find((v) => v.isDefault) ?? views[0]);
+  }
+
+  if (dimensions) {
+    const toggle = $('dimensions-toggle');
+    const legend = $('dimensions-legend');
+    renderLegend(legend, dimensions);
+    toggle.addEventListener('click', () => {
+      const on = toggle.getAttribute('aria-pressed') !== 'true';
+      toggle.setAttribute('aria-pressed', String(on));
+      toggle.textContent = on ? 'Hide dimensions' : 'Show dimensions';
+      legend.hidden = !on;
+      viewer.setDimensions(on ? dimensions : null);
+      window.__viewer = { ...window.__viewer, dimensionsShown: on };
+    });
+    toggle.hidden = false;
+    any = true;
+  }
+
+  $('controls').hidden = !any;
+}
+
+// Every footprint, with the manifest's own note on what it measures. The
+// first is the one drawn; the rest are listed, never merged into it.
+function renderLegend(legend, dims) {
+  const describe = (fp) => {
+    const size = `${formatLength(fp.width)} × ${formatLength(fp.depth)} ${dims.unit.label}`;
+    return `${fp.key.replaceAll('_', ' ')} ${size}${fp.note ? ` — ${fp.note}` : ''}`;
+  };
+  const line = (heading, text) => {
+    const li = document.createElement('li');
+    const strong = document.createElement('strong');
+    strong.textContent = `${heading} `;
+    li.append(strong, text);
+    legend.append(li);
+  };
+  const [drawn, ...others] = dims.footprints;
+  line('Drawn:', describe(drawn));
+  for (const fp of others) line('Also:', describe(fp));
+  if (dims.ridge !== null) line('Ridge:', `${formatLength(dims.ridge)} ${dims.unit.label} above the floor datum`);
+}
+
+function formatLength(n) {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
 function renderHeader(identity) {

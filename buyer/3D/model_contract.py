@@ -165,9 +165,10 @@ def glb_names(path):
 
 
 def manifest_names(manifest):
-    """(material targets, presence node names) a variants.json asks the page
-    to touch. Raises ValueError on a manifest whose blocks have the wrong
-    shape, rather than a TypeError from iterating one."""
+    """(material targets, node names) a variants.json asks the page to touch:
+    the materials its `sets` tint, and the nodes its `presence` options show
+    and its `views` modes hide. Raises ValueError on a manifest whose blocks
+    have the wrong shape, rather than a TypeError from iterating one."""
     def objects(v, where):
         if not isinstance(v, list) or not all(isinstance(x, dict) for x in v):
             raise ValueError(f"`{where}` is not a list of objects")
@@ -188,4 +189,98 @@ def manifest_names(manifest):
             for key in ("show", "hide"):
                 nodes.update(strings(o.get(key, []),
                                      f"presence[].options[].{key}"))
+    # A view mode that hides a node the file lacks hides nothing, silently.
+    for v in objects(manifest.get("views", []), "views"):
+        nodes.update(strings(v.get("hide", []), "views[].hide"))
     return mats, nodes
+
+
+# ── the two blocks the page renders controls from (#108) ─────────────────────
+# WHOLE OR NOT AT ALL. The page refuses a `views` or `dimensions` block that is
+# malformed anywhere rather than acting on the entries that parse, so these
+# report every problem in a block, and any problem means the block is refused.
+# An absent block (None) is fine: a model need not describe what it lacks.
+# The rules mirror viewsProblem() and dimensionsProblem() in prototype/app.js.
+
+# Keep in step with UNITS in prototype/app.js -- verify_prototype.py gate 4
+# fails if they differ, since a unit only one side knows is a manifest one side
+# passes and the other refuses.
+DIMENSION_UNITS = ("feet", "foot", "ft", "metres", "meters", "m")
+DIMENSION_FIELDS = ("units", "note", "height_to_ridge")
+
+
+def views_problems(views, where="views"):
+    if views is None:
+        return []
+    if not isinstance(views, list):
+        return [f"{where} must be a list, found {type(views).__name__}"]
+    problems, ids, defaults = [], set(), 0
+    for i, v in enumerate(views):
+        at = f"{where}[{i}]"
+        if not isinstance(v, dict):
+            problems.append(f"{at} must be an object")
+            continue
+        if not _text(v.get("id")):
+            problems.append(f"{at}.id must be a non-empty string, found {v.get('id')!r}")
+        elif v["id"] in ids:
+            problems.append(f"{at}.id {v['id']!r} repeats an earlier id")
+        else:
+            ids.add(v["id"])
+        if not _text(v.get("label")):
+            problems.append(f"{at}.label must be a non-empty string, found {v.get('label')!r}")
+        if "desc" in v and not isinstance(v["desc"], str):
+            problems.append(f"{at}.desc must be a string when present")
+        if "default" in v and not isinstance(v["default"], bool):
+            problems.append(f"{at}.default must be true or false when present")
+        if v.get("default") is True:
+            defaults += 1
+        hide = v.get("hide")
+        if not isinstance(hide, list) or not all(isinstance(n, str) for n in hide):
+            problems.append(f"{at}.hide must be a list of strings")
+    if defaults > 1:
+        problems.append(f"{where} has {defaults} defaults; at most one")
+    return problems
+
+
+def dimensions_problems(dims, where="dimensions"):
+    if dims is None:
+        return []
+    if not isinstance(dims, dict):
+        return [f"{where} must be an object, found {type(dims).__name__}"]
+    problems = []
+    units = dims.get("units")
+    if not isinstance(units, str) or units.lower() not in DIMENSION_UNITS:
+        problems.append(f"{where}.units must be one of {list(DIMENSION_UNITS)}, "
+                        f"found {units!r}")
+    if "note" in dims and not isinstance(dims["note"], str):
+        problems.append(f"{where}.note must be a string when present")
+    if "height_to_ridge" in dims and not (
+            _number(dims["height_to_ridge"]) and dims["height_to_ridge"] > 0):
+        problems.append(f"{where}.height_to_ridge must be a positive number, "
+                        f"found {dims['height_to_ridge']!r}")
+    footprints = 0
+    for key, v in dims.items():
+        if key in DIMENSION_FIELDS:
+            continue
+        if not isinstance(v, dict):
+            problems.append(f"{where}.{key} is neither a footprint object nor "
+                            f"one of {list(DIMENSION_FIELDS)}")
+            continue
+        footprints += 1
+        for f in ("width", "depth"):
+            if not (_number(v.get(f)) and v.get(f) > 0):
+                problems.append(f"{where}.{key}.{f} must be a positive number, "
+                                f"found {v.get(f)!r}")
+        if "note" in v and not isinstance(v["note"], str):
+            problems.append(f"{where}.{key}.note must be a string when present")
+    if not footprints:
+        problems.append(f"{where} has no footprint")
+    return problems
+
+
+def display_problems(manifest):
+    """Every problem in a manifest's `views` and `dimensions` blocks."""
+    if not isinstance(manifest, dict):
+        return [f"manifest must be an object, found {type(manifest).__name__}"]
+    return (views_problems(manifest.get("views"))
+            + dimensions_problems(manifest.get("dimensions")))

@@ -204,12 +204,30 @@ def main():
         n_names += len(want_mats) + len(want_nodes)
         unmatched += [f"{rid}: material {x} is a swap target but not in {glb}"
                       for x in sorted(want_mats - have_mats)]
-        unmatched += [f"{rid}: node {x} is a presence option but not in {glb}"
+        unmatched += [f"{rid}: node {x} is named by presence or views but not in {glb}"
                       for x in sorted(want_nodes - have_nodes)]
     problems += unmatched
     print(f"  [{'PASS' if not unmatched else 'FAIL'}] every manifest names only "
           f"what its .glb contains — {n_names} name(s) checked"
           + (f", {len(unmatched)} unmatched" if unmatched else ""))
+
+    # ── 8. the page's two blocks are whole or absent ──────────────────────
+    # `views` and `dimensions` drive the controls under the viewer, and the
+    # page refuses a block that is malformed anywhere rather than acting on
+    # the entries that parse (#108). Catch it here, where it is a failed gate,
+    # not there, where it is a missing control nobody notices.
+    shapes = []
+    for r in good:
+        path = ROOT / r["manifest"]
+        try:
+            m = json.loads(path.read_text())
+        except (ValueError, OSError):
+            continue  # gate 7 already reports an unreadable manifest
+        shapes += [f"{r['id']}: {p}" for p in model_contract.display_problems(m)]
+    problems += shapes
+    print(f"  [{'PASS' if not shapes else 'FAIL'}] every manifest's views and "
+          f"dimensions are well-formed or absent"
+          + (f" — {len(shapes)} problem(s)" if shapes else ""))
 
     print("-" * 76)
     if problems:

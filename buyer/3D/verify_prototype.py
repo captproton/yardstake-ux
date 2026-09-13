@@ -237,6 +237,8 @@ def main():
         if isinstance(manifest, dict):
             fixture_problems += model_contract.identity_problems(
                 manifest.get("model"), f"fixture {r['id']} model")
+            fixture_problems += [f"fixture {r['id']}: {p}"
+                                 for p in model_contract.display_problems(manifest)]
     def string_ids(v):
         # Only well-formed ids: a list id is unhashable, and gate 1 already
         # reports a malformed row.
@@ -251,6 +253,23 @@ def main():
     problems += fixture_problems
     print(f"  [{'PASS' if not fixture_problems else 'FAIL'}] the fixture index "
           f"meets the model contract")
+
+    # ── 4. the page and the contract accept the same units ────────────────
+    # A unit only one side knows is a manifest one side passes and the other
+    # refuses: verify_index.py green, and no dimensions control on the page.
+    m = re.search(r"const UNITS = \{(.*?)\n\};", (PROTO / "app.js").read_text(), re.S)
+    page_units = set(re.findall(r"^\s*(\w+):", m.group(1), re.M)) if m else set()
+    contract_units = set(model_contract.DIMENSION_UNITS)
+    unit_problems = []
+    if not m:
+        unit_problems.append("app.js has no `const UNITS = { ... };` block to compare")
+    elif page_units != contract_units:
+        unit_problems.append(
+            f"units differ — only app.js: {sorted(page_units - contract_units)}, "
+            f"only model_contract: {sorted(contract_units - page_units)}")
+    problems += unit_problems
+    print(f"  [{'PASS' if not unit_problems else 'FAIL'}] app.js and model_contract "
+          f"accept the same units — {', '.join(sorted(page_units)) or 'none found'}")
 
     print("-" * 76)
     if problems:
