@@ -372,18 +372,18 @@ before the overlay is trusted for it.
 
 Each line is one pull request.
 
-1. Extract the kit; barn cabin builds byte-identical; the page, its fixtures and every probe pass unchanged; lod2 contract finished per model.
-2. `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand.
-3. `spec.yaml` P1, with the roof form settled and cited.
-4. `build.py` P2 massing and openings.
-5. P3 overlay, plus the plate-height gate, proved by perturbation.
-6. **[#117](https://github.com/captproton/yardstake-ux/issues/117): declare the model's front** in the manifest, so the viewer stops assuming +Z. A page change, proved on the barn cabin and the fixtures before Laurel depends on it.
-7. P4 materials, the stucco/siding swap, three levels, manifest, baseline. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
-8. Tier 1 finishes and trim.
-9. **[#119](https://github.com/captproton/yardstake-ux/issues/119): declare where each footprint sits**, so the overlay stops centring. A page change, before Laurel's dimensions are trusted.
-10. Tier 2 textures and configurator: `sets`, `presence`, `views`, `dimensions`, `disclosure` meeting the page's contract.
-11. Tier 3 fixtures, including the water heater and the mini-split.
-12. Furniture and arrangements.
+1. [#126](https://github.com/captproton/yardstake-ux/issues/126) Extract the kit; barn cabin builds byte-identical; the page, its fixtures and every probe pass unchanged; lod2 contract finished per model.
+2. [#127](https://github.com/captproton/yardstake-ux/issues/127) `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand.
+3. [#128](https://github.com/captproton/yardstake-ux/issues/128) `spec.yaml` P1, with the roof form settled and cited.
+4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings.
+5. [#130](https://github.com/captproton/yardstake-ux/issues/130) P3 overlay, plus the plate-height gate, proved by perturbation.
+6. [#117](https://github.com/captproton/yardstake-ux/issues/117) **Declare the model's front** in the manifest, so the viewer stops assuming +Z. A page change, proved on the barn cabin and the fixtures before Laurel depends on it.
+7. [#131](https://github.com/captproton/yardstake-ux/issues/131) P4 materials, the stucco/siding swap, three levels, manifest, baseline. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
+8. [#132](https://github.com/captproton/yardstake-ux/issues/132) Tier 1 finishes and trim.
+9. [#119](https://github.com/captproton/yardstake-ux/issues/119) **Declare where each footprint sits**, so the overlay stops centring. A page change, before Laurel's dimensions are trusted.
+10. [#133](https://github.com/captproton/yardstake-ux/issues/133) Tier 2 textures and configurator: `sets`, `presence`, `views`, `dimensions`, `disclosure` meeting the page's contract.
+11. [#134](https://github.com/captproton/yardstake-ux/issues/134) Tier 3 fixtures, including the water heater and the mini-split.
+12. [#135](https://github.com/captproton/yardstake-ux/issues/135) Furniture and arrangements.
 
 Steps 1 and 2 are the ones that pay for themselves across Richmond and the six
 Concord sets. Steps 6 and 9 pay for themselves on every model after Laurel.
