@@ -19,8 +19,10 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // THE DRACO DECODER MUST MATCH THE LOADER'S RELEASE. The import map in
 // index.html pins the release; REVISION reads it back, so the version is
-// written down exactly once. Every exported level REQUIRES
-// KHR_draco_mesh_compression -- without a decoder, nothing renders at all.
+// written down exactly once. The loader only decodes what a file asks for:
+// a level that REQUIRES KHR_draco_mesh_compression -- every level finish_adu.py
+// exports does -- renders nothing without it, and a plain glTF such as the
+// fixture never touches it.
 const DRACO_DECODERS =
   `https://cdn.jsdelivr.net/npm/three@0.${THREE.REVISION}.0/examples/jsm/libs/draco/gltf/`;
 
@@ -79,9 +81,11 @@ async function main() {
     } catch (err) {
       if (i === 0) throw err;
       // The coarse level is already on screen and orbitable. Say so rather
-      // than replacing a working view with an error.
+      // than replacing a working view with an error -- and END in a state, so
+      // anything waiting for the viewer to settle stops waiting.
       console.error(err);
       setStatus('Showing a simplified model — full detail did not load.');
+      window.__viewer = { ...window.__viewer, state: 'degraded', error: err.message };
       return;
     }
     const framed = viewer.show(gltf.scene);
@@ -91,6 +95,8 @@ async function main() {
       level: level.name,
       levels: levels.map((l) => l.name),
       ...framed,
+      fits: viewer.fits,
+      pose: viewer.pose,
     };
   }
   setStatus('');
@@ -153,15 +159,33 @@ function createViewer(container) {
   loader.setDRACOLoader(new DRACOLoader().setDecoderPath(DRACO_DECODERS));
 
   let current = null;
-  let framed = null;
+  let fitted = null; // the box and centre of the first level shown
+  let info = null;
 
+  // KEEP THE BUILDING IN FRAME WHEN THE PANE CHANGES SHAPE, without undoing
+  // the buyer's orbit or zoom. The camera keeps its direction and its target,
+  // and its distance keeps the same ratio to a full fit; only the fit is
+  // recomputed for the new aspect. Narrowing the pane backs the camera off
+  // rather than cropping the building.
   function resize() {
     const w = container.clientWidth;
     const h = container.clientHeight;
     if (!w || !h) return;
+    const before = fitted && fitDistance(fitted.box, fitted.center, viewDirection(), camera.aspect);
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    if (before) {
+      const scale = fitDistance(fitted.box, fitted.center, viewDirection(), camera.aspect) / before;
+      // The offset is read BEFORE the position is written. Chaining
+      // position.copy(target).add(position - target) evaluates the argument
+      // after the copy, sees a zero offset, and drops the camera onto its
+      // target -- which OrbitControls then pushes to minDistance, straight down.
+      const offset = camera.position.clone().sub(controls.target).multiplyScalar(scale);
+      controls.maxDistance *= scale;
+      camera.position.copy(controls.target).add(offset);
+      controls.update();
+    }
   }
   resize();
   new ResizeObserver(resize).observe(container);
@@ -171,26 +195,32 @@ function createViewer(container) {
     renderer.render(scene, camera);
   });
 
+  function viewDirection() {
+    return camera.position.clone().sub(controls.target).normalize();
+  }
+
   // FRAMING COMES FROM THE LOADED MODEL'S OWN BOX, never from numbers. A
   // camera distance tuned to one building frames the next one wrong.
   //
   // FIT THE CORNERS, NOT A SPHERE. A bounding sphere is as wide as the box's
   // diagonal in every direction, so a long, low building ends up small in
   // the frame. Instead each of the box's eight corners is put in camera space
-  // for the chosen view, and the distance is the least at which all of them
+  // for the given view, and the distance is the least at which all of them
   // are inside both the horizontal and the vertical field of view.
-  function fitDistance(box, center) {
+  function fitDistance(box, center, direction, aspect) {
     const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-    const tanH = tanV * camera.aspect;
-    const forward = VIEW_DIRECTION.clone().negate();
-    const right = new THREE.Vector3().crossVectors(forward, THREE.Object3D.DEFAULT_UP).normalize();
+    const tanH = tanV * aspect;
+    const forward = direction.clone().negate();
+    const right = new THREE.Vector3().crossVectors(forward, THREE.Object3D.DEFAULT_UP);
+    if (right.lengthSq() < 1e-8) right.set(1, 0, 0); // looking straight down
+    right.normalize();
     const up = new THREE.Vector3().crossVectors(right, forward);
     let distance = 0;
     for (const x of [box.min.x, box.max.x]) {
       for (const y of [box.min.y, box.max.y]) {
         for (const z of [box.min.z, box.max.z]) {
           const o = new THREE.Vector3(x, y, z).sub(center);
-          const towardCamera = o.dot(VIEW_DIRECTION);
+          const towardCamera = o.dot(direction);
           distance = Math.max(distance,
             Math.abs(o.dot(right)) / tanH + towardCamera,
             Math.abs(o.dot(up)) / tanV + towardCamera);
@@ -203,7 +233,8 @@ function createViewer(container) {
   function frame(box) {
     const sphere = box.getBoundingSphere(new THREE.Sphere());
     const r = sphere.radius;
-    const distance = fitDistance(box, sphere.center);
+    const distance = fitDistance(box, sphere.center, VIEW_DIRECTION, camera.aspect);
+    fitted = { box: box.clone(), center: sphere.center.clone() };
 
     camera.position.copy(sphere.center).addScaledVector(VIEW_DIRECTION, distance);
     camera.near = distance / 100;
@@ -223,9 +254,9 @@ function createViewer(container) {
     ground.scale.setScalar(r * 12);
     ground.visible = true;
 
-    sun.target.position.set(sphere.center.x, floor, sphere.center.z);
     // From above and in front, on the camera's side, so the shadow falls
     // behind the building rather than across the view of its front.
+    sun.target.position.set(sphere.center.x, floor, sphere.center.z);
     sun.position.copy(sphere.center).add(new THREE.Vector3(r * 0.8, r * 2, r * 1.2));
     const s = sun.shadow.camera;
     s.left = s.bottom = -r * 1.5;
@@ -258,8 +289,34 @@ function createViewer(container) {
         dispose(current);
       }
       current = root;
-      framed ??= frame(new THREE.Box3().setFromObject(root));
-      return framed;
+      if (!fitted) info = frame(new THREE.Box3().setFromObject(root));
+      return info;
+    },
+    // For tests: where the camera is, relative to what it orbits.
+    pose() {
+      return {
+        position: camera.position.toArray(),
+        target: controls.target.toArray(),
+        aspect: camera.aspect,
+        distance: camera.position.distanceTo(controls.target),
+        pane: [container.clientWidth, container.clientHeight],
+      };
+    },
+    // For tests: is every corner of the framed box on screen right now?
+    fits() {
+      if (!fitted) return false;
+      camera.updateMatrixWorld();
+      const { min, max } = fitted.box;
+      const p = new THREE.Vector3();
+      for (const x of [min.x, max.x]) {
+        for (const y of [min.y, max.y]) {
+          for (const z of [min.z, max.z]) {
+            p.set(x, y, z).project(camera);
+            if (Math.abs(p.x) > 1 || Math.abs(p.y) > 1) return false;
+          }
+        }
+      }
+      return true;
     },
   };
 }
