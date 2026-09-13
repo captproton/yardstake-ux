@@ -187,7 +187,8 @@ buyer/3D/
   model_contract.py   what a valid identity, index row and .glb read are —
                       imported by finish_adu.py, build_index.py, verify_index.py
   docs/CONFIGURATION.md  what a buyer chose, as a link and as the object Rails persists
-  probes/run_probes.py   the probe suite: every break-one-thing case, against a copy (#121)
+  probes/run_probes.py   the probe suite: every break-one-thing case, against a copy (#121, done);
+                         --self-check checks the harness itself
 ```
 
 Every model contributes its own directory of `.glb` + `variants.json`, exactly
@@ -198,7 +199,9 @@ as `barn_cabin_524` does today.
 `finish_adu.py`, `prototype/app.js` or the fixtures:
 `python3 buyer/3D/probes/run_probes.py`. Every gate passing on a clean tree
 says nothing about whether it still catches its case; the suite does. It
-breaks a temporary copy, never the working tree.
+breaks a temporary copy, never the working tree. A change that adds a gate
+adds its cases to the matching `probes/cases_*.py`; a change to the harness
+itself runs `run_probes.py --self-check` too.
 
 **Serve `buyer/3D`, not `prototype/`.** Every path in `models.json` is relative
 to the index and climbs out of it (`../models/<id>/…`), so the page lives at
@@ -303,26 +306,53 @@ at `prototype/` cannot reach a single model. Locally:
   proves a gate still catches its case, and they are not yet in the repo —
   [#121](https://github.com/captproton/yardstake-ux/issues/121).
 
+**What the probe suite settled**
+([#123](https://github.com/captproton/yardstake-ux/pull/123)):
+
+- **One command, 92 cases, about 15 seconds.** One module per PR round
+  (#115, #116, #118, #120, #122) plus clean runs; a case passes only if every
+  script exits as expected, prints no traceback, and prints the expected
+  message. The #115 round had not run since #115, and one message had
+  drifted.
+- **It breaks a copy.** About 3 MB of what the checks read, rebuilt fresh for
+  each case in a temporary directory; thumbnail paths are contained, so
+  nothing is read or written outside it.
+- **A stale case says so.** A setup whose target file, text or node has gone
+  — or whose text now matches more than once — fails as *stale*, rather than
+  running against an unbroken file and passing. A Blender case runs its setup
+  before it is skipped, so machines without Blender still report one that
+  has drifted.
+- **The harness is checked too.** `--self-check` runs 13 checks of the
+  harness's own failure modes: escaping and unusable paths, a malformed
+  index, a hanging script, a Blender that cannot start, a contract result
+  that is not text, and stale setups.
+- **Proved by breaking real gates.** Disabling the alpha rule, disabling the
+  disclosure-limit comparison, and reintroducing the `rows or []` traceback
+  that shipped in #122 each turned their case BAD; undoing each harness fix
+  turned its self-check BAD.
+- **Still outside the repo:** those break-a-real-gate mutation scripts. The
+  suite proves each gate catches its case; nothing in the repo yet proves
+  the suite itself would notice a gate being weakened. And the browser
+  checks — swatches against materials, layouts under view modes, framing —
+  were one-off JavaScript and belong in a browser test runner.
+
 ---
 
 ## Issues
 
 Sequenced. Each is small enough to review.
 
-**Next, in this order** (as of #122):
+**Next, in this order** (as of #123):
 
-1. **[#121](https://github.com/captproton/yardstake-ux/issues/121) — the probe suite, before any more page work.** It sits in the
-   not-in-sequence table because no page issue is blocked on it, but it is
-   the most urgent thing on this page. The ~60 probes that proved every gate
-   exist only outside the repo and are lost when the session that wrote them
-   ends; they caught a real defect in three of the last five PRs, one of
-   which shipped; and every issue below touches the gates, `model_contract`
-   or `app.js` again. #121 gives #111 a place to add its cases instead of
-   rebuilding the scaffolding.
-2. **[#111](https://github.com/captproton/yardstake-ux/issues/111) — mostly done already.** The three fixtures and the
-   whole-or-refused rules cover it; what remains is below, in its row.
-3. **[#112](https://github.com/captproton/yardstake-ux/issues/112) — mostly layout.** The call to action sends the configuration
-   object #110 defined, so the data it needs already exists.
+1. **[#111](https://github.com/captproton/yardstake-ux/issues/111) — mostly done already.** The three fixtures and the
+   whole-or-refused rules cover it; what remains is below, in its row. Its
+   new cases go into `probes/cases_*.py`, so the suite keeps proving them.
+2. **[#112](https://github.com/captproton/yardstake-ux/issues/112) — mostly layout.** The call to action sends the configuration
+   object #110 defined, so the data it needs already exists. Its *content*
+   waits on open question 2, where the price range comes from.
+
+**Done:** [#121](https://github.com/captproton/yardstake-ux/issues/121), the probe suite ([#123](https://github.com/captproton/yardstake-ux/pull/123)) — first, as planned, because
+the probes that proved every gate lived only outside the repo.
 
 | # | | why it is where it is |
 |---|---|---|
@@ -341,7 +371,7 @@ Not in the sequence, because nothing above is blocked on it:
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
 | [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model |
 | [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn |
-| [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | about 60 break-one-thing checks that proved every gate live outside the repo; one command, run against a copy. Needed before the next change to a gate — **next**, ahead of #111; see above |
+| [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | the break-one-thing checks that proved every gate, in the repo with one command, run against a copy — **done** ([#123](https://github.com/captproton/yardstake-ux/pull/123)); 92 cases and 13 harness self-checks |
 
 **Open questions, which are the user's rather than the model's:**
 
