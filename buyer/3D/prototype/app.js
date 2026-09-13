@@ -124,7 +124,11 @@ async function main() {
     };
     // The controls need something on screen to act on, so they appear with
     // the first level and keep working when full detail replaces it.
-    if (i === 0) renderControls(readViews(manifest), readDimensions(manifest), viewer);
+    if (i === 0) {
+      const problems = [];
+      renderControls(readViews(manifest, problems), readDimensions(manifest, problems), viewer);
+      window.__viewer = { ...window.__viewer, manifestProblems: problems };
+    }
   }
   setStatus('');
 }
@@ -144,29 +148,69 @@ function orderLevels(row, base) {
   return levels.length > 2 ? [levels[0], levels[levels.length - 1]] : levels;
 }
 
-// ── manifest blocks, read defensively ─────────────────────────────────────
-// Either block may be absent (#111), and a malformed entry is skipped rather
-// than rendered as an empty button or a label reading "undefined".
+// ── manifest blocks: whole or not at all ──────────────────────────────────
+// An ABSENT block renders no control, quietly: a model with no loft need not
+// describe one (#111). A PRESENT block that is malformed ANYWHERE renders no
+// control either, and says why -- on the console and in
+// window.__viewer.manifestProblems. Acting on the entries that happen to
+// parse would show a mode that hides less than it claims, or a legend that
+// omits a footprint the manifest publishes, and nothing would look wrong.
+// The same rules are model_contract.views_problems() and
+// dimensions_problems(), which verify_index.py and finish_adu.py run, so a
+// malformed block should never reach this page at all.
 
-function readViews(manifest) {
-  const list = Array.isArray(manifest?.views) ? manifest.views : [];
-  return list
-    .filter((v) => typeof v?.id === 'string' && typeof v.label === 'string' && v.label)
-    .map((v) => ({
-      id: v.id,
-      label: v.label,
-      desc: typeof v.desc === 'string' ? v.desc : '',
-      isDefault: v.default === true,
-      hide: Array.isArray(v.hide) ? v.hide.filter((n) => typeof n === 'string') : [],
-    }));
+const DIMENSION_FIELDS = new Set(['units', 'note', 'height_to_ridge']);
+
+const positive = (n) => typeof n === 'number' && Number.isFinite(n) && n > 0;
+const text = (s) => typeof s === 'string' && s.trim() !== '';
+const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+function readViews(manifest, problems) {
+  const views = manifest?.views;
+  if (views == null) return [];
+  const problem = viewsProblem(views);
+  if (problem) {
+    problems.push(`views: ${problem}`);
+    console.error(`Ignoring the manifest's views: ${problem}`);
+    return [];
+  }
+  return views.map((v) => ({
+    id: v.id,
+    label: v.label,
+    desc: v.desc ?? '',
+    isDefault: v.default === true,
+    hide: v.hide,
+  }));
 }
 
-function readDimensions(manifest) {
+function viewsProblem(views) {
+  if (!Array.isArray(views)) return 'not a list';
+  const ids = new Set();
+  let defaults = 0;
+  for (const [i, v] of views.entries()) {
+    const at = `views[${i}]`;
+    if (!isObject(v)) return `${at} is not an object`;
+    if (!text(v.id)) return `${at}.id is not a non-empty string`;
+    if (ids.has(v.id)) return `${at}.id repeats an earlier id`;
+    ids.add(v.id);
+    if (!text(v.label)) return `${at}.label is not a non-empty string`;
+    if (v.desc !== undefined && typeof v.desc !== 'string') return `${at}.desc is not a string`;
+    if (v.default !== undefined && typeof v.default !== 'boolean') return `${at}.default is not true or false`;
+    if (v.default === true) defaults += 1;
+    if (!Array.isArray(v.hide) || !v.hide.every((n) => typeof n === 'string')) {
+      return `${at}.hide is not a list of strings`;
+    }
+  }
+  return defaults > 1 ? 'more than one view is the default' : null;
+}
+
+function readDimensions(manifest, problems) {
   const d = manifest?.dimensions;
-  if (!d || typeof d !== 'object') return null;
-  const unit = UNITS[String(d.units).toLowerCase()];
-  if (!unit) {
-    console.warn(`dimensions.units is ${JSON.stringify(d.units)}, which this page does not know; not drawing dimensions`);
+  if (d == null) return null;
+  const problem = dimensionsProblem(d);
+  if (problem) {
+    problems.push(`dimensions: ${problem}`);
+    console.error(`Ignoring the manifest's dimensions: ${problem}`);
     return null;
   }
   const rank = (key) => {
@@ -174,15 +218,34 @@ function readDimensions(manifest) {
     return i < 0 ? FOOTPRINT_ORDER.length : i;
   };
   const footprints = Object.entries(d)
-    .filter(([, v]) => v && Number.isFinite(v.width) && Number.isFinite(v.depth) && v.width > 0 && v.depth > 0)
-    .map(([key, v]) => ({ key, width: v.width, depth: v.depth, note: typeof v.note === 'string' ? v.note : '' }))
+    .filter(([key]) => !DIMENSION_FIELDS.has(key))
+    .map(([key, v]) => ({ key, width: v.width, depth: v.depth, note: v.note ?? '' }))
     .sort((a, b) => rank(a.key) - rank(b.key));
-  if (!footprints.length) return null;
   return {
-    unit,
+    unit: UNITS[d.units.toLowerCase()],
     footprints,
-    ridge: Number.isFinite(d.height_to_ridge) ? d.height_to_ridge : null,
+    ridge: d.height_to_ridge ?? null,
   };
+}
+
+function dimensionsProblem(d) {
+  if (!isObject(d)) return 'not an object';
+  if (typeof d.units !== 'string' || !UNITS[d.units.toLowerCase()]) {
+    return `units ${JSON.stringify(d.units)} is not a unit this page knows`;
+  }
+  if (d.note !== undefined && typeof d.note !== 'string') return 'note is not a string';
+  if (d.height_to_ridge !== undefined && !positive(d.height_to_ridge)) {
+    return 'height_to_ridge is not a positive number';
+  }
+  let footprints = 0;
+  for (const [key, v] of Object.entries(d)) {
+    if (DIMENSION_FIELDS.has(key)) continue;
+    if (!isObject(v)) return `${key} is neither a footprint nor units, note or height_to_ridge`;
+    if (!positive(v.width) || !positive(v.depth)) return `${key} needs a positive width and depth`;
+    if (v.note !== undefined && typeof v.note !== 'string') return `${key}.note is not a string`;
+    footprints += 1;
+  }
+  return footprints ? null : 'no footprint';
 }
 
 // ── the viewer ────────────────────────────────────────────────────────────
@@ -557,25 +620,30 @@ function dispose(root) {
 function renderControls(views, dimensions, viewer) {
   let any = false;
 
-  if (views.length >= 2) {
+  if (views.length) {
     const group = $('view-modes');
-    const buttons = views.map((view) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.textContent = view.label;
-      if (view.desc) b.title = view.desc;
-      b.addEventListener('click', () => select(view));
-      group.append(b);
-      return [view, b];
-    });
+    let buttons = [];
     const select = (view) => {
       for (const [v, b] of buttons) b.setAttribute('aria-pressed', String(v === view));
       viewer.setHidden(view.hide);
       window.__viewer = { ...window.__viewer, view: view.id };
     };
+    // ONE MODE IS NOT A CHOICE, but it is still how the manifest says the
+    // model should be seen: apply it, and render no buttons.
+    if (views.length >= 2) {
+      buttons = views.map((view) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = view.label;
+        if (view.desc) b.title = view.desc;
+        b.addEventListener('click', () => select(view));
+        group.append(b);
+        return [view, b];
+      });
+      group.hidden = false;
+      any = true;
+    }
     select(views.find((v) => v.isDefault) ?? views[0]);
-    group.hidden = false;
-    any = true;
   }
 
   if (dimensions) {

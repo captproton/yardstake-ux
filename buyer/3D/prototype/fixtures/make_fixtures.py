@@ -22,6 +22,10 @@ ways the page must not care about:
     fixture_bare_box -- the same box, and a manifest with ONLY the identity
     block: no `views`, no `dimensions`. Neither control may appear (#108, #111).
 
+    fixture_one_view_box -- one view mode, which hides the roof. One mode is
+    not a choice, so no buttons render, but the mode is still applied: the
+    roof is hidden on load (#108).
+
 A viewer that memorised the barn cabin frames these wrong, renders four
 buttons, or draws a porch that is not there. It is also plain glTF, which
 proves the Draco decoder is used when a file needs it rather than assumed.
@@ -94,6 +98,17 @@ MODELS = [
             "fixture_bare_box", "Fixture: bare box (identity only)",
             "A test fixture whose manifest carries only the identity block, so "
             "neither viewer control may appear (#108, #111). Not a real model."),
+    },
+    {
+        "identity": identity(
+            "fixture_one_view_box", "Fixture: one view mode",
+            "A test fixture with a single view mode that hides the roof: no "
+            "buttons render, and the mode is still applied (#108). Not a real "
+            "model."),
+        "views": [
+            {"id": "roof_off", "label": "Roof off", "default": True,
+             "hide": ["fixture_roof"]},
+        ],
     },
 ]
 
@@ -201,6 +216,10 @@ def write_model(spec):
     for block in ("views", "dimensions"):
         if block in spec:
             manifest[block] = spec[block]
+    # The page refuses a malformed views or dimensions block; so does this.
+    bad = model_contract.display_problems(manifest)
+    if bad:
+        raise SystemExit(f"{model_id} manifest is invalid:\n" + "\n".join(bad))
     # Every node a view mode hides must exist in the file, as finish_adu.py
     # requires of a real export.
     _, want_nodes = model_contract.manifest_names(manifest)

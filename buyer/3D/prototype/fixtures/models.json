@@ -36,6 +36,24 @@
       },
       "primary": null,
       "thumbnail": null
+    },
+    {
+      "id": "fixture_one_view_box",
+      "name": "Fixture: one view mode",
+      "area_sf": 460,
+      "area_key": "fixture_envelope",
+      "area_source": "fixture, not a building: 20 ft x 23 ft",
+      "storeys": {
+        "count": 1,
+        "loft": false
+      },
+      "dir": "models/fixture_one_view_box",
+      "manifest": "models/fixture_one_view_box/export/variants.json",
+      "levels": {
+        "lod0": "models/fixture_one_view_box/export/fixture_one_view_box_lod0.glb"
+      },
+      "primary": null,
+      "thumbnail": null
     }
   ]
 }
