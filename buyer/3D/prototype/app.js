@@ -89,6 +89,24 @@ function setStatus(text) {
   $('status').hidden = !text;
 }
 
+// ESTIMATES CAN ARRIVE BEFORE THE FOOTER EXISTS. A host may send adu:estimate
+// at any time once this script has run -- from DOMContentLoaded, say, while the
+// model is still loading -- so the page listens from the start and keeps the
+// latest. Each is a snapshot taken on arrival: a host that changes its own
+// object afterwards does not change the estimate on screen.
+const UNCLONEABLE = Symbol('uncloneable');
+const estimateInbox = { latest: undefined, deliver: null };
+document.addEventListener(EVENTS.estimate, (e) => {
+  let value;
+  try {
+    value = structuredClone(e.detail ?? null);
+  } catch {
+    value = UNCLONEABLE;
+  }
+  if (estimateInbox.deliver) estimateInbox.deliver(value);
+  else estimateInbox.latest = value;
+});
+
 main().catch((err) => {
   console.error(err);
   setStatus(`Could not load the model: ${err.message}`);
@@ -186,9 +204,9 @@ async function main() {
       if (presence.failClosed.length) viewer.setPresence(presence.failClosed, []);
       renderRail(sets, presence.groups, disclosure, viewer, config);
       window.__viewer = { ...window.__viewer, manifestProblems: problems };
-      // Listening before the configuration starts, so the first one is seen.
-      renderCommerce(row.id, disclosure, { views, sets, presence: presence.groups });
-      config.start({ sets, presence: presence.groups, views });
+      // Before the configuration starts, so the footer is told the first one.
+      const commerce = renderCommerce(row.id, disclosure, { views, sets, presence: presence.groups });
+      config.start({ sets, presence: presence.groups, views, onPublish: commerce.setConfiguration });
     }
   }
   setStatus('');
@@ -465,6 +483,7 @@ function createConfiguration(modelId, params, problems) {
   }
   const current = { model: modelId, view: null, sets: idMap(), presence: idMap() };
   let live = false;
+  let onPublish = null; // the page's own listener, told directly (see start)
 
   const warn = (text) => {
     problems.push(text);
@@ -498,6 +517,7 @@ function createConfiguration(modelId, params, problems) {
       configuration: published(),
       configurationProblems: [...problems],
     };
+    onPublish?.(published());
     // The host prices what the buyer chose (docs/COMMERCE.md); a fresh object,
     // so no listener can change the page's own.
     document.dispatchEvent(new CustomEvent(EVENTS.configuration, { detail: published() }));
@@ -526,7 +546,11 @@ function createConfiguration(modelId, params, problems) {
     },
     // Once every control has taken its starting choice: report what the link
     // named that this model has no group for, then publish the configuration.
-    start({ sets, presence, views }) {
+    // `onPublish` is how the page's own footer learns the configuration: told
+    // directly, never by listening on the document, where any script can send
+    // an adu:configuration and every listener shares the object it carries.
+    start({ sets, presence, views, onPublish: listener = null }) {
+      onPublish = listener;
       const known = { sets: new Set(sets.map((g) => g.id)), presence: new Set(presence.map((g) => g.id)) };
       for (const kind of ['sets', 'presence']) {
         for (const [group, option] of Object.entries(requested[kind])) {
@@ -621,7 +645,14 @@ function renderCommerce(modelId, disclosure, offered) {
       $(id).hidden = true;
     }
     if (state === 'current') {
-      const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: estimate.currency, maximumFractionDigits: 0 });
+      // Whole amounts show whole. If any figure has cents, every figure shows
+      // the currency's own decimals, so $100.50 is never shown as $101.
+      const amounts = [estimate.low, estimate.high, estimate.list?.low, estimate.list?.high].filter((n) => n !== undefined);
+      const money = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: estimate.currency,
+        ...(amounts.every(Number.isInteger) ? { maximumFractionDigits: 0 } : {}),
+      });
       const range = (o) => (o.low === o.high ? money.format(o.low) : `${money.format(o.low)} – ${money.format(o.high)}`);
       shown = { range: range(estimate), list: estimate.list ? range(estimate.list) : null, note: estimate.note ?? null };
       for (const [id, value] of [['estimate-range', shown.range], ['estimate-list', shown.list], ['estimate-note', shown.note]]) {
@@ -641,13 +672,16 @@ function renderCommerce(modelId, disclosure, offered) {
     };
   }
 
+  // `value` is already the page's own copy: parsed from #commerce-data, or
+  // snapshotted by the estimate inbox on arrival.
   function accept(value, source) {
-    const problem = value === null ? null : estimateProblem(value, modelId);
+    const problem = value === UNCLONEABLE ? 'not plain data'
+      : value === null ? null : estimateProblem(value, modelId);
     if (problem) {
       problems.push(`${source}: ${problem}`);
       console.error(`Ignoring the estimate from ${source}: ${problem}`);
     }
-    estimate = value === null || problem ? null : structuredClone(value);
+    estimate = value === null || problem ? null : value;
     render();
   }
 
@@ -662,11 +696,11 @@ function renderCommerce(modelId, disclosure, offered) {
     }
     if (value !== undefined) accept(value, '#commerce-data');
   }
-  document.addEventListener(EVENTS.estimate, (e) => accept(e.detail ?? null, EVENTS.estimate));
-  document.addEventListener(EVENTS.configuration, (e) => {
-    configuration = e.detail;
-    render();
-  });
+  // An estimate sent while the model loaded is later than the one the server
+  // rendered, so it wins. From here on, estimates are accepted as they arrive.
+  if (estimateInbox.latest !== undefined) accept(estimateInbox.latest, EVENTS.estimate);
+  estimateInbox.latest = undefined;
+  estimateInbox.deliver = (value) => accept(value, EVENTS.estimate);
 
   // REQUIRED COPY AT THE POINT OF QUOTING, not only in the rail: on a narrow
   // screen the rail is a scroll away from this button.
@@ -689,6 +723,13 @@ function renderCommerce(modelId, disclosure, offered) {
 
   render();
   bar.hidden = false;
+  return {
+    // From createConfiguration, on every publish: a private copy.
+    setConfiguration(value) {
+      configuration = structuredClone(value);
+      render();
+    },
+  };
 }
 
 // NOBODY HANDLED THE QUOTE -- the prototype, with no Rails behind it. Show
@@ -712,8 +753,20 @@ function showQuote(detail, figures, { views, sets, presence }) {
       if (option) row(g.label, option.label);
     }
   }
-  $('quote-estimate').textContent = figures ? `Project cost estimate: ${figures.range}` : '';
-  $('quote-estimate').hidden = !figures;
+  // The whole estimate the footer shows: struck-through list, range, note.
+  const estimate = $('quote-estimate');
+  estimate.replaceChildren();
+  if (figures) {
+    estimate.append('Project cost estimate: ');
+    if (figures.list) {
+      const was = document.createElement('s');
+      was.textContent = figures.list;
+      estimate.append(was, ' ');
+    }
+    estimate.append(figures.range);
+    if (figures.note) estimate.append(` — ${figures.note}`);
+  }
+  estimate.hidden = !figures;
   $('quote-dialog-disclosure').textContent = detail.disclosure ?? '';
   $('quote-dialog-disclosure').hidden = !detail.disclosure;
   $('quote-json').textContent = JSON.stringify(detail.configuration, null, 2);

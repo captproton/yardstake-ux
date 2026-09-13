@@ -46,7 +46,7 @@ uses is named here.
 |---|---|---|
 | `model` | the id of the model priced; an estimate for another model is refused | yes |
 | `currency` | a three-letter code, e.g. `USD` | yes |
-| `low`, `high` | the range, positive, `low` ≤ `high`; equal shows one figure | yes |
+| `low`, `high` | the range, positive, `low` ≤ `high`; equal shows one figure. Whole amounts show without cents; if any figure has cents, every figure shows the currency's usual decimals | yes |
 | `list` | `{low, high}`, shown struck through above the range; at or above it, since it claims a discount | no |
 | `note` | one line under the range, at most 200 characters | no |
 | `configuration` | the [configuration](CONFIGURATION.md) this estimate priced | no |
@@ -73,8 +73,12 @@ Either or both:
 
 - **In the page**, rendered by the server: `<script type="application/json"
   id="commerce-data">…</script>`. It's read once, when the model loads.
-- **As an event**, at any time after that: dispatch `adu:estimate` on
-  `document` with the estimate as `detail`, or `null` to clear it.
+- **As an event**, at any time once the page's script has run (from
+  `DOMContentLoaded` on, even while the model is still loading): dispatch
+  `adu:estimate` on `document` with the estimate as `detail`, or `null` to
+  clear it. The latest one sent before the footer appears is applied when it
+  does, and wins over `#commerce-data`, since it's later. The page copies each
+  estimate as it arrives, so changing your object afterwards changes nothing.
 
 ## Events
 
@@ -85,6 +89,11 @@ All on `document`, all `CustomEvent`s.
 | `adu:configuration` | the page | the configuration | once the controls have their starting choices, then on every change |
 | `adu:estimate` | the host | an estimate, or `null` | whenever the host has a price, e.g. in answer to `adu:configuration` |
 | `adu:quote` | the page | `{configuration, estimate, disclosure, link}` | the buyer presses **Get your quote** |
+
+The page only **sends** `adu:configuration`. It never reads it back, so a
+script that dispatches one can't make a stale estimate look current. Each
+`detail` the page sends is a fresh copy, and a listener that changes it
+changes nothing on the page.
 
 In `adu:quote`, `estimate` is the one on screen, or `null` when none is shown
 (none supplied, refused, or stale). `disclosure` is the manifest's disclosure,

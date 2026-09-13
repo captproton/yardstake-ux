@@ -7,7 +7,7 @@ import json
 import re
 from pathlib import Path
 
-from suite import Case, ContractCase, manifest, page_gates, read_json, replace
+from suite import Case, ContractCase, existing, manifest, page_gates, read_json, replace
 
 G = "#112 commerce"
 
@@ -112,6 +112,21 @@ CASES = [
                  _contract(_set("note", "x" * 201)), "estimate.note is 201 characters"),
     ContractCase(G, "estimate_problems: a configuration that is not an object",
                  _contract(_set("configuration", "sage")), "estimate.configuration must be an object"),
+    ContractCase(G, "estimate_problems: a currency with a trailing newline",
+                 _contract(_set("currency", "USD\n")), "estimate.currency must be a three-letter code"),
+    # an unreadable file is a failed gate, not a traceback (every gate's reads)
+    Case(G, "an unreadable app.js is a failed gate, not a traceback",
+         lambda root: existing(_app(root)).chmod(0),
+         page_gates(), "prototype/app.js is unreadable"),
+    Case(G, "an unreadable index.html is a failed gate, not a traceback",
+         lambda root: existing(root / "prototype" / "index.html").chmod(0),
+         page_gates(), "prototype/index.html is unreadable"),
+    Case(G, "an unreadable CONFIGURATION.md is a failed gate, not a traceback",
+         lambda root: existing(root / "docs" / "CONFIGURATION.md").chmod(0),
+         page_gates(), "docs/CONFIGURATION.md is unreadable"),
+    Case(G, "an unreadable COMMERCE.md is a failed gate, not a traceback",
+         lambda root: existing(_doc(root)).chmod(0),
+         page_gates(), "docs/COMMERCE.md is unreadable"),
     ContractCase(G, "estimate_problems: a manifest that is not an object",
                  lambda mc, root: mc.estimate_problems(_example(root), []),
                  "the manifest is not an object"),

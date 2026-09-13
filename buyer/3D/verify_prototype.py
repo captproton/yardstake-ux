@@ -61,6 +61,17 @@ def load_json(path, problems, what):
         return None
 
 
+def read_text(path, unreadable):
+    """A file's text, or "" with the reason recorded in `unreadable` (keyed by
+    path). An unreadable page file or document is a failed gate, never a
+    traceback -- the rule load_json() already applies to JSON."""
+    try:
+        return path.read_text()
+    except OSError as e:
+        unreadable.setdefault(path, f"{rel(path)} is unreadable: {e}")
+        return ""
+
+
 def published_names(index_path, problems):
     """{name: what it is} for every model in an index: identity from the row
     AND from the manifest's own `model` block (the header reads the latter),
@@ -144,14 +155,26 @@ def main():
     print("prototype/ — the configurator page")
     print("=" * 76)
 
+    # Every page file is read once, here. A gate that needs a file it could
+    # not read reports why, and each reason is listed once however many gates
+    # needed that file.
+    unreadable = {}
+    page_text = {p: read_text(p, unreadable)
+                 for p in [*PAGE_FILES, PROTO / "index.html", PROTO / "app.js"]}
+
+    def cannot_read(*paths):
+        return [unreadable[p] for p in paths if p in unreadable]
+
     # ── 1. the page names no building, room, node, material or choice ─────
     names, unread = {}, []
     for index in (build_index.INDEX, FIXTURE_INDEX):
         if index.is_file():
             names.update(published_names(index, unread))
+    # A file that could not be read is a file the gate did not check.
+    unread += cannot_read(*PAGE_FILES)
     leaks = []
     for f in PAGE_FILES:
-        text = f.read_text()
+        text = page_text[f]
         for name, kind in sorted(names.items()):
             if kind in LITERAL_ONLY:
                 pattern = rf"(['\"`]){re.escape(name)}\1"
@@ -172,9 +195,9 @@ def main():
     # it must be the same exact version, or the loader and core disagree. The
     # entries app.js imports must exist: an empty map pins nothing and passes
     # nothing.
-    html = (PROTO / "index.html").read_text()
+    html = page_text[PROTO / "index.html"]
     m = re.search(r'<script type="importmap">(.*?)</script>', html, re.S)
-    pins, pin_problems = set(), []
+    pins, pin_problems = set(), cannot_read(PROTO / "index.html", PROTO / "app.js")
     imports = {}
     if not m:
         pin_problems.append("index.html has no import map")
@@ -202,7 +225,7 @@ def main():
         pin_problems.append("the import map pins no three.js release")
     if len(pins) > 1:
         pin_problems.append(f"the import map pins several releases: {sorted(pins)}")
-    if PIN.search((PROTO / "app.js").read_text()):
+    if PIN.search(page_text[PROTO / "app.js"]):
         pin_problems.append("app.js hard-codes a three@x.y.z version; derive "
                             "it from THREE.REVISION")
     problems += pin_problems
@@ -283,10 +306,10 @@ def main():
     # ── 4. the page and the contract accept the same units ────────────────
     # A unit only one side knows is a manifest one side passes and the other
     # refuses: verify_index.py green, and no dimensions control on the page.
-    m = re.search(r"const UNITS = \{(.*?)\n\};", (PROTO / "app.js").read_text(), re.S)
+    m = re.search(r"const UNITS = \{(.*?)\n\};", page_text[PROTO / "app.js"], re.S)
     page_units = set(re.findall(r"^\s*(\w+):", m.group(1), re.M)) if m else set()
     contract_units = set(model_contract.DIMENSION_UNITS)
-    unit_problems = []
+    unit_problems = cannot_read(PROTO / "app.js")
     if not m:
         unit_problems.append("app.js has no `const UNITS = { ... };` block to compare")
     elif page_units != contract_units:
@@ -295,7 +318,7 @@ def main():
             f"only model_contract: {sorted(contract_units - page_units)}")
     # The same for the disclosure's length limit: a limit only one side
     # enforces is copy one side accepts and the other refuses to show.
-    lim = re.search(r"const DISCLOSURE_MAX_CHARS = (\d+);", (PROTO / "app.js").read_text())
+    lim = re.search(r"const DISCLOSURE_MAX_CHARS = (\d+);", page_text[PROTO / "app.js"])
     page_limit = int(lim.group(1)) if lim else None
     if page_limit != model_contract.DISCLOSURE_MAX_CHARS:
         unit_problems.append(
@@ -313,12 +336,14 @@ def main():
     # longer exists.
     config_doc = HERE / "docs" / "CONFIGURATION.md"
     config_problems = []
-    text = config_doc.read_text() if config_doc.is_file() else ""
+    text = read_text(config_doc, unreadable) if config_doc.is_file() else ""
     json_block = re.search(r"```json\n(.*?)\n```", text, re.S)
     link_block = re.search(r"```text\n(/prototype/\?.*?)\n```", text, re.S)
     example, parsed = None, False
     if not config_doc.is_file():
         config_problems.append("docs/CONFIGURATION.md is missing")
+    elif config_doc in unreadable:
+        config_problems += cannot_read(config_doc)
     elif not json_block or not link_block:
         config_problems.append("docs/CONFIGURATION.md needs a ```json example and a ```text link")
     else:
@@ -379,12 +404,14 @@ def main():
     # event the page sends or listens for must be named in the document, or a
     # host has no way to learn it exists.
     commerce_doc = HERE / "docs" / "COMMERCE.md"
-    commerce_problems = []
-    app = (PROTO / "app.js").read_text()
-    ctext = commerce_doc.read_text() if commerce_doc.is_file() else ""
+    commerce_problems = cannot_read(PROTO / "app.js")
+    app = page_text[PROTO / "app.js"]
+    ctext = read_text(commerce_doc, unreadable) if commerce_doc.is_file() else ""
     estimate_block = re.search(r"```json\n(.*?)\n```", ctext, re.S)
     if not commerce_doc.is_file():
         commerce_problems.append("docs/COMMERCE.md is missing")
+    elif commerce_doc in unreadable:
+        commerce_problems += cannot_read(commerce_doc)
     elif not estimate_block:
         commerce_problems.append("docs/COMMERCE.md needs a ```json estimate example")
     else:
@@ -441,6 +468,8 @@ def main():
           f"{', '.join(sorted(page_events)) or 'no events'}")
 
     print("-" * 76)
+    # A file several gates needed is one problem, listed once.
+    problems = list(dict.fromkeys(problems))
     if problems:
         print(f"{len(problems)} PROBLEM(S):")
         for p in problems:

@@ -515,7 +515,9 @@ def estimate_problems(estimate, manifest, where="estimate"):
         problems.append(f"{where}.model is {estimate['model']!r} but the manifest is "
                         f"for {ident.get('id')!r}")
     currency = estimate.get("currency")
-    if not isinstance(currency, str) or not CURRENCY.match(currency):
+    # fullmatch, not match: `$` also matches before a trailing newline, and
+    # "USD\n" is a currency the page refuses.
+    if not isinstance(currency, str) or not CURRENCY.fullmatch(currency):
         problems.append(f"{where}.currency must be a three-letter code such as 'USD', "
                         f"found {currency!r}")
     own = bounds(estimate, where)
