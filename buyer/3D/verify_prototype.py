@@ -269,10 +269,13 @@ def main():
     except Exception as e:
         fixture_problems.append(f"make_fixtures.py failed: {e!r}")
         expected = {}
-    fixture_problems += [f"fixture {p} is missing or differs from what make_fixtures.py "
-                         f"generates; re-run it"
-                         for p, data in sorted(expected.items())
-                         if not (fixture_root / p).is_file() or (fixture_root / p).read_bytes() != data]
+    # The generator's own comparison: missing, different, unreadable, and
+    # files it no longer generates -- so this gate and `make_fixtures.py
+    # --check` cannot disagree, and an unreadable file is a problem, not a
+    # traceback. Skipped when generation itself failed, which is reported above.
+    if expected:
+        fixture_problems += [f"fixture {p} {reason}; re-run make_fixtures.py"
+                             for p, reason in generator.compare(expected)]
     problems += fixture_problems
     print(f"  [{'PASS' if not fixture_problems else 'FAIL'}] the fixture index "
           f"meets the model contract")
