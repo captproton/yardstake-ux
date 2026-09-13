@@ -23,6 +23,7 @@ import json
 import os
 import re
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import build_index
 import model_contract
@@ -279,6 +280,71 @@ def main():
     print(f"  [{'PASS' if not unit_problems else 'FAIL'}] app.js and model_contract "
           f"agree on units and the disclosure limit — "
           f"{', '.join(sorted(page_units)) or 'no units found'}; {page_limit} characters")
+
+    # ── 5. the documented configuration is one the real manifest accepts ──
+    # docs/CONFIGURATION.md is the contract with Rails (#110). Its example must
+    # be valid for the manifest it names, and its link must decode to the same
+    # object -- otherwise the document quietly describes a page that no
+    # longer exists.
+    config_doc = HERE / "docs" / "CONFIGURATION.md"
+    config_problems = []
+    text = config_doc.read_text() if config_doc.is_file() else ""
+    json_block = re.search(r"```json\n(.*?)\n```", text, re.S)
+    link_block = re.search(r"```text\n(/prototype/\?.*?)\n```", text, re.S)
+    example, parsed = None, False
+    if not config_doc.is_file():
+        config_problems.append("docs/CONFIGURATION.md is missing")
+    elif not json_block or not link_block:
+        config_problems.append("docs/CONFIGURATION.md needs a ```json example and a ```text link")
+    else:
+        try:
+            example = json.loads(json_block.group(1))
+            parsed = True
+        except ValueError as e:
+            config_problems.append(f"the example configuration is not JSON: {e}")
+    # JSON that parses to null, a list or a string is not a configuration, and
+    # must fail -- it used to skip every check below and print PASS.
+    if parsed and not isinstance(example, dict):
+        config_problems.append(f"the example configuration must be a JSON object, "
+                               f"found {type(example).__name__}")
+    if isinstance(example, dict):
+        real = load_json(build_index.INDEX, config_problems, "index")
+        rows = real.get("models") if isinstance(real, dict) else None
+        # Only a list of rows is searched. `rows or []` iterated a number and
+        # raised; gate 1 already reports a malformed index as a failed gate.
+        rows = rows if isinstance(rows, list) else []
+        row = next((r for r in rows if isinstance(r, dict)
+                    and r.get("id") == example.get("model")), None)
+        row_bad = (model_contract.row_problems(row, "the example's index row")
+                   if row is not None else [])
+        if row is None:
+            config_problems.append(f"the example names model {example.get('model')!r}, "
+                                   f"which the index does not have")
+        elif row_bad:
+            # The row meets the index contract before anything is read from
+            # it; a missing `manifest` used to raise KeyError here.
+            config_problems += row_bad
+        else:
+            manifest = load_json(build_index.INDEX.parent / row["manifest"],
+                                 config_problems, "manifest")
+            if isinstance(manifest, dict):
+                config_problems += model_contract.configuration_problems(
+                    example, manifest, "the documented configuration")
+        query = parse_qs(urlsplit(link_block.group(1)).query)
+        decoded = {"sets": {}, "presence": {}}
+        for key, values in query.items():
+            if key in ("model", "view"):
+                decoded[key] = values[0]
+            elif key.startswith("set."):
+                decoded["sets"][key[4:]] = values[0]
+            elif key.startswith("presence."):
+                decoded["presence"][key[9:]] = values[0]
+        if decoded != example:
+            config_problems.append("the documented link does not decode to the "
+                                   "documented configuration")
+    problems += config_problems
+    print(f"  [{'PASS' if not config_problems else 'FAIL'}] the documented "
+          f"configuration is valid for its manifest, and its link matches")
 
     print("-" * 76)
     if problems:
