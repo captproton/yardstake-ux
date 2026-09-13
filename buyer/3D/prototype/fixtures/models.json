@@ -54,6 +54,27 @@
       },
       "primary": null,
       "thumbnail": null
+    },
+    {
+      "id": "fixture_barn_reduced",
+      "name": "Fixture: barn cabin, reduced",
+      "area_sf": 528,
+      "area_key": "total_living_sf",
+      "area_source": "A1.1 'EXISTING S.F. NOTES'",
+      "storeys": {
+        "count": 1,
+        "loft": true,
+        "raw": "main floor + loft storage above",
+        "source": "A1.1 main floor plan and loft plan"
+      },
+      "dir": "models/fixture_barn_reduced",
+      "manifest": "models/fixture_barn_reduced/export/variants.json",
+      "levels": {
+        "lod2": "../../models/barn_cabin_524/export/barn_cabin_524_lod2.glb",
+        "lod0": "../../models/barn_cabin_524/export/barn_cabin_524_lod0.glb"
+      },
+      "primary": null,
+      "thumbnail": null
     }
   ]
 }

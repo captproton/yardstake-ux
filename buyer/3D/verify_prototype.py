@@ -19,6 +19,7 @@ verify_index.py follows. Every document is read through `load_json()` and
 every row through `model_contract.row_problems()` before anything is taken
 from it.
 """
+import importlib.util
 import json
 import os
 import re
@@ -251,6 +252,27 @@ def main():
     real_ids = string_ids(real.get("models") if isinstance(real, dict) else None)
     fixture_problems += [f"fixture id {c} collides with a real model"
                          for c in sorted(real_ids & string_ids(rows))]
+
+    # THE FIXTURES ARE GENERATED, SO THEY MUST MATCH THEIR GENERATOR (#111).
+    # One is derived from the barn cabin's manifest; a re-export that changes
+    # that manifest without re-running make_fixtures.py would leave the page
+    # tested against a building that no longer exists. render() writes nothing.
+    fixture_root = PROTO / "fixtures"
+    try:
+        loader = importlib.util.spec_from_file_location("make_fixtures", fixture_root / "make_fixtures.py")
+        generator = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(generator)
+        expected = generator.render()
+    except SystemExit as e:
+        fixture_problems.append(f"make_fixtures.py cannot generate the fixtures: {e}")
+        expected = {}
+    except Exception as e:
+        fixture_problems.append(f"make_fixtures.py failed: {e!r}")
+        expected = {}
+    fixture_problems += [f"fixture {p} is missing or differs from what make_fixtures.py "
+                         f"generates; re-run it"
+                         for p, data in sorted(expected.items())
+                         if not (fixture_root / p).is_file() or (fixture_root / p).read_bytes() != data]
     problems += fixture_problems
     print(f"  [{'PASS' if not fixture_problems else 'FAIL'}] the fixture index "
           f"meets the model contract")
