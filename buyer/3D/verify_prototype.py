@@ -304,11 +304,17 @@ def main():
     if isinstance(example, dict):
         real = load_json(build_index.INDEX, config_problems, "index")
         rows = real.get("models") if isinstance(real, dict) else None
-        row = next((r for r in rows or [] if isinstance(r, dict)
+        # Only a list of rows is searched. `rows or []` iterated a number and
+        # raised; gate 1 already reports a malformed index as a failed gate.
+        rows = rows if isinstance(rows, list) else []
+        row = next((r for r in rows if isinstance(r, dict)
                     and r.get("id") == example.get("model")), None)
         if row is None:
             config_problems.append(f"the example names model {example.get('model')!r}, "
                                    f"which the index does not have")
+        elif not isinstance(row.get("manifest"), str):
+            config_problems.append(f"the index row for {row.get('id')!r} has no "
+                                   f"manifest path to check the example against")
         else:
             manifest = load_json(build_index.INDEX.parent / row["manifest"],
                                  config_problems, "manifest")
