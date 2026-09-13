@@ -404,6 +404,75 @@ def disclosure_problems(manifest):
     return problems
 
 
+# ── a saved configuration (#110) ─────────────────────────────────────────────
+# docs/CONFIGURATION.md is the contract: option ids, never values; every group
+# chosen; the model named. These are the rules the Rails app applies before it
+# trusts a stored or posted configuration.
+
+CONFIGURATION_FIELDS = ("model", "view", "sets", "presence")
+
+
+def configuration_problems(config, manifest, where="configuration"):
+    """A configuration against the manifest of the model it names.
+
+    TYPE-SAFE ON BOTH ARGUMENTS. This is the check Rails runs before it trusts
+    a stored or posted configuration, so a malformed value -- in the
+    configuration or in a manifest that never passed display_problems() -- is
+    a reported problem, never a TypeError."""
+    if not isinstance(config, dict):
+        return [f"{where} must be an object, found {type(config).__name__}"]
+    if not isinstance(manifest, dict):
+        return [f"{where} cannot be checked: the manifest is not an object"]
+
+    def listed(v):
+        return [x for x in v if isinstance(x, dict)] if isinstance(v, list) else []
+
+    problems = [f"{where} has an unknown field {k!r}"
+                for k in config if k not in CONFIGURATION_FIELDS]
+    ident = manifest.get("model") if isinstance(manifest.get("model"), dict) else {}
+    if not _text(config.get("model")):
+        problems.append(f"{where}.model must be a model id, found {config.get('model')!r}")
+    elif config["model"] != ident.get("id"):
+        problems.append(f"{where}.model is {config['model']!r} but the manifest is "
+                        f"for {ident.get('id')!r}")
+
+    # `view` is PRESENT exactly when the manifest has views, and OMITTED -- not
+    # null -- when it has none (docs/CONFIGURATION.md).
+    views = [v["id"] for v in listed(manifest.get("views")) if _text(v.get("id"))]
+    if views:
+        if "view" not in config:
+            problems.append(f"{where}.view is required: the manifest has views {views}")
+        elif config["view"] not in views:
+            problems.append(f"{where}.view {config['view']!r} is not one of the "
+                            f"manifest's views {views}")
+    elif "view" in config:
+        problems.append(f"{where}.view must be omitted, not {config['view']!r}: "
+                        f"the manifest has no views")
+
+    for kind in ("sets", "presence"):
+        groups = {}
+        for g in listed(manifest.get(kind)):
+            if _text(g.get("id")):
+                groups[g["id"]] = {o["id"] for o in listed(g.get("options")) if _text(o.get("id"))}
+        chosen = config.get(kind, {})
+        if not isinstance(chosen, dict):
+            problems.append(f"{where}.{kind} must be an object of group id to option id")
+            continue
+        for group, options in groups.items():
+            if group not in chosen:
+                problems.append(f"{where}.{kind} has no choice for {group!r}; "
+                                f"every group is written")
+            elif not isinstance(chosen[group], str):
+                problems.append(f"{where}.{kind}.{group} must be an option id, "
+                                f"found {chosen[group]!r}")
+            elif chosen[group] not in options:
+                problems.append(f"{where}.{kind}.{group} is {chosen[group]!r}, "
+                                f"which is not one of {sorted(options)}")
+        problems += [f"{where}.{kind}.{g} names a group the manifest does not have"
+                     for g in chosen if g not in groups]
+    return problems
+
+
 def display_problems(manifest):
     """Every problem in the blocks the page renders controls from: `sets`,
     `presence` and `disclosure` (the rail), `views` and `dimensions` (the
