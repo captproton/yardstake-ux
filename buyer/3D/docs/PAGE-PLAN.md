@@ -176,9 +176,12 @@ buyer/3D/prototype/
                       the option rail: finishes, layouts, disclosure             (#109, done)
                       the configuration, kept in the address bar                 (#110, done)
   models.json         the index — which models exist                             (#106, done)
-  fixtures/           three generated models and their own index, for ?index=fixtures/models.json:
-                      2 finish sets, a bench layout, 3 view modes, no `with_porch`;
-                      identity only; one view mode
+  fixtures/           four generated models and their own index, for ?index=fixtures/models.json:
+                      a slab box (2 finish sets, a bench layout, 3 view modes, no `with_porch`);
+                      identity only (`{"model": ...}`); one view mode; and the barn
+                      cabin reduced (#111) -- its own .glb files, minus a layout
+                      group, two view modes and `with_porch`. The directory must be
+                      exactly what make_fixtures.py generates (gate 3, --check)
 buyer/3D/
   build_index.py      writes prototype/models.json from every exported model
   verify_index.py     gates it, no Blender

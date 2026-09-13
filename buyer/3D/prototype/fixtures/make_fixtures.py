@@ -1,11 +1,19 @@
 """
-make_fixtures.py — models the viewer has never seen, for #107, #108 and #109.
+make_fixtures.py — models the viewer has never seen, for #107 to #111.
 
-    python3 prototype/fixtures/make_fixtures.py
+    python3 prototype/fixtures/make_fixtures.py           write every fixture
+    python3 prototype/fixtures/make_fixtures.py --check   compare, write nothing
 
-Writes `fixtures/models.json` and three models under `fixtures/models/`. Open
+Writes `fixtures/models.json` and four models under `fixtures/models/`. Open
 the page with `?index=fixtures/models.json` to point the same viewer at them;
 the model picker switches between them.
+
+THE FIXTURES ARE GENERATED, SO THEY MUST MATCH THIS FILE. `render()` builds
+every file in memory without writing, and verify_prototype.py gate 3 fails if
+a committed fixture differs from it -- which matters most for the one derived
+from the barn cabin's manifest: a re-export that changes that manifest without
+re-running this would leave the page tested against a building that no longer
+exists.
 
 WHY FIXTURES AND NOT LAUREL. The second real model is deferred, and the page
 issues each need a building that differs from the barn cabin in exactly the
@@ -22,20 +30,26 @@ ways the page must not care about:
                                         ids and labels         (#109: the rail
                                                                 renders what exists)
 
-    fixture_bare_box -- the same box, and a manifest with ONLY the identity
-    block: no `views`, no `dimensions`, no rail. No control may appear
-    (#108, #109, #111).
+    fixture_bare_box -- the same box, and a manifest that is ONLY the identity
+    block: `{"model": ...}` and nothing else. It must still load and orbit,
+    with no control and no rail (#108, #109, #111).
 
     fixture_one_view_box -- one view mode, which hides the roof. One mode is
     not a choice, so no buttons render, but the mode is still applied: the
     roof is hidden on load (#108).
 
-A viewer that memorised the barn cabin frames these wrong, renders four
-buttons, draws a porch that is not there, or offers eight finishes. It is also
-plain glTF, which proves the Draco decoder is used when a file needs it rather
-than assumed.
+    fixture_barn_reduced -- THE BARN CABIN, WITH PARTS TAKEN AWAY (#111). Its
+    own .glb files and manifest, minus a whole layout group (`porch_layout`),
+    two of the four view modes, and the `with_porch` footprint. The real
+    building's nodes and materials under a manifest that no longer describes
+    all of them: what a model with no porch looks like to the page.
 
-These are NOT buildings. Their identities say so, and their numbers are round.
+A viewer that memorised the barn cabin frames these wrong, renders four
+buttons, draws a porch that is not there, or offers eight finishes. The boxes
+are also plain glTF, which proves the Draco decoder is used when a file needs
+it rather than assumed.
+
+These are NOT buildings. Their identities say so.
 """
 import json
 import struct
@@ -47,6 +61,8 @@ sys.path.insert(0, str(HERE.parents[1]))  # buyer/3D, for model_contract
 import model_contract  # noqa: E402
 
 FT = 0.3048
+BARN = "barn_cabin_524"
+BARN_EXPORT = HERE.parents[1] / "models" / BARN / "export"
 
 # glTF frame: Y up, front toward +Z (as the exporter writes it). x0, x1, y0, y1, z0, z1
 # in metres. A 20 x 23 ft slab-on-grade box with an overhanging flat roof.
@@ -60,6 +76,8 @@ PARTS = [
 ]
 # Something a layout can show or hide: a bench in front of the entry.
 BENCH = ("bench", (0.45, 0.33, 0.2), (1.0, 2.4, 0.10, 0.55, 0.6, 1.0))
+
+MANIFEST_BLOCKS = ("sets", "presence", "disclosure", "views", "dimensions")
 
 
 def identity(model_id, name, note):
@@ -75,7 +93,7 @@ def identity(model_id, name, note):
     }
 
 
-MODELS = [
+BOXES = [
     {
         "identity": identity(
             "fixture_slab_box", "Fixture: slab-on-grade box",
@@ -132,9 +150,9 @@ MODELS = [
     {
         "identity": identity(
             "fixture_bare_box", "Fixture: bare box (identity only)",
-            "A test fixture whose manifest carries only the identity block, so "
-            "no viewer control and no rail may appear (#108, #109, #111). Not a "
-            "real model."),
+            "A test fixture whose manifest is only the identity block, so no "
+            "viewer control and no rail may appear, and the model must still "
+            "load and orbit (#108, #109, #111). Not a real model."),
     },
     {
         "identity": identity(
@@ -149,7 +167,73 @@ MODELS = [
     },
 ]
 
-MANIFEST_BLOCKS = ("sets", "presence", "disclosure", "views", "dimensions")
+# What fixture_barn_reduced takes away from the barn cabin (#111).
+REMOVED_PRESENCE = "porch_layout"
+KEPT_VIEWS = 2
+REMOVED_FOOTPRINT = "with_porch"
+
+
+def barn_reduced():
+    """The barn cabin's manifest with parts taken away, pointing at its own
+    .glb files. Fails loudly -- with a message, never a traceback -- if the
+    barn cabin's manifest is unreadable or malformed, or no longer has what
+    this removes, since the fixture would then remove nothing and prove
+    nothing."""
+    source = BARN_EXPORT / "variants.json"
+    try:
+        m = json.loads(source.read_text())
+    except (ValueError, OSError) as e:
+        raise SystemExit(f"make_fixtures.py: the barn cabin manifest is unreadable: {e}")
+    if not isinstance(m, dict):
+        raise SystemExit(f"make_fixtures.py: the barn cabin manifest is a "
+                         f"{type(m).__name__}, not an object")
+    bad = (model_contract.identity_problems(m.get("model"))
+           + model_contract.display_problems(m))
+    if bad:
+        raise SystemExit("make_fixtures.py: the barn cabin manifest is malformed:\n"
+                         + "\n".join(f"  - {p}" for p in bad))
+
+    missing = []
+    if not any(g.get("id") == REMOVED_PRESENCE for g in m.get("presence") or []):
+        missing.append(f"a `{REMOVED_PRESENCE}` layout group")
+    # AT LEAST TWO views must go, or "two of the four removed" silently shrinks
+    # to one. At least -- not exactly -- four, so the barn cabin gaining a view
+    # mode does not break the fixture.
+    if len(m.get("views") or []) < KEPT_VIEWS + 2:
+        missing.append(f"at least {KEPT_VIEWS + 2} view modes")
+    if REMOVED_FOOTPRINT not in (m.get("dimensions") or {}):
+        missing.append(f"a `{REMOVED_FOOTPRINT}` footprint")
+    if missing:
+        raise SystemExit("make_fixtures.py: the barn cabin manifest no longer has "
+                         + ", ".join(missing) + "; fixture_barn_reduced cannot remove it")
+
+    ident = dict(m["model"])
+    ident.update(
+        id="fixture_barn_reduced",
+        name="Fixture: barn cabin, reduced",
+        thumbnail=None,
+        note=("A test fixture (#111): the barn cabin's own .glb files under its "
+              "manifest with a layout group, two view modes and the with-porch "
+              "footprint removed. Generated from the barn cabin's manifest by "
+              "prototype/fixtures/make_fixtures.py. Not a real model."),
+    )
+    spec = {
+        "identity": ident,
+        "levels": {
+            "lod0": f"../../models/{BARN}/export/{BARN}_lod0.glb",
+            "lod2": f"../../models/{BARN}/export/{BARN}_lod2.glb",
+        },
+        "names_from": BARN_EXPORT / f"{BARN}_lod0.glb",
+        "presence": [g for g in m["presence"] if g.get("id") != REMOVED_PRESENCE],
+        "views": m["views"][:KEPT_VIEWS],
+        "dimensions": {k: v for k, v in m["dimensions"].items() if k != REMOVED_FOOTPRINT},
+    }
+    # The blocks this fixture does not reduce are carried only when the barn
+    # cabin has them; each is optional in the contract.
+    for block in ("sets", "disclosure"):
+        if block in m:
+            spec[block] = m[block]
+    return spec
 
 
 def box_faces(x0, x1, y0, y1, z0, z1):
@@ -182,7 +266,8 @@ def box_faces(x0, x1, y0, y1, z0, z1):
     return pos, nrm, idx
 
 
-def write_glb(path, parts):
+def glb_bytes(parts):
+    """A plain glTF of boxes: (bytes, material names, node names)."""
     gltf = {
         "asset": {"version": "2.0", "generator": "make_fixtures.py"},
         "scene": 0,
@@ -232,41 +317,62 @@ def write_glb(path, parts):
     js = json.dumps(gltf, separators=(",", ":")).encode()
     js += b" " * (-len(js) % 4)
     total = 12 + 8 + len(js) + 8 + len(blob)
-    path.write_bytes(b"glTF" + struct.pack("<II", 2, total)
-                     + struct.pack("<I", len(js)) + b"JSON" + js
-                     + struct.pack("<I", len(blob)) + b"BIN\x00" + bytes(blob))
+    data = (b"glTF" + struct.pack("<II", 2, total)
+            + struct.pack("<I", len(js)) + b"JSON" + js
+            + struct.pack("<I", len(blob)) + b"BIN\x00" + bytes(blob))
+    names = {m["name"] for m in gltf["materials"]}, {n["name"] for n in gltf["nodes"]}
+    return data, *names
 
 
-def write_model(spec):
+def render_model(spec, files):
+    """Add one model's files to `files`; return its index row."""
     ident = spec["identity"]
     model_id = ident["id"]
     bad = model_contract.identity_problems(ident)
     if bad:
         raise SystemExit(f"{model_id} identity is invalid:\n" + "\n".join(bad))
+    export = f"models/{model_id}/export"
 
-    export = HERE / "models" / model_id / "export"
-    export.mkdir(parents=True, exist_ok=True)
-    glb = export / f"{model_id}_lod0.glb"
-    write_glb(glb, spec.get("parts", PARTS))
-
-    manifest = {"model": ident,
-                "note": "Fixture manifest, generated by make_fixtures.py."}
-    manifest["sets"] = spec.get("sets", [])
-    for block in MANIFEST_BLOCKS:
-        if block in spec:
-            manifest[block] = spec[block]
+    manifest = {"model": ident}
+    blocks = [b for b in MANIFEST_BLOCKS if b in spec]
+    if blocks:
+        manifest["note"] = "Fixture manifest, generated by make_fixtures.py."
+    for block in blocks:
+        manifest[block] = spec[block]
     # The page refuses a malformed block; so does this.
     bad = model_contract.display_problems(manifest)
     if bad:
         raise SystemExit(f"{model_id} manifest is invalid:\n" + "\n".join(bad))
+
+    if "levels" in spec:  # a real model's own files
+        levels = spec["levels"]
+        # Guarded like the manifest read: a missing or corrupt export is a
+        # generation failure with a message, not a traceback from --check.
+        # Every level the row publishes is read, not only the one the names
+        # come from: the page loads lod2 first, so a broken lod2 is a broken
+        # fixture even when lod0 is fine.
+        for name, path in sorted(levels.items()):
+            try:
+                model_contract.glb_names(HERE / path)
+            except (ValueError, OSError) as e:
+                raise SystemExit(f"make_fixtures.py: {model_id} cannot read "
+                                 f"its {name}, {path}: {e}")
+        try:
+            have_mats, have_nodes = model_contract.glb_names(spec["names_from"])
+        except (ValueError, OSError) as e:
+            raise SystemExit(f"make_fixtures.py: {model_id} cannot read "
+                             f"{spec['names_from']}: {e}")
+    else:
+        data, have_mats, have_nodes = glb_bytes(spec.get("parts", PARTS))
+        files[f"{export}/{model_id}_lod0.glb"] = data
+        levels = {"lod0": f"{export}/{model_id}_lod0.glb"}
     # Every material a set tints, every node a layout shows and every node a
     # view mode hides must exist in the file, as a real export requires.
     want_mats, want_nodes = model_contract.manifest_names(manifest)
-    have_mats, have_nodes = model_contract.glb_names(glb)
-    if want_mats - have_mats or want_nodes - have_nodes:
-        raise SystemExit(f"{model_id}: manifest names what the file lacks: "
-                         f"{sorted((want_mats - have_mats) | (want_nodes - have_nodes))}")
-    (export / "variants.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    lacking = sorted((want_mats - have_mats) | (want_nodes - have_nodes))
+    if lacking:
+        raise SystemExit(f"{model_id}: manifest names what the file lacks: {lacking}")
+    files[f"{export}/variants.json"] = (json.dumps(manifest, indent=2) + "\n").encode()
 
     row = {
         "id": model_id,
@@ -276,30 +382,104 @@ def write_model(spec):
         "area_source": ident["area_source"],
         "storeys": ident["storeys"],
         "dir": f"models/{model_id}",
-        "manifest": f"models/{model_id}/export/variants.json",
-        "levels": {"lod0": f"models/{model_id}/export/{model_id}_lod0.glb"},
+        "manifest": f"{export}/variants.json",
+        # In build_index.py's order (sorted: lod0 first, coarsest last), so a
+        # fixture row reads like a real one to anything iterating the index.
+        "levels": dict(sorted(levels.items())),
         "primary": None,
         "thumbnail": None,
     }
     bad = model_contract.row_problems(row)
     if bad:
         raise SystemExit(f"{model_id} row is invalid:\n" + "\n".join(bad))
-    blocks = [b for b in MANIFEST_BLOCKS if b in spec]
-    print(f"wrote {glb.relative_to(HERE)} ({glb.stat().st_size} bytes) and its "
-          f"manifest ({', '.join(blocks) or 'identity only'})")
     return row
 
 
-def main():
-    rows = [write_model(spec) for spec in MODELS]
-    (HERE / "models.json").write_text(json.dumps({
+def render():
+    """Every fixture file, as {path relative to this directory: bytes}. Writes nothing."""
+    files = {}
+    rows = [render_model(spec, files) for spec in BOXES + [barn_reduced()]]
+    files["models.json"] = (json.dumps({
         "note": ("GENERATED BY make_fixtures.py -- a test index for the viewer. "
                  "Open the page with ?index=fixtures/models.json. Paths are "
                  "relative to this file."),
         "models": rows,
-    }, indent=2) + "\n")
-    print(f"wrote models.json ({len(rows)} models)")
+    }, indent=2) + "\n").encode()
+    return files
+
+
+GENERATOR_FILES = {"make_fixtures.py"}
+LEFTOVER = "is not generated by make_fixtures.py"
+
+
+def compare(files):
+    """[(path, reason)] for every way the fixture directory is not exactly
+    `files`: a generated file missing, different or unreadable, and a file this
+    script no longer generates. verify_prototype.py gate 3 calls this too, so
+    the two checks cannot disagree about what is stale."""
+    problems = []
+    for p, data in sorted(files.items()):
+        path = HERE / p
+        if not path.is_file():
+            problems.append((p, "is missing"))
+            continue
+        try:
+            same = path.read_bytes() == data
+        except OSError as e:
+            problems.append((p, f"is unreadable: {e.strerror or e}"))
+            continue
+        if not same:
+            problems.append((p, "differs from what make_fixtures.py generates"))
+    # A LEFTOVER IS STALE TOO. A fixture removed from this file would otherwise
+    # stay on disk, listed nowhere and checked by nothing.
+    for path in sorted(HERE.rglob("*")):
+        if not path.is_file() or "__pycache__" in path.parts:
+            continue
+        rel = path.relative_to(HERE).as_posix()
+        if rel not in files and rel not in GENERATOR_FILES:
+            problems.append((rel, LEFTOVER))
+    return problems
+
+
+def remove_leftovers(files):
+    """Delete every file this script no longer generates, then any directory
+    that leaves empty. RE-RUNNING IS THE WHOLE REMEDY: the checks say "re-run
+    make_fixtures.py" for a leftover, and a run that only wrote would leave it
+    in place and the check failing. The directory is generated; git keeps
+    anything removed here."""
+    removed = []
+    for p, reason in compare(files):
+        if reason == LEFTOVER:
+            (HERE / p).unlink()
+            removed.append(p)
+    directories = [d for d in HERE.rglob("*") if d.is_dir() and "__pycache__" not in d.parts]
+    for d in sorted(directories, key=lambda d: len(d.parts), reverse=True):
+        if not any(d.iterdir()):
+            d.rmdir()
+    return removed
+
+
+def main():
+    files = render()
+    if "--check" in sys.argv:
+        problems = compare(files)
+        if problems:
+            print("FAIL  the fixtures are not what make_fixtures.py generates; re-run it:")
+            for p, reason in problems:
+                print(f"        {p} {reason}")
+            return 1
+        print(f"PASS  {len(files)} fixture file(s) match make_fixtures.py")
+        return 0
+    for p, data in files.items():
+        path = HERE / p
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    print(f"wrote {len(files)} fixture file(s): "
+          + ", ".join(sorted({p.split('/')[1] for p in files if p.startswith('models/')})))
+    for p in remove_leftovers(files):
+        print(f"removed {p} (no longer generated)")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

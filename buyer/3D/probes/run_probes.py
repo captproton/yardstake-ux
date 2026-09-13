@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import cases_configuration  # noqa: E402
+import cases_fixtures  # noqa: E402
 import cases_index  # noqa: E402
 import cases_page  # noqa: E402
 import cases_rail  # noqa: E402
@@ -30,7 +31,7 @@ import cases_views  # noqa: E402
 from suite import find_blender, make_base, run_case  # noqa: E402
 
 # In the order the checks were built, one round per PR.
-MODULES = (cases_index, cases_page, cases_views, cases_rail, cases_configuration)
+MODULES = (cases_index, cases_page, cases_views, cases_rail, cases_configuration, cases_fixtures)
 
 
 def main() -> int:
