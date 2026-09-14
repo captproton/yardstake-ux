@@ -43,6 +43,12 @@ def _spec_pending(text: str):
     return setup
 
 
+def _pending_marker_without_spec(root: Path) -> None:
+    d = root / "models" / "zz_probe"
+    d.mkdir(parents=True)
+    (d / "EXPORT_PENDING").write_text("Exported by #131.\n")
+
+
 def _stale_pending_marker(root: Path) -> None:
     (barn(root) / "EXPORT_PENDING").write_text("Exported by #131.\n")
 
@@ -122,6 +128,8 @@ CASES = [
          both(build_fails=False, verify_fails=False), "zz_probe (#131)"),
     Case(G, "a pending-export marker that names no issue", _spec_pending("later\n"),
          both(build_fails=False), "zz_probe/EXPORT_PENDING names no issue (#N) that will export it"),
+    Case(G, "a pending-export marker in a model directory with no spec", _pending_marker_without_spec,
+         both(build_fails=False), "zz_probe/EXPORT_PENDING sits beside no spec.yaml"),
     Case(G, "a pending-export marker left behind after the export", _stale_pending_marker,
          both(build_fails=False), "barn_cabin_524/EXPORT_PENDING is stale: export/variants.json exists"),
 

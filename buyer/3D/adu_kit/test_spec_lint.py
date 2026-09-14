@@ -103,8 +103,66 @@ class SheetsAndLengths(unittest.TestCase):
         self.assertEqual(spec_lint.lint(spec(windows=[row]), harvested),
                          ["windows[0].width: raw 4'-0\" is not a dimension on A-2.0 (pages [6])"])
 
+    def test_a_length_in_a_list_is_looked_up(self):
+        # A wall's dimension string has no `ft` beside each length. Found by
+        # review: `3'-11"` in such a list used to pass unchecked.
+        harvested = {4: {Fraction(24), Fraction(7, 2)}}
+        s = spec(wall={"source": "A-1.0 floor plan", "string": ["24'-0\"", "3'-11\""]})
+        self.assertEqual(spec_lint.lint(s, harvested),
+                         ["wall.string[1]: 3'-11\" is not a dimension on A-1.0 (pages [4])"])
+
+    def test_a_raw_without_ft_is_looked_up(self):
+        harvested = {4: {Fraction(24)}}
+        self.assertEqual(spec_lint.lint(spec(a={"raw": "3'-11\"", "source": "A-1.0"}), harvested),
+                         ["a: raw 3'-11\" is not a dimension on A-1.0 (pages [4])"])
+
+    def test_a_raw_beside_ft_must_be_a_length(self):
+        # `24'-0` has lost its inch mark. Found by review: it used to skip
+        # both the raw/ft check and the sheet check.
+        problems = spec_lint.lint(spec(a={"ft": 24.0, "raw": "24'-0", "source": "A-1.0"}), {4: {Fraction(24)}})
+        self.assertEqual(problems, ["a.raw \"24'-0\" beside ft 24.0 is not a length"])
+
+    def test_a_slope_or_a_sentence_is_not_a_drawn_length(self):
+        harvested = {4: set(), 6: set()}
+        self.assertEqual(spec_lint.lint(spec(
+            slope={"raw": "1\" / 1'-0\"", "source": "A-2.0"},
+            check={"ft": 24.0, "derived": "3'-7\" + 4'-0\" + 2'-5\" = 24'-0\" less nothing"}), harvested), [])
+
     def test_inch_only_lengths_are_not_looked_up(self):
         self.assertEqual(spec_lint.lint(spec(a={"ft": 0.0417, "raw": "1/2\"", "source": "A-1.0"}), {4: set()}), [])
+
+
+class SheetIndex(unittest.TestCase):
+    """The index every source is checked against must itself be sound."""
+
+    def _index(self, *rows):
+        return {"sheet_index": {"source": "A-0.0", "sheets": [{"pdf_page": 1, "id": "A-0.0"}, *rows]}}
+
+    def test_an_empty_id_is_refused_and_names_nothing(self):
+        s = self._index({"pdf_page": 4, "id": ""})
+        s["a"] = {"n": 1, "source": "a note (in brackets)"}
+        problems = spec_lint.lint(s)
+        self.assertIn("sheet_index.sheets[1].id must be a non-empty sheet id or null, found ''", problems)
+        self.assertIn("a.source names no sheet in sheet_index: 'a note (in brackets)'", problems)
+        self.assertNotIn("", spec_lint.sheet_pages(s))
+
+    def test_a_page_must_be_a_whole_number(self):
+        for page in (4.9, float("nan"), True, "4", 0, -1):
+            with self.subTest(page=page):
+                s = self._index({"pdf_page": page, "id": "A-1.0"})
+                problems = spec_lint.lint(s)   # must not raise
+                self.assertTrue(any("sheet_index.sheets[1].pdf_page must be a whole number" in p for p in problems), problems)
+                self.assertNotIn("A-1.0", spec_lint.sheet_pages(s))
+
+    def test_a_whole_float_page_is_a_page(self):
+        self.assertEqual(spec_lint.sheet_pages(self._index({"pdf_page": 4.0, "id": "A-1.0"}))["A-1.0"], 4)
+
+    def test_an_id_listed_twice_is_refused(self):
+        problems = spec_lint.lint(self._index({"pdf_page": 4, "id": "A-1.0"}, {"pdf_page": 5, "id": "A-1.0"}))
+        self.assertIn("sheet_index.sheets[2].id A-1.0 is listed more than once", problems)
+
+    def test_a_null_id_is_allowed(self):
+        self.assertEqual(spec_lint.lint(self._index({"pdf_page": 13, "id": None, "title": "no id"})), [])
 
 
 @unittest.skipUnless(LAUREL.is_file(), "Laurel's spec is not here")

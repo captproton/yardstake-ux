@@ -112,7 +112,7 @@ envelope:
   grid_2_to_rear:  {ft: 6.0,     raw: "6'-0\"",  source: "A-1.0 floor plan, top string, grid 2 to grid 3"}
   area_check:
     value_sf: 460.0
-    derived: "24.0 x 19.1667 = 460.0, the declared 460 S.F. exactly (areas_declared.studio_sf)"
+    derived: "24 x 19 1/6 (19'-2\") = 460 exactly, the declared 460 S.F. (areas_declared.studio_sf); the 4-place decimal 19.1667 gives 460.0008"
   grid_check:
     ft: 19.1667
     derived: "13'-2\" + 6'-0\" = 19'-2\", the overall depth"
