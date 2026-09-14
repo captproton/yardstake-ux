@@ -191,7 +191,8 @@ buyer/3D/
   verify_prototype.py gates the page: it names nothing any model publishes, three.js
                       is pinned, the fixture meets the contract, both documents match
                       the page — no browser
-  model_contract.py   what a valid identity, index row, .glb read, configuration and
+  adu_kit/schema/model_contract.py
+                      what a valid identity, index row, .glb read, configuration and
                       estimate are — imported by finish_adu.py, build_index.py,
                       verify_index.py, verify_prototype.py
   docs/CONFIGURATION.md  what a buyer chose, as a link and as the object Rails persists
@@ -204,7 +205,7 @@ Every model contributes its own directory of `.glb` + `variants.json`, exactly
 as `barn_cabin_524` does today.
 
 **Run the probe suite before merging** a change to `verify_index.py`,
-`verify_prototype.py`, `build_index.py`, `model_contract.py`,
+`verify_prototype.py`, `build_index.py`, `adu_kit/schema/model_contract.py`,
 `finish_adu.py`, `adu_kit/`, `prototype/app.js` or the fixtures:
 `python3 buyer/3D/probes/run_probes.py`. Every gate passing on a clean tree
 says nothing about whether it still catches its case; the suite does. It

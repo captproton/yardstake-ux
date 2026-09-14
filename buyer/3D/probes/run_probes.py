@@ -11,7 +11,7 @@ Exits 1 if any case does not behave as expected. The Blender case is skipped,
 with a message, when Blender is not found (set BLENDER to point at it).
 
 RUN THIS BEFORE MERGING a change to verify_index.py, verify_prototype.py,
-build_index.py, model_contract.py, finish_adu.py, prototype/app.js or the
+build_index.py, adu_kit/, finish_adu.py, prototype/app.js or the
 fixtures. See suite.py for what a probe is and why it breaks a copy.
 """
 import argparse

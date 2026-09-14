@@ -28,8 +28,10 @@ def fake_three_d(root: Path, index_text: str) -> Path:
     (root / "prototype").mkdir(exist_ok=True)
     (root / "prototype" / "models.json").write_text(index_text)
     (root / "prototype" / "index.html").write_text("<html><body>no import map here</body></html>")
-    # make_base() copies the kit a model's Blender scripts import (#126).
-    (root / "adu_kit").mkdir(exist_ok=True)
+    # make_base() copies the kit, which holds model_contract (#126); an
+    # empty contract is what the contract-case check needs.
+    (root / suite.CONTRACT).parent.mkdir(parents=True, exist_ok=True)
+    (root / suite.CONTRACT).write_text("")
     (root / "models" / suite.BARN).mkdir(parents=True)
     return root
 
@@ -108,7 +110,8 @@ def contract_returns_none():
         except Exception as e:
             return False, f"raised {e!r}"
         return (not result.ok and "not text" in result.reason, result.reason)
-    # run_contract_case imports model_contract from the base; the fake one is empty.
+    # run_contract_case imports adu_kit/schema/model_contract.py from the base;
+    # the fake one is empty.
     return with_fake('{"models": []}', check)
 
 

@@ -305,7 +305,7 @@ See [TIER-3 §4](TIER-3-fixtures-and-furnishing.md#4-furniture-and-appliances--d
 > generates and `verify_index.py` gates without Blender. This model's
 > `variants.json` now opens with a **`model` block** — id, display name, area
 > with its key and source, storeys, thumbnail — and `finish_adu.py` refuses to
-> write it unless `model_contract.py` passes it. The published area is
+> write it unless `adu_kit/schema/model_contract.py` passes it. The published area is
 > **528**, not the 524 in the id; see `discrepancies`. Index paths start
 > `../models/`, so **serve `buyer/3D`**, not `prototype/`.
 >
@@ -351,7 +351,7 @@ the model could drive neither.
 
 | block | what it is |
 |---|---|
-| `model` | identity for the header — id, display name, area with its source, storeys, thumbnail. Validated by `model_contract.py` |
+| `model` | identity for the header — id, display name, area with its source, storeys, thumbnail. Validated by `adu_kit/schema/model_contract.py` |
 | `sets` | 8 material swaps, 23 options — every one a `baseColorFactor`, **0 extra texture bytes** |
 | `presence` | 3 furniture arrangements — node names to SHOW; hide everything else named in the block |
 | `views` | 4 visibility modes — node names to HIDE. `full` / `dollhouse` / `cutaway` / `interior_only` |

@@ -1,7 +1,8 @@
 """
-model_contract.py — what a valid model identity, index row and .glb look like.
+adu_kit/schema/model_contract.py — what a valid model identity, index row and .glb
+look like.
 
-    import model_contract
+    from adu_kit.schema import model_contract
 
 NO BLENDER, ON PURPOSE. Three programs judge the same data: `finish_adu.py`
 (inside Blender) before it writes `variants.json`, `build_index.py` before it

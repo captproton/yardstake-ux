@@ -30,10 +30,11 @@ import bmesh
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-# buyer/3D, for model_contract: the identity schema this file, build_index.py
-# and verify_index.py share. Appended, so nothing there shadows this model's.
+# buyer/3D, for adu_kit, including adu_kit/schema/model_contract.py: the identity
+# schema this file, build_index.py and verify_index.py share. Appended, so
+# nothing there shadows this model's.
 sys.path.append(str(HERE.parents[1]))
-from model_contract import display_problems, identity_problems  # noqa: E402
+from adu_kit.schema.model_contract import display_problems, identity_problems  # noqa: E402
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 # Feet to metres, the Draco .glb writer and the .glb reader know no building,
