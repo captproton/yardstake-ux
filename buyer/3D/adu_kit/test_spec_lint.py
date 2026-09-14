@@ -94,6 +94,19 @@ class DuplicateKeys(unittest.TestCase):
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("duplicate key 'width' at line 7", r.stdout)
 
+    def test_a_key_yaml_cannot_use_is_reported_not_a_traceback(self):
+        # Found by Copilot: a list as a key crashed the duplicate-key scan.
+        text = "sheet_index:\n  sheets: []\n? [a, b]\n: 1\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "spec.yaml"
+            path.write_text(text)
+            r = subprocess.run([sys.executable, "-m", "adu_kit.spec_lint", str(path)],
+                               cwd=THREE_D, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn(f"cannot read {path}", r.stderr)
+        self.assertIn("unhashable key", r.stderr)
+
 
 class SheetsAndLengths(unittest.TestCase):
 

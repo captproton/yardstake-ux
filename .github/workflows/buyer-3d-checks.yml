@@ -94,3 +94,8 @@ jobs:
       - name: Laurel spec geometry (models/laurel_a1_460/verify_spec.py)
         if: ${{ !cancelled() }}
         run: python models/laurel_a1_460/verify_spec.py
+
+      # Each of verify_spec.py's gates, shown failing on a broken copy.
+      - name: Laurel spec geometry tests (models/laurel_a1_460/test_verify_spec.py)
+        if: ${{ !cancelled() }}
+        run: python -m unittest discover -s models/laurel_a1_460 -p "test_*.py" -v

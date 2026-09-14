@@ -176,9 +176,10 @@ def unexported():
 #
 # THE ISSUE IS NAMED ON ITS OWN LINE, `issue: #131`. Any `#number` in the
 # prose used to count, so "see note #3" passed, and a marker that mentioned
-# four issues was listed as waiting on all four.
+# four issues was listed as waiting on all four. Issue numbers start at 1, so
+# `#0` (or `#007`) names no issue.
 PENDING = "EXPORT_PENDING"
-_ISSUE = re.compile(r"^issue:\s*#(\d+)\s*$", re.M)
+_ISSUE = re.compile(r"^issue:\s*#([1-9]\d*)\s*$", re.M)
 
 
 def pending():

@@ -149,12 +149,17 @@ def main(argv):
     except (OSError, UnicodeError) as e:
         print(f"verify_spec.py: cannot read {path}: {e}")
         return 1
-    dups = spec_lint.duplicate_keys(text)
-    gate(not dups, "no duplicate keys", "; ".join(f"line {ln}: {k!r}" for ln, k in dups))
     try:
-        check(yaml.safe_load(text))
-    except (KeyError, TypeError, ValueError, IndexError) as e:
-        gate(False, "the spec has the blocks these gates read", f"{type(e).__name__}: {e}")
+        dups = spec_lint.duplicate_keys(text)
+        spec = yaml.safe_load(text)
+    except yaml.YAMLError as e:
+        gate(False, "the spec is valid YAML", " ".join(str(e).split()))
+    else:
+        gate(not dups, "no duplicate keys", "; ".join(f"line {ln}: {k!r}" for ln, k in dups))
+        try:
+            check(spec)
+        except (KeyError, TypeError, ValueError, IndexError, AttributeError) as e:
+            gate(False, "the spec has the blocks these gates read", f"{type(e).__name__}: {e}")
     print("-" * 76)
     if FAILED:
         print(f"{len(FAILED)} GATE(S) FAILED")

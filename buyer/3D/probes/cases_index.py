@@ -130,6 +130,8 @@ CASES = [
          both(build_fails=False), "zz_probe/EXPORT_PENDING has no 'issue: #N' line naming the issue that will export it"),
     Case(G, "a pending-export marker that mentions an issue but has no issue line", _spec_pending("Blocked until #131 lands.\n"),
          both(build_fails=False), "zz_probe/EXPORT_PENDING has no 'issue: #N' line"),
+    Case(G, "a pending-export marker whose issue line names #0", _spec_pending("issue: #0\n"),
+         both(build_fails=False), "zz_probe/EXPORT_PENDING has no 'issue: #N' line"),
     Case(G, "a pending-export marker in a model directory with no spec", _pending_marker_without_spec,
          both(build_fails=False), "zz_probe/EXPORT_PENDING sits beside no spec.yaml"),
     Case(G, "a pending-export marker left behind after the export", _stale_pending_marker,

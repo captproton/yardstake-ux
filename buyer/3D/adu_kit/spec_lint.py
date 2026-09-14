@@ -72,7 +72,10 @@ def _cites(mapping) -> bool:
 
 
 def duplicate_keys(text: str) -> list:
-    """(line, key) for every mapping key that appears twice in a YAML text."""
+    """(line, key) for every mapping key that appears twice in a YAML text.
+
+    A key YAML cannot use -- a list, `? [a, b]` -- is not compared here; the
+    loader then refuses it as a yaml.YAMLError, which the command line reports."""
     import yaml
 
     class Loader(yaml.SafeLoader):
@@ -84,6 +87,10 @@ def duplicate_keys(text: str) -> list:
         seen = set()
         for key_node, _ in node.value:
             key = loader.construct_object(key_node, deep=deep)
+            try:
+                hash(key)
+            except TypeError:
+                continue
             if key in seen:
                 found.append((key_node.start_mark.line + 1, key))
             seen.add(key)
