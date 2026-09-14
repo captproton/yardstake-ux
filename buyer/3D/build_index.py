@@ -13,7 +13,7 @@ WHAT THIS SCANS, AND WHY IT IS NOT THE SPECS. One model per directory under
 whose export failed, or that has never been exported, is not in the index and
 should not be: the page would offer a card that cannot load.
 
-WHAT A VALID MANIFEST AND ROW ARE is not decided here. `model_contract.py`
+WHAT A VALID MANIFEST AND ROW ARE is not decided here. `adu_kit/schema/model_contract.py`
 decides, and `finish_adu.py` and `verify_index.py` import the same checks.
 
 The index lives at `prototype/models.json`, beside the page that fetches it
@@ -32,7 +32,7 @@ import os
 import sys
 from pathlib import Path
 
-import model_contract
+from adu_kit.schema import model_contract
 
 HERE = Path(__file__).resolve().parent
 MODELS = HERE / "models"

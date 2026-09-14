@@ -29,7 +29,7 @@ import json
 from pathlib import Path
 
 import build_index
-import model_contract
+from adu_kit.schema import model_contract
 
 INDEX = build_index.INDEX
 # Paths in the index are relative to the index's own directory, which is how

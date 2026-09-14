@@ -57,8 +57,8 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parents[1]))  # buyer/3D, for model_contract
-import model_contract  # noqa: E402
+sys.path.insert(0, str(HERE.parents[1]))  # buyer/3D, for adu_kit
+from adu_kit.schema import model_contract  # noqa: E402
 
 FT = 0.3048
 BARN = "barn_cabin_524"

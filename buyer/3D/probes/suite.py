@@ -41,7 +41,9 @@ THREE_D = Path(__file__).resolve().parents[1]  # buyer/3D
 BARN = "barn_cabin_524"
 
 # What the checks read. Anything else under buyer/3D is not needed to run them.
-ROOT_FILES = ("model_contract.py", "build_index.py", "verify_index.py", "verify_prototype.py")
+ROOT_FILES = ("build_index.py", "verify_index.py", "verify_prototype.py")
+# model_contract, in the kit make_base() copies whole (#126).
+CONTRACT = Path("adu_kit") / "schema" / "model_contract.py"
 DOC_FILES = ("docs/CONFIGURATION.md", "docs/COMMERCE.md")
 # A model directory for the Blender case, without what an export never reads.
 BLENDER_SKIP = ("renders", "refs", "docs", "tools", "__pycache__", "*.blend", "*.blend1")
@@ -285,7 +287,7 @@ def _text(data) -> str:
 
 
 def load_contract(root: Path):
-    spec = importlib.util.spec_from_file_location("probe_model_contract", root / "model_contract.py")
+    spec = importlib.util.spec_from_file_location("probe_model_contract", root / CONTRACT)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
