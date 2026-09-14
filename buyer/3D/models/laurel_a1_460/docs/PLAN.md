@@ -432,7 +432,7 @@ before the overlay is trusted for it.
 Each line is one pull request.
 
 1. [#126](https://github.com/captproton/yardstake-ux/issues/126) **Done** ([#137](https://github.com/captproton/yardstake-ux/pull/137), [#138](https://github.com/captproton/yardstake-ux/pull/138)). Extract the kit, in two PRs: **A** the kernel, export helpers and `inside_mesh()`, with the barn cabin byte-identical and every gate unchanged; **B** `model_contract.py` into `schema/`, its imports, copy list and loader updated, and the page, its fixtures and every probe reporting what they did before.
-2. [#127](https://github.com/captproton/yardstake-ux/issues/127) `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand.
+2. [#127](https://github.com/captproton/yardstake-ux/issues/127) **Done** ([#141](https://github.com/captproton/yardstake-ux/pull/141)). `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand: 175 of 183 agree exactly, the other 8 are listed with reasons; A-1.0 gives 67 candidates and A-2.0 gives 34, with exact inches; the tests run in CI against the versioned sheet set.
 3. [#128](https://github.com/captproton/yardstake-ux/issues/128) `spec.yaml` P1, with the roof form settled and cited.
 4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings.
 5. [#130](https://github.com/captproton/yardstake-ux/issues/130) P3 overlay, plus the plate-height gate, proved by perturbation.
