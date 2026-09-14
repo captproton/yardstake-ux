@@ -67,7 +67,7 @@ const PRESENCE_PROPERTY = 'visible';
 
 // The disclosure is buyer-facing copy, shown verbatim. A paragraph of notes
 // for developers is not copy; model_contract.DISCLOSURE_MAX_CHARS agrees.
-const DISCLOSURE_MAX_CHARS = 200;
+const DISCLOSURE_MAX_CHARS = 199;
 
 // THE PAGE PRICES NOTHING (#112). An estimate is supplied by the host and only
 // checked and rendered here; docs/COMMERCE.md is the contract. Keep the fields
