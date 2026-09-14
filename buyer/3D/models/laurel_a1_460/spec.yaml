@@ -1,0 +1,353 @@
+# Laurel A1 460sf ADU — dimensional spec (P1, #128)
+# Source plan set: buyer/3D/example plans/sacramento_adus/adu-plan-full-set-a1-laurel.pdf
+#   Sacramento County Permit Ready ADU, Model A1 "Laurel". Laura Miller Design,
+#   El Dorado Hills CA; architectural sheets dated MAR 2024, structural (WCD
+#   Associates) 4/15/2024. 20 pages. 2022 California Residential Code.
+#
+# AUTHORITY RULE: A-1.0 (floor plan, schedules) and A-2.0 (roof plan,
+# elevations) are the geometry authority. A-3.x governs assembly layers only;
+# S1.0 governs structure; T24 carries no geometry. The designer's rendering is
+# appearance evidence and never geometry.
+#
+# EVERY NUMBER IS CITED. `source` names a sheet listed in sheet_index and where
+# on it; `derived` shows the arithmetic; `assumed` says why nothing on a sheet
+# says it. adu_kit/spec_lint.py fails any number without one, and checks every
+# drawn feet-and-inches `raw` is a dimension adu_kit/sheets.py harvests from
+# the sheet its source names.
+#
+# UNITS: decimal FEET unless the key says otherwise, to 4 places. `raw` is the
+#        string as drawn.
+#
+# FRAME (matches the barn cabin's: front toward +Y, X left to right as seen
+# from the front, Z up):
+#   X  0 .. 24.0     the front wall's length. X 0 is the end with the kitchen
+#                    and bath (grid line A on A-1.0; the SIDE (LEFT) ELEVATION)
+#   Y  0 .. 19.1667  rear wall face .. front (entry) wall face. On A-1.0 the
+#                    front wall is the LEFT edge of the plan, so plan-down is +X
+#                    and plan-right is -Y
+#   Z  0 = finished floor (F.F. 0'-0" on every A-2.0 elevation)
+# A-1.0: "ALL DIMENSIONS TO FACE OF STUD U.N.O." Overall dimensions are read
+# as the outside face of the exterior studs; cladding sits outboard of them.
+
+meta:
+  model_id: laurel_a1_460
+  option: studio                   # see option_selection
+  display_name: "Laurel"
+  index:
+    area_key: studio_sf
+    storeys: {count: 1, loft: false, raw: "single storey, no loft",
+              source: "A-2.0 front, rear and side elevations: one floor, F.F. to T.P. only"}
+    thumbnail_note: "no renders yet; the export (#131) makes them"
+  front:
+    end: "+Y, the 24'-0\" wall with entry door 1"
+    note: "The fact #117 declares in the manifest. Not published by this spec."
+    source: "A-1.0 floor plan, door 1 on the plan's left wall; A-2.0 FRONT ELEVATION shows door 1 with windows A and B each side"
+  plan_date: 2024-03-01
+  designer: "Laura Miller Design, El Dorado Hills CA; structural by WCD Associates, Rocklin CA"
+  code_basis: "2022 California Residential Code"
+  source_pdf_pages: {count: 20, source: "A-0.0 and every title block; pdfinfo reports 20 pages"}
+
+# ---------------------------------------------------------------------------
+option_selection:
+  chosen: studio
+  reason: >
+    A-1.0 draws two plans. "1 FLOOR PLAN" is the whole building as a studio,
+    fully dimensioned, with both schedules. "2 1 BEDROOM FLOOR PLAN OPTION" is a
+    partial plan of the rear half only: a partition, pocket door 7 and an
+    operable window C. The studio is the complete drawing, so it is built. The
+    one-bedroom plan is recorded under `variants.floor_plan_options` as a future
+    configurator choice, not a second model.
+  decided: "2026-09-14, by the project owner"
+  source: "A-1.0 drawings 1 FLOOR PLAN and 2 1 BEDROOM FLOOR PLAN OPTION; A-1.0 LIGHT & VENTILATION CALCULATIONS list STUDIO and OPTIONAL BEDROOM 1"
+
+# ---------------------------------------------------------------------------
+sheet_index:
+  source: "A-0.0 SHEET INDEX for ids and titles; each page's title block for its id"
+  sheets:
+  - {pdf_page: 1,  id: A-0.0, title: "Title sheet"}
+  - {pdf_page: 2,  id: A-0.1, title: "CALGreen checklist"}
+  - {pdf_page: 3,  id: A-0.2, title: "CALGreen checklist (cont)"}
+  - {pdf_page: 4,  id: A-1.0, title: "Floor plan, door and window schedules, 1 bedroom option"}
+  - {pdf_page: 5,  id: A-1.1, title: "Power plan"}
+  - {pdf_page: 6,  id: A-2.0, title: "Roof plan and exterior elevations, roof section, window detail key"}
+  - {pdf_page: 7,  id: A-3.0, title: "Stucco section details"}
+  - {pdf_page: 8,  id: A-3.1, title: "Stucco plan details"}
+  - {pdf_page: 9,  id: A-3.2, title: "Lap siding section details"}
+  - {pdf_page: 10, id: A-3.3, title: "Lap siding plan details"}
+  - {pdf_page: 11, id: A-3.4, title: "Awning details"}
+  - {pdf_page: 12, id: A-3.5, title: "Fire details"}
+  - {pdf_page: 13, id: null,  title: "Structural specifications", note: "portrait; no id read from its title block"}
+  - {pdf_page: 14, id: S1.0,  title: "Foundation, shearwall and roof framing plans"}
+  - {pdf_page: 15, id: SD1,   title: "Structural details"}
+  - {pdf_page: 16, id: SD2,   title: "Structural details"}
+  - {pdf_page: 17, id: T24-1, title: "Title 24 energy"}
+  - {pdf_page: 18, id: T24-2, title: "Title 24 energy"}
+  - {pdf_page: 19, id: T24-3, title: "Title 24 energy"}
+  - {pdf_page: 20, id: T24-4, title: "Title 24 energy"}
+  geometry_authority: [A-1.0, A-2.0]
+
+# ---------------------------------------------------------------------------
+envelope:
+  width:  {ft: 24.0,    raw: "24'-0\"", axis: X, source: "A-1.0 floor plan, overall string on the front (left) wall; S1.0 foundation plan 24'-0\""}
+  depth:  {ft: 19.1667, raw: "19'-2\"", axis: Y, source: "A-1.0 floor plan, overall string along the bottom (grid B) wall; S1.0 foundation plan 19'-2\""}
+  front_to_grid_2: {ft: 13.1667, raw: "13'-2\"", source: "A-1.0 floor plan, top string, grid 1 to grid 2"}
+  grid_2_to_rear:  {ft: 6.0,     raw: "6'-0\"",  source: "A-1.0 floor plan, top string, grid 2 to grid 3"}
+  area_check:
+    value_sf: 460.0
+    derived: "24.0 x 19.1667 = 460.0, the declared 460 S.F. exactly (areas_declared.studio_sf)"
+  grid_check:
+    ft: 19.1667
+    derived: "13'-2\" + 6'-0\" = 19'-2\", the overall depth"
+
+areas_declared:
+  studio_sf:       {value: 460, source: "A-0.0 project data 'S.F. OF PROPOSED ADU: 460 S.F.'; A-1.0 LIGHT & VENTILATION 'STUDIO: 460 S.F.'"}
+  optional_bedroom_sf: {value: 108, source: "A-1.0 LIGHT & VENTILATION 'OPTIONAL BEDROOM 1: 108 S.F.'", note: "1 bedroom option only"}
+
+# ---------------------------------------------------------------------------
+levels:
+  datum: finished_floor
+  finished_floor: {ft: 0.0, raw: "0'-0\"", source: "A-2.0 all four elevations, F.F. 0'-0\""}
+  grade:          {ft: -0.5, raw: "-0'-6\"", source: "A-2.0 all four elevations, GRADE -0'-6\"",
+                   note: "Grade is 6\" below the floor, stated, not assumed absent. A-3.0 detail 2 shows 6\" min. from grade to the wall base."}
+  top_of_plate_rear:  {ft: 8.0,    raw: "8'-0\"",     label: "T.P. 1", source: "A-2.0 REAR ELEVATION and both side elevations, T.P. 1 8'-0\""}
+  top_of_plate_front: {ft: 9.625,  raw: "9'-7 1/2\"", label: "T.P. 2", source: "A-2.0 FRONT ELEVATION and both side elevations, T.P. 2 9'-7 1/2\""}
+  roof_top_at_front:  {ft: 10.7917, raw: "10'-9 1/2\"", source: "A-2.0 SIDE (RIGHT) ELEVATION, vertical string from F.F. to the top of the roof at its front edge",
+                       note: "Not yet reconciled with the roof assembly; the P3 overlay (#130) does that. See discrepancies."}
+
+# ---------------------------------------------------------------------------
+roof:
+  form: shed
+  settled: >
+    ONE ROOF PLANE, NOT TWO. The plan's first reading took the two plate
+    heights and the separate "upper roof" and "bottom roof" venting as two roof
+    planes. The sheets show one: both side elevations draw a single surface
+    falling from T.P. 2 at the front wall to T.P. 1 at the rear, marked
+    1" / 1'-0"; the rear elevation shows only T.P. 1; the roof plan is one
+    rectangle with one slope arrow; and "upper" and "bottom" are its high and
+    low eaves, each vented in the same 12 rafter bays. S1.0 frames it with one
+    run of 2x12 rafters, and its drawing file is named "SHED ROOF".
+  source: "A-2.0 SIDE (RIGHT) and SIDE (LEFT) ELEVATIONS, REAR ELEVATION, ROOF PLAN and ROOF PLAN NOTES; S1.0 MODEL A- ROOF FRAMING"
+  high_side: "+Y front wall, T.P. 2"
+  low_side: "Y 0 rear wall, T.P. 1"
+  slope:
+    rise_in: 1
+    run_in: 12
+    raw: "1\" / 1'-0\""
+    source: "A-2.0 ROOF PLAN slope arrow; A-2.0 SIDE (RIGHT) ELEVATION slope arrow"
+  plate_rise:
+    ft: 1.625
+    derived: "T.P. 2 9.625 - T.P. 1 8.0 = 1.625 ft (19 1/2\") over the 19.1667 ft depth"
+  overhangs:
+    front: {ft: 5.0, raw: "5'-0\"", source: "A-2.0 ROOF PLAN, 5'-0\" (OVERHANG) at the high edge, over the entry"}
+    rear:  {ft: 1.5, raw: "1'-6\"", source: "A-2.0 ROOF PLAN, 1'-6\" (OVERHANG) at the low edge"}
+    ends:  {ft: 1.5, raw: "1'-6\"", source: "A-2.0 ROOF PLAN, 1'-6\" (OVERHANG) at both side edges"}
+    note: "S1.0 roof framing marks the front cantilever 5'-3\" MAX CANT, the structural limit on the 5'-0\" overhang."
+  framing:
+    rafters: "2x12 DF-L#2 @ 24\" OC, spanning front to rear"
+    spacing_in: 24
+    bays_vented_each_eave: 12
+    bays_check: "24 ft of front wall / 2 ft rafter spacing = 12 bays, the count both eave vent tallies use"
+    sheathing: "15/32\" structural grade I"
+    headers: "RB1 6x8 and RB2 6x6 at the rear, RB3 6x8 at the front, RB4 6x6 at the X 24 end"
+    source: "S1.0 MODEL A- ROOF FRAMING, ROOF BEAM SCHEDULE and ROOF FRAMING NOTES; A-2.0 ROOF PLAN NOTES 'X 12 BAYS'"
+  assembly:
+    layers_top_down: ["standing seam metal roofing", "underlayment", "sheathing per structural",
+                      "1\" air space for ventilation", "2x12 rafters", "10 1/4\" R-38 batts", "gyp board interior finish"]
+    air_space:  {ft: 0.0833, raw: "1\"", source: "A-2.0 detail 7 ROOF SECTION"}
+    insulation: {ft: 0.8542, raw: "10 1/4\"", source: "A-2.0 detail 7 ROOF SECTION, R-38 batts"}
+    source: "A-2.0 detail 7 ROOF SECTION"
+  ceiling: {follows: roof, raw: "CEILINGS FOLLOW ROOF LINE", source: "A-1.0 floor plan note in LIVING"}
+  roofing: {material: standing_seam_metal, source: "A-2.0 FRONT ELEVATION and ROOF PLAN NOTES"}
+  gutter:  {edge: "rear, the low eave", style: "seamless box gutter to match the roof, with a downspout", source: "A-2.0 ROOF PLAN leaders on the low edge"}
+  ventilation:
+    required_each_eave_si: 110.16
+    provided_each_eave_si: 124.08
+    per_bay: "2 x 4\" louvered round eave vents at 5.17 sq in each = 10.34 sq in per bay, x 12 bays"
+    source: "A-2.0 ROOF PLAN NOTES, UPPER ROOF and BOTTOM ROOF VENTILATION"
+
+# ---------------------------------------------------------------------------
+construction:
+  dimensions_to: "face of stud"
+  dimensions_to_source: "A-1.0 floor plan note 'ALL DIMENSIONS TO FACE OF STUD U.N.O.'"
+  exterior_wall:
+    framing: "2x6 DF-L#2 @ 16\" OC, all exterior walls bearing"
+    source: "A-1.0 WALL LEGEND '2X6 EXTERIOR WALL'; S1.0 ROOF FRAMING NOTES 8 and ROOF LEGEND"
+    stud_depth: {ft: 0.4583, raw: "5 1/2\"", assumed: "the actual depth of a 2x6; A-3.0 and A-3.2 draw the stud but dimension none of the layers"}
+    interior_finish: {ft: 0.0417, raw: "1/2\"", material: gypsum_board, source: "A-3.0 detail 1 STUCCO WALL SECTION '1/2\" GWB'; A-3.2 detail 1"}
+    cladding_options:
+      - {id: stucco, layers: ["sheathing per structural", "WRB", "self furring lath", "3 coat cement plaster"],
+         source: "A-3.0 detail 1 STUCCO WALL SECTION"}
+      - {id: fiber_cement_lap_siding, layers: ["sheathing per structural", "WRB", "fiber cement lap siding"],
+         source: "A-3.2 detail 1 LAP SIDING WALL SECTION; A-3.2 LAP SIDING NOTES"}
+    cladding_thickness: "not dimensioned on A-3.0 or A-3.2; cladding sits outboard of the face-of-stud dimensions, and #129 decides how to model it"
+    casing_reveal: {ft: 0.0313, raw: "3/8\"", source: "A-3.0 details 3 and 4, 0'-0 3/8\" at the metal casing bead"}
+  interior_wall:
+    framing: "2x4, gyp board both sides"
+    source: "A-1.0 WALL LEGEND '2X4 INTERIOR WALL: GYP. BOARD BOTH SIDES'"
+    stud_depth: {ft: 0.2917, raw: "3 1/2\"", assumed: "the actual depth of a 2x4; not dimensioned on any sheet"}
+  foundation:
+    type: slab_on_grade
+    slab: {ft: 0.3333, raw: "4\"", reinforcing: "#3 bars @ 18\" OC each way (or 6x6 #10 WWM) over 10 mil vapor barrier and 4\" crushed rock",
+           source: "S1.0 MODEL A- FOUNDATION AND SHEARWALL PLAN slab callout"}
+    footing: {type: FT1, width: {ft: 1.0, raw: "12\""}, depth: {ft: 1.0, raw: "12\""}, reinforcing: "2 #4 continuous",
+              source: "S1.0 FOOTING SCHEDULE FT1"}
+    source: "A-0.0 project data 'FOUNDATION: SLAB ON GRADE'; S1.0"
+
+# ---------------------------------------------------------------------------
+openings:
+  # SIZES are the schedules on A-1.0. POSITIONS are the floor plan's dimension
+  # strings on A-1.0, turned into X or Y in the frame above: nothing here is
+  # measured off a raster. `x0`/`x1` run along the wall; Z heights come from
+  # the schedule's sill and height.
+  window_types:
+    source: "A-1.0 Window Schedule"
+    info: "vinyl frame, U 0.29, SHGC 0.21, Energy Star, low-E"
+    info_source: "A-1.0 WINDOW INFORMATION"
+    types:
+    - {mark: A, source: "A-1.0 Window Schedule", count_scheduled: 2, operation: casement, width: {ft: 4.0, raw: "4'-0\""}, height: {ft: 4.0, raw: "4'-0\""}, sill: {ft: 3.0, raw: "3'-0\""}}
+    - {mark: B, source: "A-1.0 Window Schedule", count_scheduled: 1, operation: fixed,    width: {ft: 4.0, raw: "4'-0\""}, height: {ft: 1.5, raw: "1'-6\""}, sill: {ft: 7.6667, raw: "7'-8\""},
+       note: "the schedule counts 1; the plan and front elevation draw 2 -- see discrepancies"}
+    - {mark: C, source: "A-1.0 Window Schedule", count_scheduled: 3, operation: fixed,    width: {ft: 5.0, raw: "5'-0\""}, height: {ft: 2.0, raw: "2'-0\""}, sill: {ft: 5.0, raw: "5'-0\""}}
+    - {mark: D, source: "A-1.0 Window Schedule", count_scheduled: 1, operation: casement, width: {ft: 3.5, raw: "3'-6\""}, height: {ft: 3.5, raw: "3'-6\""}, sill: {ft: 3.5, raw: "3'-6\""}}
+    - {mark: E, source: "A-1.0 Window Schedule", count_scheduled: 1, operation: sliding,  width: {ft: 3.0, raw: "3'-0\""}, height: {ft: 1.5, raw: "1'-6\""}, sill: {ft: 5.5, raw: "5'-6\""}}
+  door_types:
+    source: "A-1.0 Door Schedule"
+    types:
+    - {source: "A-1.0 Door Schedule", mark: "1", location: entry, application: exterior, description: "entry door with 12\" sidelite", glazing: tempered, hardware: entry,
+       width: {ft: 3.0, raw: "3'-0\""}, height: {ft: 6.6667, raw: "6'-8\""}}
+    - {source: "A-1.0 Door Schedule", mark: "2", location: pantry, application: interior, description: bi-fold, width: {ft: 4.0, raw: "4'-0\""}, height: {ft: 7.0, raw: "7'-0\""}}
+    - {source: "A-1.0 Door Schedule", mark: "3", location: closet, application: interior, width: {ft: 2.3333, raw: "2'-4\""}, height: {ft: 6.6667, raw: "6'-8\""}}
+    - {source: "A-1.0 Door Schedule", mark: "4", location: laundry, application: interior, description: "bi-fold (louvered)", width: {ft: 2.5, raw: "2'-6\""}, height: {ft: 6.6667, raw: "6'-8\""}}
+    - {source: "A-1.0 Door Schedule", mark: "5", location: bathroom, application: interior, hardware: privacy, width: {ft: 3.0, raw: "3'-0\""}, height: {ft: 6.6667, raw: "6'-8\""}}
+    - {source: "A-1.0 Door Schedule", mark: "6", location: rear entry, application: exterior, glazing: tempered, hardware: entry, width: {ft: 3.0, raw: "3'-0\""}, height: {ft: 6.6667, raw: "6'-8\""}}
+    - {source: "A-1.0 Door Schedule", mark: "7", location: optional bedroom, application: interior, description: pocket, hardware: privacy, option: one_bedroom,
+       width: {ft: 3.0, raw: "3'-0\""}, height: {ft: 6.6667, raw: "6'-8\""}}
+
+  front_wall:
+    wall: "Y 19.1667, X from 0 (grid A) to 24"
+    string: ["3'-7\"", "4'-0\"", "2'-5\"", "4'-0\"", "2'-5\"", "4'-0\"", "3'-7\""]
+    string_check: {ft: 24.0, derived: "3'-7\" + 4'-0\" + 2'-5\" + 4'-0\" + 2'-5\" + 4'-0\" + 3'-7\" = 24'-0\""}
+    source: "A-1.0 floor plan, the dimension string along the front (left) wall, read from grid A down"
+    openings:
+    - {id: W-A1, type: A, x0: 3.5833, x1: 7.5833, derived: "3'-7\" from grid A, then the 4'-0\" window"}
+    - {id: W-B1, type: B, x0: 3.5833, x1: 7.5833, derived: "the (ABOVE) transom over W-A1, same width",
+       source: "A-1.0 floor plan '(ABOVE)' tag with B over A; A-2.0 FRONT ELEVATION"}
+    - {id: D-1, type: "1", x0: 10.0, x1: 14.0, derived: "3'-7\" + 4'-0\" + 2'-5\"; the 4'-0\" opening is the 3'-0\" door and its 12\" sidelite",
+       sidelite_x: [10.0, 11.0], leaf_x: [11.0, 14.0],
+       sidelite_source: "A-2.0 FRONT ELEVATION, the sidelite drawn on the door's left as seen from the front, toward X 0"}
+    - {id: W-A2, type: A, x0: 16.4167, x1: 20.4167, derived: "14'-0\" + 2'-5\", then the 4'-0\" window"}
+    - {id: W-B2, type: B, x0: 16.4167, x1: 20.4167, derived: "the (ABOVE) transom over W-A2, same width",
+       source: "A-1.0 floor plan '(ABOVE)' tag with B over A; A-2.0 FRONT ELEVATION"}
+
+  rear_wall:
+    wall: "Y 0, X toward 24"
+    string: ["3'-9 1/2\"", "3'-0\"", "1'-7\"", "5'-0\"", "1'-7\""]
+    source: "A-1.0 floor plan, the dimension string along the rear (right) wall, ending at grid B"
+    string_start: {ft: 9.0417, derived: "24'-0\" less the string 3'-9 1/2\" + 3'-0\" + 1'-7\" + 5'-0\" + 1'-7\" = 14'-11 1/2\": the string starts 9'-0 1/2\" from grid A, at the bath's partition; #129 confirms which face"}
+    openings:
+    - {id: D-6, type: "6", x0: 12.8333, x1: 15.8333, derived: "string start 9.0417 + 3'-9 1/2\", then the 3'-0\" door"}
+    - {id: W-C3, type: C, x0: 17.4167, x1: 22.4167, derived: "15.8333 + 1'-7\", then the 5'-0\" window; 1'-7\" remains to grid B"}
+
+  end_wall_x0:
+    wall: "X 0 (grid A), the kitchen and bath end; Y from 0 (rear) to 19.1667 (front)"
+    source: "A-1.0 floor plan, the top dimension strings: 4'-11\" and 3'-6\" from grid 1 (front), 3'-0\" and 2'-0\" to grid 3 (rear)"
+    openings:
+    - {id: W-D1, type: D, y0: 10.75, y1: 14.25, derived: "front 19.1667 - 4'-11\" = 14.25, less the 3'-6\" window = 10.75"}
+    - {id: W-E1, type: E, y0: 2.0, y1: 5.0, derived: "2'-0\" from the rear, then the 3'-0\" window"}
+
+  end_wall_x24:
+    wall: "X 24 (grid B), the living room end; Y from 0 (rear) to 19.1667 (front)"
+    string: ["2'-6\"", "5'-0\"", "4'-2\"", "5'-0\"", "2'-6\""]
+    string_check: {ft: 19.1667, derived: "2'-6\" + 5'-0\" + 4'-2\" + 5'-0\" + 2'-6\" = 19'-2\""}
+    source: "A-1.0 floor plan, the bottom dimension string, from grid 1 (front) to grid 3 (rear)"
+    openings:
+    - {id: W-C1, type: C, y0: 11.6667, y1: 16.6667, derived: "front 19.1667 - 2'-6\" = 16.6667, less the 5'-0\" window"}
+    - {id: W-C2, type: C, y0: 2.5, y1: 7.5, derived: "2'-6\" from the rear, then the 5'-0\" window"}
+
+  count_check:
+    windows_drawn: {A: 2, B: 2, C: 3, D: 1, E: 1, derived: "the openings above; B differs from the schedule's 1"}
+
+# ---------------------------------------------------------------------------
+interior_partitions:
+  # The plan's interior strings, recorded as drawn. Turning them into wall
+  # centrelines is P2's job (#129), with this sheet open: several strings run
+  # to a wall face whose side is not stated.
+  grid_2:
+    y: 6.0
+    derived: "envelope.grid_2_to_rear: grid 2 is 6'-0\" from the rear face, 13'-2\" from the front"
+    carries: "the bath's front wall and the kitchen's rear limit"
+  rooms: [kitchen, pantry (with the water heater), closet, laundry (W/D), bath (tub, toilet, 36\" vanity), living]
+  rooms_source: "A-1.0 floor plan room tags"
+  dimension_strings:
+    source: "A-1.0 floor plan, interior dimension strings"
+    strings:
+    - {raw: "6'-6 1/2\"", where: "kitchen, from the X 0 wall to the counter line", ft: 6.5417}
+    - {raw: "5'-2\"",     where: "pantry front, above door 2", ft: 5.1667}
+    - {raw: "2'-6\"",     where: "pantry depth", ft: 2.5}
+    - {raw: "6'-2\"",     where: "kitchen side, from the counter line toward the closet", ft: 6.1667}
+    - {raw: "3'-9\"",     where: "bath, beside door 5", ft: 3.75}
+    - {raw: "3'-0\"",     where: "bath, toilet centreline zone", ft: 3.0}
+    - {raw: "3'-2\"",     where: "laundry (W/D) width", ft: 3.1667}
+    - {raw: "7'-3\"",     where: "closet and laundry block, overall", ft: 7.25}
+
+# ---------------------------------------------------------------------------
+fixtures:
+  status: "not yet: Tier 3 (#134) measures and builds them"
+  named_equipment:
+    water_heater: {model: "Rheem PROPH40 T2 RH375-15 heat pump water heater, in the pantry", source: "A-1.0 WATER HEATER NOTES; A-1.0 floor plan W/H in PANTRY"}
+    mini_split_condenser: {location: "exterior, at the rear and X 0 walls as drawn", source: "A-2.0 REAR ELEVATION and SIDE (LEFT) ELEVATION 'MINI-SPLIT CONDENSER'"}
+
+finishes:
+  status: "not yet: Tier 1 (#132) and Tier 2 (#133)"
+  exterior_options: [stucco, fiber_cement_lap_siding]
+  exterior_source: "A-1.0 WALL LEGEND; A-2.0 FRONT ELEVATION 'EXTERIOR FINISH OPTIONS'"
+  roofing: standing_seam_metal
+  roofing_source: "A-2.0 ROOF PLAN NOTES"
+
+variants:
+  floor_plan_options:
+    source: "A-1.0 drawings 1 and 2"
+    studio: {built: true, note: "the chosen plan; see option_selection"}
+    one_bedroom:
+      built: false
+      future: "a configurator choice (#133): a partition, pocket door 7, and window C operable to meet ventilation"
+      bedroom_width: {ft: 9.5, raw: "9'-6\"", source: "A-1.0 drawing 2 1 BEDROOM FLOOR PLAN OPTION"}
+      window_note: "A-1.0 drawing 2 'WINDOW TO BE OPERTIONAL FOR 1 BEDROOM OPTION TO MEET VENTILATION REQUIREMENTS'"
+  exterior_finish: "stucco or fiber cement lap siding, both on the sheet: a finish swap, not a decision (#131, #133)"
+  canopy:
+    optional: true
+    source: "A-2.0 FRONT ELEVATION 'OPTIONAL CANOPY SEE A-3.4'; A-3.4 AWNING DETAILS '2X6 CEDAR CANOPY FRAME'"
+
+# ---------------------------------------------------------------------------
+discrepancies:
+  - id: the-roof-is-one-shed-not-two-planes
+    impact: >
+      The Laurel plan's first reading, and #128's own risk note, said two
+      plate heights and upper/lower roof venting meant two roof planes. P3's
+      check (#130) was written for that: "the two roof planes meet the two
+      declared plate heights".
+    resolution: >
+      One shed roof. See roof.settled for the five things on the sheets that
+      say so. #130's check becomes: the single roof plane passes through T.P. 2
+      at the front wall and T.P. 1 at the rear.
+    source: "A-2.0 elevations and ROOF PLAN; S1.0 MODEL A- ROOF FRAMING"
+  - id: the-plates-rise-slightly-more-than-the-slope
+    impact: >
+      T.P. 2 - T.P. 1 is 19 1/2" over a 19'-2" depth: 1.017" per foot, where
+      the roof is marked 1" per foot. Over the depth that is 0.33".
+    resolution: >
+      The plate heights are dimensioned; the slope is a nominal callout. Build
+      to the plates. The P3 overlay (#130) confirms against the elevation.
+    source: "A-2.0 SIDE (RIGHT) ELEVATION, T.P. 1, T.P. 2 and the 1\" / 1'-0\" arrow"
+  - id: window-b-is-scheduled-once-and-drawn-twice
+    impact: "The window schedule counts one B; the floor plan tags B over both A windows, and the front elevation draws two."
+    resolution: "Build two. The plan and elevation agree, and the schedule's count is the one number that disagrees with both."
+    source: "A-1.0 Window Schedule, count 1; A-1.0 floor plan (ABOVE) tags; A-2.0 FRONT ELEVATION"
+  - id: the-sheet-index-lists-one-structural-sheet
+    impact: "A-0.0 SHEET INDEX lists S1.0 only; the set carries four structural pages: specifications, S1.0, SD1 and SD2."
+    resolution: "Recorded in sheet_index. S1.0 is the only structural sheet this spec cites."
+    source: "A-0.0 SHEET INDEX; pages 13 to 16"
+  - id: roof-height-at-the-front-edge-is-not-yet-reconciled
+    impact: "10'-9 1/2\" from F.F. to the top of the roof at its front edge has not been checked against T.P. 2, the 2x12 rafter and the roofing."
+    resolution: "Left to the P3 overlay (#130), which is where a wrong roof reading shows."
+    source: "A-2.0 SIDE (RIGHT) ELEVATION"

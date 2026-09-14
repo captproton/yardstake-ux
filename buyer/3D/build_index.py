@@ -29,6 +29,7 @@ STALE FILE -- somebody added a model and did not re-run this.
 """
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -158,9 +159,52 @@ def unexported():
     """
     if not MODELS.is_dir():
         return []
+    declared = {name for name, text in pending() if _ISSUE.search(text)}
     return [d.name for d in sorted(p for p in MODELS.iterdir() if p.is_dir())
             if (d / "spec.yaml").is_file()
-            and not (d / "export" / "variants.json").is_file()]
+            and not (d / "export" / "variants.json").is_file()
+            and d.name not in declared]
+
+
+# A MODEL MAY BE UNEXPORTED ON PURPOSE, BUT IT HAS TO SAY SO. Laurel's spec
+# lands in #128 and its export in #131; in between it is a model on disk that
+# the page cannot see, which gate 6 of verify_index.py calls an export
+# failure. A file named EXPORT_PENDING in the model directory declares the gap
+# and names the issue that closes it. It is reported, never silent, and a
+# marker that names no issue, outlives the export, or sits beside no spec is
+# itself a failure.
+PENDING = "EXPORT_PENDING"
+_ISSUE = re.compile(r"#\d+")
+
+
+def pending():
+    """(model directory, marker text) for every declared pending export."""
+    if not MODELS.is_dir():
+        return []
+    out = []
+    for d in sorted(p for p in MODELS.iterdir() if p.is_dir()):
+        marker = d / PENDING
+        if marker.is_file():
+            try:
+                text = marker.read_text().strip()
+            except (OSError, UnicodeError):
+                text = ""
+            out.append((d.name, text))
+    return out
+
+
+def pending_problems():
+    """Every marker that does not do its one job."""
+    problems = []
+    for name, text in pending():
+        d = MODELS / name
+        if not _ISSUE.search(text):
+            problems.append(f"{name}/{PENDING} names no issue (#N) that will export it")
+        if (d / "export" / "variants.json").is_file():
+            problems.append(f"{name}/{PENDING} is stale: export/variants.json exists, so delete the marker")
+        if not (d / "spec.yaml").is_file():
+            problems.append(f"{name}/{PENDING} sits beside no spec.yaml")
+    return problems
 
 
 def rel(p: Path) -> str:
@@ -177,6 +221,9 @@ def main():
     for name in unexported():
         print(f"WARN  {name} has spec.yaml but no export/variants.json -- "
               f"not indexed; export it or its gates failed")
+    for name, text in pending():
+        issues = ", ".join(_ISSUE.findall(text)) or "no issue named"
+        print(f"NOTE  {name} is not indexed: its export is pending ({issues})")
     if "--check" in sys.argv:
         if not INDEX.is_file():
             print(f"FAIL  {INDEX.name} does not exist; run build_index.py")

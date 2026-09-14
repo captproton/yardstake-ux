@@ -79,6 +79,12 @@ jobs:
           sudo apt-get install -y -qq poppler-utils
           python -m pip install --quiet "PyYAML==6.0.2"
 
-      - name: Plan-set harvester tests (adu_kit/test_sheets.py)
+      - name: Plan-set harvester and spec-lint tests (adu_kit/test_sheets.py, test_spec_lint.py)
         if: ${{ !cancelled() }}
-        run: python -m unittest adu_kit.test_sheets -v
+        run: python -m unittest adu_kit.test_sheets adu_kit.test_spec_lint -v
+
+      # Every number in a model spec is cited, and every drawn length is on
+      # the sheet it cites (#128).
+      - name: Laurel spec lint (adu_kit/spec_lint.py)
+        if: ${{ !cancelled() }}
+        run: python -m adu_kit.spec_lint models/laurel_a1_460/spec.yaml --pdf "example plans/sacramento_adus/adu-plan-full-set-a1-laurel.pdf"

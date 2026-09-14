@@ -168,13 +168,21 @@ def main():
     # Gate 1 compares against a scan that, by design, skips a model with no
     # manifest. So a model whose export never landed passes gate 1 and is
     # invisible to the page. #106 names that an export failure; ask it here.
+    # A model may declare its export pending, naming the issue that will land
+    # it (build_index.PENDING); it is listed here, never skipped silently.
     stranded = build_index.unexported()
     problems += [f"{m} has spec.yaml but no export/variants.json — a model on "
                  f"disk that the page cannot see is an export failure"
                  for m in stranded]
-    print(f"  [{'PASS' if not stranded else 'FAIL'}] every model with a spec "
-          f"is exported" + (f" — unexported: {', '.join(stranded)}"
-                            if stranded else ""))
+    marker_problems = build_index.pending_problems()
+    problems += marker_problems
+    declared = [f"{name} ({', '.join(build_index._ISSUE.findall(text))})"
+                for name, text in build_index.pending() if build_index._ISSUE.search(text)]
+    ok6 = not stranded and not marker_problems
+    print(f"  [{'PASS' if ok6 else 'FAIL'}] every model with a spec "
+          f"is exported or declares its export pending"
+          + (f" — unexported: {', '.join(stranded)}" if stranded else "")
+          + (f" — pending: {', '.join(declared)}" if declared else ""))
 
     # ── 7. the manifest names only what its .glb contains ─────────────────
     # A swap set whose target material is not in the file changes nothing on

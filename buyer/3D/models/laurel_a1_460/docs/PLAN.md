@@ -80,19 +80,26 @@ in `spec.yaml` before it is used.
 | Entry canopy | optional, 2x6 cedar frame, 1x6 trim | A-3.4 |
 | Windows | vinyl, SHGC 0.21 | A-0.0, window notes |
 
-**Two top-plate heights and an upper/lower roof split.** A-2.0 sizes attic
-ventilation separately for an "upper roof" and a "bottom roof", 110.16 square
-inches each. That, plus T.P. 1 and T.P. 2, means the roof is **two planes at
-different plate heights**, not a symmetric gable. Resolving exactly which form
-(offset gable, split shed, or clerestory) is the first job of P1 and the thing
-most likely to be got wrong, so it gets its own gate in P3.
+**Two top-plate heights and an upper/lower roof split: one shed roof.** A-2.0
+sizes attic ventilation separately for an "upper roof" and a "bottom roof",
+110.16 square inches each, and marks T.P. 1 and T.P. 2. This plan first read
+that as **two roof planes**. P1 (#128) settled it the other way: **one shed
+roof**, falling 1" per foot from T.P. 2 (9'-7 1/2") at the front wall to T.P. 1
+(8'-0") at the rear. Both side elevations draw one plane, the rear elevation
+shows only T.P. 1, the roof plan has one slope arrow, "upper" and "bottom" are
+its high and low eaves vented in the same 12 rafter bays, and S1.0 frames it
+with one run of 2x12 rafters in a drawing file named "SHED ROOF". See
+`spec.yaml` `roof.settled` and the discrepancy
+`the-roof-is-one-shed-not-two-planes`.
 
 **There is an option split, as there was for the barn cabin.** A-1.0 carries a
 "1 bedroom floor plan option", and the Willow A2 cover sheet lists a second
 area of 122 sf beside the 460. Decide and record the chosen option in
 `spec.yaml` under `option_selection` with the same reasoning format used for
 the barn cabin's Option B, and note that the unchosen option is a candidate for
-the variants manifest later, not a second model.
+the variants manifest later, not a second model. **Decided (2026-09-14): the
+studio is built; the one-bedroom plan is a future configurator choice** (#133),
+recorded under `variants.floor_plan_options`.
 
 **Sheet map** (already extracted, to be recorded verbatim in `spec.yaml`):
 
@@ -291,9 +298,11 @@ anything read from disk is untrusted input, including files this project wrote.
 Specific unknowns P1 must settle, in order of risk:
 
 - The **roof form** implied by T.P. 1, T.P. 2 and the upper/lower vent split.
+  **Settled: one shed roof** (above).
 - The **overall footprint**, which 460 sf does not determine on its own. A
   24'-0" dimension and a 13'-2" dimension both appear on A-1.0; neither is
-  confirmed as an overall.
+  confirmed as an overall. **Settled: 24'-0" x 19'-2" to face of stud**, 460.0 sf
+  exactly; 13'-2" is grid 1 to grid 2.
 - The **height datum**. Slab on grade means finished floor sits near grade, so
   the barn cabin's finished-floor-versus-grade ambiguity should not recur, but
   it must be stated explicitly rather than assumed absent.
@@ -303,7 +312,12 @@ Specific unknowns P1 must settle, in order of risk:
 - **Wall assembly thickness** for 2x6 exterior and 2x4 interior, from A-3.x.
 
 Exit gate: every numeric value has a `source:`, and a spec-lint gate rejects
-any key that carries a number without one.
+any key that carries a number without one. **Built as `adu_kit/spec_lint.py`**:
+every number cites a sheet (or shows its arithmetic, or says why it is
+assumed), every source names a listed sheet, and every drawn feet-and-inches
+length is a dimension the harvester finds on the sheet it cites. CI runs it.
+Until Laurel exports, `models/laurel_a1_460/EXPORT_PENDING` names #131, so the
+index gates list it as pending rather than failing.
 
 ---
 
@@ -312,7 +326,7 @@ any key that carries a number without one.
 Write `build.py` for this typology only. It calls the kit kernel and reads
 `spec.yaml`. No dimension appears in the file.
 
-Scope: slab, exterior and interior walls, the two-plane roof with 1'-6"
+Scope: slab, exterior and interior walls, the shed roof with a 5'-0" front and 1'-6"
 overhangs, vaulted ceilings that follow the roof line, window and door
 openings cut from the schedule, and the optional entry canopy as a separate
 switchable collection.
@@ -339,9 +353,10 @@ Render the model orthographically, trace the A-2.0 front elevation at the
 sheet's stated 1/4" = 1'-0", and compare silhouettes. The barn cabin landed at
 −0.18" mean and 0.21" standard deviation; hold Laurel to the same.
 
-Add one gate this model needs and the barn cabin did not: **the two roof
-planes must meet the two declared plate heights**. Prove it can fail by moving
-T.P. 2 an inch and confirming the gate goes red. Rule 19 — a red test that
+Add one gate this model needs and the barn cabin did not: **the single roof
+plane passes through T.P. 2 at the front wall and T.P. 1 at the rear** (it was
+first written for two planes; P1 found one). Prove it can fail by moving T.P. 2
+an inch and confirming the gate goes red. Rule 19 — a red test that
 moves the spec proves nothing — means perturb the *build*, not the spec.
 
 ---
@@ -435,7 +450,7 @@ Each line is one pull request.
 2. [#127](https://github.com/captproton/yardstake-ux/issues/127) **Done** ([#141](https://github.com/captproton/yardstake-ux/pull/141)). `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand: 175 of 183 agree exactly, the other 8 are listed with reasons; A-1.0 gives 67 candidates and A-2.0 gives 34, with exact inches; the tests run in CI against the versioned sheet set.
 3. [#128](https://github.com/captproton/yardstake-ux/issues/128) `spec.yaml` P1, with the roof form settled and cited.
 4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings.
-5. [#130](https://github.com/captproton/yardstake-ux/issues/130) P3 overlay, plus the plate-height gate, proved by perturbation.
+5. [#130](https://github.com/captproton/yardstake-ux/issues/130) P3 overlay, plus the plate-height gate (the single shed plane meets T.P. 2 and T.P. 1), proved by perturbation.
 6. [#117](https://github.com/captproton/yardstake-ux/issues/117) **Declare the model's front** in the manifest, so the viewer stops assuming +Z. A page change, proved on the barn cabin and the fixtures before Laurel depends on it.
 7. [#131](https://github.com/captproton/yardstake-ux/issues/131) P4 materials, the stucco/siding swap, three levels, manifest, baseline. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
 8. [#132](https://github.com/captproton/yardstake-ux/issues/132) Tier 1 finishes and trim.

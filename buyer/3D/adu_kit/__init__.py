@@ -12,6 +12,9 @@ passes unchanged.
     sheets.py      harvest dimension CANDIDATES from a plan set PDF, never a
                    spec (#127). Plain Python, needs pdftotext:
                    python3 -m adu_kit.sheets PLANS.pdf --pages 4,6
+    spec_lint.py   every number in a model spec is cited, and every drawn
+                   length is on the sheet it cites (#128):
+                   python3 -m adu_kit.spec_lint models/<id>/spec.yaml --pdf PLANS.pdf
     schema/        model_contract.py: what a valid identity, index row, .glb,
                    manifest, configuration and estimate are. No Blender, so
                    build_index.py, the verify scripts and the page's
