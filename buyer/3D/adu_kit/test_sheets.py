@@ -124,9 +124,37 @@ class ParseLength(unittest.TestCase):
 
     def test_refused(self):
         for raw in ("6x6", "24", "7 1/2", "1/4\":12\"", "0'-13\"", "5/4\"", "3/0\"", "4'\"",
+                    "4'-", "4' -", "-4'-",
                     "", "R327", "T.P.", "2X6", None, 22):
             with self.subTest(raw=raw):
                 self.assertIsNone(parse_length(raw))
+
+
+class YamlOutput(unittest.TestCase):
+    """The candidates file keeps each length exactly. No PDF needed."""
+
+    LENGTHS = ("0' - 0 1/32\"", "3/8\"", "9' - 7 1/2\"", "-0' - 6\"", "24' - 0\"", "8'-10 1/4\"", "1'-2-1/4\"")
+
+    def test_inches_round_trip_exactly(self):
+        candidates = [sheets.Candidate(raw, parse_length(raw), 1, None, "horizontal", (0, 0, 1, 1))
+                      for raw in self.LENGTHS]
+        text = sheets.to_yaml(candidates, "made-up.pdf")
+        written = re.findall(r'^    inches: "(.*)"$', text, re.M)
+        self.assertEqual(len(written), len(self.LENGTHS))
+        for raw, inches in zip(self.LENGTHS, written):
+            with self.subTest(raw=raw):
+                m = re.fullmatch(r"(-)?(?:(\d+)(?: (\d+)/(\d+))?|(\d+)/(\d+))", inches)
+                self.assertIsNotNone(m, inches)
+                value = Fraction(int(m[2])) + (Fraction(int(m[3]), int(m[4])) if m[3] else 0) \
+                    if m[2] else Fraction(int(m[5]), int(m[6]))
+                self.assertEqual(-value if m[1] else value, parse_length(raw) * 12)
+
+    def test_a_sixty_fourth_is_not_rounded_away(self):
+        c = sheets.Candidate("0' - 0 1/32\"", Fraction(1, 384), 1, None, "horizontal", (0, 0, 1, 1))
+        text = sheets.to_yaml([c], "made-up.pdf")
+        self.assertIn('inches: "1/32"', text)
+        self.assertIn("ft: 0.0026", text)   # rounded, and the file says so
+        self.assertIn("`inches` is exact", text)
 
 
 def _pdf(texts):

@@ -75,6 +75,8 @@ def parse_length(raw: str) -> Optional[Fraction]:
     has_inches = m["inch"] is not None or m["bn"] is not None
     if m["ft"] is None and not has_inches:
         return None
+    if not has_inches and not text.endswith("'"):
+        return None                      # 4'- or 4' - : the inches were cut off
     if has_inches != (m["imark"] is not None):
         return None                      # 7 with no inch mark, or 4'" with no inches
     inches = Fraction(0)
@@ -284,15 +286,30 @@ def harvest(pdf: Path, pages: Optional[Iterable[int]] = None) -> list:
 SPEC_NAMES = frozenset({"spec.yaml", "spec.yml", "spec.json"})
 
 
+def inches_text(feet: Fraction) -> str:
+    """A length as exact inches: `115 1/2`, `-6`, `1/32`, `0`."""
+    inches = Fraction(feet) * 12
+    sign, inches = ("-" if inches < 0 else ""), abs(inches)
+    whole, part = divmod(inches.numerator, inches.denominator)
+    if part == 0:
+        return f"{sign}{whole}"
+    fraction = f"{part}/{inches.denominator}"
+    return f"{sign}{whole} {fraction}" if whole else f"{sign}{fraction}"
+
+
 def to_yaml(candidates: list, pdf_name: str) -> str:
     """Candidates as a YAML fragment. Strings are JSON-quoted, which YAML reads
-    as double-quoted scalars, so no YAML library is needed."""
+    as double-quoted scalars, so no YAML library is needed.
+
+    `inches` is exact. `ft` is rounded to 4 places for reading: 1/32" is
+    0.0026 ft there, and 1/32 in `inches`."""
     q = json.dumps
     lines = [
         f"# Dimension CANDIDATES from {pdf_name}, harvested by adu_kit/sheets.py.",
         "# NOT A SPEC. Nothing here has been checked. Copy a value into spec.yaml",
         "# only after reading it on the sheet, with a `source:` naming the sheet",
-        "# and where on it. `box` is PDF points from the page's top-left.",
+        "# and where on it. `inches` is exact; `ft` is rounded to 4 places.",
+        "# `box` is PDF points from the page's top-left.",
         f"source_pdf: {q(pdf_name)}",
         f"count: {len(candidates)}",
         "candidates:" + ("" if candidates else " []"),
@@ -300,6 +317,7 @@ def to_yaml(candidates: list, pdf_name: str) -> str:
     for c in candidates:
         lines += [
             f"  - raw: {q(c.raw)}",
+            f"    inches: {q(inches_text(c.feet))}",
             f"    ft: {round(float(c.feet), 4)}",
             f"    page: {c.page}",
             f"    sheet: {q(c.sheet) if c.sheet else 'null'}",
