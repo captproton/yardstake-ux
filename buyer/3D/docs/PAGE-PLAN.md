@@ -217,7 +217,9 @@ itself runs `run_probes.py --self-check` too.
 `main` that touches `buyer/3D/`
 ([`.github/workflows/buyer-3d-checks.yml`](../../../.github/workflows/buyer-3d-checks.yml),
 #139): `build_index.py --check`, `verify_index.py`, `verify_prototype.py`,
-`make_fixtures.py --check`, the probe suite and its self-check, on Python 3.12.
+`make_fixtures.py --check`, the probe suite and its self-check, on Python 3.12,
+and the plan-set harvester's tests (`adu_kit/test_sheets.py`, #127), for which
+it installs `pdftotext` and PyYAML.
 **It does not run** the barn cabin's nine Blender gates or the byte-identical
 export check. Those are still run by hand, and a PR that touches a model or
 `adu_kit/` says so when it has run them.

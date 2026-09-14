@@ -13,7 +13,11 @@
 # city or designer, and not yet used by any model in models/. Un-ignore a set
 # when a model actually depends on it.
 example plans/concord_plans/
-example plans/sacramento_adus/
+# Laurel (models/laurel_a1_460) depends on its sheet set: the harvester's tests
+# read it (adu_kit/test_sheets.py), so it is versioned. 13.65 MB. The rest of
+# the folder, Willow included, stays out until a model depends on it.
+example plans/sacramento_adus/*
+!example plans/sacramento_adus/adu-plan-full-set-a1-laurel.pdf
 example plans/richmond_plans/
 example plans/original/
 

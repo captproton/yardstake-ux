@@ -9,6 +9,9 @@ passes unchanged.
                    booleans, reveals, in-plane UVs, reading a spec
     export.py      feet to metres, the Draco .glb writer, the .glb reader
     verify_lib.py  inside_mesh(), for a model's gates
+    sheets.py      harvest dimension CANDIDATES from a plan set PDF, never a
+                   spec (#127). Plain Python, needs pdftotext:
+                   python3 -m adu_kit.sheets PLANS.pdf --pages 4,6
     schema/        model_contract.py: what a valid identity, index row, .glb,
                    manifest, configuration and estimate are. No Blender, so
                    build_index.py, the verify scripts and the page's
