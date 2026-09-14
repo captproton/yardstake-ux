@@ -444,9 +444,10 @@ Not in the sequence, because nothing above is blocked on it:
 | # | | |
 |---|---|---|
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
-| [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model |
-| [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn |
-| [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | the break-one-thing checks that proved every gate, in the repo with one command, run against a copy — **done** ([#123](https://github.com/captproton/yardstake-ux/pull/123)); 92 cases and 13 harness self-checks |
+| [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model: step 6 of the [Laurel plan](../models/laurel_a1_460/docs/PLAN.md), before Laurel's export |
+| [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn: step 9 of the Laurel plan |
+| [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | the break-one-thing checks that proved every gate, in the repo with one command, run against a copy — **done** ([#123](https://github.com/captproton/yardstake-ux/pull/123)); 92 cases at the time, 139 now, and 13 harness self-checks |
+| [#139](https://github.com/captproton/yardstake-ux/issues/139) | **Run the checks in CI** | nothing ran them on GitHub; every "green" was a hand run on one Mac — **done** ([#140](https://github.com/captproton/yardstake-ux/pull/140)); the six checks that need no Blender run on every PR and push to `main` touching `buyer/3D/`, proved to fail on a deliberate break. Not yet a required check on `main` |
 
 **Open questions, which are the user's rather than the model's:**
 

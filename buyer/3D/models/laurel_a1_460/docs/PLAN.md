@@ -164,6 +164,15 @@ app's, joined on option ids.
 
 ## P0 — extract the kit (prerequisite, own PR)
 
+**Done, 2026-09-14** ([#126](https://github.com/captproton/yardstake-ux/issues/126)): PR A,
+[#137](https://github.com/captproton/yardstake-ux/pull/137), moved the kernel, the
+export helpers and `inside_mesh()`; PR B,
+[#138](https://github.com/captproton/yardstake-ux/pull/138), moved `model_contract.py`
+into `adu_kit/schema/`. Both proved the barn cabin byte-identical and every gate and
+probe reporting what it did before. The checks that need no Blender now also run in
+CI on every PR ([#139](https://github.com/captproton/yardstake-ux/issues/139)); the
+Blender gates and the byte-identical check are still run by hand.
+
 Nothing model-specific ships in this phase. Move only what already contains
 zero barn-cabin knowledge.
 
@@ -176,7 +185,7 @@ buyer/3D/adu_kit/
   verify_lib.py    inside_mesh() only
   export.py        to_metres, export_glb, glb_info
   sheets.py        NEW — the coordinate-aware PDF harvester (step 2, #127)
-  schema/          model_contract.py (step 1, second PR)
+  schema/          model_contract.py (#138)
 buyer/3D/models/barn_cabin_524/   spec.yaml + typology build + its own gates
 buyer/3D/models/laurel_a1_460/    same shape
 ```
@@ -203,14 +212,16 @@ moves `model_contract.py` into `schema/`. Three rules for both.
 - **The barn cabin must build byte-identical after the move.** Its three
   exported levels, its manifest and all its gates are the regression test. If
   `lod2` changes, the extraction was not a move.
-- **The page and its probes must not notice.** `model_contract.py` moves into
-  `adu_kit/schema/`, and six places reach it by its current location today:
+- **The page and its probes must not notice.** `model_contract.py` moved into
+  `adu_kit/schema/`, and six places reached it by location:
   `build_index.py`, `verify_index.py`, `verify_prototype.py`, `finish_adu.py`,
-  `prototype/fixtures/make_fixtures.py`, and the probe suite, which copies it
-  by path (`probes/suite.py` `ROOT_FILES`) and loads it from that path for
-  contract cases. **Those references are updated in the same PR** — the
-  imports, the copy list and the loader; a move cannot leave them pointing at
-  a file that is gone. What must not change is behaviour: `build_index.py
+  `prototype/fixtures/make_fixtures.py`, and the probe suite, which copied it
+  by path (`probes/suite.py` `ROOT_FILES`) and loaded it from that path for
+  contract cases. **Those references were updated in the same PR.** The five
+  scripts now `from adu_kit.schema import model_contract`; the suite no longer
+  lists it in `ROOT_FILES`, because `make_base()` copies `adu_kit/` whole, and
+  its loader reads `suite.CONTRACT`, the new path. A move cannot leave them
+  pointing at a file that is gone. What must not change is behaviour: `build_index.py
   --check`, both verify scripts, `make_fixtures.py --check`, every probe case
   and `run_probes.py --self-check` pass and report what they did before. A
   probe **case** (its setup, what it runs, or the message it expects) that has
@@ -397,7 +408,7 @@ before the overlay is trusted for it.
 
 Each line is one pull request.
 
-1. [#126](https://github.com/captproton/yardstake-ux/issues/126) Extract the kit, in two PRs: **A** the kernel, export helpers and `inside_mesh()`, with the barn cabin byte-identical and every gate unchanged; **B** `model_contract.py` into `schema/`, its imports, copy list and loader updated, and the page, its fixtures and every probe reporting what they did before.
+1. [#126](https://github.com/captproton/yardstake-ux/issues/126) **Done** ([#137](https://github.com/captproton/yardstake-ux/pull/137), [#138](https://github.com/captproton/yardstake-ux/pull/138)). Extract the kit, in two PRs: **A** the kernel, export helpers and `inside_mesh()`, with the barn cabin byte-identical and every gate unchanged; **B** `model_contract.py` into `schema/`, its imports, copy list and loader updated, and the page, its fixtures and every probe reporting what they did before.
 2. [#127](https://github.com/captproton/yardstake-ux/issues/127) `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand.
 3. [#128](https://github.com/captproton/yardstake-ux/issues/128) `spec.yaml` P1, with the roof form settled and cited.
 4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings.
