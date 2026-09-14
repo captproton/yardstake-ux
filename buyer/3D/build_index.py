@@ -173,8 +173,12 @@ def unexported():
 # and names the issue that closes it. It is reported, never silent, and a
 # marker that names no issue, outlives the export, or sits beside no spec is
 # itself a failure.
+#
+# THE ISSUE IS NAMED ON ITS OWN LINE, `issue: #131`. Any `#number` in the
+# prose used to count, so "see note #3" passed, and a marker that mentioned
+# four issues was listed as waiting on all four.
 PENDING = "EXPORT_PENDING"
-_ISSUE = re.compile(r"#\d+")
+_ISSUE = re.compile(r"^issue:\s*#(\d+)\s*$", re.M)
 
 
 def pending():
@@ -199,7 +203,7 @@ def pending_problems():
     for name, text in pending():
         d = MODELS / name
         if not _ISSUE.search(text):
-            problems.append(f"{name}/{PENDING} names no issue (#N) that will export it")
+            problems.append(f"{name}/{PENDING} has no 'issue: #N' line naming the issue that will export it")
         if (d / "export" / "variants.json").is_file():
             problems.append(f"{name}/{PENDING} is stale: export/variants.json exists, so delete the marker")
         if not (d / "spec.yaml").is_file():
@@ -222,7 +226,7 @@ def main():
         print(f"WARN  {name} has spec.yaml but no export/variants.json -- "
               f"not indexed; export it or its gates failed")
     for name, text in pending():
-        issues = ", ".join(_ISSUE.findall(text)) or "no issue named"
+        issues = ", ".join("#" + n for n in _ISSUE.findall(text)) or "no 'issue: #N' line"
         print(f"NOTE  {name} is not indexed: its export is pending ({issues})")
     if "--check" in sys.argv:
         if not INDEX.is_file():

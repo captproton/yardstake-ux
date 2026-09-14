@@ -11,9 +11,11 @@
 #
 # EVERY NUMBER IS CITED. `source` names a sheet listed in sheet_index and where
 # on it; `derived` shows the arithmetic; `assumed` says why nothing on a sheet
-# says it. adu_kit/spec_lint.py fails any number without one, and checks every
-# drawn feet-and-inches `raw` is a dimension adu_kit/sheets.py harvests from
-# the sheet its source names.
+# says it. adu_kit/spec_lint.py fails any number without one, and requires
+# every drawn length (a length with a foot mark, wherever it appears) to cite
+# a sheet and to be a dimension adu_kit/sheets.py harvests from it. This
+# model's verify_spec.py checks that the positions follow from their
+# dimension strings and that the frame is not mirrored.
 #
 # UNITS: decimal FEET unless the key says otherwise, to 4 places. `raw` is the
 #        string as drawn.
@@ -48,7 +50,7 @@ meta:
   plan_date_note: "A-0.0 and A-1.0 title blocks say MAR 2024 and give no day; S1.0 is dated 4/15/2024"
   designer: "Laura Miller Design, El Dorado Hills CA; structural by WCD Associates, Rocklin CA"
   code_basis: "2022 California Residential Code"
-  source_pdf_pages: {count: 20, source: "A-0.0 and every title block; pdfinfo reports 20 pages"}
+  source_pdf_pages: {count: 20, derived: "pdfinfo reports 20 pages. A-0.0's SHEET INDEX lists only 17 sheet ids; pages 13, 15 and 16 are not in it (see discrepancies)"}
 
 # ---------------------------------------------------------------------------
 option_selection:
@@ -269,6 +271,8 @@ openings:
   end_wall_x24:
     wall: "X 24 (grid A), the kitchen and bath end; Y from 0 (rear) to 19.1667 (front)"
     source: "A-1.0 floor plan, the top dimension strings: 4'-11\" and 3'-6\" from grid 1 (front), 3'-0\" and 2'-0\" to grid 3 (rear)"
+    string_from_front: ["4'-11\"", "3'-6\""]
+    string_to_rear: ["3'-0\"", "2'-0\""]
     openings:
     - {id: W-D1, type: D, y0: 10.75, y1: 14.25, derived: "front 19.1667 - 4'-11\" = 14.25, less the 3'-6\" window = 10.75"}
     - {id: W-E1, type: E, y0: 2.0, y1: 5.0, derived: "2'-0\" from the rear, then the 3'-0\" window"}

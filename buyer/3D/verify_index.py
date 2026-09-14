@@ -176,7 +176,7 @@ def main():
                  for m in stranded]
     marker_problems = build_index.pending_problems()
     problems += marker_problems
-    declared = [f"{name} ({', '.join(build_index._ISSUE.findall(text))})"
+    declared = [f"{name} ({', '.join('#' + n for n in build_index._ISSUE.findall(text))})"
                 for name, text in build_index.pending() if build_index._ISSUE.search(text)]
     ok6 = not stranded and not marker_problems
     print(f"  [{'PASS' if ok6 else 'FAIL'}] every model with a spec "

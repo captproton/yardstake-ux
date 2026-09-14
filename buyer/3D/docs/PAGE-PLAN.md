@@ -220,9 +220,10 @@ itself runs `run_probes.py --self-check` too.
 `make_fixtures.py --check`, the probe suite and its self-check, on Python 3.12,
 and the plan-set harvester's tests (`adu_kit/test_sheets.py`, #127) and the spec
 lint on Laurel's spec (`adu_kit/spec_lint.py`, #128), for which it installs
-`pdftotext` and PyYAML. A model with a spec and no export yet must declare it
-in an `EXPORT_PENDING` file naming the issue that will export it; gate 6 of
-`verify_index.py` lists it instead of failing.
+`pdftotext` and PyYAML, and Laurel's `verify_spec.py`. A model with a spec and
+no export yet must declare it in an `EXPORT_PENDING` file whose `issue: #N`
+line names the issue that will export it; gate 6 of `verify_index.py` lists it
+instead of failing.
 **It does not run** the barn cabin's nine Blender gates or the byte-identical
 export check. Those are still run by hand, and a PR that touches a model or
 `adu_kit/` says so when it has run them.

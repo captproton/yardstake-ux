@@ -88,3 +88,9 @@ jobs:
       - name: Laurel spec lint (adu_kit/spec_lint.py)
         if: ${{ !cancelled() }}
         run: python -m adu_kit.spec_lint models/laurel_a1_460/spec.yaml --pdf "example plans/sacramento_adus/adu-plan-full-set-a1-laurel.pdf"
+
+      # What the lint cannot see: positions that follow from their dimension
+      # strings, and a frame that is not mirrored.
+      - name: Laurel spec geometry (models/laurel_a1_460/verify_spec.py)
+        if: ${{ !cancelled() }}
+        run: python models/laurel_a1_460/verify_spec.py

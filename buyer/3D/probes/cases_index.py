@@ -46,11 +46,11 @@ def _spec_pending(text: str):
 def _pending_marker_without_spec(root: Path) -> None:
     d = root / "models" / "zz_probe"
     d.mkdir(parents=True)
-    (d / "EXPORT_PENDING").write_text("Exported by #131.\n")
+    (d / "EXPORT_PENDING").write_text("issue: #131\n")
 
 
 def _stale_pending_marker(root: Path) -> None:
-    (barn(root) / "EXPORT_PENDING").write_text("Exported by #131.\n")
+    (barn(root) / "EXPORT_PENDING").write_text("issue: #131\n")
 
 
 def _identity(root: Path, **changes) -> dict:
@@ -124,10 +124,12 @@ CASES = [
          both(build_fails=False), "`sets[].targets` is not a list of strings"),
     Case(G, "a model with a spec and no export", _spec_without_export,
          both(build_fails=False), "has spec.yaml but no export/variants.json"),
-    Case(G, "a model with a spec and a pending export that names its issue", _spec_pending("Exported by #131.\n"),
+    Case(G, "a model with a spec and a pending export that names its issue", _spec_pending("issue: #131\nExported when #131 lands.\n"),
          both(build_fails=False, verify_fails=False), "zz_probe (#131)"),
     Case(G, "a pending-export marker that names no issue", _spec_pending("later\n"),
-         both(build_fails=False), "zz_probe/EXPORT_PENDING names no issue (#N) that will export it"),
+         both(build_fails=False), "zz_probe/EXPORT_PENDING has no 'issue: #N' line naming the issue that will export it"),
+    Case(G, "a pending-export marker that mentions an issue but has no issue line", _spec_pending("Blocked until #131 lands.\n"),
+         both(build_fails=False), "zz_probe/EXPORT_PENDING has no 'issue: #N' line"),
     Case(G, "a pending-export marker in a model directory with no spec", _pending_marker_without_spec,
          both(build_fails=False), "zz_probe/EXPORT_PENDING sits beside no spec.yaml"),
     Case(G, "a pending-export marker left behind after the export", _stale_pending_marker,
