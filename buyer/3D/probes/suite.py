@@ -231,6 +231,9 @@ def make_base(dst: Path, with_blender_model: bool = False) -> Path:
         out.mkdir(parents=True)
         if (model / "spec.yaml").is_file():
             shutil.copy2(model / "spec.yaml", out / "spec.yaml")
+        # A declared pending export (build_index.PENDING), which gate 6 reads.
+        if (model / "EXPORT_PENDING").is_file():
+            shutil.copy2(model / "EXPORT_PENDING", out / "EXPORT_PENDING")
         if (model / "export").is_dir():
             shutil.copytree(model / "export", out / "export")
     # The thumbnails the index publishes, so gate 2 can resolve them.
