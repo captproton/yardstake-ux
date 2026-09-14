@@ -1,0 +1,69 @@
+# The checks for buyer/3D that need no Blender (#139): the model index, the
+# configurator page, its fixtures, and the probe suite that proves each check
+# still catches what it should. Standard library only, so nothing is installed.
+#
+# Not run here: the barn cabin's Blender gates and the byte-identical export
+# check. They stay local; see buyer/3D/docs/PAGE-PLAN.md.
+name: buyer/3D checks
+
+on:
+  pull_request:
+    paths:
+      - "buyer/3D/**"
+      - ".github/workflows/buyer-3d-checks.yml"
+  push:
+    branches: [main]
+    paths:
+      - "buyer/3D/**"
+      - ".github/workflows/buyer-3d-checks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buyer-3d-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: buyer/3D
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Each check is its own step, and every step runs even when an earlier
+      # one failed, so one failure never hides another.
+      - name: Index matches a fresh scan (build_index.py --check)
+        run: python build_index.py --check
+
+      - name: Index gates (verify_index.py)
+        if: ${{ !cancelled() }}
+        run: python verify_index.py
+
+      - name: Page gates (verify_prototype.py)
+        if: ${{ !cancelled() }}
+        run: python verify_prototype.py
+
+      - name: Fixtures match their generator (make_fixtures.py --check)
+        if: ${{ !cancelled() }}
+        run: python prototype/fixtures/make_fixtures.py --check
+
+      - name: Probe suite (the Blender case skips without Blender)
+        if: ${{ !cancelled() }}
+        run: python probes/run_probes.py
+
+      - name: Probe harness self-check
+        if: ${{ !cancelled() }}
+        run: python probes/run_probes.py --self-check
