@@ -6,10 +6,10 @@ Second ADU model. Subject: **Sacramento County Permit Ready ADU, Model A1
 (20 sheets, Laura Miller Design, El Dorado Hills CA; drawn 2024-04-04;
 2022 California Residential Code).
 
-**The sheet set is not in git.** `example plans/sacramento_adus/` is ignored
-(`buyer/3D/.gitignore`), so the PDF (13.6 MB) and `a1-laurel-rendering.jpg`
-exist only in the main working tree. The link above works there, and not on
-GitHub or in a separate worktree. Point tools at the main tree's copy.
+**The sheet set is in git** (13.65 MB), because this model and the
+harvester's tests depend on it; `buyer/3D/.gitignore` un-ignores it alone. The
+rest of `example plans/sacramento_adus/` is still ignored, including
+`a1-laurel-rendering.jpg`, which exists only in the main working tree.
 
 This plan assumes the ladder, the gates and the ground rules from
 [`../../barn_cabin_524/docs/README.md`](../../barn_cabin_524/docs/README.md).
@@ -250,7 +250,7 @@ model whose floor differs.
 
 **The harvester is built** ([#127](https://github.com/captproton/yardstake-ux/issues/127)):
 `python3 -m adu_kit.sheets "example plans/sacramento_adus/adu-plan-full-set-a1-laurel.pdf" --pages 4,6 --out candidates.yaml`,
-run from `buyer/3D` in the main working tree, where the sheet set lives. What
+run from `buyer/3D`. What
 reading Laurel's sheets showed:
 
 - **Dimensions come out in pieces.** `24'`, `-`, `0"` on one line for a

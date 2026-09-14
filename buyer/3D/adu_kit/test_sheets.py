@@ -16,9 +16,9 @@ a fraction, a negative elevation, a dimension in parentheses, a one-word
 dimension, distractors, and a title-block id. Needs `pdftotext`; skipped with a
 message where it is missing (CI installs it).
 
-LAUREL. The Laurel sheet set is not in git. Where it is present, every page's
-harvest must match a plain `pdftotext -layout` search for the same strings.
-Skipped with a message elsewhere.
+LAUREL. The Laurel sheet set is versioned (the other Sacramento files are
+not). Every page's harvest must match a plain `pdftotext -layout` search for
+the same strings. Skipped with a message only if the PDF has gone missing.
 
 Needs PyYAML for the known answers (CI installs it).
 """
@@ -288,7 +288,7 @@ class NeverASpec(unittest.TestCase):
 
 
 @unittest.skipUnless(HAVE_PDFTOTEXT and LAUREL_PDF.is_file(),
-                     "the Laurel sheet set is not here (it is gitignored; it lives in the main working tree)")
+                     f"the Laurel sheet set is missing: {LAUREL_PDF} should be in git")
 class Laurel(unittest.TestCase):
     """Every page's harvest against a plain -layout search for the same strings."""
 
