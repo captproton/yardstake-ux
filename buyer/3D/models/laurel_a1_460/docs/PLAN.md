@@ -248,7 +248,30 @@ model whose floor differs.
 
 ## P1 — spec with a machine-read first draft
 
-**Build the harvester first** (`adu_kit/sheets.py`). It should:
+**The harvester is built** ([#127](https://github.com/captproton/yardstake-ux/issues/127)):
+`python3 -m adu_kit.sheets "example plans/sacramento_adus/adu-plan-full-set-a1-laurel.pdf" --pages 4,6 --out candidates.yaml`,
+run from `buyer/3D` in the main working tree, where the sheet set lives. What
+reading Laurel's sheets showed:
+
+- **Dimensions come out in pieces.** `24'`, `-`, `0"` on one line for a
+  horizontal dimension, the same pieces stacked for a vertical one. The
+  harvester stitches them by position: A-1.0 yields 67 feet-and-inches
+  dimensions (45 horizontal, 18 vertical, 4 already one word), A-2.0 yields
+  34, and every page matches a plain `pdftotext -layout` search.
+- **Some need care:** negative elevations (`-0' - 6"`, grade below the
+  floor), lengths in parentheses in notes (`(6'-1" TO 10'-0")`), and a length
+  glued to a rebar callout (`2-NO.5X4'-0"`).
+- **Sheet ids** come from the title block for A-0.0 to A-3.5 and T24-1 to
+  T24-4. The four structural pages are portrait with the title block turned,
+  so their candidates carry `sheet: null`; cite them by page.
+- **Inch-only strings are not harvested** (`6"`, `1/4":12"`). On these sheets
+  they are mostly notes, spacings and slopes.
+- **Known answers:** the parser agrees with 175 of the barn cabin's 183
+  hand-read lengths exactly. Seven more are `ft` values measured, assumed or
+  derived, whose `raw` is only the nearest fraction; `6x6` is a lumber size.
+  The test lists both, so a new disagreement fails.
+
+What it was built to do:
 
 1. Read `pdftotext -bbox-layout` output for a given page.
 2. Parse every feet-and-inches string into decimal feet, keeping the raw string.

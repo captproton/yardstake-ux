@@ -1,6 +1,8 @@
 # The checks for buyer/3D that need no Blender (#139): the model index, the
-# configurator page, its fixtures, and the probe suite that proves each check
-# still catches what it should. Standard library only, so nothing is installed.
+# configurator page, its fixtures, the probe suite that proves each check
+# still catches what it should, and the plan-set harvester's tests (#127). The
+# checks use the standard library only; the harvester's tests also need
+# poppler's pdftotext and PyYAML, installed in their own step.
 #
 # Not run here: the barn cabin's Blender gates and the byte-identical export
 # check. They stay local; see buyer/3D/docs/PAGE-PLAN.md.
@@ -67,3 +69,16 @@ jobs:
       - name: Probe harness self-check
         if: ${{ !cancelled() }}
         run: python probes/run_probes.py --self-check
+
+      # The harvester reads PDFs with pdftotext, and its known-answer test reads
+      # the barn cabin's spec.yaml. Installed only for this step's needs.
+      - name: Install pdftotext and PyYAML for the harvester tests
+        if: ${{ !cancelled() }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          python -m pip install --quiet "PyYAML==6.0.2"
+
+      - name: Plan-set harvester tests (adu_kit/test_sheets.py)
+        if: ${{ !cancelled() }}
+        run: python -m unittest adu_kit.test_sheets -v
