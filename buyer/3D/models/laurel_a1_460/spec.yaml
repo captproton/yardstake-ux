@@ -18,14 +18,16 @@
 # UNITS: decimal FEET unless the key says otherwise, to 4 places. `raw` is the
 #        string as drawn.
 #
-# FRAME (matches the barn cabin's: front toward +Y, X left to right as seen
-# from the front, Z up):
-#   X  0 .. 24.0     the front wall's length. X 0 is the end with the kitchen
-#                    and bath (grid line A on A-1.0; the SIDE (LEFT) ELEVATION)
-#   Y  0 .. 19.1667  rear wall face .. front (entry) wall face. On A-1.0 the
-#                    front wall is the LEFT edge of the plan, so plan-down is +X
-#                    and plan-right is -Y
+# FRAME: right-handed, Z up, the front (entry) wall facing +Y.
+#   X  0 .. 24.0     the front wall's length. X 0 is the living room end (grid
+#                    line B on A-1.0, the SIDE (RIGHT) ELEVATION); X 24 is the
+#                    kitchen and bath end (grid line A, the SIDE (LEFT) ELEVATION)
+#   Y  0 .. 19.1667  rear wall face .. front (entry) wall face
 #   Z  0 = finished floor (F.F. 0'-0" on every A-2.0 elevation)
+# Facing the front wall from outside, X increases to YOUR LEFT. On A-1.0 the
+# front wall is the plan's left edge, so plan-up is +X and plan-right is -Y: a
+# rotation of the sheet, not a mirror. `frame` below gives the evidence; the
+# first draft of this spec had it mirrored (see discrepancies).
 # A-1.0: "ALL DIMENSIONS TO FACE OF STUD U.N.O." Overall dimensions are read
 # as the outside face of the exterior studs; cladding sits outboard of them.
 
@@ -42,7 +44,8 @@ meta:
     end: "+Y, the 24'-0\" wall with entry door 1"
     note: "The fact #117 declares in the manifest. Not published by this spec."
     source: "A-1.0 floor plan, door 1 on the plan's left wall; A-2.0 FRONT ELEVATION shows door 1 with windows A and B each side"
-  plan_date: 2024-03-01
+  plan_date: "MAR 2024"
+  plan_date_note: "A-0.0 and A-1.0 title blocks say MAR 2024 and give no day; S1.0 is dated 4/15/2024"
   designer: "Laura Miller Design, El Dorado Hills CA; structural by WCD Associates, Rocklin CA"
   code_basis: "2022 California Residential Code"
   source_pdf_pages: {count: 20, source: "A-0.0 and every title block; pdfinfo reports 20 pages"}
@@ -85,6 +88,21 @@ sheet_index:
   - {pdf_page: 19, id: T24-3, title: "Title 24 energy"}
   - {pdf_page: 20, id: T24-4, title: "Title 24 energy"}
   geometry_authority: [A-1.0, A-2.0]
+
+# ---------------------------------------------------------------------------
+frame:
+  handedness: right
+  up: "+Z"
+  front: "+Y"
+  x_increases: "to the viewer's left, facing the front wall from outside"
+  x_zero_end: "living room: grid B on A-1.0, windows C1 and C2, the SIDE (RIGHT) ELEVATION"
+  x_max_end: "kitchen and bath: grid A on A-1.0, windows D and E, the SIDE (LEFT) ELEVATION"
+  evidence:
+  - "SIDE (LEFT) ELEVATION draws windows D and E with the front (the high eave and the canopy) on the viewer's RIGHT. Facing an end wall from outside with the front on your right means looking toward -X, so D and E are on the X-max end."
+  - "SIDE (RIGHT) ELEVATION draws the two C windows with the front on the viewer's LEFT: looking toward +X, so the C windows are on the X-zero end."
+  - "FRONT ELEVATION draws door 1's sidelite on the viewer's left, which is toward X-max; the floor plan draws it on the grid A side of the door."
+  - "REAR ELEVATION draws the mini-split right of centre; facing the rear wall from outside, the viewer's right is toward X-max."
+  source: "A-2.0 SIDE (LEFT), SIDE (RIGHT), FRONT and REAR ELEVATIONS; A-1.0 floor plan"
 
 # ---------------------------------------------------------------------------
 envelope:
@@ -148,7 +166,7 @@ roof:
     bays_vented_each_eave: 12
     bays_check: "24 ft of front wall / 2 ft rafter spacing = 12 bays, the count both eave vent tallies use"
     sheathing: "15/32\" structural grade I"
-    headers: "RB1 6x8 and RB2 6x6 at the rear, RB3 6x8 at the front, RB4 6x6 at the X 24 end"
+    headers: "RB3 6x8 over the front wall's three openings; RB4 6x6 over the rear wall's two; RB2 6x6 at the X-max (kitchen and bath) end over D and E; RB1 6x8 at the X-zero (living room) end over the two C windows. S1.0 is drawn in the same orientation as A-1.0."
     source: "S1.0 MODEL A- ROOF FRAMING, ROOF BEAM SCHEDULE and ROOF FRAMING NOTES; A-2.0 ROOF PLAN NOTES 'X 12 BAYS'"
   assembly:
     layers_top_down: ["standing seam metal roofing", "underlayment", "sheathing per structural",
@@ -224,39 +242,39 @@ openings:
        width: {ft: 3.0, raw: "3'-0\""}, height: {ft: 6.6667, raw: "6'-8\""}}
 
   front_wall:
-    wall: "Y 19.1667, X from 0 (grid A) to 24"
+    wall: "Y 19.1667; the string runs from grid A (X 24) to grid B (X 0)"
     string: ["3'-7\"", "4'-0\"", "2'-5\"", "4'-0\"", "2'-5\"", "4'-0\"", "3'-7\""]
     string_check: {ft: 24.0, derived: "3'-7\" + 4'-0\" + 2'-5\" + 4'-0\" + 2'-5\" + 4'-0\" + 3'-7\" = 24'-0\""}
     source: "A-1.0 floor plan, the dimension string along the front (left) wall, read from grid A down"
     openings:
-    - {id: W-A1, type: A, x0: 3.5833, x1: 7.5833, derived: "3'-7\" from grid A, then the 4'-0\" window"}
-    - {id: W-B1, type: B, x0: 3.5833, x1: 7.5833, derived: "the (ABOVE) transom over W-A1, same width",
+    - {id: W-A1, type: A, x0: 16.4167, x1: 20.4167, derived: "grid A is X 24: 24 - 3'-7\" = 20.4167, less the 4'-0\" window"}
+    - {id: W-B1, type: B, x0: 16.4167, x1: 20.4167, derived: "the (ABOVE) transom over W-A1, same width",
        source: "A-1.0 floor plan '(ABOVE)' tag with B over A; A-2.0 FRONT ELEVATION"}
-    - {id: D-1, type: "1", x0: 10.0, x1: 14.0, derived: "3'-7\" + 4'-0\" + 2'-5\"; the 4'-0\" opening is the 3'-0\" door and its 12\" sidelite",
-       sidelite_x: [10.0, 11.0], leaf_x: [11.0, 14.0],
-       sidelite_source: "A-2.0 FRONT ELEVATION, the sidelite drawn on the door's left as seen from the front, toward X 0"}
-    - {id: W-A2, type: A, x0: 16.4167, x1: 20.4167, derived: "14'-0\" + 2'-5\", then the 4'-0\" window"}
-    - {id: W-B2, type: B, x0: 16.4167, x1: 20.4167, derived: "the (ABOVE) transom over W-A2, same width",
+    - {id: D-1, type: "1", x0: 10.0, x1: 14.0, derived: "24 - (3'-7\" + 4'-0\" + 2'-5\") = 14.0, less the 4'-0\" opening: the 3'-0\" door and its 12\" sidelite",
+       sidelite_x: [13.0, 14.0], leaf_x: [10.0, 13.0],
+       sidelite_source: "A-1.0 floor plan draws the sidelite on the grid A side of the door; A-2.0 FRONT ELEVATION draws it on the viewer's left, which is toward X-max"}
+    - {id: W-A2, type: A, x0: 3.5833, x1: 7.5833, derived: "grid B is X 0: 3'-7\" from it, then the 4'-0\" window"}
+    - {id: W-B2, type: B, x0: 3.5833, x1: 7.5833, derived: "the (ABOVE) transom over W-A2, same width",
        source: "A-1.0 floor plan '(ABOVE)' tag with B over A; A-2.0 FRONT ELEVATION"}
 
   rear_wall:
-    wall: "Y 0, X toward 24"
+    wall: "Y 0; the string runs from the bath's partition toward grid B (X 0)"
     string: ["3'-9 1/2\"", "3'-0\"", "1'-7\"", "5'-0\"", "1'-7\""]
     source: "A-1.0 floor plan, the dimension string along the rear (right) wall, ending at grid B"
-    string_start: {ft: 9.0417, derived: "24'-0\" less the string 3'-9 1/2\" + 3'-0\" + 1'-7\" + 5'-0\" + 1'-7\" = 14'-11 1/2\": the string starts 9'-0 1/2\" from grid A, at the bath's partition; #129 confirms which face"}
+    string_start: {ft: 14.9583, derived: "the string totals 14'-11 1/2\" and ends at grid B, X 0, so it starts at X 14.9583: 9'-0 1/2\" from grid A, at the bath's partition; #129 confirms which face"}
     openings:
-    - {id: D-6, type: "6", x0: 12.8333, x1: 15.8333, derived: "string start 9.0417 + 3'-9 1/2\", then the 3'-0\" door"}
-    - {id: W-C3, type: C, x0: 17.4167, x1: 22.4167, derived: "15.8333 + 1'-7\", then the 5'-0\" window; 1'-7\" remains to grid B"}
+    - {id: D-6, type: "6", x0: 8.1667, x1: 11.1667, derived: "string start 14.9583 - 3'-9 1/2\" = 11.1667, less the 3'-0\" door"}
+    - {id: W-C3, type: C, x0: 1.5833, x1: 6.5833, derived: "8.1667 - 1'-7\" = 6.5833, less the 5'-0\" window; 1'-7\" remains to grid B, X 0"}
 
-  end_wall_x0:
-    wall: "X 0 (grid A), the kitchen and bath end; Y from 0 (rear) to 19.1667 (front)"
+  end_wall_x24:
+    wall: "X 24 (grid A), the kitchen and bath end; Y from 0 (rear) to 19.1667 (front)"
     source: "A-1.0 floor plan, the top dimension strings: 4'-11\" and 3'-6\" from grid 1 (front), 3'-0\" and 2'-0\" to grid 3 (rear)"
     openings:
     - {id: W-D1, type: D, y0: 10.75, y1: 14.25, derived: "front 19.1667 - 4'-11\" = 14.25, less the 3'-6\" window = 10.75"}
     - {id: W-E1, type: E, y0: 2.0, y1: 5.0, derived: "2'-0\" from the rear, then the 3'-0\" window"}
 
-  end_wall_x24:
-    wall: "X 24 (grid B), the living room end; Y from 0 (rear) to 19.1667 (front)"
+  end_wall_x0:
+    wall: "X 0 (grid B), the living room end; Y from 0 (rear) to 19.1667 (front)"
     string: ["2'-6\"", "5'-0\"", "4'-2\"", "5'-0\"", "2'-6\""]
     string_check: {ft: 19.1667, derived: "2'-6\" + 5'-0\" + 4'-2\" + 5'-0\" + 2'-6\" = 19'-2\""}
     source: "A-1.0 floor plan, the bottom dimension string, from grid 1 (front) to grid 3 (rear)"
@@ -280,22 +298,25 @@ interior_partitions:
   rooms_source: "A-1.0 floor plan room tags"
   dimension_strings:
     source: "A-1.0 floor plan, interior dimension strings"
+    status: "where each string is DRAWN, and along which axis. What each one spans -- which walls, which faces -- is #129's to read; nothing here says."
     strings:
-    - {raw: "6'-6 1/2\"", where: "kitchen, from the X 0 wall to the counter line", ft: 6.5417}
-    - {raw: "5'-2\"",     where: "pantry front, above door 2", ft: 5.1667}
-    - {raw: "2'-6\"",     where: "pantry depth", ft: 2.5}
-    - {raw: "6'-2\"",     where: "kitchen side, from the counter line toward the closet", ft: 6.1667}
-    - {raw: "3'-9\"",     where: "bath, beside door 5", ft: 3.75}
-    - {raw: "3'-0\"",     where: "bath, toilet centreline zone", ft: 3.0}
-    - {raw: "3'-2\"",     where: "laundry (W/D) width", ft: 3.1667}
-    - {raw: "7'-3\"",     where: "closet and laundry block, overall", ft: 7.25}
+    - {raw: "6'-6 1/2\"", drawn: "beside the KITCHEN label", runs_along: X, ft: 6.5417}
+    - {raw: "5'-2\"",     drawn: "above the PANTRY and door 2", runs_along: Y, ft: 5.1667}
+    - {raw: "2'-6\"",     drawn: "beside the PANTRY", runs_along: X, ft: 2.5}
+    - {raw: "6'-2\"",     drawn: "between the KITCHEN and the CLOSET", runs_along: X, ft: 6.1667}
+    - {raw: "3'-9\"",     drawn: "in the BATH, beside door 5", runs_along: Y, ft: 3.75}
+    - {raw: "3'-0\"",     drawn: "in the BATH, beside the toilet", runs_along: X, ft: 3.0}
+    - {raw: "3'-2\"",     drawn: "below the W/D", runs_along: Y, ft: 3.1667}
+    - {raw: "7'-3\"",     drawn: "below the CLOSET and W/D", runs_along: Y, ft: 7.25}
 
 # ---------------------------------------------------------------------------
 fixtures:
   status: "not yet: Tier 3 (#134) measures and builds them"
   named_equipment:
-    water_heater: {model: "Rheem PROPH40 T2 RH375-15 heat pump water heater, in the pantry", source: "A-1.0 WATER HEATER NOTES; A-1.0 floor plan W/H in PANTRY"}
-    mini_split_condenser: {location: "exterior, at the rear and X 0 walls as drawn", source: "A-2.0 REAR ELEVATION and SIDE (LEFT) ELEVATION 'MINI-SPLIT CONDENSER'"}
+    water_heater: {model: "RHEEM PROPH 40T2R H37515", kind: "NEEA-rated heat pump water heater", location: pantry,
+                   source: "A-1.0 WATER HEATER NOTES 'PER CF1R: NEEA RATED WATER HEATER HEAT PUMP MODEL, RHEEM PROPH 40T2R H37515'; A-1.0 floor plan W/H in PANTRY"}
+    mini_split_condenser: {location: "exterior, on the ground at the rear wall toward the X-max (kitchen and bath) end: right of centre in the rear elevation, near the rear corner in the side (left) elevation",
+                           source: "A-2.0 REAR ELEVATION and SIDE (LEFT) ELEVATION 'MINI-SPLIT CONDENSER'"}
 
 finishes:
   status: "not yet: Tier 1 (#132) and Tier 2 (#133)"
@@ -320,6 +341,23 @@ variants:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: the-first-draft-of-this-spec-mirrored-the-plan
+    impact: >
+      The first draft put X 0 at the kitchen and bath end and said X ran left to
+      right as seen from the front. In this right-handed frame X runs to the
+      viewer's LEFT, so every front- and rear-wall position was mirrored: built
+      as written, the kitchen and bath would have stood at the wrong end
+      relative to the entry. The spec lint could not catch it -- every number
+      was cited and every drawn length was on its sheet -- because the error
+      was in the frame, not the numbers. Found by reading the side elevations
+      against the plan before the PR merged.
+    resolution: >
+      X 0 is the living room end (grid B), X 24 the kitchen and bath end (grid
+      A). Front- and rear-wall positions are 24 minus their first-draft values;
+      the end walls kept their Y positions and swapped labels. `frame` records
+      the elevations that fix the direction, so it is checkable. The P3 overlay
+      (#130) should compare the side elevations too, not only the front.
+    source: "A-2.0 SIDE (LEFT) and SIDE (RIGHT) ELEVATIONS; A-1.0 floor plan"
   - id: the-roof-is-one-shed-not-two-planes
     impact: >
       The Laurel plan's first reading, and #128's own risk note, said two
