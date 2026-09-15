@@ -43,6 +43,7 @@ partition runs to the underside of the one roof plane, which is what A-1.0
 means by "CEILINGS FOLLOW ROOF LINE". So `dollhouse` hides the roof and there
 is nothing else above head height to strip.
 """
+import math
 import sys
 from pathlib import Path
 
@@ -151,6 +152,29 @@ def _look(eye, target, lens=None, clip_start=None):
     return done
 
 
+# Blender's default sensor is 36mm wide, so a lens of L mm sees a half-angle
+# of atan(18/L). These are camera arithmetic, not building dimensions.
+_SENSOR_HALF_MM = 18.0
+_FIT_MARGIN = 1.25
+
+
+def _fit_distance(across, up, lens):
+    """How far back a camera needs to be to frame `across` by `up`, with margin.
+
+    plan() carried a fixed multiple of the footprint instead, and at lens 50
+    that put the camera 24 ft up looking at a 17 ft field on a 24 ft
+    building -- a frame filled entirely by slab. The distance has to come
+    from the lens, or the two drift apart the first time either changes.
+
+    IT FITS THE DIAGONAL, not the wider side. Fitting the width cropped the
+    footprint the moment the viewport was taller than it was wide, because
+    the short axis of the frame is the one that decides. The diagonal is
+    bounded by neither axis, so the fit holds whatever shape the viewport is
+    -- and a viewport's shape is the user's, not ours to assume.
+    """
+    return (math.hypot(across, up) / 2) / (_SENSOR_HALF_MM / lens) * _FIT_MARGIN
+
+
 def _eye_height():
     """Standing eye height, as a fraction of the rear plate — the lowest head
     room in the building. Derived, so a taller plate raises the camera."""
@@ -196,7 +220,10 @@ def plan():
     dollhouse()
     lo, hi = _bbox(_walls())
     ctr = (lo + hi) / 2
-    return _look((ctr.x, ctr.y - 1e-3, hi.z + (hi.x - lo.x)), (ctr.x, ctr.y, 0.0), lens=50)
+    lens = 50
+    up = _fit_distance(hi.x - lo.x, hi.y - lo.y, lens)
+    # nudged off the axis so the up vector is not degenerate looking straight down
+    return _look((ctr.x, ctr.y - (hi.y - lo.y) / 1000, up), (ctr.x, ctr.y, 0.0), lens=lens)
 
 
 def front():
@@ -205,8 +232,9 @@ def front():
     objs = [o for o in bpy.data.objects if o.type == "MESH"]
     lo, hi = _bbox(objs)
     ctr = (lo + hi) / 2
-    span = (hi - lo).length
-    return _look((ctr.x, hi.y + span * 0.8, ctr.z + span * 0.25), ctr, lens=35, clip_start=0.1)
+    lens = 35
+    back = _fit_distance(hi.x - lo.x, hi.z - lo.z, lens)
+    return _look((ctr.x, hi.y + back, ctr.z + back / 4), ctr, lens=lens, clip_start=0.1)
 
 
 # ---------------------------------------------------------------------------
