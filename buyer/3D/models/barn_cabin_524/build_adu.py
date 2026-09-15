@@ -37,7 +37,7 @@ from adu_kit.kernel import (  # noqa: E402,F401
     load_spec, _new_obj, box, box_geom, prism_geom, clip_band,
     weld, multibox, _check_path, tube, multitube, tube_geom,
     ellipse_ring, loft, arc_points, prism_xz, uv_project, mark_reveals,
-    difference, collection, world_bbox, ft,
+    difference, collection, world_bbox, ft, sash_geom,
 )
 
 
@@ -908,44 +908,16 @@ def build(spec, cut_openings=True):
                 "cannot be built from a type alone -- add the type or change "
                 "the opening.")
 
-        def member(b0, b1, c0, c1):
-            """One rectangle STRADDLING the glazing plane, spanning the wall axis.
-
-            `plane` is the glass's own centre, and the member reaches sd_ to
-            either side of it. That is the whole difference between a sash and
-            a decal: reaching only outboard, as the first version did, leaves
-            the members hidden behind the pane when seen from indoors.
-            """
-            d0, d1 = plane - sd_, plane + sd_
-            return ((b0, b1, d0, d1, c0, c1) if axis == "x"
-                    else (d0, d1, b0, b1, c0, c1))
-
-        parts = [
-            member(a0, a0 + f2g, z0, z1),                  # left jamb
-            member(a1 - f2g, a1, z0, z1),                  # right jamb
-            member(a0, a1, z0, z0 + f2g),                  # sill member
-            member(a0, a1, z1 - f2g, z1),                  # head member
-        ]
-
-        # A D.S.H. is two units side by side; the mullion divides them and the
-        # rail then runs in EACH unit, not across the whole opening.
-        units = typ["units"]
-        spans = []
-        if units == 1:
-            spans = [(a0, a1)]
-        else:
-            step = (a1 - a0) / units
-            for i in range(units):
-                spans.append((a0 + i * step, a0 + (i + 1) * step))
-            for i in range(1, units):
-                c = a0 + i * step
-                parts.append(member(c - mull / 2, c + mull / 2, z0, z1))
-
-        if typ["meeting_rail"]:
-            zc = z0 + (z1 - z0) * mr_r
-            for b0, b1 in spans:
-                parts.append(member(b0, b1, zc - mr_t / 2, zc + mr_t / 2))
-
+        # The members themselves are adu_kit.kernel.sash_geom (#129): a
+        # rectangle straddling the glazing plane, a mullion between units, and
+        # a meeting rail inside EACH unit rather than across the whole
+        # opening. Nothing in that knows this building. What stays here is the
+        # part that does -- looking the type up in THIS spec's table, and
+        # refusing to guess when the type has nothing behind it.
+        parts = sash_geom(axis, plane, a0, a1, z0, z1, f2g, sd_,
+                          units=typ["units"],
+                          meeting_rail_at=mr_r if typ["meeting_rail"] else None,
+                          meeting_rail_thickness=mr_t, mullion=mull)
         multibox(name, parts, finish)
 
     # `into` points at the ROOM along each wall's depth axis, because a stool

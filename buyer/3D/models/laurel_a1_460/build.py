@@ -40,7 +40,7 @@ import bpy
 HERE = Path(__file__).resolve().parent
 sys.path.append(str(HERE.parents[1]))          # buyer/3D, where adu_kit lives
 from adu_kit.kernel import (  # noqa: E402,F401
-    load_spec, box, box_geom, prism_geom, weld, multibox,
+    load_spec, box, box_geom, prism_geom, weld, multibox, sash_geom,
     difference, collection, world_bbox, mark_reveals, ft,
 )
 
@@ -55,8 +55,9 @@ VOL_TOL = 1e-4          # cu ft; a boolean that removes nothing is off by whole 
 LEN_TOL = 1e-6          # ft, for comparing two lengths the spec already agrees on
 PLANE_TOL = 1e-9        # ft, for a plane through two points it is defined by
 CUT_MARGIN = 1.0        # ft a cutter stands proud of the wall, so no face is coplanar
-SASH_DEPTH = 6          # a sash is this fraction of the wall depth, centred
 RULE = 76               # characters across, for the printed report
+SASH_FRAME_MEMBERS = 4  # jambs, sill and head: the four every frame has, whatever its type
+VERTS_PER_BOX = 8       # how a welded member count is read back off a mesh
 
 
 def gate(ok, label, detail=""):
@@ -263,16 +264,71 @@ def build(spec, cut_openings=True):
     # Every opening gets what it is: a window gets a sash, a door gets a leaf.
     # An opening with nothing in it reads as a hole in a wall, and the gate
     # below counts them, so this is not optional.
+    win = spec["windows"]
+    f2g = win["frame_to_glass"]["ft"]
+    proud = win["proud_of_glass"]["ft"]
+    mull = win["mullion"]["ft"]
+    ops = win["operations"]
+    leaf_t = spec["openings"]["door_types"]["leaf_thickness"]["ft"]
+
+    def _glazed(name, along, plane, a0, a1, z0, z1, operation):
+        """A sash, from the OPERATION the schedule declares.
+
+        Dispatching on the declared operation, and refusing to guess when it
+        has nothing behind it, is the rule the barn cabin arrived at after
+        shipping flat panes through eleven PRs while its spec typed every one
+        of them. Laurel's schedule declares an operation for all five marks.
+        """
+        op = ops.get(operation)
+        if op is None:
+            raise SystemExit(
+                f"{name} is operated {operation!r}, which spec.windows."
+                f"operations does not define (have {sorted(ops)}). A window "
+                "cannot be built from an operation alone -- add it or change "
+                "the schedule.")
+        if op["meeting_rail"]:
+            rail = win.get("meeting_rail")
+            if rail is None:
+                raise SystemExit(
+                    f"operation {operation!r} declares a meeting rail and "
+                    "spec.windows.meeting_rail does not say where it sits.")
+            at, thick = rail["ratio"], rail["thickness"]["ft"]
+        else:
+            at, thick = None, 0.0
+        parts = sash_geom(along, plane, a0, a1, z0, z1, f2g, proud,
+                          units=op["units"], meeting_rail_at=at,
+                          meeting_rail_thickness=thick, mullion=mull)
+        return multibox(name, parts, openings)
+
     for o in built:
         lo, hi = _wall_band(walls, o["wall"], o["along"])
-        if o["along"] == "x":
-            specs = [(o["a0"], o["a1"], lo, hi, o["z0"], o["z1"])]
+        plane = (lo + hi) / 2                 # spec.windows.glazing_plane
+        row, along = o["row"], o["along"]
+        if o["id"].startswith("W-"):
+            sashes.append(_glazed(f"Sash_{o['id']}", along, plane,
+                                  o["a0"], o["a1"], o["z0"], o["z1"],
+                                  wt[row["type"]]["operation"]))
+            continue
+
+        # A DOOR IS A LEAF, and door 1 is a leaf AND a sidelite. The schedule
+        # calls it an "ENTRY DOOR W/ 12\" SIDELITE" and glazes it tempered, so
+        # the sidelite is a glazed panel, not more door. The spec already says
+        # which band is which, and verify_spec gates that the sidelite is on
+        # the X 24 side, where A-1.0 draws it.
+        if "leaf_x" in row and "sidelite_x" in row:
+            bands = [("leaf", row["leaf_x"]), ("sidelite", row["sidelite_x"])]
         else:
-            specs = [(lo, hi, o["a0"], o["a1"], o["z0"], o["z1"])]
-        kind = "Sash" if o["id"].startswith("W-") else "Leaf"
-        ob = multibox(f"{kind}_{o['id']}", specs, openings)
-        _thin(ob, o["along"], lo, hi)
-        sashes.append(ob)
+            bands = [("leaf", (o["a0"], o["a1"]))]
+        for what, (b0, b1) in bands:
+            name = f"Leaf_{o['id']}" if what == "leaf" else f"Sash_{o['id']}_sidelite"
+            if what == "sidelite":
+                sashes.append(_glazed(name, along, plane, b0, b1, o["z0"], o["z1"],
+                                      win["sidelite_operation"]))
+            else:
+                d0, d1 = plane - leaf_t / 2, plane + leaf_t / 2
+                spec_box = ((b0, b1, d0, d1, o["z0"], o["z1"]) if along == "x"
+                            else (d0, d1, b0, b1, o["z0"], o["z1"]))
+                sashes.append(multibox(name, [spec_box], openings))
 
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes)
@@ -293,18 +349,6 @@ def _volume(ob):
     v = bm.calc_volume(signed=False)
     bm.free()
     return v
-
-
-def _thin(ob, along, lo, hi):
-    """Leave the pane/leaf as a thin plate centred in the wall's depth."""
-    import bmesh
-    mid = (lo + hi) / 2
-    half = (hi - lo) / (SASH_DEPTH * 2)
-    idx = 1 if along == "x" else 0
-    for v in ob.data.vertices:
-        co = list(v.co)
-        co[idx] = mid - half if co[idx] < mid else mid + half
-        v.co = co
 
 
 # ---------------------------------------------------------------------------
@@ -340,6 +384,12 @@ def report(spec, geo, colls):
     # every schedule row produced a cut opening with a sash
     ok, why = _every_row_built(spec, geo)
     gate(ok, "every schedule row produced a cut opening with a sash or a leaf", why)
+
+    ok, why = _sash_members(spec, geo)
+    gate(ok, "every sash carries the members its declared operation implies", why)
+
+    ok, why = _door_one_has_its_sidelite(spec, geo)
+    gate(ok, "door 1 is a leaf AND a glazed sidelite, as the schedule describes", why)
 
     ok, why = _no_degenerate()
     gate(ok, "no NaN or degenerate geometry", why)
@@ -389,6 +439,56 @@ def _every_row_built(spec, geo):
         if w["mark"] not in marks_built:
             missing.append(f"window schedule row {w['mark']} was never built")
     return not missing, "; ".join(missing)
+
+
+def _sash_members(spec, geo):
+    """A SASH IS NOT A PLATE, and this is what tells them apart.
+
+    The first version of this build filled every opening with one rectangle
+    centred in the wall. It satisfied "every schedule row produced a cut
+    opening with a sash" perfectly, because the gate only asked whether an
+    object existed -- which is the same defect the barn cabin carried for
+    eleven PRs while its spec typed every window.
+
+    So count the members, and count the ones the OPERATION implies: four for
+    the frame, one mullion between each pair of units, and a meeting rail in
+    each unit for a type that has one. Window E is the only slider, so it is
+    the only one that should carry five.
+    """
+    wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
+    ops = spec["windows"]["operations"]
+    bad = []
+    for o in geo["built"]:
+        if not o["id"].startswith("W-"):
+            continue
+        op = ops[wt[o["row"]["type"]]["operation"]]
+        want = (SASH_FRAME_MEMBERS + (op["units"] - 1)
+                + (op["units"] if op["meeting_rail"] else 0))
+        ob = bpy.data.objects.get(f"Sash_{o['id']}")
+        if ob is None:
+            bad.append(f"{o['id']} has no sash at all")
+            continue
+        got = len(ob.data.vertices) // VERTS_PER_BOX
+        if got != want:
+            bad.append(f"{o['id']} ({wt[o['row']['type']]['operation']}) has "
+                       f"{got} member(s), its operation implies {want}")
+    return not bad, "; ".join(bad)
+
+
+def _door_one_has_its_sidelite(spec, geo):
+    """A-1.0's Door Schedule calls door 1 an ENTRY DOOR W/ 12" SIDELITE and
+    glazes it tempered, so it is two things: a leaf and a glazed panel. The
+    spec says which band is which and verify_spec gates that the sidelite is
+    on the X 24 side; this gates that both were actually built."""
+    rows = {o["id"]: o["row"] for o in geo["built"]}
+    bad = []
+    for oid, row in rows.items():
+        if "sidelite_x" not in row:
+            continue
+        for name in (f"Leaf_{oid}", f"Sash_{oid}_sidelite"):
+            if name not in bpy.data.objects:
+                bad.append(f"{oid}: {name} was not built")
+    return not bad, "; ".join(bad)
 
 
 def _no_degenerate():
