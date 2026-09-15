@@ -561,6 +561,43 @@ finishes:
   roofing: standing_seam_metal
   roofing_source: "A-2.0 ROOF PLAN NOTES"
 
+# ---------------------------------------------------------------------------
+export:
+  status: "the manifest itself is #131; the page's views rail is #133"
+  # ONE DEFINITION OF WHAT EACH MODE HIDES. The barn cabin learned this the
+  # hard way: views.py knew how to strip a roof and the web runtime had no way
+  # to ask, so the answer existed twice. It lives here, in the spec, so that
+  # Blender's review panel (views.py) and the manifest #131 writes read the
+  # same thing. Groups are OBJECT-NAME PREFIXES, which build.py sets; a new
+  # prefix must be declared here or the modes silently stop covering it.
+  display_modes:
+    groups:
+      ROOF:      ["Roof_"]
+      WALL:      ["Wall_"]
+      SKIN:      ["Sheathing_"]
+      PARTITION: ["P_"]
+      OPENING:   ["Sash_", "Leaf_"]
+      SITE:      ["Slab"]
+    front_group: "the +Y side: Wall_front and Sheathing_front, named in modes by object"
+    modes:
+    - id: full
+      label: "Exterior"
+      default: true
+      hide: []
+    - id: dollhouse
+      label: "Show interior"
+      desc: "Roof off — look down into the rooms. Laurel has no ceiling objects to hide: the ceilings ARE the roof underside, because every wall runs to it."
+      hide: [ROOF]
+    - id: cutaway
+      label: "Cutaway"
+      desc: "Dollhouse with the front wall and its skin removed, for a sectional look through the entry."
+      hide: [ROOF]
+      hide_objects: [Wall_front, Sheathing_front]
+    - id: interior_only
+      label: "Interior only"
+      desc: "Partitions and slab alone, with the openings left in so the doors read."
+      hide: [ROOF, WALL, SKIN]
+
 variants:
   floor_plan_options:
     source: "A-1.0 drawings 1 and 2"
