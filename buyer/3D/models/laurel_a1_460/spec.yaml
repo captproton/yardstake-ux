@@ -176,6 +176,16 @@ roof:
     air_space:  {ft: 0.0833, raw: "1\"", source: "A-2.0 detail 7 ROOF SECTION"}
     insulation: {ft: 0.8542, raw: "10 1/4\"", source: "A-2.0 detail 7 ROOF SECTION, R-38 batts"}
     source: "A-2.0 detail 7 ROOF SECTION"
+    # What #129 puts above the roof plane. The section dimensions the bay, not
+    # the member, so the rafter depth is the bay: the batts plus the air space
+    # over them come to exactly the 11 1/4" of the 2x12 S1.0 calls out, which
+    # is the section agreeing with the framing plan rather than an assumption.
+    rafter_depth: {ft: 0.9375, derived: "air_space 0.0833 + insulation 0.8542 = 0.9375 ft (11 1/4\"), the actual depth of the 2x12 in roof.framing.rafters"}
+    sheathing_ft: {ft: 0.0391, raw: "15/32\"", source: "A-2.0 detail 7 ROOF SECTION 'SHEATHING PER STRUCTURAL'; S1.0 ROOF FRAMING NOTES give it as 15/32\" STRUCT GRADE I"}
+    modelled_thickness: {ft: 0.9766, derived: "rafter_depth 0.9375 + sheathing_ft 0.0391. Roofing, underlayment and the interior gyp board are finishes (#132, #133) and add no modelled depth."}
+    modelled_plane:
+      through: ["T.P. 1 at the rear wall", "T.P. 2 at the front wall"]
+      derived: "levels.top_of_plate_rear 8.0 and top_of_plate_front 9.625. The build puts the roof's UNDERSIDE on that plane and modelled_thickness above it, so #130 can gate the plane the elevations dimension rather than a surface nobody drew."
   ceiling: {follows: roof, raw: "CEILINGS FOLLOW ROOF LINE", source: "A-1.0 floor plan note in LIVING"}
   roofing: {material: standing_seam_metal, source: "A-2.0 FRONT ELEVATION and ROOF PLAN NOTES"}
   gutter:  {edge: "rear, the low eave", style: "seamless box gutter to match the roof, with a downspout", source: "A-2.0 ROOF PLAN leaders on the low edge"}
