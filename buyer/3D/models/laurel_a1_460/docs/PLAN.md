@@ -327,9 +327,14 @@ Write `build.py` for this typology only. It calls the kit kernel and reads
 `spec.yaml`. No dimension appears in the file.
 
 Scope: slab, exterior and interior walls, the shed roof with a 5'-0" front and 1'-6"
-overhangs, vaulted ceilings that follow the roof line, window and door
-openings cut from the schedule, and the optional entry canopy as a separate
-switchable collection.
+overhangs, vaulted ceilings that follow the roof line, and window and door
+openings cut from the schedule.
+
+The optional entry canopy moved out to #144. A-2.0 marks it "OPTIONAL CANOPY
+SEE A-3.4", but A-3.4 has not been harvested, so `spec.yaml` records it under
+`variants.canopy` with a citation and no dimensions — nothing a build that
+carries no dimension literals can use. It is optional on the drawings and the
+exit gate below does not need it.
 
 Promote from the barn cabin, unchanged where possible: the opening cutter,
 sash construction from the declared window type, exterior casing, interior
@@ -448,8 +453,8 @@ Each line is one pull request.
 
 1. [#126](https://github.com/captproton/yardstake-ux/issues/126) **Done** ([#137](https://github.com/captproton/yardstake-ux/pull/137), [#138](https://github.com/captproton/yardstake-ux/pull/138)). Extract the kit, in two PRs: **A** the kernel, export helpers and `inside_mesh()`, with the barn cabin byte-identical and every gate unchanged; **B** `model_contract.py` into `schema/`, its imports, copy list and loader updated, and the page, its fixtures and every probe reporting what they did before.
 2. [#127](https://github.com/captproton/yardstake-ux/issues/127) **Done** ([#141](https://github.com/captproton/yardstake-ux/pull/141)). `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand: 175 of 183 agree exactly, the other 8 are listed with reasons; A-1.0 gives 67 candidates and A-2.0 gives 34, with exact inches; the tests run in CI against the versioned sheet set.
-3. [#128](https://github.com/captproton/yardstake-ux/issues/128) **Done** ([#142](https://github.com/captproton/yardstake-ux/pull/142)). `spec.yaml` P1, with the roof form settled and cited: one shed roof, not two planes; the studio plan, with the 1-bedroom recorded as a future configurator choice; 132 numbers, every one cited. In CI, `adu_kit/spec_lint.py` finds each drawn length on the sheet it cites, and `verify_spec.py` checks that openings follow from their dimension strings and that the frame is not mirrored, with a test for each gate. Open: [#143](https://github.com/captproton/yardstake-ux/issues/143), two lint gaps Laurel's spec does not hit (numeric keys are not checked; a recursive YAML alias crashes the lint).
-4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings.
+3. [#128](https://github.com/captproton/yardstake-ux/issues/128) **Done** ([#142](https://github.com/captproton/yardstake-ux/pull/142)). `spec.yaml` P1, with the roof form settled and cited: one shed roof, not two planes; the studio plan, with the 1-bedroom recorded as a future configurator choice; 132 numbers, every one cited. In CI, `adu_kit/spec_lint.py` finds each drawn length on the sheet it cites, and `verify_spec.py` checks that openings follow from their dimension strings and that the frame is not mirrored, with a test for each gate. Open: [#143](https://github.com/captproton/yardstake-ux/issues/143), two lint gaps Laurel's spec does not hit (numeric keys are not checked; a recursive YAML alias crashes the lint). Also open: [#145](https://github.com/captproton/yardstake-ux/issues/145), whether the barn cabin's frame is mirrored the way this spec's first draft was — never checked, and #117 is proved on the barn cabin.
+4. [#129](https://github.com/captproton/yardstake-ux/issues/129) `build.py` P2 massing and openings. The optional entry canopy moved out to [#144](https://github.com/captproton/yardstake-ux/issues/144): A-3.4 is unharvested, so the spec carries no dimensions for it.
 5. [#130](https://github.com/captproton/yardstake-ux/issues/130) P3 overlay, plus the plate-height gate (the single shed plane meets T.P. 2 and T.P. 1), proved by perturbation.
 6. [#117](https://github.com/captproton/yardstake-ux/issues/117) **Declare the model's front** in the manifest, so the viewer stops assuming +Z. A page change, proved on the barn cabin and the fixtures before Laurel depends on it.
 7. [#131](https://github.com/captproton/yardstake-ux/issues/131) P4 materials, the stucco/siding swap, three levels, manifest, baseline. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
