@@ -71,6 +71,41 @@ class VerifySpec(unittest.TestCase):
         r = self.broken("windows_drawn: {A: 2, B: 2, C: 3,", "windows_drawn: {A: 2, B: 2, C: 2,")
         self.assertGateFails(r, "the drawn window counts match the openings")
 
+    # ── the partition gates (#129) ───────────────────────────────────────
+
+    def test_a_partition_face_that_stops_matching_its_string(self):
+        # P_pantry_N moved 6" toward the kitchen: the 6'-6 1/2", 2'-6" and
+        # 6'-2" strings no longer measure between the faces they read.
+        r = self.broken("      at_ft: 17.1667\n", "      at_ft: 17.6667\n")
+        self.assertGateFails(r, "the partition faces follow from the interior strings")
+
+    def test_a_partition_outside_the_envelope(self):
+        r = self.broken("      to_ft: 23.5417\n", "      to_ft: 25.0\n")
+        self.assertGateFails(r, "every partition lies inside the envelope")
+
+    def test_one_partition_running_through_another(self):
+        # P_laundry_W extended past P_block_W into the living room.
+        r = self.broken("      at_ft: 7.625\n", "      at_ft: 11.25\n")
+        self.assertGateFails(r, "no partition runs through another")
+
+    def test_an_interior_door_that_is_not_its_schedule_width(self):
+        r = self.broken("      a_ft: 7.125\n", "      a_ft: 8.125\n")
+        self.assertGateFails(r, "every interior door is its schedule width")
+
+    def test_an_interior_door_outside_its_wall(self):
+        r = self.broken("      a_ft: 0.7083\n      b_ft: 3.7083\n",
+                        "      a_ft: 15.0\n      b_ft: 18.0\n")
+        self.assertGateFails(r, "every interior door is its schedule width")
+
+    def test_an_interior_door_in_a_wall_that_does_not_exist(self):
+        r = self.broken("      in: P_block_S\n", "      in: P_nowhere\n")
+        self.assertGateFails(r, "every interior door is its schedule width")
+
+    def test_a_schedule_row_nobody_built(self):
+        # Door 4 dropped from the layout: the laundry has no door.
+        r = self.broken("      type: \"4\"\n", "      type: \"4x\"\n")
+        self.assertGateFails(r, "every row of the door schedule is built")
+
     def test_a_duplicate_key(self):
         r = self.broken("  end_wall_x24:\n", "  end_wall_x24: {}\n  end_wall_x24:\n")
         self.assertGateFails(r, "no duplicate keys")

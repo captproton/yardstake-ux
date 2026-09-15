@@ -199,7 +199,39 @@ construction:
          source: "A-3.0 detail 1 STUCCO WALL SECTION"}
       - {id: fiber_cement_lap_siding, layers: ["sheathing per structural", "WRB", "fiber cement lap siding"],
          source: "A-3.2 detail 1 LAP SIDING WALL SECTION; A-3.2 LAP SIDING NOTES"}
-    cladding_thickness: "not dimensioned on A-3.0 or A-3.2; cladding sits outboard of the face-of-stud dimensions, and #129 decides how to model it"
+    sheathing:
+      ft: 0.0313
+      raw: "3/8\""
+      source: "S1.0 SHEARWALL SCHEDULE, '3/8\" APA RATED ONE FACE'"
+      note: >
+        The schedule governs shear walls. A-3.0 and A-3.2 say only "SHEATHING
+        PER STRUCTURAL" for the wall sections, and S1.0 general note 1 defers
+        to the plywood sheathing specification. #129 applies the schedule's
+        thickness to every exterior wall, because the build models one wall
+        type and the sheathed walls are the ones that set the outer face.
+    cladding_modelled:
+      ft: 0.0
+      assumed: >
+        ZERO, ON PURPOSE. Neither A-3.0 (stucco) nor A-3.2 (lap siding)
+        dimensions its cladding, and the two are not the same thickness in
+        any real assembly: three-coat cement plaster over self-furring lath
+        runs about 7/8", fiber cement lap siding about 5/16" over its
+        sheathing. Modelling each at its own thickness would move the outer
+        faces of the building when the finish changed, and variants
+        .exterior_finish records that change as a FINISH SWAP, not a geometry
+        change -- the page swaps a baseColorFactor in the manifest (#131,
+        #133), not a mesh. So the build stops the geometry at the sheathing
+        face and carries the cladding as a material only. The error is at
+        most seven eighths of an inch on a 24-foot building, below what the
+        page can show at the distance a homeowner views it, and the overall
+        dimensions this model publishes stay the ones A-1.0 draws.
+      revisit: "#131 and #133, if the configurator ever needs the two finishes to differ in section"
+    outer_face:
+      derived: >
+        face of stud + construction.exterior_wall.sheathing. The envelope
+        dimensions are to face of stud (A-1.0 U.N.O.), so the modelled
+        exterior surface sits 3/8" outboard of X 0, X 24, Y 0 and Y 19.1667.
+      note: "#130's elevation overlay compares this face against A-2.0"
     casing_reveal: {ft: 0.0313, raw: "3/8\"", source: "A-3.0 details 3 and 4, 0'-0 3/8\" at the metal casing bead"}
   interior_wall:
     framing: "2x4, gyp board both sides"
@@ -313,6 +345,196 @@ interior_partitions:
     - {raw: "3'-2\"",     drawn: "below the W/D", runs_along: Y, ft: 3.1667}
     - {raw: "7'-3\"",     drawn: "below the CLOSET and W/D", runs_along: Y, ft: 7.25}
 
+  # -------------------------------------------------------------------------
+  # P2 (#129) READS THE STRINGS ABOVE ONTO WALLS AND FACES.
+  #
+  # Method. Each face below is fixed by arithmetic from a string in
+  # `dimension_strings` or from `envelope`, and then CHECKED against A-1.0 by
+  # scaling: page 4 rendered at 400 dpi, where the sheet's 1/4" = 1'-0" makes
+  # one foot exactly 100 px, with the frame registered on the four exterior
+  # stud faces. The check is a check, never the source -- a face is only
+  # written here when a string puts it there. Every residual is reported in
+  # `scale_check` below; the largest is 0.6".
+  #
+  # The strings turn out to read outside-face to outside-face:
+  #   6'-6 1/2"  X 24.0000 .. 17.4583   the X 24 wall's outside face of stud
+  #                                     to the pantry's far wall
+  #   2'-6"      X 17.4583 .. 14.9583   the pantry block, outside to outside
+  #   6'-2"      X 17.4583 .. 11.2917   pantry and closet together
+  #   7'-3"      Y 11.4167 ..  4.1667   the closet and laundry block
+  #   3'-2"      Y  7.3333 ..  4.1667   the laundry
+  #   5'-2"      agrees with the 7'-3" reading to within 1/2" (see
+  #              discrepancies.the-half-inch-in-the-interior-strings)
+  #   3'-9"      not resolved onto a pair of faces; see the same entry
+  layout:
+    datum: "the frame above: X 0 and Y 0 are the outside faces of stud at the living-room end and the rear wall"
+    thickness:
+      ft: 0.2917
+      derived: "construction.interior_wall.stud_depth, 3 1/2\" -- gyp board is a finish (#132) and is not modelled here"
+    height:
+      to: roof_underside
+      assumed: >
+        Every partition runs from the slab to the underside of the roof plane.
+        A-1.0 tags the LIVING room "CEILINGS FOLLOW ROOF LINE" and no sheet
+        draws a partition head height or a flat ceiling over the bath, closet
+        or laundry. Running them all to the roof is the one reading that needs
+        no number nobody drew. #132 revisits it if a flat ceiling appears.
+    partitions:
+    - id: P_bath_W
+      runs_along: X
+      at_ft: 6.0
+      studs_toward: "+Y"
+      from_ft: 14.9583
+      to_ft: 23.5417
+      derived: >
+        envelope.front_to_grid_2 and grid_2_to_rear put grid 2 at Y 6.0, which
+        is 6'-0" from the rear wall's outside face of stud. A-1.0 dimensions to
+        face of stud, so Y 6.0 is this wall's bath-side face and its 3 1/2"
+        studs run to Y 6.2917. It spans from the X 24 wall's interior face
+        (24 - 5 1/2" = 23.5417) to P_bath_S at X 14.9583.
+      separates: [bath, kitchen]
+    - id: P_bath_S
+      runs_along: Y
+      at_ft: 14.9583
+      studs_toward: "-X"
+      from_ft: 0.4583
+      to_ft: 11.4167
+      derived: >
+        openings.rear_wall.string_start: the rear wall's string totals
+        14'-11 1/2" and ends at grid B, so it starts at X 14.9583, at the
+        bath's partition. #128 left which face open; the scale check settles
+        it as the bath-and-pantry side, with the studs running down to
+        X 14.6667. It spans from the rear wall's interior face (0.4583) to
+        P_block_W at Y 11.4167, and carries door 5.
+      separates: [bath, pantry, laundry, living]
+    - id: P_block_W
+      runs_along: X
+      at_ft: 11.4167
+      studs_toward: "-Y"
+      from_ft: 11.2917
+      to_ft: 17.4583
+      derived: >
+        the 7'-3" string is the closet-and-laundry block outside to outside,
+        Y 4.1667 to 11.4167, so 11.4167 is this wall's living-room face and
+        its studs run to Y 11.125. It spans the whole block depth, from
+        P_block_S at X 11.2917 to P_pantry_N at X 17.4583.
+      separates: [living, closet, pantry]
+    - id: P_laundry_W
+      runs_along: X
+      at_ft: 7.625
+      studs_toward: "-Y"
+      from_ft: 11.2917
+      to_ft: 14.6667
+      derived: >
+        the closet is what the 7'-3" and 3'-2" strings leave between them:
+        11.125 (P_block_W's closet face) - 3'-6" = 7.625, and the 3 1/2" studs
+        run to Y 7.3333, which is where the 3'-2" laundry begins. The 3'-6"
+        closet is the arithmetic, not a string on the sheet.
+      separates: [closet, laundry]
+    - id: P_laundry_E
+      runs_along: X
+      at_ft: 4.1667
+      studs_toward: "+Y"
+      from_ft: 11.2917
+      to_ft: 14.6667
+      derived: >
+        the 3'-2" and 7'-3" strings both end at Y 4.1667, the block's outside
+        face at the laundry end; the studs run to Y 4.4583. A-1.0 draws this
+        as two jamb returns rather than a full wall, because the laundry opens
+        through it. It is modelled as a wall so door 4 is a cut opening in it.
+      separates: [laundry, bath_approach]
+    - id: P_block_S
+      runs_along: Y
+      at_ft: 11.5833
+      studs_toward: "-X"
+      from_ft: 4.1667
+      to_ft: 11.4167
+      derived: >
+        the 6'-2" string is the pantry and closet together, X 17.4583 to
+        11.2917, so 11.2917 is this wall's living-room face and 11.5833 the
+        closet and laundry side. It spans the block's width and carries door 3.
+      separates: [living, closet, laundry]
+    - id: P_pantry_N
+      runs_along: Y
+      at_ft: 17.1667
+      studs_toward: "+X"
+      from_ft: 6.2917
+      to_ft: 11.4167
+      derived: >
+        the 6'-6 1/2" string runs from the X 24 wall's outside face of stud to
+        X 17.4583, and the 2'-6" string runs from there back to P_bath_S at
+        X 14.9583: the pantry block, outside to outside. So 17.4583 is this
+        wall's kitchen face and 17.1667 its pantry face. It carries door 2.
+      separates: [kitchen, pantry]
+
+    # Interior door openings. Widths and heights are the A-1.0 Door Schedule
+    # (openings.door_types); only the position along the wall is decided here.
+    door_openings:
+    - id: D-2
+      type: "2"
+      in: P_pantry_N
+      along: Y
+      a_ft: 7.125
+      b_ft: 11.125
+      derived: >
+        the pantry's clear width is Y 6.2917 to 11.125, 4'-10"; the schedule's
+        4'-0" bi-fold drawn against the closet wall leaves 10" of wall at the
+        P_bath_W end, which is how A-1.0 draws it.
+    - id: D-3
+      type: "3"
+      in: P_block_S
+      along: Y
+      a_ft: 8.2083
+      b_ft: 10.5417
+      assumed: >
+        centred in the closet's clear width (Y 7.625 to 11.125, midpoint
+        9.375), because no string dimensions this door. A-1.0 draws it about
+        centred; the scale check puts the drawn gap's midpoint at Y 9.44,
+        0.8" from this.
+    - id: D-4
+      type: "4"
+      in: P_laundry_E
+      along: X
+      a_ft: 11.875
+      b_ft: 14.375
+      assumed: >
+        centred in the laundry's clear depth (X 11.5833 to 14.6667, midpoint
+        13.125), because no string dimensions this door either. The scale
+        check puts the drawn jamb returns at X 11.75 and 14.30, a midpoint
+        1.2" from this.
+    - id: D-5
+      type: "5"
+      in: P_bath_S
+      along: Y
+      a_ft: 0.7083
+      b_ft: 3.7083
+      assumed: >
+        the schedule's 3'-0" hung against the rear wall, leaving a 3" jamb
+        return at Y 0.4583. A-1.0 draws P_bath_S stopping at about Y 3.71 and
+        the door leaf swung back against the rear wall, which is this opening
+        within 0.1". The 3'-9" string sits beside this door but does not
+        resolve onto a pair of faces -- see discrepancies.
+    door_head:
+      from: floor
+      derived: "each opening runs from the slab to its schedule height in openings.door_types; A-1.0 gives no head height, and a door sits on the floor"
+
+    # Every face above, against A-1.0 scaled at 1/4" = 1'-0". Residual is
+    # measured minus written, in inches. The rendering resolves about 1".
+    scale_check:
+      method: "page 4 at 400 dpi, 1 ft = 100 px, registered on the four exterior faces of stud; the drawn wall band is stud plus 1/2\" gyp board each side"
+      residuals_in:
+        P_bath_W_bath_face:      {value:  -0.14, derived: "measured 5.988 against 6.0"}
+        P_bath_S_bath_face:      {value:   0.02, derived: "measured 14.960 against 14.9583"}
+        P_bath_S_far_face:       {value:   0.18, derived: "measured 14.682 against 14.6667"}
+        P_block_W_living_face:   {value:   0.42, derived: "measured 11.452 against 11.4167"}
+        P_block_W_closet_face:   {value:   0.59, derived: "measured 11.174 against 11.125"}
+        P_laundry_W_closet_face: {value:   0.25, derived: "measured 7.646 against 7.625"}
+        P_laundry_W_far_face:    {value:   0.43, derived: "measured 7.369 against 7.3333"}
+        P_block_S_living_face:   {value:   0.02, derived: "measured 11.293 against 11.2917"}
+        P_block_S_far_face:      {value:  -0.09, derived: "measured 11.576 against 11.5833"}
+        P_pantry_N_kitchen_face: {value:   0.16, derived: "measured 17.472 against 17.4583"}
+      largest_in: {value: 0.59, derived: "P_block_W_closet_face; every face is within 0.6\", and the rendering resolves about 1\""}
+
 # ---------------------------------------------------------------------------
 fixtures:
   status: "not yet: Tier 3 (#134) measures and builds them"
@@ -345,6 +567,34 @@ variants:
 
 # ---------------------------------------------------------------------------
 discrepancies:
+  - id: the-half-inch-in-the-interior-strings
+    impact: >
+      Two of A-1.0's interior strings do not land on the same faces as the
+      rest, by half an inch and by an unknown amount.
+
+      The 5'-2" string drawn above the PANTRY runs along Y. Read from
+      P_bath_W's kitchen face (Y 6.2917) it ends at Y 11.4583; the 7'-3" and
+      3'-2" strings put P_block_W's living-room face at Y 11.4167. The two
+      readings differ by 1/2", which is one thickness of gyp board -- the
+      likeliest cause is one string drawn to a finished face and the other to
+      face of stud, on a sheet whose note says face of stud U.N.O.
+
+      The 3'-9" string drawn in the BATH beside door 5 runs along Y. Scaling
+      puts its ends at about Y 4.67 and Y 0.92, which is neither a pair of
+      wall faces nor the door opening this spec writes. What it dimensions is
+      not established.
+    resolution: >
+      interior_partitions.layout follows the 7'-3" and 3'-2" reading, because
+      those two agree with each other, with the 6'-2" and 2'-6" depths, and
+      with the scale check to within 0.6", while the 5'-2" reading disagrees
+      with the scale check by more. The half inch is below what the page can
+      show and below what #130's overlay can resolve.
+
+      The 3'-9" string is left unresolved. Door 5's opening is written from
+      the schedule's 3'-0" width and the drawn end of P_bath_S, and is marked
+      `assumed`. Nothing in this model depends on 3'-9" meaning what one
+      guess or another says it means, so nothing is invented to make it fit.
+    open: "if #130's overlay of the side elevations disagrees at the bath, this string is the first thing to re-read"
   - id: the-first-draft-of-this-spec-mirrored-the-plan
     impact: >
       The first draft put X 0 at the kitchen and bath end and said X ran left to
