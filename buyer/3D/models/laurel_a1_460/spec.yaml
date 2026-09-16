@@ -594,6 +594,66 @@ finishes:
   roofing_source: "A-2.0 ROOF PLAN NOTES"
 
 # ---------------------------------------------------------------------------
+elevation_overlay:
+  # WHAT #130 MEASURED OFF THE INK, as distinct from what the sheets LABEL.
+  #
+  # Everything else in this spec is a dimension somebody wrote on a drawing.
+  # These are the drawing itself: where the lines actually fall when A-2.0 is
+  # rasterised and registered on its own datums. That is what makes the
+  # comparison worth anything -- the model is built from A-1.0's dimension
+  # strings and A-2.0's plate labels, so checking it against those labels
+  # again would only prove arithmetic. Checking it against the INK is two
+  # independent readings of the same building meeting, or not.
+  #
+  # A worked example of the difference: T.P. 1 is LABELLED 8'-0" and the roof
+  # underside is DRAWN at 7.9884. The model is built to the label. The 0.14"
+  # between them is the draughtsman's hand, and it is the reason these
+  # comparisons carry a tolerance rather than an equality.
+  method: >
+    A-2.0 is page 6. Rasterised at 400 dpi, where the sheet's stated
+    1/4" = 1'-0" makes one foot exactly 100 px. Registered on the sheet's own
+    F.F., T.P. 1 and T.P. 2 datum lines: T.P. 2 to T.P. 1 measures 19.44"
+    against a labelled 19 1/2", F.F. to T.P. 1 measures 7.99 ft against 8'-0",
+    and grade sits 0.50 ft below F.F. against -0'-6". Those three agreeing is
+    what licenses the rest.
+  tolerance_in:
+    value: 0.5
+    assumed: >
+      Half an inch, on a sheet whose own datums disagree with their labels by
+      up to 0.14" and whose line weights are about 1/16" at this scale. The
+      barn cabin's silhouette landed at -0.18" mean and 0.21" standard
+      deviation; every residual below is inside that, and half an inch leaves
+      room for a line weight without admitting a real error. The roof was
+      2.47" out when this was written.
+  side_right_elevation:
+    source: "A-2.0 SIDE (RIGHT) ELEVATION, drawing 3 on page 6"
+    front_wall_face_px: {value: 1021.5, derived: "the drawn outer face of the front wall, in pixels of the 400 dpi raster"}
+    rear_wall_face_px:  {value: 2962.0, derived: "the drawn outer face of the rear wall, same raster"}
+    drawn_depth:
+      ft: 19.4170
+      derived: >
+        (2962.0 - 1021.5) / 99.938 px per foot. The envelope is 19'-2" to FACE
+        OF STUD; the elevation draws the finished faces, so it reads 0.25 ft
+        wider -- 1.5" a side, which is the cladding this model deliberately
+        does not build (construction.exterior_wall.cladding_modelled).
+    roof_underside_at_front_wall:
+      ft: 9.6036
+      derived: "the drawn roof underside at the front wall face. T.P. 2 is LABELLED 9.625, so the ink sits 0.26 in below its own label."
+    roof_underside_at_rear_wall:
+      ft: 7.9884
+      derived: "the drawn roof underside at the rear wall face. T.P. 1 is LABELLED 8.0, so the ink sits 0.14 in below its own label."
+    roof_edge_depth:
+      ft: 0.7708
+      derived: "the band between the roof's top line and its underside, 9.25 in, read at three points along the run and again across the whole FRONT ELEVATION"
+    front_overhang:
+      ft: 4.9801
+      derived: "back-solved: the roof's top edge is drawn at 10.7917, so its underside is 10.0209, which is 4.98 ft forward of the underside at the front wall along the drawn fall. The ROOF PLAN says 5'-0\"."
+    window_c_head: {ft: 7.0094, derived: "the drawn head of both C windows; the schedule puts it at sill 5'-0\" + height 2'-0\" = 7.0"}
+    window_c_sill: {ft: 4.9881, derived: "the drawn sill of both C windows; the schedule and the elevation's own 5'-0\" dimension both say 5.0"}
+    window_c1_drawn: {y0: 11.6970, y1: 16.6350, derived: "measured from the drawn front wall face and converted through drawn_depth; A-1.0's strings put W-C1 at 11.6667..16.6667"}
+    window_c2_drawn: {y0:  2.5310, y1:  7.4690, derived: "same method; A-1.0's strings put W-C2 at 2.5..7.5"}
+
+# ---------------------------------------------------------------------------
 windows:
   # A-1.0's schedule gives every mark a size, a sill and an OPERATION, and
   # WINDOW INFORMATION gives the frame material. No sheet dimensions a sash
