@@ -71,7 +71,14 @@ def main() -> int:
         blender_base = None
         for case in cases:
             use = base
-            if case.needs_blender and blender:
+            if case.needs_blender:
+                # BUILT EVEN WHEN BLENDER IS ABSENT. run_case deliberately runs
+                # a case's setup BEFORE deciding to skip, so that a case gone
+                # stale still says so on a machine with no Blender -- and a
+                # setup that edits a model's own scripts needs those scripts
+                # present to fail honestly. Gating this on `blender` meant CI,
+                # which has none, ran those setups against a base holding only
+                # spec.yaml and reported two live cases as stale. Found by CI.
                 blender_base = blender_base or make_base(Path(tmp) / "blender-base", with_blender_model=True)
                 use = blender_base
             result = run_case(case, use, blender)
