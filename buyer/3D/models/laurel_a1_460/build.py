@@ -54,7 +54,7 @@ SKIPPED = []
 # build.py", and a gate is worth more than a promise.
 VOL_TOL = 1e-4          # cu ft; a boolean that removes nothing is off by whole feet
 LEN_TOL = 1e-6          # ft, for comparing two lengths the spec already agrees on
-PLANE_TOL = 1e-9        # ft, for a plane through two points it is defined by
+MESH_TOL = 1e-5         # ft, reading a length back off a mesh: Blender stores vertices as float32, so a value laid down as 8.0 comes back as 7.9999998
 CUT_MARGIN = 1.0        # ft a cutter stands proud of the wall, so no face is coplanar
 RULE = 76               # characters across, for the printed report
 SASH_FRAME_MEMBERS = 4  # jambs, sill and head: the four every frame has, whatever its type
@@ -438,14 +438,22 @@ def report(spec, geo, colls):
         print(f"  {ax} {bb[0][i]:8.3f} .. {bb[1][i]:8.3f}   span {bb[1][i] - bb[0][i]:7.3f} ft")
 
     print("\nGATES")
-    ov = rf["overhangs"]
-    gate(abs((bb[1][0] - bb[0][0]) - (W + 2 * ov["ends"]["ft"])) < LEN_TOL,
-         f'roof spans the width plus both end overhangs ({ft(W + 2 * ov["ends"]["ft"])})')
-    gate(abs(shed.under(0.0) - lv["top_of_plate_rear"]["ft"]) < PLANE_TOL
-         and abs(shed.under(D) - lv["top_of_plate_front"]["ft"]) < PLANE_TOL,
-         f'the roof plane meets T.P. 1 ({ft(shed.under(0.0))}) and T.P. 2 ({ft(shed.under(D))})')
+
+    ok, why = _footprint(spec, geo)
+    gate(ok, f'the shell is {ft(W)} x {ft(D)} to face of stud', why)
+
+    ok, why = _roof_covers_its_overhangs(spec, geo)
+    gate(ok, "the roof carries all four overhangs, measured on the mesh", why)
+
+    ok, why = _roof_meets_the_plates(spec, geo)
+    gate(ok, f'the built roof underside meets T.P. 1 ({ft(lv["top_of_plate_rear"]["ft"])}) '
+             f'and T.P. 2 ({ft(lv["top_of_plate_front"]["ft"])})', why)
+
     gate(shed.under(D) > shed.under(0.0),
          "the roof rises toward the front (+Y), as the side elevations draw it")
+
+    ok, why = _every_partition_built(spec, geo)
+    gate(ok, "every partition in the spec was built, where the spec puts it", why)
 
     # the frame is not mirrored — checked on GEOMETRY, not on the spec
     ok, why = _frame_not_mirrored(spec, geo)
@@ -515,6 +523,132 @@ def _frame_not_mirrored(spec, geo):
             wrong.append(f"{o['id']} ({ty}) is on a wall at {where}, not the X {W:g} end")
         if ty == "C" and end_wall and at_x_max:
             wrong.append(f"{o['id']} (C) is on the end wall at {where}, the X {W:g} end")
+    return not wrong, "; ".join(wrong)
+
+
+def _footprint(spec, geo):
+    """The shell measures what the envelope says, to face of stud.
+
+    THERE WAS NO SUCH GATE. The barn cabin's first one is its footprint, and
+    Laurel had nothing equivalent: building the rear wall a foot short left
+    the building the wrong size with all nine gates green, because the only
+    span being checked was the ROOF's -- and the roof is laid out from W
+    directly, so it does not move when the shell does. Found reviewing my own
+    work after the third Copilot pass.
+
+    EACH WALL IS MEASURED, NOT THE UNION. The first version took one bounding
+    box over all four and compared its span, which is blind to exactly the
+    defect it was written for: a rear wall built a foot short still leaves the
+    other three reaching X 0 and X 24, so the union never moves. Caught by the
+    perturbation that was meant to prove the gate -- the gate failed to fail.
+    """
+    W, D = geo["W"], geo["D"]
+    t = geo["t"]
+    want = {"Wall_rear":  ((0.0, W), (0.0, t)),
+            "Wall_front": ((0.0, W), (D - t, D)),
+            "Wall_x0":    ((0.0, t), (0.0, D)),
+            "Wall_x24":   ((W - t, W), (0.0, D))}
+    wrong = []
+    for name, (xs, ys) in want.items():
+        ob = geo["walls"].get(name)
+        if ob is None:
+            wrong.append(f"{name} was never built")
+            continue
+        lo, hi = world_bbox([ob])
+        for axis, (want_lo, want_hi) in ((0, xs), (1, ys)):
+            if abs(lo[axis] - want_lo) > MESH_TOL or abs(hi[axis] - want_hi) > MESH_TOL:
+                wrong.append(f'{name} {"XY"[axis]} measures {lo[axis]:.4f}..{hi[axis]:.4f}, '
+                             f'the envelope puts it at {want_lo:.4f}..{want_hi:.4f}')
+    return not wrong, "; ".join(wrong)
+
+
+def _roof_covers_its_overhangs(spec, geo):
+    """All four overhangs, measured on the roof mesh.
+
+    Only `W + 2 x ends` was checked, so the 5'-0" front overhang -- the most
+    prominent thing about this building -- could be halved with every gate
+    still green. The rear and the front were never compared to anything.
+    """
+    ov = spec["roof"]["overhangs"]
+    W, D = geo["W"], geo["D"]
+    lo, hi = world_bbox([geo["roof"]])
+    want = {"the X 0 end": (lo[0], -ov["ends"]["ft"]),
+            "the X max end": (hi[0], W + ov["ends"]["ft"]),
+            "the rear": (lo[1], -ov["rear"]["ft"]),
+            "the front": (hi[1], D + ov["front"]["ft"])}
+    wrong = [f"{where} edge is at {got:.4f}, the overhang puts it at {expect:.4f}"
+             for where, (got, expect) in want.items() if abs(got - expect) > MESH_TOL]
+    return not wrong, "; ".join(wrong)
+
+
+def _roof_meets_the_plates(spec, geo):
+    """The BUILT roof's underside passes through T.P. 1 and T.P. 2.
+
+    The gate this replaces asked the Shed helper, which is the same expression
+    the roof was laid out from -- rule 29 -- and `shed.under(0)` is literally
+    `top_of_plate_rear` read back, so half of it compared a spec value to
+    itself. It caught a wrong slope and nothing else: lifting the built roof a
+    foot off the walls, a gap visible right round the building, left all nine
+    gates green. Reproduced before this was written. PLAN.md makes this #130's
+    exit gate, so it had to measure the mesh.
+
+    The underside is the prism's lower edge: two (y, z) points, one at each end
+    of the run. The plane through them is then evaluated at the two walls.
+    """
+    lv = spec["levels"]
+    D = geo["D"]
+    pts = [(v.co[1], v.co[2]) for v in geo["roof"].data.vertices]
+    if not pts:
+        return False, "the roof has no vertices"
+    y_lo, y_hi = min(p[0] for p in pts), max(p[0] for p in pts)
+    if abs(y_hi - y_lo) < MESH_TOL:
+        return False, "the roof has no extent in Y"
+    under_lo = min(z for y, z in pts if abs(y - y_lo) <= MESH_TOL)
+    under_hi = min(z for y, z in pts if abs(y - y_hi) <= MESH_TOL)
+    slope = (under_hi - under_lo) / (y_hi - y_lo)
+
+    def at(y):
+        return under_lo + slope * (y - y_lo)
+
+    wrong = []
+    for label, y, want in (("T.P. 1", 0.0, lv["top_of_plate_rear"]["ft"]),
+                           ("T.P. 2", D, lv["top_of_plate_front"]["ft"])):
+        got = at(y)
+        if abs(got - want) > MESH_TOL:
+            wrong.append(f"at {label} the roof underside is {got:.4f}, not {want:.4f}")
+    return not wrong, "; ".join(wrong)
+
+
+def _every_partition_built(spec, geo):
+    """Each partition the spec declares exists, and sits where it says.
+
+    Dropping P_bath_W -- the wall between the bath and the kitchen -- left all
+    nine gates green, because the volume and corner checks only reach walls
+    that carry an opening and that one carries none. Reproduced. So the
+    partitions are counted, and each one's measured extents are compared with
+    the faces the spec gives it, which also catches one built in the wrong
+    place rather than merely missing.
+    """
+    layout = spec["interior_partitions"]["layout"]
+    thick = layout["thickness"]["ft"]
+    wrong = []
+    for row in layout["partitions"]:
+        ob = bpy.data.objects.get(row["id"])
+        if ob is None:
+            wrong.append(f"{row['id']} was never built")
+            continue
+        near = row["at_ft"]
+        far = near + thick if _sign(row["id"], row["studs_toward"]) > 0 else near - thick
+        across = sorted((near, far))
+        along = sorted((row["from_ft"], row["to_ft"]))
+        lo, hi = world_bbox([ob])
+        # a wall running along X is thin in Y, and the other way round
+        ai, ci = (0, 1) if _axis(row["id"], row["runs_along"]) == "X" else (1, 0)
+        for axis, (want_lo, want_hi), what in ((ci, across, "thickness"),
+                                               (ai, along, "run")):
+            if abs(lo[axis] - want_lo) > MESH_TOL or abs(hi[axis] - want_hi) > MESH_TOL:
+                wrong.append(f"{row['id']} {what} measures {lo[axis]:.4f}..{hi[axis]:.4f}, "
+                             f"the spec puts it at {want_lo:.4f}..{want_hi:.4f}")
     return not wrong, "; ".join(wrong)
 
 
