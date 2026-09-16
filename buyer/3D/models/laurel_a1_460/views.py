@@ -277,21 +277,44 @@ class LAUREL_PT_views(bpy.types.Panel):
 _CLASSES = (LAUREL_OT_view, LAUREL_PT_views)
 
 
-def register():
-    for cls in _CLASSES:
+def _drop(name):
+    """Remove whatever class is registered under `name`, if any.
+
+    IT MUST BE THE OLD CLASS, NOT THE NEW ONE. The first version called
+    `unregister_class(cls)` on the class this very run had just defined --
+    which Blender has never seen, so it raised and the raise was swallowed,
+    leaving the previous run's class registered.
+
+    WHAT THAT ACTUALLY COST, MEASURED: nothing visible. Blender 5.1.1's
+    `register_class` replaces a bl_idname it already holds, reporting
+    "has been registered before, unregistering previous", and three runs
+    still leave exactly one panel and one operator registered. So this is not
+    the leak it looks like, and saying otherwise here would be inventing a
+    failure nobody saw.
+
+    It is written this way regardless, for two reasons that survive the
+    measurement: it does not lean on replace-on-conflict, which is Blender's
+    behaviour to change and not ours to depend on; and it is what the barn
+    cabin's views.py does, where the same idempotence was worked out first.
+    Running this file twice is the documented workflow, not an edge case.
+    """
+    old = getattr(bpy.types, name, None)
+    if old is not None:
         try:
-            bpy.utils.unregister_class(cls)
+            bpy.utils.unregister_class(old)
         except RuntimeError:
             pass
+
+
+def register():
+    for cls in _CLASSES:
+        _drop(cls.__name__)
         bpy.utils.register_class(cls)
 
 
 def unregister():
     for cls in reversed(_CLASSES):
-        try:
-            bpy.utils.unregister_class(cls)
-        except RuntimeError:
-            pass
+        _drop(cls.__name__)
 
 
 register()

@@ -214,7 +214,17 @@ def build(spec, cut_openings=True):
         the boolean removes material rather than imprinting edges on a
         coplanar face -- the defect #129 inherits the memory of from the barn
         cabin's P2 (see verify_openings.py, VOLUME).
+
+        WITH --no-openings IT BUILDS NOTHING. `difference()` is what deletes a
+        cutter, so skipping the boolean and keeping the cutters left 26 solid
+        boxes sitting in the saved file, plugging every opening they were cut
+        to make -- an uncut model that looked worse than an uncut model.
+        Counted in the blend before this returned early. The caller still gets
+        its `built` entry, because the sashes and the report are built from
+        that and not from the cutters.
         """
+        if not cut_openings:
+            return None
         ob = walls[wall]
         bb = world_bbox([ob])
         pad = (bb[1][1] - bb[0][1]) if along == "x" else (bb[1][0] - bb[0][0])
@@ -251,7 +261,7 @@ def build(spec, cut_openings=True):
                 z1 = ty["height"]["ft"]
             cutter(f"cut_{row['id']}", wall, a0, a1, z0, z1, along)
             built.append(dict(id=row["id"], wall=wall, a0=a0, a1=a1,
-                              z0=z0, z1=z1, along=along, row=row))
+                              z0=z0, z1=z1, along=along, row=row, block=block))
 
     for d in layout["door_openings"]:
         ty = dt[str(d["type"])]
@@ -409,6 +419,9 @@ def report(spec, geo, colls):
     else:
         skip(label, "--no-openings: nothing was cut, so there is no volume to measure")
 
+    ok, why = _openings_on_the_wall_their_block_names(geo)
+    gate(ok, "every exterior opening is on the wall its spec block names", why)
+
     ok, why = _sash_members(spec, geo)
     gate(ok, "every sash carries the members its declared operation implies", why)
 
@@ -457,6 +470,41 @@ def _frame_not_mirrored(spec, geo):
             wrong.append(f"{o['id']} ({ty}) is on a wall at {where}, not the X {W:g} end")
         if ty == "C" and end_wall and at_x_max:
             wrong.append(f"{o['id']} (C) is on the end wall at {where}, the X {W:g} end")
+    return not wrong, "; ".join(wrong)
+
+
+def _openings_on_the_wall_their_block_names(geo):
+    """Each exterior opening sits on the wall its spec block is named for.
+
+    Review asked what happens if a build routes the C windows to a front or
+    rear wall: `_frame_not_mirrored` only rejects C at the +X end, so an
+    end-wall window moved to the rear passed. Reproduced by routing
+    `end_wall_x0` at `Wall_rear` -- the gate said PASS.
+
+    The literal fix suggested, requiring every C to be on the X 0 end wall,
+    WOULD FAIL THIS BUILDING: W-C3 is a C window and A-1.0 draws it on the
+    rear wall, in the `rear_wall` block. C is a size and an operation, not a
+    location. So the rule is per opening rather than per type -- each one has
+    to be on a wall whose geometry matches the block that lists it, which
+    catches the reported case and every other misrouting with it.
+    """
+    W, D = geo["W"], geo["D"]
+    # block -> (axis the wall is thin on, which end of that axis, its length)
+    sides = {"front_wall": (1, "max", D), "rear_wall": (1, "min", D),
+             "end_wall_x0": (0, "min", W), "end_wall_x24": (0, "max", W)}
+    wrong = []
+    for o in geo["built"]:
+        side = sides.get(o.get("block"))
+        if side is None:
+            continue                       # an interior door names a partition
+        axis, end, span = side
+        lo, hi = world_bbox([geo["walls"][o["wall"]]])
+        thin = (hi[axis] - lo[axis]) < span / 2
+        at_max = (lo[axis] + hi[axis]) / 2 > span / 2
+        if not thin or at_max != (end == "max"):
+            name = "XY"[axis]
+            wrong.append(f"{o['id']} is listed under {o['block']} but sits on "
+                         f"{o['wall']}, {name} {lo[axis]:.3f}..{hi[axis]:.3f}")
     return not wrong, "; ".join(wrong)
 
 
