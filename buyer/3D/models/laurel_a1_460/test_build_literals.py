@@ -86,7 +86,22 @@ class BuildLiterals(unittest.TestCase):
                 continue
             if n.lineno in declared:          # the constant's own definition
                 continue
-            if n.value in DATUM_AND_INDEX or n.value in consts:
+            # ONLY THE DECLARATION IS EXEMPT, NEVER THE VALUE. This used to
+            # read `n.value in consts`, which allowed any literal that
+            # happened to EQUAL a declared constant anywhere in the file --
+            # so once SASH_FRAME_MEMBERS = 4 and VERTS_PER_BOX = 8 existed, a
+            # 4 or an 8 pasted in as a dimension sailed through the gate
+            # written to reject it. Review caught it; the hole was reproduced
+            # before it was closed. A reference to a constant is a Name node
+            # and never reaches here, so it needs no exemption at all.
+            # AN INT IS AN INDEX; A FLOAT IS A LENGTH. Testing membership
+            # alone let 1.0 through, because Python says 1.0 == 1 and 1 is an
+            # allowed index -- so a one-foot length written as a float read as
+            # a list subscript. The only float that is a datum is 0.0, which
+            # is where this frame's origin and its finished floor both sit.
+            if isinstance(n.value, int) and n.value in DATUM_AND_INDEX:
+                continue
+            if isinstance(n.value, float) and n.value == 0.0:
                 continue
             bad.append((n.lineno, n.value))
         return sorted(set(bad))
@@ -123,6 +138,19 @@ class BuildLiterals(unittest.TestCase):
         bad = self.offenders(tree, module_constants(tree))
         self.assertTrue(any(v == 24 for _, v in bad),
                         f"a pasted 24 was not caught; offenders were {bad}")
+
+    def test_a_dimension_that_collides_with_a_constants_value_is_caught(self):
+        """Found by review. The gate exempted any literal EQUAL to a declared
+        constant, so once SASH_FRAME_MEMBERS was 4, a 4 pasted anywhere passed.
+        Every value this module declares is tried here, so adding a constant
+        cannot quietly re-open the hole."""
+        for value in sorted(self.consts):
+            hurt = self.src.replace('env["width"]["ft"]', repr(value), 1)
+            tree = ast.parse(hurt)
+            bad = self.offenders(tree, module_constants(tree))
+            self.assertTrue(any(v == value for _, v in bad),
+                            f"a pasted {value!r}, the value of "
+                            f"{self.consts[value]}, was not caught; offenders were {bad}")
 
     def test_a_dimension_shouted_into_a_constant_still_needs_a_comment(self):
         """Naming a dimension does not launder it.

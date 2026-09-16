@@ -156,25 +156,35 @@ def check(spec):
                                a=float(row["from_ft"]), b=float(row["to_ft"]))
 
     # the interior strings, recomputed from the faces the layout reads them onto
-    strings = {r["raw"] for r in spec["interior_partitions"]["dimension_strings"]["strings"]}
+    strings = {r["raw"]: r["runs_along"]
+               for r in spec["interior_partitions"]["dimension_strings"]["strings"]}
+    # Each row is (raw, EXPECTED AXIS, computed length, what it spans). The
+    # axis is checked as well as the length, because a string that changed
+    # axis would otherwise still pass: the faces it is read between are
+    # measured along one axis, and `runs_along` claims another, and nothing
+    # compared the two. Found by review.
     reads = [
-        ("6'-6 1/2\"", float(width) - part["P_pantry_N"]["far"],
+        ("6'-6 1/2\"", "X", float(width) - part["P_pantry_N"]["far"],
          "the X 24 face of stud to the pantry's far wall"),
-        ("2'-6\"", part["P_pantry_N"]["far"] - part["P_bath_S"]["near"],
+        ("2'-6\"", "X", part["P_pantry_N"]["far"] - part["P_bath_S"]["near"],
          "the pantry block, outside to outside"),
-        ("6'-2\"", part["P_pantry_N"]["far"] - part["P_block_S"]["far"],
+        ("6'-2\"", "X", part["P_pantry_N"]["far"] - part["P_block_S"]["far"],
          "pantry and closet together"),
-        ("7'-3\"", part["P_block_W"]["near"] - part["P_laundry_E"]["near"],
+        ("7'-3\"", "Y", part["P_block_W"]["near"] - part["P_laundry_E"]["near"],
          "the closet and laundry block"),
-        ("3'-2\"", part["P_laundry_W"]["far"] - part["P_laundry_E"]["near"],
+        ("3'-2\"", "Y", part["P_laundry_W"]["far"] - part["P_laundry_E"]["near"],
          "the laundry"),
     ]
     wrong = []
-    for raw, got, what in reads:
+    for raw, axis, got, what in reads:
         want = float(parse_length(raw))
         if raw not in strings:
             wrong.append(f"{raw} is not one of the recorded strings")
-        elif not close(got, want):
+            continue
+        if strings[raw] != axis:
+            wrong.append(f"{raw} ({what}) is read along {axis}, but the "
+                         f"string records runs_along: {strings[raw]}")
+        if not close(got, want):
             wrong.append(f"{raw} ({what}) computes to {got:.4f}, not {want:.4f}")
     gate(not wrong, "the partition faces follow from the interior strings", "; ".join(wrong))
 

@@ -79,6 +79,14 @@ class VerifySpec(unittest.TestCase):
         r = self.broken("      at_ft: 17.1667\n", "      at_ft: 17.6667\n")
         self.assertGateFails(r, "the partition faces follow from the interior strings")
 
+    def test_an_interior_string_that_changes_axis(self):
+        # Found by review: the gate compared raw text only, so 7'-3" could be
+        # recorded as running along X -- an axis the faces it is read between
+        # are not measured on -- and still pass.
+        r = self.broken('''{raw: "7'-3\\"",     drawn: "below the CLOSET and W/D", runs_along: Y''',
+                        '''{raw: "7'-3\\"",     drawn: "below the CLOSET and W/D", runs_along: X''')
+        self.assertGateFails(r, "the partition faces follow from the interior strings")
+
     def test_a_partition_outside_the_envelope(self):
         r = self.broken("      to_ft: 23.5417\n", "      to_ft: 25.0\n")
         self.assertGateFails(r, "every partition lies inside the envelope")

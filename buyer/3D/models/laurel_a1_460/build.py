@@ -45,6 +45,7 @@ from adu_kit.kernel import (  # noqa: E402,F401
 )
 
 FAILED = []
+SKIPPED = []
 
 # BOOKKEEPING, NOT DIMENSIONS. Every one of these is about meshes, arithmetic
 # or printing; none is a length off a sheet. They are named and gathered here
@@ -64,6 +65,19 @@ def gate(ok, label, detail=""):
     print(f"  [{'PASS' if ok else 'FAIL'}] {label}" + (f" -- {detail}" if detail and not ok else ""))
     if not ok:
         FAILED.append(label)
+
+
+def skip(label, why):
+    """A gate that CANNOT be judged on this run, said out loud.
+
+    `--no-openings` builds an uncut model on purpose, and the opening gate
+    read its evidence from the volumes recorded while cutting. With no cuts
+    that mapping is empty, every loop over it runs zero times, and the gate
+    printed PASS on a model with no openings in it at all. A gate with
+    nothing to look at has not passed; it has not run.
+    """
+    print(f"  [SKIP] {label} -- {why}")
+    SKIPPED.append(label)
 
 
 # ---------------------------------------------------------------------------
@@ -159,15 +173,21 @@ def build(spec, cut_openings=True):
         far = near + it if row["studs_toward"].startswith("+") else near - it
         lo, hi = sorted((near, far))
         a, b = sorted((row["from_ft"], row["to_ft"]))
+        # EVERY PARTITION IS A YZ PRISM, both orientations, because the roof
+        # rises with Y and so does the head of any wall with any extent in Y
+        # -- INCLUDING its own thickness. A wall running along X was built as
+        # a box capped at shed.under(lo), which left a triangular gap to the
+        # roof on its +Y face: small (0.30" here) but a real hole, and a
+        # contradiction of layout.height's "to: roof_underside". Found by
+        # review; measured on the built model before it was fixed.
         if row["runs_along"] == "X":
-            profile = [(a, 0.0), (b, 0.0), (b, shed.under(lo)), (a, shed.under(lo))]
-            # a wall running along X sits at one Y, so its head is level
-            walls[row["id"]] = box(row["id"], a, b, lo, hi, 0.0, shed.under(lo), partitions)
+            profile = [(lo, 0.0), (hi, 0.0), (hi, shed.under(hi)), (lo, shed.under(lo))]
+            extrude = (a, b)                       # along X
         else:
-            # running along Y, the head rakes with the roof
             profile = [(a, 0.0), (b, 0.0), (b, shed.under(b)), (a, shed.under(a))]
-            v, f = prism_geom(profile, lo, hi, plane="yz")
-            walls[row["id"]] = weld(row["id"], [(v, f)], partitions)
+            extrude = (lo, hi)                     # across X, at one Y band
+        v, f = prism_geom(profile, extrude[0], extrude[1], plane="yz")
+        walls[row["id"]] = weld(row["id"], [(v, f)], partitions)
 
     # ---- the shed roof ----------------------------------------------------
     # One plane, T.P. 1 at the rear to T.P. 2 at the front, carried out over
@@ -331,7 +351,7 @@ def build(spec, cut_openings=True):
                 sashes.append(multibox(name, [spec_box], openings))
 
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
-               built=built, sashes=sashes, volumes=volumes)
+               built=built, sashes=sashes, volumes=volumes, cut=cut_openings)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
                      Openings=openings, Site=site)
 
@@ -382,8 +402,12 @@ def report(spec, geo, colls):
     gate(ok, "not mirrored: D and E open on the X 24 wall, the C windows on X 0", why)
 
     # every schedule row produced a cut opening with a sash
-    ok, why = _every_row_built(spec, geo)
-    gate(ok, "every schedule row produced a cut opening with a sash or a leaf", why)
+    label = "every schedule row produced a cut opening with a sash or a leaf"
+    if geo["cut"]:
+        ok, why = _every_row_built(spec, geo)
+        gate(ok, label, why)
+    else:
+        skip(label, "--no-openings: nothing was cut, so there is no volume to measure")
 
     ok, why = _sash_members(spec, geo)
     gate(ok, "every sash carries the members its declared operation implies", why)
@@ -395,20 +419,44 @@ def report(spec, geo, colls):
     gate(ok, "no NaN or degenerate geometry", why)
 
     print("=" * RULE)
+    if SKIPPED:
+        print(f"{len(SKIPPED)} gate(s) SKIPPED, not passed: " + "; ".join(SKIPPED))
+        print("This model is not complete. Re-run without --no-openings to judge them.")
     return not FAILED
 
 
 def _frame_not_mirrored(spec, geo):
-    """D and E are on the X 24 wall; the C windows on X 0. A-2.0's SIDE (LEFT)
-    ELEVATION draws D and E, and the building's left side seen from the front
-    is +X when the front faces +Y and Z is up. Checked on the built objects."""
+    """D and E sit at the X 24 end; the C windows at X 0.
+
+    A-2.0's SIDE (LEFT) ELEVATION draws D and E, and the building's left side
+    seen from the front is +X when the front faces +Y and Z is up. That is the
+    fact the first draft of this spec had backwards, so it is written here
+    rather than read from the spec.
+
+    IT MEASURES THE WALL, NOT ITS NAME. The first version compared
+    `o["wall"]` against the string "Wall_x24" -- which is a label this same
+    file assigned a few hundred lines earlier, so the gate could only ever
+    agree with itself. Review asked what would happen if the two end walls
+    were built in each other's places: the answer, reproduced before this was
+    changed, is that the model came out mirrored and the anti-mirroring gate
+    reported PASS. A gate derived from the build's own expression cannot
+    disagree with the build (rule 29), so this one asks the geometry where
+    the wall actually is.
+    """
+    W = geo["W"]
     wrong = []
     for o in geo["built"]:
         ty = str(o["row"].get("type"))
-        if ty in ("D", "E") and o["wall"] != "Wall_x24":
-            wrong.append(f"{o['id']} ({ty}) is in {o['wall']}")
-        if ty == "C" and o["wall"] not in ("Wall_x0", "Wall_rear"):
-            wrong.append(f"{o['id']} (C) is in {o['wall']}")
+        if ty not in ("C", "D", "E"):
+            continue
+        lo, hi = world_bbox([geo["walls"][o["wall"]]])
+        end_wall = (hi[0] - lo[0]) < W / 2          # thin in X: an end wall
+        at_x_max = (lo[0] + hi[0]) / 2 > W / 2
+        where = f"x {lo[0]:.3f}..{hi[0]:.3f}"
+        if ty in ("D", "E") and not (end_wall and at_x_max):
+            wrong.append(f"{o['id']} ({ty}) is on a wall at {where}, not the X {W:g} end")
+        if ty == "C" and end_wall and at_x_max:
+            wrong.append(f"{o['id']} (C) is on the end wall at {where}, the X {W:g} end")
     return not wrong, "; ".join(wrong)
 
 
