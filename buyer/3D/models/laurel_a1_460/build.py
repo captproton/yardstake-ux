@@ -59,6 +59,7 @@ CUT_MARGIN = 1.0        # ft a cutter stands proud of the wall, so no face is co
 RULE = 76               # characters across, for the printed report
 SASH_FRAME_MEMBERS = 4  # jambs, sill and head: the four every frame has, whatever its type
 VERTS_PER_BOX = 8       # how a welded member count is read back off a mesh
+CORNER_TOL = 1e-4       # ft, matching a boolean's output vertex to the cut it came from
 
 
 def gate(ok, label, detail=""):
@@ -78,6 +79,34 @@ def skip(label, why):
     """
     print(f"  [SKIP] {label} -- {why}")
     SKIPPED.append(label)
+
+
+# ---------------------------------------------------------------------------
+# reading the spec, which is untrusted input like any other file (rule 25)
+# ---------------------------------------------------------------------------
+# A SPEC IS READ, NOT OBEYED. Both of these used to be `startswith("+")` and
+# `== "X"` with an else, so `studs_toward: north` built the wall on the
+# negative side and `runs_along: Z` rotated it, both in silence and both
+# producing a model that the envelope and door gates would go on to bless.
+# Review asked what a malformed value does; the answer was "something", and
+# the answer has to be "a readable failure".
+AXES = ("X", "Y")
+DIRECTIONS = {"+X": +1, "-X": -1, "+Y": +1, "-Y": -1}
+
+
+def _axis(who, value):
+    if value not in AXES:
+        raise SystemExit(f"{who}: runs_along is {value!r}, which is not one of "
+                         f"{list(AXES)}. A partition runs along an axis of the frame.")
+    return value
+
+
+def _sign(who, value):
+    if value not in DIRECTIONS:
+        raise SystemExit(f"{who}: studs_toward is {value!r}, which is not one of "
+                         f"{sorted(DIRECTIONS)}. It says which way the studs run "
+                         "from the cited face.")
+    return DIRECTIONS[value]
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +199,7 @@ def build(spec, cut_openings=True):
     layout = spec["interior_partitions"]["layout"]
     for row in layout["partitions"]:
         near = row["at_ft"]
-        far = near + it if row["studs_toward"].startswith("+") else near - it
+        far = near + it if _sign(row["id"], row["studs_toward"]) > 0 else near - it
         lo, hi = sorted((near, far))
         a, b = sorted((row["from_ft"], row["to_ft"]))
         # EVERY PARTITION IS A YZ PRISM, both orientations, because the roof
@@ -180,7 +209,7 @@ def build(spec, cut_openings=True):
         # roof on its +Y face: small (0.30" here) but a real hole, and a
         # contradiction of layout.height's "to: roof_underside". Found by
         # review; measured on the built model before it was fixed.
-        if row["runs_along"] == "X":
+        if _axis(row["id"], row["runs_along"]) == "X":
             profile = [(lo, 0.0), (hi, 0.0), (hi, shed.under(hi)), (lo, shed.under(lo))]
             extrude = (a, b)                       # along X
         else:
@@ -204,7 +233,7 @@ def build(spec, cut_openings=True):
 
     # ---- openings ---------------------------------------------------------
     cut_by_wall = {}
-    want_gone = {}          # wall -> volume its openings must remove
+    depths = {}             # wall -> the thickness a cut passes through
     sashes = []
 
     def cutter(name, wall, a0, a1, z0, z1, along, depth=None):
@@ -236,7 +265,7 @@ def build(spec, cut_openings=True):
             depth = (bb[1][0] - bb[0][0]) if depth is None else depth
             c = box(name, bb[0][0] - pad, bb[1][0] + pad, a0, a1, z0, z1, openings)
         cut_by_wall.setdefault(wall, []).append(c)
-        want_gone[wall] = want_gone.get(wall, 0.0) + (a1 - a0) * depth * (z1 - z0)
+        depths[wall] = depth
         return c
 
     wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
@@ -283,12 +312,22 @@ def build(spec, cut_openings=True):
     # cabin shipped in its P2 (models/barn_cabin_524/verify_openings.py).
     # Counting cutter objects would prove nothing either: difference() deletes
     # them. So the volume is measured before and after.
+    #
+    # WHAT IT MEASURES AND WHAT IT MUST NOT. The expected loss used to be
+    # accumulated by cutter() itself, in the same call that built the cutter.
+    # That is rule 29 -- a gate derived from the build's own expression cannot
+    # disagree with the build -- and it cost exactly what rule 29 says it
+    # costs: deleting one cutter call removed the hole AND the expectation
+    # together, so a wall with a missing window passed every gate, including
+    # the one written to catch a missing window. Reproduced on W-C1 before
+    # this changed. Only the MEASUREMENTS are recorded here now; what they
+    # should be is derived in the gate, from the opening rows.
     volumes = {}
     if cut_openings:
         for wall, cl in cut_by_wall.items():
             before = _volume(walls[wall])
             difference(walls[wall], cl)
-            volumes[wall] = (before, _volume(walls[wall]), want_gone[wall])
+            volumes[wall] = (before, _volume(walls[wall]))
 
     # ---- sashes and leaves ------------------------------------------------
     # Every opening gets what it is: a window gets a sash, a door gets a leaf.
@@ -361,7 +400,8 @@ def build(spec, cut_openings=True):
                 sashes.append(multibox(name, [spec_box], openings))
 
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
-               built=built, sashes=sashes, volumes=volumes, cut=cut_openings)
+               built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
+               depths=depths, skin_of=skin_of)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
                      Openings=openings, Site=site)
 
@@ -433,9 +473,14 @@ def report(spec, geo, colls):
 
     print("=" * RULE)
     if SKIPPED:
+        # A SKIPPED GATE IS NOT A PASSING BUILD. Reporting the skip and then
+        # exiting 0 let automation read an uncut model as a good one, which is
+        # the whole failure the [SKIP] state was added to prevent, moved one
+        # level up. --no-openings is a diagnostic, and a diagnostic run has
+        # not earned a success.
         print(f"{len(SKIPPED)} gate(s) SKIPPED, not passed: " + "; ".join(SKIPPED))
         print("This model is not complete. Re-run without --no-openings to judge them.")
-    return not FAILED
+    return not FAILED and not SKIPPED
 
 
 def _frame_not_mirrored(spec, geo):
@@ -521,10 +566,42 @@ def _every_row_built(spec, geo):
         kind = "Sash" if o["id"].startswith("W-") else "Leaf"
         if f"{kind}_{o['id']}" not in names:
             missing.append(f"{o['id']} has no {kind.lower()}")
-    for wall, (before, after, want) in geo["volumes"].items():
+    # WHAT EACH WALL SHOULD HAVE LOST, DERIVED HERE FROM THE OPENING ROWS.
+    # Never from the cutter calls: see the note beside `volumes` in build().
+    want = {}
+    for o in geo["built"]:
+        area = (o["a1"] - o["a0"]) * (o["z1"] - o["z0"])
+        hosts = [(o["wall"], geo["depths"].get(o["wall"]))]
+        skin = geo["skin_of"].get(o["wall"])
+        if skin:
+            hosts.append((skin, geo["depths"].get(skin)))
+        for wall, depth in hosts:
+            if depth is None:
+                missing.append(f"{o['id']} was never cut into {wall}")
+                continue
+            want[wall] = want.get(wall, 0.0) + area * depth
+    for wall, (before, after) in geo["volumes"].items():
         got = before - after
-        if abs(got - want) > VOL_TOL:
-            missing.append(f"{wall} lost {got:.4f} cu ft, its openings are {want:.4f}")
+        expected = want.get(wall, 0.0)
+        if abs(got - expected) > VOL_TOL:
+            missing.append(f"{wall} lost {got:.4f} cu ft, its openings are {expected:.4f}")
+
+    # AND EACH HOLE IS WHERE ITS ROW SAYS. Volume alone is a total: a cutter
+    # shifted along a wall removes the same amount from the same wall and the
+    # sum never moves. So every opening's four corners must exist as vertices
+    # in the wall that carries it, which is the barn cabin's CORNERS test.
+    for o in geo["built"]:
+        ob = bpy.data.objects.get(o["wall"])
+        if ob is None:
+            continue
+        axis = 0 if o["along"] == "x" else 1
+        seen = [(v.co[axis], v.co[2]) for v in ob.data.vertices]
+        for a in (o["a0"], o["a1"]):
+            for z in (o["z0"], o["z1"]):
+                if not any(abs(sa - a) <= CORNER_TOL and abs(sz - z) <= CORNER_TOL
+                           for sa, sz in seen):
+                    missing.append(f"{o['id']}: {o['wall']} has no corner at "
+                                   f"({a:.4f}, {z:.4f})")
     marks_built = {str(o["row"].get("type")) for o in geo["built"]}
     for d in spec["openings"]["door_types"]["types"]:
         if d.get("option"):

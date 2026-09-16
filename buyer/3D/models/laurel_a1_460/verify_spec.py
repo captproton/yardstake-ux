@@ -42,6 +42,27 @@ from adu_kit.sheets import parse_length  # noqa: E402
 TOL = 0.0005
 FAILED = []
 
+# A SPEC IS READ, NOT OBEYED (rule 25). These two used to be `startswith("+")`
+# and `== "X"` with an else, in the verifier as well as in the build: so
+# `studs_toward: north` silently meant the negative side, and `runs_along: Z`
+# silently meant Y. A partition and its door could both carry the same wrong
+# value, agree with each other, and pass every gate that follows while the
+# geometry was rotated. Reproduced both ways before this was added.
+AXES = ("X", "Y")
+DIRECTIONS = {"+X", "-X", "+Y", "-Y"}
+
+
+def _axis(who, value):
+    if value not in AXES:
+        raise ValueError(f"{who}: runs_along is {value!r}, not one of {list(AXES)}")
+    return value
+
+
+def _sign(who, value):
+    if value not in DIRECTIONS:
+        raise ValueError(f"{who}: studs_toward is {value!r}, not one of {sorted(DIRECTIONS)}")
+    return +1 if value.startswith("+") else -1
+
 
 def gate(ok, label, detail=""):
     print(f"  [{'PASS' if ok else 'FAIL'}] {label}" + (f" -- {detail}" if detail and not ok else ""))
@@ -150,7 +171,8 @@ def check(spec):
     part = {}
     for row in layout["partitions"]:
         near = float(row["at_ft"])
-        far = near + thick if row["studs_toward"].startswith("+") else near - thick
+        far = near + thick if _sign(row["id"], row["studs_toward"]) > 0 else near - thick
+        _axis(row["id"], row["runs_along"])
         part[row["id"]] = dict(row, near=near, far=far,
                                lo=min(near, far), hi=max(near, far),
                                a=float(row["from_ft"]), b=float(row["to_ft"]))
@@ -235,6 +257,7 @@ def check(spec):
             bad.append(f"{d['id']} is typed {d['type']!r}, which the Door Schedule does not list")
         elif not close(b - a, float(typed["width"]["ft"])):
             bad.append(f"{d['id']} is {b - a:.4f} wide, schedule says {float(typed['width']['ft']):.4f}")
+        _axis(d["id"], d["along"])
         if d["along"] != host["runs_along"]:
             bad.append(f"{d['id']} runs along {d['along']}, {d['in']} runs along {host['runs_along']}")
         elif not (min(host["a"], host["b"]) - TOL <= a < b <= max(host["a"], host["b"]) + TOL):

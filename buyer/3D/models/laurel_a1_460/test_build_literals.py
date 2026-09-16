@@ -46,8 +46,15 @@ def _is_constant_name(name):
 
 
 def module_constants(tree):
-    """value -> name, for every module-level ALL_CAPS = <number>."""
-    out = {}
+    """[(name, value, lineno)] for every module-level ALL_CAPS = <number>.
+
+    A LIST, NOT A DICT KEYED BY VALUE. Keyed by value, two constants sharing
+    one number collapsed: the later declaration overwrote the earlier, the
+    comment gate below only ever saw the survivor, and an undocumented
+    constant could hide behind a documented one with the same value. Review
+    caught it; reproduced by declaring a second constant equal to RULE.
+    """
+    out = []
     for node in tree.body:
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
             target = node.targets[0]
@@ -55,7 +62,7 @@ def module_constants(tree):
                     and isinstance(node.value, ast.Constant)
                     and isinstance(node.value.value, (int, float))
                     and not isinstance(node.value.value, bool)):
-                out[node.value.value] = target.id
+                out.append((target.id, node.value.value, node.lineno))
     return out
 
 
@@ -78,6 +85,20 @@ class BuildLiterals(unittest.TestCase):
                     if isinstance(n, ast.Assign) and len(n.targets) == 1
                     and isinstance(n.targets[0], ast.Name)
                     and _is_constant_name(n.targets[0].id)}
+        # A SIGNED LITERAL IS TWO NODES, and ast.walk visits the inner one.
+        # `-1` is UnaryOp(USub, Constant(1)), so the gate saw a bare 1, called
+        # it an allowed index, and let a negative length through. Review found
+        # it. Every negated constant is recorded here by its signed value, and
+        # the inner node is then skipped so it is not judged twice.
+        signed = {}
+        for n in ast.walk(tree):
+            if (isinstance(n, ast.UnaryOp) and isinstance(n.op, (ast.USub, ast.UAdd))
+                    and isinstance(n.operand, ast.Constant)
+                    and isinstance(n.operand.value, (int, float))
+                    and not isinstance(n.operand.value, bool)):
+                value = n.operand.value
+                signed[id(n.operand)] = -value if isinstance(n.op, ast.USub) else value
+
         bad = []
         for n in ast.walk(tree):
             if not (isinstance(n, ast.Constant)
@@ -85,6 +106,11 @@ class BuildLiterals(unittest.TestCase):
                     and not isinstance(n.value, bool)):
                 continue
             if n.lineno in declared:          # the constant's own definition
+                continue
+            if id(n) in signed:
+                value = signed[id(n)]
+                if value != 0:                # -0.0 is still the origin
+                    bad.append((n.lineno, value))
                 continue
             # ONLY THE DECLARATION IS EXEMPT, NEVER THE VALUE. This used to
             # read `n.value in consts`, which allowed any literal that
@@ -113,15 +139,24 @@ class BuildLiterals(unittest.TestCase):
                                   + "; ".join(f"line {ln}: {v!r}" for ln, v in bad))
 
     def test_every_named_constant_says_what_it_is_for(self):
-        """A constant with no comment is a dimension waiting to be smuggled in."""
+        """A constant with no comment is a dimension waiting to be smuggled in.
+
+        EVERY DECLARATION IS CHECKED, not one per distinct value: two
+        constants sharing a number used to collapse, and the undocumented one
+        could hide behind the documented one."""
         lines = self.src.splitlines()
-        silent = [name for value, name in self.consts.items()
-                  if "#" not in lines[next(
-                      n.lineno for n in ast.walk(self.tree)
-                      if isinstance(n, ast.Assign) and len(n.targets) == 1
-                      and isinstance(n.targets[0], ast.Name)
-                      and n.targets[0].id == name) - 1]]
+        silent = [name for name, _value, lineno in self.consts
+                  if "#" not in lines[lineno - 1]]
         self.assertEqual(silent, [], f"named constants with no comment: {silent}")
+
+    def test_two_constants_with_one_value_are_both_seen(self):
+        """Found by review. Keyed by value, the second declaration overwrote
+        the first and only the survivor was ever checked for a comment."""
+        rule = next(v for n, v, _ in self.consts if n == "RULE")
+        hurt = self.src.replace(f"RULE = {rule}", f"SNEAKY = {rule}\nRULE = {rule}", 1)
+        names = [n for n, _v, _l in module_constants(ast.parse(hurt))]
+        self.assertIn("SNEAKY", names)
+        self.assertIn("RULE", names)
 
     # ── the gate catches what it exists for ──────────────────────────────
 
@@ -144,13 +179,24 @@ class BuildLiterals(unittest.TestCase):
         constant, so once SASH_FRAME_MEMBERS was 4, a 4 pasted anywhere passed.
         Every value this module declares is tried here, so adding a constant
         cannot quietly re-open the hole."""
-        for value in sorted(self.consts):
+        for name, value, _lineno in self.consts:
             hurt = self.src.replace('env["width"]["ft"]', repr(value), 1)
             tree = ast.parse(hurt)
             bad = self.offenders(tree, module_constants(tree))
             self.assertTrue(any(v == value for _, v in bad),
-                            f"a pasted {value!r}, the value of "
-                            f"{self.consts[value]}, was not caught; offenders were {bad}")
+                            f"a pasted {value!r}, the value of {name}, "
+                            f"was not caught; offenders were {bad}")
+
+    def test_a_negative_dimension_is_caught(self):
+        """Found by review. `-1` is UnaryOp(USub, Constant(1)) and ast.walk
+        visits the inner node, so the gate saw an allowed index and let a
+        negative length through."""
+        for literal, value in (("-1", -1), ("-2", -2), ("-9.625", -9.625)):
+            hurt = self.src.replace('env["width"]["ft"]', literal, 1)
+            tree = ast.parse(hurt)
+            bad = self.offenders(tree, module_constants(tree))
+            self.assertTrue(any(v == value for _, v in bad),
+                            f"a pasted {literal} was not caught; offenders were {bad}")
 
     def test_a_dimension_shouted_into_a_constant_still_needs_a_comment(self):
         """Naming a dimension does not launder it.
@@ -163,7 +209,8 @@ class BuildLiterals(unittest.TestCase):
         hurt = self.src.replace("FAILED = []", "FAILED = []\nWIDTH = 24.0", 1)
         hurt = hurt.replace('env["width"]["ft"]', 'WIDTH', 1)
         tree = ast.parse(hurt)
-        self.assertIn(24.0, module_constants(tree))     # past the literal gate
+        names = [n for n, _v, _l in module_constants(tree)]
+        self.assertIn("WIDTH", names)                   # past the literal gate
         lines = hurt.splitlines()
         ln = next(n.lineno for n in tree.body
                   if isinstance(n, ast.Assign) and len(n.targets) == 1

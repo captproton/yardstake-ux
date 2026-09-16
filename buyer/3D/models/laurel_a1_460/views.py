@@ -158,21 +158,46 @@ _SENSOR_HALF_MM = 18.0
 _FIT_MARGIN = 1.25
 
 
+def _viewport_aspect():
+    """width / height of the first 3D viewport, or None if there is none.
+
+    Blender's sensor fit is horizontal, so the VERTICAL half-angle is the
+    horizontal one scaled by height/width. A camera distance computed without
+    that is only ever a horizontal bound.
+    """
+    for win in bpy.context.window_manager.windows:
+        for area in win.screen.areas:
+            if area.type == "VIEW_3D":
+                region = next((r for r in area.regions if r.type == "WINDOW"), None)
+                if region and region.width and region.height:
+                    return region.width / region.height
+    return None
+
+
 def _fit_distance(across, up, lens):
-    """How far back a camera needs to be to frame `across` by `up`, with margin.
+    """How far back a camera needs to frame `across` wide by `up` tall.
 
     plan() carried a fixed multiple of the footprint instead, and at lens 50
     that put the camera 24 ft up looking at a 17 ft field on a 24 ft
     building -- a frame filled entirely by slab. The distance has to come
     from the lens, or the two drift apart the first time either changes.
 
-    IT FITS THE DIAGONAL, not the wider side. Fitting the width cropped the
-    footprint the moment the viewport was taller than it was wide, because
-    the short axis of the frame is the one that decides. The diagonal is
-    bounded by neither axis, so the fit holds whatever shape the viewport is
-    -- and a viewport's shape is the user's, not ours to assume.
+    IT ASKS THE VIEWPORT ITS SHAPE. The version before this fitted the
+    DIAGONAL and the comment claimed that held "whatever shape the viewport
+    is". Review pointed out that it does not: the diagonal is still only a
+    horizontal bound, so a tall viewport can satisfy it across and clip the
+    footprint's depth vertically. Both requirements are computed here, from
+    the real region's aspect, and the larger wins. With no viewport to ask --
+    background, or a render script -- it falls back to the diagonal, which is
+    the old behaviour and is honest about being an approximation.
     """
-    return (math.hypot(across, up) / 2) / (_SENSOR_HALF_MM / lens) * _FIT_MARGIN
+    half = _SENSOR_HALF_MM / lens                  # tan of the horizontal half-angle
+    aspect = _viewport_aspect()
+    if aspect is None:
+        return (math.hypot(across, up) / 2) / half * _FIT_MARGIN
+    horizontal = (across / 2) / half
+    vertical = (up / 2) / (half / aspect)
+    return max(horizontal, vertical) * _FIT_MARGIN
 
 
 def _eye_height():
@@ -241,9 +266,28 @@ def front():
 # the sidebar panel
 # ---------------------------------------------------------------------------
 _MODES = [(m["id"], m["label"], m.get("desc", "")) for m in _DM["modes"]]
-_PRESETS = [("living", "Living"), ("kitchen", "Kitchen"), ("bath", "Bath"),
-            ("plan", "Plan"), ("front", "Front")]
-_FUNCS = dict(globals())
+
+# ONE EXPLICIT TABLE, not `dict(globals())`. Dispatching from every global
+# meant the panel would happily offer a button for any spec mode id, and any
+# typo -- or any non-view helper that happened to share a name -- resolved at
+# CLICK time rather than at registration. The barn cabin uses explicit
+# VISIBILITY/ALL maps for this reason. Review asked for the same here.
+VISIBILITY = {"full": full, "dollhouse": dollhouse,
+              "cutaway": cutaway, "interior_only": interior_only}
+PRESETS = {"living": living, "kitchen": kitchen, "bath": bath,
+           "plan": plan, "front": front}
+ALL = dict(VISIBILITY, **PRESETS)
+
+# A mode the spec declares and this file cannot draw is a defect in one of
+# them, and it is found here rather than when somebody presses the button.
+_undrawable = sorted(m["id"] for m in _DM["modes"] if m["id"] not in VISIBILITY)
+if _undrawable:
+    raise RuntimeError(
+        f"spec.export.display_modes declares modes this file has no function "
+        f"for: {_undrawable} (have {sorted(VISIBILITY)})")
+
+_PRESET_LABELS = [("living", "Living"), ("kitchen", "Kitchen"), ("bath", "Bath"),
+                  ("plan", "Plan"), ("front", "Front")]
 
 
 class LAUREL_OT_view(bpy.types.Operator):
@@ -253,7 +297,11 @@ class LAUREL_OT_view(bpy.types.Operator):
     action: bpy.props.StringProperty()
 
     def execute(self, context):
-        _FUNCS[self.action]()
+        fn = ALL.get(self.action)
+        if fn is None:
+            self.report({"ERROR"}, f"no such view: {self.action!r}")
+            return {"CANCELLED"}
+        fn()
         return {"FINISHED"}
 
 
@@ -270,7 +318,7 @@ class LAUREL_PT_views(bpy.types.Panel):
             col.operator("laurel.view", text=label).action = mid
         col.separator()
         col.label(text="Stand")
-        for fid, label in _PRESETS:
+        for fid, label in _PRESET_LABELS:
             col.operator("laurel.view", text=label).action = fid
 
 
