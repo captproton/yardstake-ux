@@ -336,10 +336,22 @@ SEE A-3.4", but A-3.4 has not been harvested, so `spec.yaml` records it under
 carries no dimension literals can use. It is optional on the drawings and the
 exit gate below does not need it.
 
-Promote from the barn cabin, unchanged where possible: the opening cutter,
-sash construction from the declared window type, exterior casing, interior
-stools and aprons, and reveal marking. These were the subject of four PRs and
-are the most battle-tested code in the project.
+Promote from the barn cabin, unchanged where possible: the opening cutter and
+sash construction from the declared window type. These were the subject of
+four PRs and are the most battle-tested code in the project.
+
+**Exterior casing, interior stools and aprons, and reveal marking move to
+[#132](https://github.com/captproton/yardstake-ux/issues/132).** They need
+`spec.trim` — casing width, head casing height, baseboard height, stool
+projection and thickness, two apron heights, sill projection and thickness,
+and the reveal material — and Laurel's sheets dimension exactly ONE of them,
+the 3/8" reveal at the metal casing bead on A-3.0 details 3 and 4, which the
+spec already carries. Writing the other ten as `assumed` to satisfy this
+paragraph would be worse than reading A-3.0 and A-3.2 properly in #132, which
+is the step named for trim. Parameterising those helpers with only one caller
+would also mean guessing at an interface; the sash had two the moment it
+moved, which is what made its shape obvious. Decided in #129, recorded on the
+issue.
 
 Do **not** call: dormers, knee walls, loft subfloor, ladder, guardrail,
 crawlspace stemwall, vents, piers, porch posts.

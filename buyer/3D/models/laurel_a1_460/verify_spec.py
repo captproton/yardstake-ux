@@ -15,6 +15,13 @@ gates check what numbers mean together:
 - the positions of the openings follow from the dimension strings they cite
 - no two openings overlap, and every one sits inside its wall
 - the drawn window counts match the openings
+- THE PARTITION FACES FOLLOW FROM THE INTERIOR STRINGS (#129). Each of the
+  five strings the layout claims to read is recomputed from the faces it is
+  said to run between. A face moved by a typo stops agreeing with its string.
+- every partition lies inside the envelope, and no two overlap in plan
+- every interior door is its schedule width, and sits inside the wall it names
+- EVERY ROW OF THE DOOR SCHEDULE IS ACCOUNTED FOR: built as an exterior
+  opening, built as an interior one, or recorded as the 1-bedroom option
 - THE FRAME IS NOT MIRRORED. That is a fact about the drawings, so it is
   written here rather than read from the spec: A-2.0's SIDE (LEFT) ELEVATION
   draws windows D and E, and the building's left side, seen from the front, is
@@ -34,6 +41,27 @@ from adu_kit.sheets import parse_length  # noqa: E402
 
 TOL = 0.0005
 FAILED = []
+
+# A SPEC IS READ, NOT OBEYED (rule 25). These two used to be `startswith("+")`
+# and `== "X"` with an else, in the verifier as well as in the build: so
+# `studs_toward: north` silently meant the negative side, and `runs_along: Z`
+# silently meant Y. A partition and its door could both carry the same wrong
+# value, agree with each other, and pass every gate that follows while the
+# geometry was rotated. Reproduced both ways before this was added.
+AXES = ("X", "Y")
+DIRECTIONS = {"+X", "-X", "+Y", "-Y"}
+
+
+def _axis(who, value):
+    if value not in AXES:
+        raise ValueError(f"{who}: runs_along is {value!r}, not one of {list(AXES)}")
+    return value
+
+
+def _sign(who, value):
+    if value not in DIRECTIONS:
+        raise ValueError(f"{who}: studs_toward is {value!r}, not one of {sorted(DIRECTIONS)}")
+    return +1 if value.startswith("+") else -1
 
 
 def gate(ok, label, detail=""):
@@ -136,6 +164,113 @@ def check(spec):
             drawn[row["type"]] = drawn.get(row["type"], 0) + 1
     stated = {k: v for k, v in o["count_check"]["windows_drawn"].items() if k in "ABCDE"}
     gate(drawn == stated, "the drawn window counts match the openings", f"openings {drawn}, count_check {stated}")
+
+    # ── the partitions (#129) ─────────────────────────────────────────────
+    layout = spec["interior_partitions"]["layout"]
+    thick = float(layout["thickness"]["ft"])
+    part = {}
+    for row in layout["partitions"]:
+        near = float(row["at_ft"])
+        far = near + thick if _sign(row["id"], row["studs_toward"]) > 0 else near - thick
+        _axis(row["id"], row["runs_along"])
+        part[row["id"]] = dict(row, near=near, far=far,
+                               lo=min(near, far), hi=max(near, far),
+                               a=float(row["from_ft"]), b=float(row["to_ft"]))
+
+    # the interior strings, recomputed from the faces the layout reads them onto
+    strings = {r["raw"]: r["runs_along"]
+               for r in spec["interior_partitions"]["dimension_strings"]["strings"]}
+    # Each row is (raw, EXPECTED AXIS, computed length, what it spans). The
+    # axis is checked as well as the length, because a string that changed
+    # axis would otherwise still pass: the faces it is read between are
+    # measured along one axis, and `runs_along` claims another, and nothing
+    # compared the two. Found by review.
+    reads = [
+        ("6'-6 1/2\"", "X", float(width) - part["P_pantry_N"]["far"],
+         "the X 24 face of stud to the pantry's far wall"),
+        ("2'-6\"", "X", part["P_pantry_N"]["far"] - part["P_bath_S"]["near"],
+         "the pantry block, outside to outside"),
+        ("6'-2\"", "X", part["P_pantry_N"]["far"] - part["P_block_S"]["far"],
+         "pantry and closet together"),
+        ("7'-3\"", "Y", part["P_block_W"]["near"] - part["P_laundry_E"]["near"],
+         "the closet and laundry block"),
+        ("3'-2\"", "Y", part["P_laundry_W"]["far"] - part["P_laundry_E"]["near"],
+         "the laundry"),
+    ]
+    wrong = []
+    for raw, axis, got, what in reads:
+        want = float(parse_length(raw))
+        if raw not in strings:
+            wrong.append(f"{raw} is not one of the recorded strings")
+            continue
+        if strings[raw] != axis:
+            wrong.append(f"{raw} ({what}) is read along {axis}, but the "
+                         f"string records runs_along: {strings[raw]}")
+        if not close(got, want):
+            wrong.append(f"{raw} ({what}) computes to {got:.4f}, not {want:.4f}")
+    gate(not wrong, "the partition faces follow from the interior strings", "; ".join(wrong))
+
+    # inside the envelope, and no two overlapping in plan
+    x_in = (float(spec["construction"]["exterior_wall"]["stud_depth"]["ft"]), float(width) - float(spec["construction"]["exterior_wall"]["stud_depth"]["ft"]))
+    y_in = (x_in[0], float(depth) - x_in[0])
+    outside = []
+    for pid, r in part.items():
+        across, along = (y_in, x_in) if r["runs_along"] == "X" else (x_in, y_in)
+        if not (across[0] - TOL <= r["lo"] and r["hi"] <= across[1] + TOL):
+            outside.append(f"{pid} across {r['lo']:.4f}..{r['hi']:.4f}")
+        if not (along[0] - TOL <= min(r["a"], r["b"]) and max(r["a"], r["b"]) <= along[1] + TOL):
+            outside.append(f"{pid} along {r['a']:.4f}..{r['b']:.4f}")
+    gate(not outside, "every partition lies inside the envelope", ", ".join(outside))
+
+    def rect(r):
+        """(x_lo, x_hi, y_lo, y_hi) in plan."""
+        a, b = min(r["a"], r["b"]), max(r["a"], r["b"])
+        return (a, b, r["lo"], r["hi"]) if r["runs_along"] == "X" else (r["lo"], r["hi"], a, b)
+
+    # Partitions run wall to wall, so two that meet share their junction: an
+    # overlap no larger than one thickness each way is a butt or a tee. An
+    # overlap longer than that is one wall running THROUGH another.
+    over = []
+    ids = sorted(part)
+    for i, one in enumerate(ids):
+        for other in ids[i + 1:]:
+            ax0, ax1, ay0, ay1 = rect(part[one])
+            bx0, bx1, by0, by1 = rect(part[other])
+            ox = min(ax1, bx1) - max(ax0, bx0)
+            oy = min(ay1, by1) - max(ay0, by0)
+            if ox > TOL and oy > TOL and (ox > thick + TOL or oy > thick + TOL):
+                over.append(f"{one} and {other} share {ox:.4f} by {oy:.4f}")
+    gate(not over, "no partition runs through another (a junction is at most one thickness)",
+         ", ".join(over))
+
+    # interior doors: schedule width, and inside the wall they name
+    doors = {str(d["mark"]): d for d in spec["openings"]["door_types"]["types"]}
+    bad = []
+    for d in layout["door_openings"]:
+        host = part.get(d["in"])
+        if host is None:
+            bad.append(f"{d['id']} names {d['in']}, which is not a partition")
+            continue
+        a, b = float(d["a_ft"]), float(d["b_ft"])
+        typed = doors.get(str(d["type"]))
+        if typed is None:
+            bad.append(f"{d['id']} is typed {d['type']!r}, which the Door Schedule does not list")
+        elif not close(b - a, float(typed["width"]["ft"])):
+            bad.append(f"{d['id']} is {b - a:.4f} wide, schedule says {float(typed['width']['ft']):.4f}")
+        _axis(d["id"], d["along"])
+        if d["along"] != host["runs_along"]:
+            bad.append(f"{d['id']} runs along {d['along']}, {d['in']} runs along {host['runs_along']}")
+        elif not (min(host["a"], host["b"]) - TOL <= a < b <= max(host["a"], host["b"]) + TOL):
+            bad.append(f"{d['id']} at {a:.4f}..{b:.4f} is outside {d['in']}")
+    gate(not bad, "every interior door is its schedule width, inside the wall it names", "; ".join(bad))
+
+    # every schedule row is accounted for
+    placed = {str(r["type"]) for r in by_id.values() if str(r["type"]) in doors}
+    placed |= {str(d["type"]) for d in layout["door_openings"]}
+    optional = {m for m, d in doors.items() if d.get("option")}
+    missing = sorted(set(doors) - placed - optional)
+    gate(not missing, "every row of the door schedule is built or recorded as an option",
+         "not placed: " + ", ".join(missing))
 
 
 def main(argv):

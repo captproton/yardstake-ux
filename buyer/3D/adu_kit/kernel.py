@@ -168,6 +168,67 @@ def multibox(name, specs, coll):
     return weld(name, [box_geom(*s) for s in specs], coll)
 
 
+def sash_geom(axis, plane, a0, a1, z0, z1, frame, proud,
+              units=1, meeting_rail_at=None, meeting_rail_thickness=0.0,
+              mullion=0.0):
+    """The members a window's TYPE implies, as a list of box specs (#129).
+
+    Promoted out of the barn cabin, which held the only part that knew a
+    building: it read `spec.windows` and its own type table directly. Laurel
+    needs the same members from a different table, so what is left here knows
+    no building -- an opening, a frame width, and how many units the type says
+    it has. The caller looks the type up and passes what it found.
+
+    `axis` is the wall axis the opening spans, "x" or "y". `a0`..`a1` run
+    along it and `z0`..`z1` up. `plane` is the GLAZING PLANE, and every member
+    straddles it by `proud` on each side.
+
+    A SASH IS SEEN FROM BOTH SIDES, which is why `proud` reaches both ways.
+    The barn cabin's first version put a plate outboard of the glass, so the
+    divisions read from the garden while the same window was one flat pane
+    from the sofa: glass is drawn before the thing behind it, so the members
+    were hidden by the pane they divide. A real sash holds the glass rather
+    than sitting in front of it.
+
+    `units` is how many sashes sit side by side, divided by a mullion. A
+    meeting rail then runs in EACH unit rather than across the whole opening,
+    which is what a pair of units looks like and what one span would get
+    wrong. `meeting_rail_at` is the fraction of the opening's height it sits
+    at, or None for a type that has none.
+
+    It builds NO GLASS. The pane is a finish; these members sit proud of it.
+    """
+    def member(b0, b1, c0, c1):
+        d0, d1 = plane - proud, plane + proud
+        return ((b0, b1, d0, d1, c0, c1) if axis == "x"
+                else (d0, d1, b0, b1, c0, c1))
+
+    parts = [
+        member(a0, a0 + frame, z0, z1),                # left jamb
+        member(a1 - frame, a1, z0, z1),                # right jamb
+        member(a0, a1, z0, z0 + frame),                # sill member
+        member(a0, a1, z1 - frame, z1),                # head member
+    ]
+
+    spans = []
+    if units == 1:
+        spans = [(a0, a1)]
+    else:
+        step = (a1 - a0) / units
+        for i in range(units):
+            spans.append((a0 + i * step, a0 + (i + 1) * step))
+        for i in range(1, units):
+            c = a0 + i * step
+            parts.append(member(c - mullion / 2, c + mullion / 2, z0, z1))
+
+    if meeting_rail_at is not None:
+        zc = z0 + (z1 - z0) * meeting_rail_at
+        for b0, b1 in spans:
+            parts.append(member(b0, b1, zc - meeting_rail_thickness / 2,
+                                zc + meeting_rail_thickness / 2))
+    return parts
+
+
 def _check_path(name, path, which=""):
     """A sweep needs two points, and the failure has to say WHICH sweep.
 
