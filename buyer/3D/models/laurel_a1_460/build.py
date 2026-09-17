@@ -60,6 +60,7 @@ RULE = 76               # characters across, for the printed report
 SASH_FRAME_MEMBERS = 4  # jambs, sill and head: the four every frame has, whatever its type
 VERTS_PER_BOX = 8       # how a welded member count is read back off a mesh
 CORNER_TOL = 1e-4       # ft, matching a boolean's output vertex to the cut it came from
+INCHES_PER_FOOT = 12    # unit arithmetic, for a spec tolerance given in inches and a report that prints them
 
 
 def gate(ok, label, detail=""):
@@ -452,6 +453,10 @@ def report(spec, geo, colls):
     gate(shed.under(D) > shed.under(0.0),
          "the roof rises toward the front (+Y), as the side elevations draw it")
 
+    ok, why = _roof_top_at_the_front_edge(spec, geo)
+    gate(ok, f'the roof top at the front edge is A-2.0\'s '
+             f'{ft(lv["roof_top_at_front_edge"]["ft"])}', why)
+
     ok, why = _every_partition_built(spec, geo)
     gate(ok, "every partition in the spec was built, where the spec puts it", why)
 
@@ -617,6 +622,32 @@ def _roof_meets_the_plates(spec, geo):
         if abs(got - want) > MESH_TOL:
             wrong.append(f"at {label} the roof underside is {got:.4f}, not {want:.4f}")
     return not wrong, "; ".join(wrong)
+
+
+def _roof_top_at_the_front_edge(spec, geo):
+    """The one roof dimension A-2.0 gives that is not a plate height.
+
+    F.F. to the top of the roof at the FRONT EDGE OF THE OVERHANG, 10'-9 1/2".
+    #128 recorded it as unreconciled and left it to #130; it is the dimension
+    that caught the roof being built 2.47" too thick, because it is the only
+    one that sees the roof's THICKNESS. The plate gates see the underside, and
+    the underside was right all along.
+
+    It is measured on the mesh, at the vertices furthest forward in Y, so a
+    wrong assembly depth or a wrong overhang both move it.
+    """
+    lv = spec["levels"]
+    want = lv["roof_top_at_front_edge"]["ft"]
+    tol = lv["roof_top_at_front_edge"]["tolerance_in"]["value"] / INCHES_PER_FOOT
+    pts = [(v.co[1], v.co[2]) for v in geo["roof"].data.vertices]
+    if not pts:
+        return False, "the roof has no vertices"
+    y_front = max(y for y, _ in pts)
+    got = max(z for y, z in pts if abs(y - y_front) <= MESH_TOL)
+    if abs(got - want) > tol:
+        return False, (f"the built roof tops out at {got:.4f} ft at Y {y_front:.4f}, "
+                       f"{(got - want) * INCHES_PER_FOOT:+.2f} in from the sheet's {want:.4f}")
+    return True, ""
 
 
 def _every_partition_built(spec, geo):
