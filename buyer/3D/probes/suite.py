@@ -224,7 +224,14 @@ class Result:
 # ── the workspace ───────────────────────────────────────────────────────────
 
 def make_base(dst: Path, with_blender_model: bool = False) -> Path:
-    """Copy what the checks read into dst."""
+    """Copy what the checks read into dst.
+
+    `with_blender_model` copies WHOLE every model in BLENDER_MODELS, not one
+    model -- it was a single flag for the barn cabin until Laurel grew Blender
+    gates of its own (#130), and the name has outlived that. Without it a
+    model contributes only its spec.yaml, its EXPORT_PENDING and its export,
+    which is all the index and page checks read.
+    """
     dst.mkdir(parents=True)
     for name in ROOT_FILES + DOC_FILES:
         (dst / name).parent.mkdir(parents=True, exist_ok=True)

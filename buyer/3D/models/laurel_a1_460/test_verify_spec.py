@@ -81,6 +81,16 @@ class VerifySpec(unittest.TestCase):
 
     # ── A-2.0's ink against A-1.0's strings (#130) ───────────────────────
 
+    def test_deleting_the_overlay_block_does_not_delete_its_gate(self):
+        """Found by review. The block was reached through .get(), so removing
+        it removed the whole cross-sheet check while verify_spec still exited
+        0 -- nineteen green gates and no mention of the twentieth."""
+        text = SPEC.read_text()
+        i = text.index("elevation_overlay:")
+        j = text.index("\nwindows:", i)
+        r = run(text[:i] + text[j + 1:])
+        self.assertGateFails(r, "the spec has the blocks these gates read")
+
     def test_the_elevation_and_the_schedule_disagree_on_a_sill(self):
         """The overlay's whole point: two sheets read independently, compared.
         A sill the elevation draws a foot off the one the schedule gives is a

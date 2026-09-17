@@ -142,8 +142,6 @@ levels:
       being built 2.47\" too thick. A gate in build.py now holds the built
       roof to it.
     tolerance_in: {value: 0.5, assumed: "the sheet's own roof line sits about 1/4\" below its own T.P. datums -- drafting tolerance, measured -- and the model places the underside exactly on them, so the two cannot agree more closely than that. Half an inch leaves room for it and is still five times tighter than the error this gate was written after."}
-  roof_top_at_front:  {ft: 10.7917, raw: "10'-9 1/2\"", source: "A-2.0 SIDE (RIGHT) ELEVATION, vertical string from F.F. to the top of the roof at its front edge",
-                       note: "Not yet reconciled with the roof assembly; the P3 overlay (#130) does that. See discrepancies."}
 
 # ---------------------------------------------------------------------------
 roof:

@@ -276,7 +276,13 @@ def check(spec):
     # A window that agrees on both sheets is a window two independent readings
     # found in the same spot; one that does not is a question for a human.
     # It needs no Blender, so CI runs it.
-    ov = spec.get("elevation_overlay")
+    # INDEXED, NOT .get(). A gate reached through .get() disappears when its
+    # block does: deleting elevation_overlay removed the whole cross-sheet
+    # check and verify_spec still exited 0, reporting nineteen green gates and
+    # never mentioning the twentieth. Reproduced before this changed. Indexing
+    # makes the absence raise, which main() turns into a failed gate naming
+    # the block -- the same way every other missing block here is handled.
+    ov = spec["elevation_overlay"]
     if ov:
         tol = ov["tolerance_in"]["value"] / 12.0
         sre = ov["side_right_elevation"]
