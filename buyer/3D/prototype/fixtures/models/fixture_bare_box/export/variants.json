@@ -9,6 +9,7 @@
       "count": 1,
       "loft": false
     },
+    "front": "+z",
     "thumbnail": null,
     "note": "A test fixture whose manifest is only the identity block, so no viewer control and no rail may appear, and the model must still load and orbit (#108, #109, #111). Not a real model."
   }

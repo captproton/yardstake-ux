@@ -11,6 +11,8 @@
       "raw": "main floor + loft storage above",
       "source": "A1.1 main floor plan and loft plan"
     },
+    "front": "+z",
+    "entry_node": "Door_D-FRONT",
     "thumbnail": "renders/ortho_front_S.png",
     "note": "`id` is an identifier and `name` is what a buyer reads; they are not interchangeable and this model is why. The id says 524 -- it came from the source PDF's filename -- and every measurable thing says 528: the sheet's own S.F. notes, and 22'-0\" x 24'-0\" = 528.0 sf of built geometry. See spec.discrepancies.the-model-id-says-524-and-every-measurable-thing-says-528."
   },

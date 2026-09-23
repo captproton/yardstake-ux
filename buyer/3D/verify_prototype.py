@@ -326,10 +326,21 @@ def main():
         unit_problems.append(
             f"DISCLOSURE_MAX_CHARS differs — app.js: {page_limit}, "
             f"model_contract: {model_contract.DISCLOSURE_MAX_CHARS}")
+    # And the fronts (#117): one only the contract knows is a model every
+    # index gate passes and the page refuses to open.
+    fm = re.search(r"const FRONTS = \{(.*?)\n\};", page_text[PROTO / "app.js"], re.S)
+    page_fronts = set(re.findall(r"^\s*'([^']+)':", fm.group(1), re.M)) if fm else set()
+    if not fm:
+        unit_problems.append("app.js has no `const FRONTS = { ... };` block to compare")
+    elif page_fronts != set(model_contract.FRONTS):
+        unit_problems.append(
+            f"fronts differ — only app.js: {sorted(page_fronts - set(model_contract.FRONTS))}, "
+            f"only model_contract: {sorted(set(model_contract.FRONTS) - page_fronts)}")
     problems += unit_problems
     print(f"  [{'PASS' if not unit_problems else 'FAIL'}] app.js and model_contract "
-          f"agree on units and the disclosure limit — "
-          f"{', '.join(sorted(page_units)) or 'no units found'}; {page_limit} characters")
+          f"agree on units, fronts and the disclosure limit — "
+          f"{', '.join(sorted(page_units)) or 'no units found'}; "
+          f"{', '.join(sorted(page_fronts)) or 'no fronts found'}; {page_limit} characters")
 
     # ── 5. the documented configuration is one the real manifest accepts ──
     # docs/CONFIGURATION.md is the contract with Rails (#110). Its example must

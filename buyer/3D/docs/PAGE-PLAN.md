@@ -242,6 +242,10 @@ at `prototype/` cannot reach a single model. Locally:
   [`adapting-a-plan-set.html`](adapting-a-plan-set.html) imply −Z. The viewer
   follows the file, and the page's one remaining assumption about a building
   is which end to show first: [#117](https://github.com/captproton/yardstake-ux/issues/117).
+  **Settled by #117:** the notes were wrong. They described the P2 build,
+  which was a mirror image, and have been corrected. Each manifest now
+  declares its `front`, the export refuses one its entry door does not sit
+  at, and the page faces whatever is declared.
 - **The box floor depends on the level.** `lod0` reaches the footing at
   −1.175 m; `lod1` and `lod2` stop at −0.972 m. The ground sits at the floor
   of the level shown first, the coarsest, and does not drop when detail lands.
@@ -450,7 +454,7 @@ Not in the sequence, because nothing above is blocked on it:
 | # | | |
 |---|---|---|
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
-| [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | the viewer assumes +Z; a model exported another way opens from behind. Needed before a second real model: step 6 of the [Laurel plan](../models/laurel_a1_460/docs/PLAN.md), before Laurel's export |
+| [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | **done**: `front` is in the identity and every index row; `finish_adu.py` and `verify_index.py` gate 9 hold it to where the entry door sits in the `.glb`; the page derives its first view, sun and overlay from it, and `fixture_side_entry_box` opens on its +X side with no code knowing it. Step 6 of the [Laurel plan](../models/laurel_a1_460/docs/PLAN.md); Laurel's front will be −Z. |
 | [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn: step 9 of the Laurel plan |
 | [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | the break-one-thing checks that proved every gate, in the repo with one command, run against a copy — **done** ([#123](https://github.com/captproton/yardstake-ux/pull/123)); 92 cases at the time, 139 now, and 13 harness self-checks |
 | [#139](https://github.com/captproton/yardstake-ux/issues/139) | **Run the checks in CI** | nothing ran them on GitHub; every "green" was a hand run on one Mac — **done** ([#140](https://github.com/captproton/yardstake-ux/pull/140)); the six checks that need no Blender run on every PR and push to `main` touching `buyer/3D/`, proved to fail on a deliberate break. Not yet a required check on `main` |

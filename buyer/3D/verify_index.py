@@ -238,6 +238,34 @@ def main():
           f"disclosure, views and dimensions are well-formed or absent"
           + (f" — {len(shapes)} problem(s)" if shapes else ""))
 
+    # ── 9. every model opens on its front (#117) ──────────────────────────
+    # The page turns its first view toward `front`. A declaration nobody holds
+    # to the geometry is a building that opens from behind with every other
+    # gate green, so the manifest must name the node that marks the front --
+    # the entry door -- and that node must sit at the declared end of the
+    # full-detail file. finish_adu.py checks the same before it publishes;
+    # this checks what was published, and needs no Blender.
+    fronts = []
+    for r in good:
+        glb, path = r["levels"].get("lod0") or r["primary"], ROOT / r["manifest"]
+        try:
+            ident = json.loads(path.read_text()).get("model") or {}
+        except (ValueError, OSError, AttributeError):
+            continue  # gate 7 already reports an unreadable manifest
+        if ident.get("front") != r["front"]:
+            fronts.append(f"{r['id']}: the row's front is {r['front']!r}, its "
+                          f"manifest's is {ident.get('front')!r}")
+        elif not ident.get("entry_node"):
+            fronts.append(f"{r['id']}: the manifest names no entry_node, so "
+                          f"nothing proves {r['front']} is the front")
+        elif (ROOT / glb).is_file():
+            fronts += [f"{r['id']}: {p}" for p in model_contract.front_problems(
+                ROOT / glb, r["front"], ident["entry_node"])]
+    problems += fronts
+    print(f"  [{'PASS' if not fronts else 'FAIL'}] every model's entry sits at its "
+          f"declared front — "
+          + ", ".join(f"{r['id']} {r['front']}" for r in good))
+
     print("-" * 76)
     if problems:
         print(f"{len(problems)} PROBLEM(S):")

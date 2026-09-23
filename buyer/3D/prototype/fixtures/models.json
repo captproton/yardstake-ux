@@ -11,6 +11,7 @@
         "count": 1,
         "loft": false
       },
+      "front": "+z",
       "dir": "models/fixture_slab_box",
       "manifest": "models/fixture_slab_box/export/variants.json",
       "levels": {
@@ -29,6 +30,7 @@
         "count": 1,
         "loft": false
       },
+      "front": "+z",
       "dir": "models/fixture_bare_box",
       "manifest": "models/fixture_bare_box/export/variants.json",
       "levels": {
@@ -47,10 +49,30 @@
         "count": 1,
         "loft": false
       },
+      "front": "+z",
       "dir": "models/fixture_one_view_box",
       "manifest": "models/fixture_one_view_box/export/variants.json",
       "levels": {
         "lod0": "models/fixture_one_view_box/export/fixture_one_view_box_lod0.glb"
+      },
+      "primary": null,
+      "thumbnail": null
+    },
+    {
+      "id": "fixture_side_entry_box",
+      "name": "Fixture: box entered from the side",
+      "area_sf": 460,
+      "area_key": "fixture_envelope",
+      "area_source": "fixture, not a building: 20 ft x 23 ft",
+      "storeys": {
+        "count": 1,
+        "loft": false
+      },
+      "front": "+x",
+      "dir": "models/fixture_side_entry_box",
+      "manifest": "models/fixture_side_entry_box/export/variants.json",
+      "levels": {
+        "lod0": "models/fixture_side_entry_box/export/fixture_side_entry_box_lod0.glb"
       },
       "primary": null,
       "thumbnail": null
@@ -67,6 +89,7 @@
         "raw": "main floor + loft storage above",
         "source": "A1.1 main floor plan and loft plan"
       },
+      "front": "+z",
       "dir": "models/fixture_barn_reduced",
       "manifest": "models/fixture_barn_reduced/export/variants.json",
       "levels": {

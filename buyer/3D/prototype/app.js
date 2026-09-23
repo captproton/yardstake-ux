@@ -30,13 +30,47 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 const DRACO_DECODERS =
   `https://cdn.jsdelivr.net/npm/three@0.${THREE.REVISION}.0/examples/jsm/libs/draco/gltf/`;
 
-// THE FRONT FACES +Z IN THE EXPORTED FILE, read off the .glb rather than off
-// the axis notes: the covered entry, its posts and the entry door all sit at
-// the maximum-Z end of the box. The first view looks at that end from a three-
-// quarter angle above it, and the width dimension is drawn along it. No
-// manifest declares a front yet (#117); until one does, this is an export
-// convention the page assumes, and the only one.
-const VIEW_DIRECTION = new THREE.Vector3(0.7, 0.45, 1).normalize();
+// THE FRONT IS DECLARED, NEVER ASSUMED (#117). Each model's manifest names the
+// end of its box that is the building's front, in the glTF frame, and the
+// export is refused unless its entry door sits there. The first view looks at
+// that end from a three-quarter angle above it, the sun stands on the same
+// side, and the width dimension is drawn along it. Keep in step with
+// model_contract.FRONTS; verify_prototype.py gate 4 checks.
+const FRONTS = {
+  '+x': [1, 0, 0],
+  '-x': [-1, 0, 0],
+  '+z': [0, 0, 1],
+  '-z': [0, 0, -1],
+};
+
+// The directions everything that faces the building is placed in: `front`
+// out of the declared end, `up`, and `side` to the viewer's right as they
+// face it. For a +Z front, side is +X -- the three-quarter view the page has
+// always opened on, now derived rather than written down.
+function frontBasis(key) {
+  const front = new THREE.Vector3(...FRONTS[key]);
+  const up = new THREE.Vector3(0, 1, 0);
+  const side = new THREE.Vector3().crossVectors(up, front);
+  const view = new THREE.Vector3()
+    .addScaledVector(side, 0.7).addScaledVector(up, 0.45).addScaledVector(front, 1)
+    .normalize();
+  return { key, front, up, side, view };
+}
+
+// The manifest's identity block first -- it is the header's source -- then
+// the index row. Two that disagree, or neither declaring one of FRONTS, is a
+// load failure with a reason: opening on a guess is what #117 removed.
+function readFront(manifest, row) {
+  const declared = isObject(manifest.model) ? manifest.model.front : undefined;
+  const front = declared ?? row.front;
+  if (!Object.hasOwn(FRONTS, front)) {
+    throw new Error(`its front is ${JSON.stringify(front)}, not one of ${Object.keys(FRONTS).join(', ')}`);
+  }
+  if (declared !== undefined && row.front !== undefined && declared !== row.front) {
+    throw new Error(`its manifest says the front is ${declared} and the index says ${row.front}`);
+  }
+  return front;
+}
 
 const LEVEL = /^lod(\d+)$/;
 
@@ -158,6 +192,7 @@ async function main() {
   // The manifest's own identity block is the header's source; the index row
   // carries the same fields.
   renderHeader(isObject(manifest.model) ? manifest.model : row);
+  viewer.setFront(readFront(manifest, row));
 
   const levels = orderLevels(row, indexUrl);
   if (!levels.length) throw new Error(`${row.id} lists no level to load`);
@@ -183,6 +218,7 @@ async function main() {
       ...window.__viewer,
       state: last ? 'ready' : 'loading',
       model: row.id,
+      front: viewer.front(),
       level: level.name,
       levels: levels.map((l) => l.name),
       ...framed,
@@ -834,6 +870,7 @@ function createViewer(container) {
   let current = null;
   let fitted = null; // the box and centre of the first level shown
   let info = null;
+  let basis = null; // frontBasis() of the model's declared front, set before any level
   let hidden = new Set(); // nodes the current view mode hides
   let controlled = new Set(); // nodes any layout option names
   let shown = new Set(); // of those, the ones the chosen layouts show
@@ -917,10 +954,11 @@ function createViewer(container) {
   function frame(box) {
     const sphere = box.getBoundingSphere(new THREE.Sphere());
     const r = sphere.radius;
-    const distance = fitDistance(box, sphere.center, VIEW_DIRECTION, camera.aspect);
+    if (!basis) throw new Error('no front was set before the model was shown');
+    const distance = fitDistance(box, sphere.center, basis.view, camera.aspect);
     fitted = { box: box.clone(), center: sphere.center.clone() };
 
-    camera.position.copy(sphere.center).addScaledVector(VIEW_DIRECTION, distance);
+    camera.position.copy(sphere.center).addScaledVector(basis.view, distance);
     camera.near = distance / 100;
     camera.far = distance * 20;
     camera.updateProjectionMatrix();
@@ -941,7 +979,10 @@ function createViewer(container) {
     // From above and in front, on the camera's side, so the shadow falls
     // behind the building rather than across the view of its front.
     sun.target.position.set(sphere.center.x, floor, sphere.center.z);
-    sun.position.copy(sphere.center).add(new THREE.Vector3(r * 0.8, r * 2, r * 1.2));
+    sun.position.copy(sphere.center)
+      .addScaledVector(basis.side, r * 0.8)
+      .addScaledVector(basis.up, r * 2)
+      .addScaledVector(basis.front, r * 1.2);
     const s = sun.shadow.camera;
     s.left = s.bottom = -r * 1.5;
     s.right = s.top = r * 1.5;
@@ -1017,24 +1058,38 @@ function createViewer(container) {
     const d = fp.depth * dims.unit.metres;
     const c = fitted.box.getCenter(new THREE.Vector3());
     const y = info.floor + fitted.box.getSize(new THREE.Vector3()).y * 0.004;
-    const x0 = c.x - w / 2;
-    const x1 = c.x + w / 2;
-    const z0 = c.z - d / 2;
-    const z1 = c.z + d / 2;
+    // DRAWN IN THE FRONT'S TERMS, not the file's axes: `a` runs along the
+    // front (the width), `b` out of it (the depth). For a +Z front, a is X
+    // and b is Z, which is the overlay this page always drew.
+    const a0 = -w / 2;
+    const a1 = w / 2;
+    const b0 = -d / 2;
+    const b1 = d / 2;
     const gap = Math.max(w, d) * 0.08; // dimension lines stand off the footprint
     const tick = gap * 0.35;
+    const at = (a, b) => [
+      c.x + basis.side.x * a + basis.front.x * b,
+      c.z + basis.side.z * a + basis.front.z * b,
+    ];
 
     const segments = [
       // the footprint itself
-      [x0, z0, x1, z0], [x1, z0, x1, z1], [x1, z1, x0, z1], [x0, z1, x0, z0],
+      [a0, b0, a1, b0], [a1, b0, a1, b1], [a1, b1, a0, b1], [a0, b1, a0, b0],
       // width, along the front edge, with end ticks
-      [x0, z1 + gap, x1, z1 + gap],
-      [x0, z1 + gap - tick, x0, z1 + gap + tick], [x1, z1 + gap - tick, x1, z1 + gap + tick],
-      // depth, along the +X side, with end ticks
-      [x1 + gap, z0, x1 + gap, z1],
-      [x1 + gap - tick, z0, x1 + gap + tick, z0], [x1 + gap - tick, z1, x1 + gap + tick, z1],
+      [a0, b1 + gap, a1, b1 + gap],
+      [a0, b1 + gap - tick, a0, b1 + gap + tick], [a1, b1 + gap - tick, a1, b1 + gap + tick],
+      // depth, along the side to the viewer's right, with end ticks
+      [a1 + gap, b0, a1 + gap, b1],
+      [a1 + gap - tick, b0, a1 + gap + tick, b0], [a1 + gap - tick, b1, a1 + gap + tick, b1],
     ];
-    const positions = segments.flatMap(([ax, az, bx, bz]) => [ax, y, az, bx, y, bz]);
+    const positions = segments.flatMap(([pa, pb, qa, qb]) => {
+      const [px, pz] = at(pa, pb);
+      const [qx, qz] = at(qa, qb);
+      return [px, y, pz, qx, y, qz];
+    });
+    const corners = [at(a0, b0), at(a1, b1)];
+    const xs = corners.map(([x]) => x).sort((p, q) => p - q);
+    const zs = corners.map(([, z]) => z).sort((p, q) => p - q);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     // Drawn over the building, so the whole footprint reads even where walls
@@ -1054,16 +1109,20 @@ function createViewer(container) {
       obj.position.set(x, y, z);
       group.add(obj);
     };
-    label(`${formatLength(fp.width)} ${dims.unit.label}`, c.x, z1 + gap);
-    label(`${formatLength(fp.depth)} ${dims.unit.label}`, x1 + gap, c.z);
+    label(`${formatLength(fp.width)} ${dims.unit.label}`, ...at(0, b1 + gap));
+    label(`${formatLength(fp.depth)} ${dims.unit.label}`, ...at(a1 + gap, 0));
 
     overlayInfo = {
       footprint: fp.key,
+      front: basis.key,
       width: w,
       depth: d,
       centre: [c.x, c.z],
-      x: [x0, x1],
-      z: [z0, z1],
+      x: xs,
+      z: zs,
+      // where the width's dimension line runs, in the file's X and Z: off the
+      // declared front, which is what a test of "drawn along the front" reads
+      width_line: [at(a0, b1 + gap), at(a1, b1 + gap)],
       y,
     };
     return group;
@@ -1084,6 +1143,11 @@ function createViewer(container) {
   }
 
   const api = {
+    // Which end of the box the first view, the sun and the overlay face.
+    setFront(key) {
+      basis = frontBasis(key);
+    },
+    front: () => basis?.key ?? null,
     load: (url) => loader.loadAsync(url.href),
     show(root) {
       root.traverse((o) => {
