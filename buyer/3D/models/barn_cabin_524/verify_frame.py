@@ -35,6 +35,7 @@ It opens barn_cabin_524.blend beside it rather than trusting whatever scene it
 was handed (rule 28). Exit 1 on a failed gate.
 """
 import sys
+import traceback
 from pathlib import Path
 
 import bpy
@@ -67,12 +68,7 @@ def centre(name):
     return (lo + hi) / 2.0
 
 
-def main():
-    bpy.ops.wm.open_mainfile(filepath=str(BLEND))
-    print("=" * 76)
-    print(f"{BLEND.name} -- the built frame against A1.1's plan and elevations")
-    print("=" * 76)
-
+def check():
     walls = [box(n) for n in ("Wall_N", "Wall_S", "Wall_E", "Wall_W")]
     lo = Vector([min(b[0][i] for b in walls) for i in range(3)])
     hi = Vector([max(b[1][i] for b in walls) for i in range(3)])
@@ -134,6 +130,24 @@ def main():
     print("-" * 76)
     print(f"front faces {axis} in Blender; facing it from outside, "
           f"X increases to the viewer's {'right' if right.x > 0 else 'left'}")
+
+
+def main():
+    # BLENDER EXITS 0 ON AN UNCAUGHT EXCEPTION. A traceback here would read as
+    # a pass to anything that goes by the exit code, which is a check passing
+    # by not running. So a missing object is a failed gate that names it, and
+    # anything else that goes wrong still ends in exit 1.
+    try:
+        bpy.ops.wm.open_mainfile(filepath=str(BLEND))
+        print("=" * 76)
+        print(f"{BLEND.name} -- the built frame against A1.1's plan and elevations")
+        print("=" * 76)
+        check()
+    except KeyError as e:
+        gate("the scene has every object these gates read", False, e.args[0])
+    except Exception:
+        traceback.print_exc()
+        FAILED.append("verify_frame.py crashed")
     if FAILED:
         print(f"{len(FAILED)} GATE(S) FAILED")
         sys.exit(1)
