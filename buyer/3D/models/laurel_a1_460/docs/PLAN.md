@@ -74,7 +74,7 @@ in `spec.yaml` before it is used.
 | Roofing | standing seam metal | A-2.0 roof plan notes |
 | Top of plate 1 | 8'-0" | A-2.0 |
 | Top of plate 2 | 9'-7 1/2" | A-2.0 |
-| Roof overhang | 1'-6" | A-2.0 |
+| Roof overhang | 5'-0" front (over the entry); 1'-6" rear and both ends | A-2.0 roof plan |
 | Elevation scale | 1/4" = 1'-0" | A-2.0 front elevation title |
 | Ceilings | follow the roof line (vaulted) | A-1.0 note |
 | Entry canopy | optional, 2x6 cedar frame, 1x6 trim | A-3.4 |
@@ -351,7 +351,8 @@ paragraph would be worse than reading A-3.0 and A-3.2 properly in #132, which
 is the step named for trim. Parameterising those helpers with only one caller
 would also mean guessing at an interface; the sash had two the moment it
 moved, which is what made its shape obvious. Decided in #129, recorded on the
-issue.
+issue. **Settled since (2026-09-23):** #132 takes the barn cabin's values as
+declared `assumed` defaults; see [Tier 1 trim](#tier-1-trim--the-barn-cabins-values-declared-assumed).
 
 Do **not** call: dormers, knee walls, loft subfloor, ladder, guardrail,
 crawlspace stemwall, vents, piers, porch posts.
@@ -366,15 +367,63 @@ schedule row produced a cut opening with a sash.
 Same method that settled the barn cabin ridge, and it is the phase that will
 catch a wrong roof reading.
 
-Render the model orthographically, trace the A-2.0 front elevation at the
-sheet's stated 1/4" = 1'-0", and compare silhouettes. The barn cabin landed at
-−0.18" mean and 0.21" standard deviation; hold Laurel to the same.
+Render the model orthographically at the sheet's stated 1/4" = 1'-0" and
+compare it with A-2.0. The barn cabin landed at −0.18" mean and 0.21" standard
+deviation; hold Laurel to the same.
+
+**Compare named features, not silhouettes** (changed in #130, PR
+[#147](https://github.com/captproton/yardstake-ux/pull/147)). A per-column
+silhouette diff gives a mean and a standard deviation that depend on whether
+the crop caught every dimension line, leader and datum. They look
+authoritative either way. Instead, measure individual features off A-2.0
+rasterised at 400 dpi (100 px/ft): the roof underside at each wall, the
+overhang, and each window's sill, head and edges. Record them in
+`spec.elevation_overlay` as cited numbers, and have `verify_spec.py` compare
+them against what A-1.0's strings put in the same place. That runs in CI with
+no Blender. Each residual is held to the barn cabin's tolerance.
 
 Add one gate this model needs and the barn cabin did not: **the single roof
 plane passes through T.P. 2 at the front wall and T.P. 1 at the rear** (it was
 first written for two planes; P1 found one). Prove it can fail by moving T.P. 2
 an inch and confirming the gate goes red. Rule 19 — a red test that
 moves the spec proves nothing — means perturb the *build*, not the spec.
+
+**What P3 cannot reach.** An elevation shows the outside. Door 5's position,
+doors 3 and 4 centred in their clear spans, and every partition running to the
+roof underside appear on no elevation, so no overlay against A-2.0 tests them.
+They belong to [P3b](#p3b--overlay-against-the-a-10-plan).
+
+---
+
+## P3b — overlay against the A-1.0 plan
+
+The same named-feature method, pointed at the floor plan. It is the only step
+that tests the interior against a drawing. It lands with Tier 1 in
+[#132](https://github.com/captproton/yardstake-ux/issues/132) as one of that
+step's done-when items, not as a PR of its own, because #132 is the next step
+that builds the interior.
+
+A-1.0 is vector, and the harvester already returns every string with its page
+rectangle, so the plan's scale and origin come from the sheet's own dimension
+strings rather than from a guess. Measure where the ink is **drawn**, not
+where a string implies it is:
+
+- **door 5's leaf and opening.** The 3'-9" string beside it resolves onto no
+  pair of faces, so the drawn position is the only evidence there is;
+- **doors 3 and 4**, to test whether "centred in the clear span" is what the
+  drawing shows;
+- **each of the seven partitions' faces**, against the five interior strings
+  read outside face to outside face.
+
+A plan cannot show height, so "every partition runs to the roof underside"
+stays open until a section settles it. Look for one on A-3.0 and A-3.2 in the
+same step. If neither sheet draws one, record that the question cannot be
+settled from these sheets, as the barn cabin did for its interior ledges.
+
+Exit gate: every `assumed` interior position either becomes `measured` with a
+residual inside the barn cabin's tolerance, or stays `assumed` with a
+`what_would_settle_it:`. At least one committed probe must move a partition in
+the **build** and turn the gate red.
 
 ---
 
@@ -386,11 +435,23 @@ Model-specific work is the material set: standing seam metal roofing, and the
 two declared exterior finishes. **Stucco and fibre-cement lap siding are a
 finish variant, not a decision** — the sheet offers both, so ship both in the
 manifest as a material swap. That is exactly what the configurator's `sets`
-block is for and it costs no extra geometry.
+block is for, and **at P4** it costs no extra geometry. It stops being purely
+a material swap once exterior trim arrives in Tier 1; see
+[Tier 1 trim](#tier-1-trim--the-barn-cabins-values-declared-assumed).
 
-Check the rendering for colour only, then confirm any sampled colour against a
-second source before trusting it. Rule 4 exists because a "siding" colour patch
-was once something else entirely.
+**Colour.** `a1-laurel-rendering.jpg` is the only appearance source Laurel
+has. There is no tour video, and the file lives only in the main working tree
+because `example plans/sacramento_adus/` is ignored. Treat it as follows:
+
+- Use it for colour only, never geometry (rule 5's principle, applied to a
+  rendering).
+- Crop and look at every sample before measuring it (rule 4). A "siding" patch
+  was once the pollinator garden.
+- Record each default colour as `assumed`, citing the rendering and the
+  crop. Stucco and siding are options the buyer chooses, so a default colour
+  is a sensible starting point, not a claim about the building.
+- Where the rendering does not show a material, choose a neutral default and
+  say so. Do not reach for a second image.
 
 Exit gate: three levels exported with Draco, the lod2 baseline is recorded
 **and asserted per model** (origin, axes, units, floor datum; see P0), the
@@ -416,6 +477,64 @@ That closes [#111](https://github.com/captproton/yardstake-ux/issues/111).
 Same ladder, smaller building. The order that worked before still applies:
 finishes and trim, then textures and the configurator manifest, then fixtures
 measured before anything is built.
+
+### Tier 1 trim — the barn cabin's values, declared assumed
+
+**Decided 2026-09-23.** Laurel's sheets dimension one of the eleven trim
+numbers #132 needs: the 3/8" reveal at the metal casing bead, which the spec
+already carries. [#132](https://github.com/captproton/yardstake-ux/issues/132)
+takes the other ten from the barn cabin's `spec.trim`. Each value is written
+into Laurel's `spec.trim` as `confidence: assumed` and cites the barn-cabin
+key it came from.
+
+**Confidence does not cross buildings.** Some of these were `measured` on the
+barn cabin's A1.1. On Laurel every one of them is `assumed`, because nothing
+on Laurel's sheets measured it. The note says what the barn cabin's evidence
+was. It does not inherit that evidence's standing.
+
+| Laurel `spec.trim` key | value | barn cabin source (its confidence) | applies to |
+|---|---|---|---|
+| `casing_width` | 3 1/2" | `trim.casing_width` (measured_approx) | interior casing; siding exterior casing |
+| `head_casing_height` | 4 5/8" | `trim.head_casing_height` (measured) | interior casing; siding exterior casing |
+| `baseboard_height` | 3 1/2" | `trim.baseboard_height` (assumed) | interior, both finishes |
+| `interior_stool_projection` | 7/8" | `trim.interior_stool_projection` (assumed) | interior, both finishes |
+| `interior_stool_thickness` | 3/4" | `trim.interior_stool_thickness` (assumed) | interior, both finishes |
+| `interior_apron_height` | 3 1/2" | `trim.interior_apron_height` (assumed) | interior, both finishes |
+| `exterior_sill_thickness` | 2" | `trim.exterior_sill_thickness` (measured) | siding only |
+| `exterior_sill_projection` | 1 1/2" | `trim.exterior_sill_projection` (assumed) | siding only |
+| `exterior_apron_height` | 3 5/8" | `trim.exterior_apron_height` (measured_approx) | siding only |
+| `reveal_material` | trim | `trim.reveal_material` | siding only; see below for stucco |
+
+**The two finishes trim a window differently.** This is the one place the
+stucco/siding swap is not purely a material change:
+
+- **Lap siding:** A-3.2 details 3 and 4 draw FIBER CEMENT TRIM at the vinyl
+  window head and sill. Build the exterior casing, sill and apron from the
+  defaults above.
+- **Stucco:** A-3.0 details 3 and 4 finish the opening with a METAL CASING
+  BEAD and a 3/8" reveal. They show no trim board. Build **no** exterior
+  casing, sill or apron. The reveal takes the stucco material, `assumed`,
+  because the bead ends the plaster at the frame.
+
+The interior is the same under both finishes. Its trim is not a variant.
+
+**Open question for [#133](https://github.com/captproton/yardstake-ux/issues/133),
+with [#113](https://github.com/captproton/yardstake-ux/issues/113).** The page
+keeps `sets` (colours) and `presence` (nodes shown) as independent groups, so
+choosing a finish cannot show or hide the siding trim. The choices are:
+
+- a presence group for the exterior finish that sits beside the colour set,
+  which lets a buyer pair siding colours with stucco trim;
+- a contract change linking the two, which is a page change;
+- or always showing the siding trim, which is wrong for stucco.
+
+#132 does not decide this. It builds the siding exterior trim as its own
+named nodes, so any of the three can use them.
+
+**What would settle it.** A-3.2 details 3 and 4 are drawn at 6" = 1'-0". That
+is twenty-four times the elevations' scale, and fine enough to measure the
+fibre-cement trim's width and sill thickness from the ink. A measurement taken
+there supersedes the default. #132 is not required to take it.
 
 Fixture inventory visible in the sheets so far: kitchen with dishwasher,
 refrigerator and pantry; bathroom with a 36" vanity and a tub or shower; a
@@ -467,10 +586,10 @@ Each line is one pull request.
 2. [#127](https://github.com/captproton/yardstake-ux/issues/127) **Done** ([#141](https://github.com/captproton/yardstake-ux/pull/141)). `sheets.py` harvester plus a known-answer test against barn-cabin values already verified by hand: 175 of 183 agree exactly, the other 8 are listed with reasons; A-1.0 gives 67 candidates and A-2.0 gives 34, with exact inches; the tests run in CI against the versioned sheet set.
 3. [#128](https://github.com/captproton/yardstake-ux/issues/128) **Done** ([#142](https://github.com/captproton/yardstake-ux/pull/142)). `spec.yaml` P1, with the roof form settled and cited: one shed roof, not two planes; the studio plan, with the 1-bedroom recorded as a future configurator choice; 132 numbers, every one cited. In CI, `adu_kit/spec_lint.py` finds each drawn length on the sheet it cites, and `verify_spec.py` checks that openings follow from their dimension strings and that the frame is not mirrored, with a test for each gate. Open: [#143](https://github.com/captproton/yardstake-ux/issues/143), two lint gaps Laurel's spec does not hit (numeric keys are not checked; a recursive YAML alias crashes the lint). Also open: [#145](https://github.com/captproton/yardstake-ux/issues/145), whether the barn cabin's frame is mirrored the way this spec's first draft was — never checked, and #117 is proved on the barn cabin.
 4. [#129](https://github.com/captproton/yardstake-ux/issues/129) **Done** ([#146](https://github.com/captproton/yardstake-ux/pull/146)). `build.py` P2 massing and openings: slab, four walls, seven partitions, the single shed roof with its overhangs, and all fifteen openings cut with a sash from the declared operation or a leaf — door 1 as a leaf AND its glazed sidelite. The two things P2 had to settle are settled and cited: cladding is modelled at ZERO, so the stucco/siding swap stays a material change and cannot move the building's faces, with the geometry stopping at S1.0's 3/8" sheathing; and the five interior strings read outside face to outside face, which is where the partitions come from. `sash_geom` promoted into `adu_kit/kernel.py`, the barn cabin byte-identical. 11 Blender gates, and `test_build_literals.py` holds the no-dimension-literal rule in CI without Blender. 185 numbers cited (was 132), 19 `verify_spec` gates, 26 tests. Four review rounds, 22 findings, 20 real — most of them in the GATES rather than the building; see the PR's summary comment. The optional entry canopy moved out to [#144](https://github.com/captproton/yardstake-ux/issues/144) and the casing, stools and aprons to [#132](https://github.com/captproton/yardstake-ux/issues/132), both for the same reason: the sheets do not dimension them.
-5. [#130](https://github.com/captproton/yardstake-ux/issues/130) P3 overlay, plus the plate-height gate (the single shed plane meets T.P. 2 and T.P. 1), proved by perturbation. **#129 already built that gate and it measures the roof mesh, so #130 inherits it rather than writing it** — it was first written against the `Shed` helper, which is the expression the roof is laid out from, and a roof lifted a foot off the walls passed. What #130 owes is the OVERLAY, and these four `assumed` numbers are what it should aim at, because nothing so far has tested them against a drawing: door 5's position (the 3'-9" string beside it resolves onto no pair of faces), doors 3 and 4 centred in their clear spans, and every partition running to the roof underside.
-6. [#117](https://github.com/captproton/yardstake-ux/issues/117) **Declare the model's front** in the manifest, so the viewer stops assuming +Z. A page change, proved on the barn cabin and the fixtures before Laurel depends on it.
+5. [#130](https://github.com/captproton/yardstake-ux/issues/130) P3 overlay, plus the plate-height gate (the single shed plane meets T.P. 2 and T.P. 1), proved by perturbation. **#129 already built that gate and it measures the roof mesh, so #130 inherits it rather than writing it** — it was first written against the `Shed` helper, which is the expression the roof is laid out from, and a roof lifted a foot off the walls passed. What #130 owes is the OVERLAY. **In review as [#147](https://github.com/captproton/yardstake-ux/pull/147):** it compared named features rather than silhouettes, found the roof edge 2.47" too thick (the build extruded S1.0's 2x12, where A-2.0 draws a 9 1/4" edge), and reconciled the 10'-9 1/2" roof height to 0.02". The four interior `assumed` numbers this line once aimed #130 at appear on no elevation. They moved to P3b, in step 8.
+6. [#117](https://github.com/captproton/yardstake-ux/issues/117) **Declare the model's front** in the manifest, so the viewer stops assuming +Z. A page change, proved on the barn cabin and the fixtures before Laurel depends on it. **It needs nothing from Laurel's geometry, so it can run alongside step 5.** Only step 7 has to wait for both.
 7. [#131](https://github.com/captproton/yardstake-ux/issues/131) P4 materials, the stucco/siding swap, three levels, manifest, baseline. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
-8. [#132](https://github.com/captproton/yardstake-ux/issues/132) Tier 1 finishes and trim.
+8. [#132](https://github.com/captproton/yardstake-ux/issues/132) Tier 1 finishes and trim, using the [barn cabin's trim values, declared `assumed`](#tier-1-trim--the-barn-cabins-values-declared-assumed): siding exterior trim as its own nodes, none under stucco. Also [P3b](#p3b--overlay-against-the-a-10-plan), the A-1.0 plan overlay, which tests door 5, doors 3 and 4, and the partition faces against the drawn ink.
 9. [#119](https://github.com/captproton/yardstake-ux/issues/119) **Declare where each footprint sits**, so the overlay stops centring. A page change, before Laurel's dimensions are trusted.
 10. [#133](https://github.com/captproton/yardstake-ux/issues/133) Tier 2 textures and configurator: `sets`, `presence`, `views`, `dimensions`, `disclosure` meeting the page's contract.
 11. [#134](https://github.com/captproton/yardstake-ux/issues/134) Tier 3 fixtures, including the water heater and the mini-split.
