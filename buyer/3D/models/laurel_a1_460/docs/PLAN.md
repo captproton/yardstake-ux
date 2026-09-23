@@ -13,7 +13,7 @@ rest of `example plans/sacramento_adus/` is still ignored, including
 
 This plan assumes the ladder, the gates and the ground rules from
 [`../../barn_cabin_524/docs/README.md`](../../barn_cabin_524/docs/README.md).
-Read rules 1–33 there before writing anything here. Nothing below repeats them.
+Read its ground rules (1–42) before writing anything here. Nothing below repeats them.
 
 **Updated 2026-09-13, after the configurator page (#106–#112).** This plan was
 written before the page existed. The page now reads every exported model
@@ -25,6 +25,20 @@ sequence now includes the two page issues a second real model needs:
 [#119](https://github.com/captproton/yardstake-ux/issues/119) (footprint positions).
 Laurel's export also closes the last box of
 [#111](https://github.com/captproton/yardstake-ux/issues/111).
+
+**Updated 2026-09-23, after step 4
+([#148](https://github.com/captproton/yardstake-ux/pull/148)).** Four decisions
+were settled before the steps that need them:
+- **Trim:** the barn cabin's ten trim values become Laurel's declared
+  `assumed` defaults, with exterior trim for siding and none for stucco
+  ([Tier 1 trim](#tier-1-trim--the-barn-cabins-values-declared-assumed)).
+- **Interior checks:** the interior gets an overlay against A-1.0 of its own
+  ([P3b](#p3b--overlay-against-the-a-10-plan)).
+- **Overlay tolerance:** it is 0.5" per named feature (P3).
+- **Colour:** one rendering and no second source (P4).
+
+Issue [#132](https://github.com/captproton/yardstake-ux/issues/132) carries all
+four as done-when items.
 
 ---
 
