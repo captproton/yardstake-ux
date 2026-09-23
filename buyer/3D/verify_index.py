@@ -249,9 +249,17 @@ def main():
     for r in good:
         glb, path = r["levels"].get("lod0") or r["primary"], ROOT / r["manifest"]
         try:
-            ident = json.loads(path.read_text()).get("model") or {}
-        except (ValueError, OSError, AttributeError):
+            m = json.loads(path.read_text())
+        except (ValueError, OSError):
             continue  # gate 7 already reports an unreadable manifest
+        # Rule 25: the manifest is input. A `model` that is a string or a list
+        # is a failed gate here, not an AttributeError on the next line.
+        ident = m.get("model") if isinstance(m, dict) else None
+        if not isinstance(ident, dict):
+            fronts.append(f"{r['id']}: the manifest's model block is a "
+                          f"{type(ident).__name__}, not an object, so it "
+                          f"declares no front")
+            continue
         if ident.get("front") != r["front"]:
             fronts.append(f"{r['id']}: the row's front is {r['front']!r}, its "
                           f"manifest's is {ident.get('front')!r}")
