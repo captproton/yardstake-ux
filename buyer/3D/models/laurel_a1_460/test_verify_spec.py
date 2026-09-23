@@ -91,6 +91,17 @@ class VerifySpec(unittest.TestCase):
         r = run(text[:i] + text[j + 1:])
         self.assertGateFails(r, "the spec has the blocks these gates read")
 
+    def test_emptying_the_overlay_block_does_not_skip_its_gate(self):
+        """Found by review, after the fix above: an `if ov:` guard still let
+        an empty or null block skip the cross-sheet check silently."""
+        text = SPEC.read_text()
+        i = text.index("elevation_overlay:")
+        j = text.index("\nwindows:", i)
+        for empty in ("elevation_overlay: {}\n", "elevation_overlay:\n"):
+            with self.subTest(block=empty.strip()):
+                r = run(text[:i] + empty + text[j + 1:])
+                self.assertGateFails(r, "the spec has the blocks these gates read")
+
     def test_the_elevation_and_the_schedule_disagree_on_a_sill(self):
         """The overlay's whole point: two sheets read independently, compared.
         A sill the elevation draws a foot off the one the schedule gives is a

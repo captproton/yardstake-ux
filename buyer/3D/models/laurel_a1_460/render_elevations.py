@@ -43,6 +43,7 @@ from pathlib import Path
 
 import bpy
 import mathutils
+import numpy
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -73,6 +74,19 @@ def setup_scene():
             for ob in coll.objects:
                 ob.hide_render = True
     return sc
+
+
+def ink_width_ft(path):
+    """How far across the image the opaque pixels reach, in feet."""
+    img = bpy.data.images.load(str(path), check_existing=False)
+    try:
+        w, h = img.size
+        px = numpy.empty(w * h * 4, dtype=numpy.float32)
+        img.pixels.foreach_get(px)
+    finally:
+        bpy.data.images.remove(img)
+    cols = numpy.flatnonzero((px[3::4].reshape(h, w) > 0.5).any(axis=0))
+    return 0.0 if cols.size == 0 else (cols[-1] - cols[0] + 1) / PX_PER_FT
 
 
 def main():
@@ -111,6 +125,7 @@ def main():
     model_centre = ((x_lo + x_hi) / 2.0, (y_lo + y_hi) / 2.0, z_mid)
     res_y = int(round((Z_HI - Z_LO) * PX_PER_FT))
     manifest = {"px_per_ft": PX_PER_FT, "z_hi": Z_HI, "z_lo": Z_LO, "views": {}}
+    short = []
 
     for name, (look, axis, rightwards, (lo, hi)) in views.items():
         span = hi - lo
@@ -124,8 +139,8 @@ def main():
         # from the look direction is the whole trick: the first version chose
         # it with a chain of conditionals and got the two Y views backwards,
         # putting the camera in FRONT of the building while pointing it away.
-        # Those renders came out empty, which at least fails loudly -- but
-        # only if somebody looks at them.
+        # Those renders came out empty and the script printed four cheerful
+        # lines anyway. ink_width_ft() below is what now notices.
         eye = mathutils.Vector(model_centre) - mathutils.Vector(look) * FAR_FT
         cam.location = (eye.x, eye.y, z_mid)
         if axis == "x":
@@ -141,9 +156,21 @@ def main():
             "axis_lo": lo, "axis_hi": hi,
             "res_x": res_x, "res_y": res_y,
         }
+        # The EXTENT, not "any ink": a view that caught a sliver of the building
+        # would pass a non-empty check. The ink must span at least the wall it
+        # faces, face of stud to face of stud; overhangs only add to that.
+        ink = ink_width_ft(out / f"ortho_{name}.png")
+        wall = W if axis == "x" else D
+        ok = ink >= wall
         print(f"[render] {name:11s} {res_x}x{res_y}px  {axis} {lo:.2f}..{hi:.2f} ft  "
-              f"{'->' if rightwards else '<-'} across the image")
+              f"{'->' if rightwards else '<-'} across the image  "
+              f"ink {ink:.2f} ft vs wall {wall:.2f} ft  {'ok' if ok else 'FAIL'}")
+        if not ok:
+            short.append(f"{name}: ink spans {ink:.2f} ft, the wall it faces is {wall:.2f} ft")
 
+    if short:
+        print("\nRENDER FAILED -- no manifest written:\n  " + "\n  ".join(short))
+        sys.exit(1)
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"\nwrote {out / 'manifest.json'}")
     print("pixel mapping, top-left origin, y down:")
