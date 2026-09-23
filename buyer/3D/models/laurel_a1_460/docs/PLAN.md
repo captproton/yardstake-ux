@@ -346,13 +346,17 @@ four PRs and are the most battle-tested code in the project.
 projection and thickness, two apron heights, sill projection and thickness,
 and the reveal material — and Laurel's sheets dimension exactly ONE of them,
 the 3/8" reveal at the metal casing bead on A-3.0 details 3 and 4, which the
-spec already carries. Writing the other ten as `assumed` to satisfy this
-paragraph would be worse than reading A-3.0 and A-3.2 properly in #132, which
-is the step named for trim. Parameterising those helpers with only one caller
-would also mean guessing at an interface; the sash had two the moment it
-moved, which is what made its shape obvious. Decided in #129, recorded on the
-issue. **Settled since (2026-09-23):** #132 takes the barn cabin's values as
-declared `assumed` defaults; see [Tier 1 trim](#tier-1-trim--the-barn-cabins-values-declared-assumed).
+spec already carries. #129 declined to write the other ten as `assumed` just
+to finish P2, and left them for #132, the step named for trim.
+Parameterising those helpers with only one caller would also have meant
+guessing at an interface; the sash had two the moment it moved, which is what
+made its shape obvious. Recorded on #129.
+
+**Where the ten values come from is decided (2026-09-23), and this replaces
+#129's hope of reading them off A-3.0 and A-3.2:** #132 takes the barn
+cabin's values as declared `assumed` defaults. See
+[Tier 1 trim](#tier-1-trim--the-barn-cabins-values-declared-assumed), the one
+place that decision lives.
 
 Do **not** call: dormers, knee walls, loft subfloor, ladder, guardrail,
 crawlspace stemwall, vents, piers, porch posts.
@@ -368,8 +372,16 @@ Same method that settled the barn cabin ridge, and it is the phase that will
 catch a wrong roof reading.
 
 Render the model orthographically at the sheet's stated 1/4" = 1'-0" and
-compare it with A-2.0. The barn cabin landed at −0.18" mean and 0.21" standard
-deviation; hold Laurel to the same.
+compare it with A-2.0.
+
+**The tolerance is 0.5" per feature**, recorded as
+`spec.elevation_overlay.tolerance_in` (set in #130, PR
+[#147](https://github.com/captproton/yardstake-ux/pull/147)). Every named
+feature must fall within it individually. The drawing's own roof line sits
+about 1/4" below its labelled T.P. datums, so the model cannot agree more
+closely than that. The barn cabin's silhouette result (−0.18" mean, 0.21"
+standard deviation) is background only. A named-feature comparison produces
+no mean or standard deviation to hold Laurel to.
 
 **Compare named features, not silhouettes** (changed in #130, PR
 [#147](https://github.com/captproton/yardstake-ux/pull/147)). A per-column
@@ -380,7 +392,7 @@ rasterised at 400 dpi (100 px/ft): the roof underside at each wall, the
 overhang, and each window's sill, head and edges. Record them in
 `spec.elevation_overlay` as cited numbers, and have `verify_spec.py` compare
 them against what A-1.0's strings put in the same place. That runs in CI with
-no Blender. Each residual is held to the barn cabin's tolerance.
+no Blender. Each residual is held to the 0.5" per-feature tolerance.
 
 Add one gate this model needs and the barn cabin did not: **the single roof
 plane passes through T.P. 2 at the front wall and T.P. 1 at the rear** (it was
@@ -421,7 +433,7 @@ same step. If neither sheet draws one, record that the question cannot be
 settled from these sheets, as the barn cabin did for its interior ledges.
 
 Exit gate: every `assumed` interior position either becomes `measured` with a
-residual inside the barn cabin's tolerance, or stays `assumed` with a
+residual inside P3's 0.5" per-feature tolerance, or stays `assumed` with a
 `what_would_settle_it:`. At least one committed probe must move a partition in
 the **build** and turn the gate red.
 
