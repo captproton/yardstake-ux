@@ -379,9 +379,7 @@ compare it with A-2.0.
 [#147](https://github.com/captproton/yardstake-ux/pull/147)). Every named
 feature must fall within it individually. The drawing's own roof line sits
 about 1/4" below its labelled T.P. datums, so the model cannot agree more
-closely than that. The barn cabin's silhouette result (−0.18" mean, 0.21"
-standard deviation) is background only. A named-feature comparison produces
-no mean or standard deviation to hold Laurel to.
+closely than that.
 
 **Compare named features, not silhouettes** (changed in #130, PR
 [#147](https://github.com/captproton/yardstake-ux/pull/147)). A per-column
