@@ -93,6 +93,9 @@ def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     out = Path(argv[0]) if argv else HERE / "renders"
     out.mkdir(parents=True, exist_ok=True)
+    # Before rendering, not on failure: a run that fails or crashes part-way
+    # must not leave the last good run's mapping beside this run's images.
+    (out / "manifest.json").unlink(missing_ok=True)
 
     spec = load_spec(HERE / "spec.yaml")
     W = spec["envelope"]["width"]["ft"]
