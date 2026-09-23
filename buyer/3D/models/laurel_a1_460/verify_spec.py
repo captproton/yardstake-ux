@@ -269,6 +269,52 @@ def check(spec):
     placed |= {str(d["type"]) for d in layout["door_openings"]}
     optional = {m for m, d in doors.items() if d.get("option")}
     missing = sorted(set(doors) - placed - optional)
+    # ── A-2.0's ink against A-1.0's strings (#130) ────────────────────────
+    # TWO SHEETS, TWO DERIVATIONS, COMPARED. Everything above checks this
+    # spec against itself. These compare what #130 MEASURED off A-2.0's
+    # elevation against what A-1.0's dimension strings put in the same place.
+    # A window that agrees on both sheets is a window two independent readings
+    # found in the same spot; one that does not is a question for a human.
+    # It needs no Blender, so CI runs it.
+    # INDEXED, NOT .get(). A gate reached through .get() disappears when its
+    # block does: deleting elevation_overlay removed the whole cross-sheet
+    # check and verify_spec still exited 0, reporting nineteen green gates and
+    # never mentioning the twentieth. Reproduced before this changed. Indexing
+    # makes the absence raise, which main() turns into a failed gate naming
+    # the block -- the same way every other missing block here is handled.
+    # And NO `if ov:` guard: an empty or null block skipped the gate the same
+    # way. Unguarded, {} raises KeyError and null raises TypeError.
+    ov = spec["elevation_overlay"]
+    tol = ov["tolerance_in"]["value"] / 12.0
+    sre = ov["side_right_elevation"]
+    wt = {w["mark"]: w for w in o["window_types"]["types"]}
+    lv = spec["levels"]
+    off = []
+
+    def near(what, drawn, strung):
+        if abs(drawn - strung) > tol:
+            off.append(f"{what}: A-2.0 draws {drawn:.4f}, A-1.0's strings give "
+                       f"{strung:.4f} ({(drawn - strung) * 12:+.2f} in)")
+
+    c = wt["C"]
+    near("the C windows' sill", sre["window_c_sill"]["ft"], float(c["sill"]["ft"]))
+    near("the C windows' head", sre["window_c_head"]["ft"],
+         float(c["sill"]["ft"]) + float(c["height"]["ft"]))
+    for drawn_key, oid in (("window_c1_drawn", "W-C1"), ("window_c2_drawn", "W-C2")):
+        row = by_id[oid]
+        near(f"{oid} near edge", sre[drawn_key]["y0"], row["y0"])
+        near(f"{oid} far edge", sre[drawn_key]["y1"], row["y1"])
+    # the plates are LABELLED on the sheet and DRAWN a fraction below;
+    # this checks the ink against the label it sits under
+    near("the roof underside at the front wall",
+         sre["roof_underside_at_front_wall"]["ft"], float(lv["top_of_plate_front"]["ft"]))
+    near("the roof underside at the rear wall",
+         sre["roof_underside_at_rear_wall"]["ft"], float(lv["top_of_plate_rear"]["ft"]))
+    near("the front overhang", sre["front_overhang"]["ft"],
+         float(spec["roof"]["overhangs"]["front"]["ft"]))
+    gate(not off, "A-2.0's drawn geometry agrees with A-1.0's dimension strings",
+         "; ".join(off))
+
     gate(not missing, "every row of the door schedule is built or recorded as an option",
          "not placed: " + ", ".join(missing))
 

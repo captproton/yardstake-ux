@@ -39,6 +39,10 @@ from typing import Callable, Optional
 
 THREE_D = Path(__file__).resolve().parents[1]  # buyer/3D
 BARN = "barn_cabin_524"
+LAUREL = "laurel_a1_460"
+# Models whose own Blender scripts a probe may run. make_base copies these
+# whole, rather than the spec-and-export skeleton the index checks need.
+BLENDER_MODELS = (BARN, LAUREL)
 
 # What the checks read. Anything else under buyer/3D is not needed to run them.
 ROOT_FILES = ("build_index.py", "verify_index.py", "verify_prototype.py")
@@ -53,6 +57,13 @@ BLENDER_SKIP = ("renders", "refs", "docs", "tools", "__pycache__", "*.blend", "*
 
 def barn(root: Path) -> Path:
     return root / "models" / BARN
+
+
+def model_dir(root: Path, name: str) -> Path:
+    """Any model's directory in a probe copy. `barn` is the special case this
+    generalises: the Blender runs were hardwired to the barn cabin until
+    Laurel grew gates of its own (#130)."""
+    return root / "models" / name
 
 
 def manifest(root: Path) -> Path:
@@ -160,7 +171,8 @@ class Run:
     script: str
     args: tuple = ()
     fails: bool = True
-    blender: bool = False  # run inside Blender, from the barn cabin's directory
+    blender: bool = False  # run inside Blender, from `model`'s directory
+    model: str = BARN      # which model's directory a Blender run starts in
     timeout: int = 900  # seconds; a run that exceeds it is a failed case, not a hang
 
 
@@ -212,7 +224,14 @@ class Result:
 # ── the workspace ───────────────────────────────────────────────────────────
 
 def make_base(dst: Path, with_blender_model: bool = False) -> Path:
-    """Copy what the checks read into dst."""
+    """Copy what the checks read into dst.
+
+    `with_blender_model` copies WHOLE every model in BLENDER_MODELS, not one
+    model -- it was a single flag for the barn cabin until Laurel grew Blender
+    gates of its own (#130), and the name has outlived that. Without it a
+    model contributes only its spec.yaml, its EXPORT_PENDING and its export,
+    which is all the index and page checks read.
+    """
     dst.mkdir(parents=True)
     for name in ROOT_FILES + DOC_FILES:
         (dst / name).parent.mkdir(parents=True, exist_ok=True)
@@ -225,7 +244,7 @@ def make_base(dst: Path, with_blender_model: bool = False) -> Path:
                     ignore=shutil.ignore_patterns("__pycache__"))
     for model in sorted(p for p in (THREE_D / "models").iterdir() if p.is_dir()):
         out = dst / "models" / model.name
-        if with_blender_model and model.name == BARN:
+        if with_blender_model and model.name in BLENDER_MODELS:
             shutil.copytree(model, out, ignore=shutil.ignore_patterns(*BLENDER_SKIP))
             continue
         out.mkdir(parents=True)
@@ -318,7 +337,7 @@ def run_case(case, base: Path, blender: Optional[str]) -> Result:
         for run in case.runs:
             if run.blender:
                 cmd = [blender, "--background", "--python", run.script, "--"]
-                cwd = barn(work)
+                cwd = model_dir(work, run.model)
             else:
                 cmd = [sys.executable, run.script, *run.args]
                 cwd = work

@@ -28,12 +28,13 @@ import cases_fixtures  # noqa: E402
 import cases_index  # noqa: E402
 import cases_page  # noqa: E402
 import cases_rail  # noqa: E402
+import cases_roof  # noqa: E402
 import cases_views  # noqa: E402
 from suite import find_blender, make_base, run_case  # noqa: E402
 
 # In the order the checks were built, one round per PR.
 MODULES = (cases_index, cases_page, cases_views, cases_rail, cases_configuration, cases_fixtures,
-           cases_commerce)
+           cases_commerce, cases_roof)
 
 
 def main() -> int:
@@ -70,7 +71,14 @@ def main() -> int:
         blender_base = None
         for case in cases:
             use = base
-            if case.needs_blender and blender:
+            if case.needs_blender:
+                # BUILT EVEN WHEN BLENDER IS ABSENT. run_case deliberately runs
+                # a case's setup BEFORE deciding to skip, so that a case gone
+                # stale still says so on a machine with no Blender -- and a
+                # setup that edits a model's own scripts needs those scripts
+                # present to fail honestly. Gating this on `blender` meant CI,
+                # which has none, ran those setups against a base holding only
+                # spec.yaml and reported two live cases as stale. Found by CI.
                 blender_base = blender_base or make_base(Path(tmp) / "blender-base", with_blender_model=True)
                 use = blender_base
             result = run_case(case, use, blender)

@@ -79,6 +79,48 @@ class VerifySpec(unittest.TestCase):
         r = self.broken("      at_ft: 17.1667\n", "      at_ft: 17.6667\n")
         self.assertGateFails(r, "the partition faces follow from the interior strings")
 
+    # ── A-2.0's ink against A-1.0's strings (#130) ───────────────────────
+
+    def test_deleting_the_overlay_block_does_not_delete_its_gate(self):
+        """Found by review. The block was reached through .get(), so removing
+        it removed the whole cross-sheet check while verify_spec still exited
+        0 -- nineteen green gates and no mention of the twentieth."""
+        text = SPEC.read_text()
+        i = text.index("elevation_overlay:")
+        j = text.index("\nwindows:", i)
+        r = run(text[:i] + text[j + 1:])
+        self.assertGateFails(r, "the spec has the blocks these gates read")
+
+    def test_emptying_the_overlay_block_does_not_skip_its_gate(self):
+        """Found by review, after the fix above: an `if ov:` guard still let
+        an empty or null block skip the cross-sheet check silently."""
+        text = SPEC.read_text()
+        i = text.index("elevation_overlay:")
+        j = text.index("\nwindows:", i)
+        for empty in ("elevation_overlay: {}\n", "elevation_overlay:\n"):
+            with self.subTest(block=empty.strip()):
+                r = run(text[:i] + empty + text[j + 1:])
+                self.assertGateFails(r, "the spec has the blocks these gates read")
+
+    def test_the_elevation_and_the_schedule_disagree_on_a_sill(self):
+        """The overlay's whole point: two sheets read independently, compared.
+        A sill the elevation draws a foot off the one the schedule gives is a
+        question for a human, not something to average away."""
+        r = self.broken("window_c_sill: {ft: 4.9881,", "window_c_sill: {ft: 5.9881,")
+        self.assertGateFails(r, "A-2.0's drawn geometry agrees with A-1.0's dimension strings")
+
+    def test_the_drawn_roof_sits_below_its_own_plate_label(self):
+        # The ink is allowed to sit a fraction below the label it carries --
+        # it does, by 0.14" -- but not by half a foot.
+        r = self.broken("roof_underside_at_rear_wall:\n      ft: 7.9884",
+                        "roof_underside_at_rear_wall:\n      ft: 7.5000")
+        self.assertGateFails(r, "A-2.0's drawn geometry agrees with A-1.0's dimension strings")
+
+    def test_the_drawn_overhang_disagrees_with_the_roof_plan(self):
+        r = self.broken("    front_overhang:\n      ft: 4.9801",
+                        "    front_overhang:\n      ft: 6.0000")
+        self.assertGateFails(r, "A-2.0's drawn geometry agrees with A-1.0's dimension strings")
+
     def test_an_interior_string_that_changes_axis(self):
         # Found by review: the gate compared raw text only, so 7'-3" could be
         # recorded as running along X -- an axis the faces it is read between
