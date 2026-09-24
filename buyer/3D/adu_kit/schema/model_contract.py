@@ -25,9 +25,16 @@ from pathlib import PurePosixPath
 # after `<id>_` is not a level the page knows how to choose between.
 LEVEL_NAME = re.compile(r"^lod\d+$")
 
-IDENTITY_KEYS = ("id", "name", "area_sf", "area_key", "area_source", "storeys")
+IDENTITY_KEYS = ("id", "name", "area_sf", "area_key", "area_source", "storeys",
+                 "front")
 ROW_KEYS = IDENTITY_KEYS + ("dir", "manifest", "levels", "primary",
                             "thumbnail")
+
+# WHICH END OF THE BOX IS THE BUILDING'S FRONT, in the glTF frame (Y up), where
+# the page opens its first view (#117). Horizontal only: a front is never up or
+# down. Keep in step with FRONTS in prototype/app.js -- verify_prototype.py
+# gate 4 fails if they differ.
+FRONTS = ("+x", "-x", "+z", "-z")
 
 
 def _text(v):
@@ -77,6 +84,9 @@ def _identity_fields(d, where):
     if not (_number(area) and area > 0):
         problems.append(f"{where}.area_sf must be a positive number, "
                         f"found {area!r}")
+    if d.get("front") not in FRONTS:
+        problems.append(f"{where}.front must be one of {list(FRONTS)}, "
+                        f"found {d.get('front')!r}")
     return problems + storeys_problems(d.get("storeys"), f"{where}.storeys")
 
 
@@ -96,6 +106,9 @@ def identity_problems(ident, where="model"):
                         f"inside the model directory, found {thumb!r}")
     if "note" in ident and not isinstance(ident["note"], str):
         problems.append(f"{where}.note must be a string when present")
+    if "entry_node" in ident and not _text(ident["entry_node"]):
+        problems.append(f"{where}.entry_node must be a non-empty string when "
+                        f"present, found {ident['entry_node']!r}")
     return problems
 
 
@@ -136,7 +149,11 @@ def row_problems(row, where=None):
 
 def glb_json(path):
     """The JSON chunk of a binary glTF, as an object. Raises ValueError."""
-    b = path.read_bytes()
+    return glb_json_bytes(path.read_bytes())
+
+
+def glb_json_bytes(b):
+    """glb_json() for a file already in memory. Raises ValueError."""
     if len(b) < 20 or b[:4] != b"glTF":
         raise ValueError("not a binary glTF (no glTF magic)")
     length, kind = struct.unpack("<I4s", b[12:20])
@@ -163,6 +180,85 @@ def glb_names(path):
             raise ValueError(f"`{key}` is not a list of objects")
         out.append({x.get("name") for x in items})
     return tuple(out)
+
+
+def _node_bounds(g, node):
+    """(min, max) of one node's mesh in the file's frame. Raises ValueError on
+    anything this cannot place without guessing: a node with no mesh, a
+    parent, a rotation or matrix, or a POSITION accessor without bounds."""
+    for k in ("rotation", "matrix", "children"):
+        if k in node:
+            raise ValueError(f"node {node.get('name')!r} has `{k}`, which this "
+                             f"check does not resolve")
+    try:
+        mesh = g["meshes"][node["mesh"]]
+        accs = [g["accessors"][p["attributes"]["POSITION"]]
+                for p in mesh["primitives"]]
+        lo = [min(a["min"][i] for a in accs) for i in range(3)]
+        hi = [max(a["max"][i] for a in accs) for i in range(3)]
+        t = node.get("translation", [0.0, 0.0, 0.0])
+        s = node.get("scale", [1.0, 1.0, 1.0])
+        ends = [(lo[i] * s[i] + t[i], hi[i] * s[i] + t[i]) for i in range(3)]
+    except (KeyError, IndexError, TypeError, ValueError) as e:
+        raise ValueError(f"node {node.get('name')!r} has no usable mesh bounds ({e!r})")
+    return [min(e) for e in ends], [max(e) for e in ends]
+
+
+def front_problems(glb, front, entry_node):
+    """Does `entry_node` sit at the declared `front` end of the building (#117)?
+
+    `glb` is a path, or `(name, bytes)` for a file not yet written.
+
+    THE FILE IS THE WITNESS, not the spec: a declaration checked against the
+    frame it was written in would pass a front the exporter then turned
+    around. This reads the .glb the page loads.
+
+    "At the front" means NEARER THAT END THAN ANY OTHER. Each horizontal
+    direction is scored by how far the node's centre sits from the box's
+    centre toward it, as a fraction of the box's half-extent on that axis; the
+    declared direction must score highest and above zero. A door on the long
+    side of a narrow building then still reads as that side, and a door in
+    the middle reads as no end at all.
+    """
+    if front not in FRONTS:
+        return [f"front must be one of {list(FRONTS)}, found {front!r}"]
+    name = glb[0] if isinstance(glb, tuple) else glb.name
+    try:
+        g = glb_json_bytes(glb[1]) if isinstance(glb, tuple) else glb_json(glb)
+        nodes = g.get("nodes", [])
+        if not isinstance(nodes, list) or not all(isinstance(n, dict) for n in nodes):
+            raise ValueError("`nodes` is not a list of objects")
+        # A FLAT FILE ONLY. A mesh under a parent sits where the parent's
+        # transform puts it, and this reads each node in its own frame -- so a
+        # parent WITHOUT a mesh would move its children unseen, and an entry
+        # at the opposite end could pass. Refused rather than resolved: every
+        # export so far is flat, and a hierarchy should fail here, not pass.
+        parents = [n.get("name") for n in nodes if n.get("children")]
+        if parents:
+            raise ValueError(f"it has a node hierarchy (parents: {parents}), "
+                             f"which this check does not resolve")
+        boxes = [_node_bounds(g, n) for n in nodes if "mesh" in n]
+        entry = [n for n in nodes if n.get("name") == entry_node]
+        if len(entry) != 1:
+            return [f"{name} has {len(entry)} nodes named {entry_node!r}, not one"]
+        elo, ehi = _node_bounds(g, entry[0])
+    except (OSError, ValueError) as e:
+        return [f"{name}: cannot place the entry node: {e}"]
+    if not boxes:
+        return [f"{name} has no meshes to take a box from"]
+    lo = [min(b[0][i] for b in boxes) for i in range(3)]
+    hi = [max(b[1][i] for b in boxes) for i in range(3)]
+    score = {}
+    for axis, i in (("x", 0), ("z", 2)):
+        half = (hi[i] - lo[i]) / 2.0
+        toward = ((elo[i] + ehi[i]) / 2.0 - (lo[i] + hi[i]) / 2.0) / half if half else 0.0
+        score[f"+{axis}"], score[f"-{axis}"] = toward, -toward
+    best = max(score, key=score.get)
+    if best != front or score[front] <= 0:
+        return [f"{entry_node} sits at the {best} end of {name} "
+                f"({score[best]:+.2f} of the half-extent), but front is "
+                f"declared {front} ({score[front]:+.2f})"]
+    return []
 
 
 def manifest_names(manifest):

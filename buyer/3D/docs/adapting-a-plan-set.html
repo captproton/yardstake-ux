@@ -432,8 +432,18 @@ python3 make_textures.py</code></pre>
       <div class="draw"><pre>east = +X     north = +Y     up = +Z
 
     X   0 .. W          west wall .. east wall
-    Y   0 .. D+P        north (rear) wall .. porch outer edge
+    Y   0 .. D+P        porch outer edge (the front) .. north (rear) wall
     Z   0               MAIN FINISHED FLOOR  (grade is not modelled)
+
+The glTF export is Y up: Blender (x, y, z) becomes (x, z, -y). So the
+front, at low Y, exports to +Z. That is the barn cabin's; another model
+may differ, which is why each spec declares its own under
+meta.index.front, and the export checks it (#117).
+
+These notes used to say Y ran from the north wall to the porch. That was
+the P2 build, which was a mirror image (spec: mirrored-model) and was
+fixed by running Y south to north. The notes were wrong; the exporter
+was right.
 
 Wall offsets in the spec are stated from the WEST corner for north/south
 walls, and from the NORTH corner for east/west walls.

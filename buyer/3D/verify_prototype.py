@@ -326,10 +326,37 @@ def main():
         unit_problems.append(
             f"DISCLOSURE_MAX_CHARS differs — app.js: {page_limit}, "
             f"model_contract: {model_contract.DISCLOSURE_MAX_CHARS}")
+    # And the fronts (#117): one only the contract knows is a model every
+    # index gate passes and the page refuses to open.
+    # THE DIRECTIONS TOO, NOT ONLY THE NAMES. Swapping two vectors keeps the
+    # names equal and turns every model to the wrong side. Each name spells
+    # its own direction -- `-z` is (0, 0, -1) -- so the page is held to the
+    # name rather than to a second table that could drift with it.
+    fm = re.search(r"const FRONTS = \{(.*?)\n\};", page_text[PROTO / "app.js"], re.S)
+    entries = re.findall(r"^\s*'([^']+)':\s*\[([^\]]*)\]", fm.group(1), re.M) if fm else []
+    page_fronts = {name for name, _ in entries}
+    if not fm:
+        unit_problems.append("app.js has no `const FRONTS = { ... };` block to compare")
+    elif page_fronts != set(model_contract.FRONTS):
+        unit_problems.append(
+            f"fronts differ — only app.js: {sorted(page_fronts - set(model_contract.FRONTS))}, "
+            f"only model_contract: {sorted(set(model_contract.FRONTS) - page_fronts)}")
+    for name, vec in entries:
+        want = [0.0, 0.0, 0.0]
+        if re.fullmatch(r"[+-][xyz]", name):
+            want["xyz".index(name[1])] = 1.0 if name[0] == "+" else -1.0
+        try:
+            got = [float(v) for v in vec.split(",")]
+        except ValueError:
+            got = None
+        if got != want:
+            unit_problems.append(f"app.js points front {name!r} along [{vec.strip()}], "
+                                 f"not {want}")
     problems += unit_problems
     print(f"  [{'PASS' if not unit_problems else 'FAIL'}] app.js and model_contract "
-          f"agree on units and the disclosure limit — "
-          f"{', '.join(sorted(page_units)) or 'no units found'}; {page_limit} characters")
+          f"agree on units, fronts and the disclosure limit — "
+          f"{', '.join(sorted(page_units)) or 'no units found'}; "
+          f"{', '.join(sorted(page_fronts)) or 'no fronts found'}; {page_limit} characters")
 
     # ── 5. the documented configuration is one the real manifest accepts ──
     # docs/CONFIGURATION.md is the contract with Rails (#110). Its example must

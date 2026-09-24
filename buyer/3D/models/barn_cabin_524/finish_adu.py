@@ -34,7 +34,8 @@ sys.path.insert(0, str(HERE))
 # schema this file, build_index.py and verify_index.py share. Appended, so
 # nothing there shadows this model's.
 sys.path.append(str(HERE.parents[1]))
-from adu_kit.schema.model_contract import display_problems, identity_problems  # noqa: E402
+from adu_kit.schema.model_contract import (  # noqa: E402
+    display_problems, front_problems, identity_problems)
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 # Feet to metres, the Draco .glb writer and the .glb reader know no building,
@@ -440,6 +441,18 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
                         f"`value` and `source`, found {area!r}")
     area = area if isinstance(area, dict) else {}
 
+    # WHICH END IS THE FRONT (#117), declared rather than assumed, and HELD TO
+    # THE FILE: the entry door must sit at that end of the lod0 just staged.
+    # A wrong declaration is a building the page opens from behind, so it
+    # fails here instead of there.
+    front = idx.get("front") if isinstance(idx.get("front"), dict) else {}
+    if not isinstance(front.get("entry"), str) or not front.get("entry"):
+        problems.append("meta.index.front.entry is unset; nothing can prove "
+                        "the declared front is the building's front")
+    else:
+        problems += front_problems(out / "barn_cabin_524_lod0.glb",
+                                   front.get("glb"), front["entry"])
+
     manifest = {
         "model": {
             "id": meta.get("model_id"),
@@ -448,6 +461,8 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
             "area_key": area_key,
             "area_source": area.get("source"),
             "storeys": idx.get("storeys"),
+            "front": front.get("glb"),
+            "entry_node": front.get("entry"),
             # Relative to the MODEL DIRECTORY, so the index can rebase it and
             # nothing downstream has to know where this model lives. Optional:
             # a model with no render yet publishes null rather than a path

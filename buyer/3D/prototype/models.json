@@ -13,6 +13,7 @@
         "raw": "main floor + loft storage above",
         "source": "A1.1 main floor plan and loft plan"
       },
+      "front": "+z",
       "dir": "../models/barn_cabin_524",
       "manifest": "../models/barn_cabin_524/export/variants.json",
       "levels": {

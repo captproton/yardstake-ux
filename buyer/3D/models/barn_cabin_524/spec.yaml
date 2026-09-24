@@ -27,6 +27,17 @@ meta:
               raw: "main floor + loft storage above",
               source: "A1.1 main floor plan and loft plan"}
     thumbnail: renders/ortho_front_S.png
+    # WHICH END THE PAGE OPENS ON (#117), in the EXPORTED file's frame: glTF,
+    # Y up. Blender's -Y (the porch end) exports to +Z. finish_adu.py refuses
+    # to publish unless `entry` sits at this end of the .glb it just wrote,
+    # and verify_index.py checks it again on every PR.
+    front:
+      glb: "+z"
+      entry: Door_D-FRONT
+      source: >
+        A1.1 FRONT ELEVATION - OPTION B draws the entry door under the covered
+        porch, and the plan puts the porch at the front. Built at Blender -Y,
+        which verify_frame.py holds to A1.1's left and right (#145).
   plan_date: 2024-01-25
   designer: Design Residential, Inc., Medford OR
   code_basis: 2021 Oregon Residential Specialty Code

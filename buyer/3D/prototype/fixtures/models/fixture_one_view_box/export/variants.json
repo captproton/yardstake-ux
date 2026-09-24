@@ -9,6 +9,7 @@
       "count": 1,
       "loft": false
     },
+    "front": "+z",
     "thumbnail": null,
     "note": "A test fixture with a single view mode that hides the roof: no buttons render, and the mode is still applied (#108). Not a real model."
   },

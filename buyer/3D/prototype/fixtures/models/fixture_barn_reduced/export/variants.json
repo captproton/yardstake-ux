@@ -11,6 +11,8 @@
       "raw": "main floor + loft storage above",
       "source": "A1.1 main floor plan and loft plan"
     },
+    "front": "+z",
+    "entry_node": "Door_D-FRONT",
     "thumbnail": null,
     "note": "A test fixture (#111): the barn cabin's own .glb files under its manifest with a layout group, two view modes and the with-porch footprint removed. Generated from the barn cabin's manifest by prototype/fixtures/make_fixtures.py. Not a real model."
   },

@@ -130,6 +130,7 @@ def scan():
             "area_key": ident["area_key"],
             "area_source": ident["area_source"],
             "storeys": ident["storeys"],
+            "front": ident["front"],
             "dir": rel(d),
             "manifest": rel(manifest),
             "levels": {k: rel(v) for k, v in sorted(lods.items())},
