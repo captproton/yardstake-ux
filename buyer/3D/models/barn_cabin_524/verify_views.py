@@ -15,7 +15,7 @@ itself off. Three of them were real and none announced itself:
 
 So each of those is now a gate.
 
-    blender --background barn_cabin_524.blend --python verify_views.py
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_views.py
 """
 import copy
 import json

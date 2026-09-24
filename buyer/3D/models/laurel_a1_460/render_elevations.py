@@ -9,7 +9,7 @@ the same reason against a sheet it had rasterised at 200 dpi; Laurel's
 measurements were all taken at 400, so it stays there.
 
     blender --background models/laurel_a1_460/laurel_a1_460.blend \\
-        --python models/laurel_a1_460/render_elevations.py -- OUTDIR
+        --python-exit-code 1 --python models/laurel_a1_460/render_elevations.py -- OUTDIR
 
 Writes four PNGs and a `manifest.json` carrying the pixel-to-world mapping for
 each, so the comparison step reads the mapping rather than re-deriving it. Two

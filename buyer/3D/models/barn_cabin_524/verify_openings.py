@@ -18,7 +18,7 @@ reader to trust a guarantee nobody is making.
 
 Run after build_adu.py:
 
-    blender --background barn_cabin_524.blend --python verify_openings.py
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_openings.py
 """
 import sys
 from pathlib import Path

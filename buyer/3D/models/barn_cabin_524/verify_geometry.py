@@ -19,7 +19,7 @@ missing tub by hand in the first place: IS THERE ANY NON-STRUCTURAL GEOMETRY
 INSIDE THIS FIXTURE'S MEASURED FOOTPRINT, AND WITHIN ITS OWN HEIGHT? Shared
 meshes are irrelevant to that, because faces have positions.
 
-    blender --background barn_cabin_524.blend --python verify_geometry.py
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_geometry.py
 """
 import sys
 from pathlib import Path

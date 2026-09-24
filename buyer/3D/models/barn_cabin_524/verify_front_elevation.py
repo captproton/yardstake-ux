@@ -35,7 +35,7 @@ answer it, which reads exactly like a real defect. That is ground rule 28, and
 `main()` now refuses the wrong scene instead of failing seven gates on it.
 
     blender --background barn_cabin_524_textured.blend \\
-        --python verify_front_elevation.py
+        --python-exit-code 1 --python verify_front_elevation.py
 """
 import sys
 from pathlib import Path
@@ -107,7 +107,7 @@ def main():
               "\n"
               "\n             blender --background barn_cabin_524_textured.blend"
               " \\"
-              "\n                 --python verify_front_elevation.py"
+              "\n                 --python-exit-code 1 --python verify_front_elevation.py"
               "\n"
               "\n  NOT A PASS AND NOT A FAILURE — the subject is not here.")
         print("=" * 96)

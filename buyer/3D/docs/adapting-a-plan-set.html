@@ -409,20 +409,22 @@ html{scroll-behavior:smooth}
       </div>
 
       <h3>How to run it</h3>
-<pre><code><span class="c"># build the massing model from the spec</span>
-blender --background --python build_adu.py -- [--out DIR] [--no-openings]
+<pre><code><span class="c"># --python-exit-code 1, always: without it Blender exits 0 when a script crashes (#151)</span>
+
+<span class="c"># build the massing model from the spec</span>
+blender --background --python-exit-code 1 --python build_adu.py -- [--out DIR] [--no-openings]
 
 <span class="c"># materials, glazing, three LODs, variants.json — runs its own export gates</span>
-blender --background --python finish_adu.py -- [--out DIR]
+blender --background --python-exit-code 1 --python finish_adu.py -- [--out DIR]
 
 <span class="c"># a gate that needs the scene (eight of the nine)</span>
-blender --background barn_cabin_524.blend --python verify_tier1.py
+blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_tier1.py
 
 <span class="c"># a gate that reads the spec alone</span>
 python3 verify_fixtures.py
 
 <span class="c"># elevations you can lay straight onto the sheet</span>
-blender --background barn_cabin_524.blend --python render_elevations.py -- OUTDIR
+blender --background barn_cabin_524.blend --python-exit-code 1 --python render_elevations.py -- OUTDIR
 
 <span class="c"># textures — HOST python, not Blender's (needs numpy, PIL, pyyaml)</span>
 python3 make_textures.py</code></pre>

@@ -173,6 +173,8 @@ class Run:
     fails: bool = True
     blender: bool = False  # run inside Blender, from `model`'s directory
     model: str = BARN      # which model's directory a Blender run starts in
+    # A case ABOUT a crash expects its traceback; every other case fails on one.
+    traceback_expected: bool = False
     timeout: int = 900  # seconds; a run that exceeds it is a failed case, not a hang
 
 
@@ -336,7 +338,11 @@ def run_case(case, base: Path, blender: Optional[str]) -> Result:
         outputs, reasons = [], []
         for run in case.runs:
             if run.blender:
-                cmd = [blender, "--background", "--python", run.script, "--"]
+                # BLENDER EXITS 0 ON AN UNCAUGHT EXCEPTION unless told
+                # otherwise (#151), so without this a crash is judged by
+                # the wording of its output and nothing else.
+                cmd = [blender, "--background", "--python-exit-code", "1",
+                       "--python", run.script, "--"]
                 cwd = model_dir(work, run.model)
             else:
                 cmd = [sys.executable, run.script, *run.args]
@@ -359,7 +365,7 @@ def run_case(case, base: Path, blender: Optional[str]) -> Result:
             if (p.returncode != 0) != run.fails:
                 reasons.append(f"{label} exited {p.returncode}, expected "
                                f"{'non-zero' if run.fails else '0'}")
-            if "Traceback" in out:
+            if "Traceback" in out and not run.traceback_expected:
                 reasons.append(f"{label} printed a traceback")
         # Restore permissions a case removed, so the directory can be cleaned.
         for path in work.rglob("*"):

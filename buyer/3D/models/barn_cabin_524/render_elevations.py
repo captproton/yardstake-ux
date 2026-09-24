@@ -10,7 +10,7 @@ Frame convention (see build_adu.py): east=+X, north=+Y, up=+Z.
   REAR  elevation  looks south (-Y): screen-right = -X = west, east on the left.
 Both match standard architectural convention and the A1.1 sheet.
 
-    blender --background barn_cabin_524.blend --python render_elevations.py -- OUTDIR
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python render_elevations.py -- OUTDIR
 """
 import sys
 from pathlib import Path

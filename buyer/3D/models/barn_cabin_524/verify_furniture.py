@@ -14,7 +14,7 @@ washer/dryer. Furniture merged that way could never be switched, because you
 cannot hide half a mesh, and the presence-swap work (#76) would have to rebuild
 it. That property is invisible in a render and cheap to lose in a refactor.
 
-    blender --background barn_cabin_524.blend --python verify_furniture.py
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_furniture.py
 """
 import sys
 from pathlib import Path

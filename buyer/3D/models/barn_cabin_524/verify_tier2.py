@@ -5,7 +5,7 @@ The texel density gate is the one that matters. Without it, hand-authored or
 drifting UVs make the siding scale jump visibly between walls, and nobody
 notices until the textures are on.
 
-    blender --background barn_cabin_524.blend --python verify_tier2.py
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_tier2.py
 """
 import sys
 from pathlib import Path

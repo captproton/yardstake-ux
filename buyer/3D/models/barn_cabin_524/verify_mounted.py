@@ -22,7 +22,7 @@ living room. The two failures worth catching here are both silent —
   small error in `rise` or `projection` puts it through the soffit, where it is
   invisible from outside and visible from the porch.
 
-    blender --background barn_cabin_524.blend --python verify_mounted.py
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_mounted.py
 """
 import sys
 from pathlib import Path
