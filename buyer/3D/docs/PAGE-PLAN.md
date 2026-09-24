@@ -431,13 +431,12 @@ Sequenced. Each is small enough to review.
 its manifest: it lists models, frames them, offers view modes, dimensions,
 finishes and layouts, keeps the configuration in a link, and hands an
 estimate slot and a quote to Rails, all without naming any building. What
-remains is below: #111's second-export box, the issues outside the
-sequence, and the open questions.
+remains is below: the issues outside the sequence, and the open questions.
 
 **Done:** [#112](https://github.com/captproton/yardstake-ux/issues/112), the commerce slots ([#125](https://github.com/captproton/yardstake-ux/pull/125)). [#121](https://github.com/captproton/yardstake-ux/issues/121), the probe suite ([#123](https://github.com/captproton/yardstake-ux/pull/123)) — first, as planned, because
 the probes that proved every gate lived only outside the repo.
-[#111](https://github.com/captproton/yardstake-ux/issues/111), a model with parts missing ([#124](https://github.com/captproton/yardstake-ux/pull/124)) — all but the box
-carried from #106, so the issue stays open until a second model is exported.
+[#111](https://github.com/captproton/yardstake-ux/issues/111), a model with parts missing ([#124](https://github.com/captproton/yardstake-ux/pull/124)), and its last
+box, a second real export as a row with no page code: Laurel ([#154](https://github.com/captproton/yardstake-ux/pull/154)).
 
 | # | | why it is where it is |
 |---|---|---|
@@ -446,7 +445,7 @@ carried from #106, so the issue stays open until a second model is exported.
 | [#108](https://github.com/captproton/yardstake-ux/issues/108) | **SHOW INTERIOR and SHOW DIMENSIONS** | the two controls under the reference viewer — **done** ([#118](https://github.com/captproton/yardstake-ux/pull/118)); the manifest's modes and footprints, whole or refused |
 | [#109](https://github.com/captproton/yardstake-ux/issues/109) | **The option rail** | `sets` and `presence`, rendered generically — **done** ([#120](https://github.com/captproton/yardstake-ux/pull/120)); linear colours in, sRGB swatches out, layouts applied on load |
 | [#110](https://github.com/captproton/yardstake-ux/issues/110) | **Configuration state and deep links** | the `?step=2` pattern, and the object Rails will persist — **done** ([#122](https://github.com/captproton/yardstake-ux/pull/122)); the contract is [`CONFIGURATION.md`](CONFIGURATION.md) |
-| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft — **done except one box** ([#124](https://github.com/captproton/yardstake-ux/pull/124)): the barn cabin reduced (its own `.glb` files, minus a layout group, two view modes and `with_porch`) renders a working page; the identity-only fixture loads and orbits with no controls and no rail; fixtures must match their generator. **Open:** the box carried from #106 — a real second export lands as a row with no page code — until a second model is exported |
+| [#111](https://github.com/captproton/yardstake-ux/issues/111) | **Survive a manifest that is missing things** | Laurel has no porch and no loft — **done** ([#124](https://github.com/captproton/yardstake-ux/pull/124), [#154](https://github.com/captproton/yardstake-ux/pull/154)): the barn cabin reduced (its own `.glb` files, minus a layout group, two view modes and `with_porch`) renders a working page; the identity-only fixture loads and orbits with no controls and no rail; fixtures must match their generator. and the box carried from #106 — a real second export lands as a row with no page code — closed by Laurel (#154), with `index.html` and `app.js` unchanged |
 | [#112](https://github.com/captproton/yardstake-ux/issues/112) | **Commerce slots** | cost estimate and CTA as stubs the Rails app fills — **done** ([#125](https://github.com/captproton/yardstake-ux/pull/125)); the contract is [`COMMERCE.md`](COMMERCE.md). The quote carries the configuration from [`CONFIGURATION.md`](CONFIGURATION.md); the footer works with no price, and serves every answer to open question 2 |
 
 Not in the sequence, because nothing above is blocked on it:
