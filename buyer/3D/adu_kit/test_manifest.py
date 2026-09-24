@@ -228,5 +228,38 @@ class Identity(unittest.TestCase):
                 self.assertTrue(any(expected in p for p in problems), problems)
 
 
+
+class Baseline(unittest.TestCase):
+    """model_contract.baseline_problems: the lod2 baseline, asserted (#131)."""
+    LOD2 = BARN / "export" / "barn_cabin_524_lod2.glb"
+
+    @classmethod
+    def setUpClass(cls):
+        spec = yaml.safe_load((BARN / "spec.yaml").read_text())
+        cls.base = spec["export"]["lod2_baseline"]
+
+    def test_the_barn_cabins_lod2_sits_on_its_baseline(self):
+        self.assertEqual(model_contract.baseline_problems(self.LOD2, self.base), [])
+
+    def test_lod0_does_not_its_footing_reaches_lower(self):
+        problems = model_contract.baseline_problems(BARN / "export" / "barn_cabin_524_lod0.glb", self.base)
+        self.assertTrue(any("floor (min y) is -1.1750 m" in p for p in problems), problems)
+
+    def test_a_moved_origin_is_named(self):
+        moved = dict(self.base, x_m={"value": [0.0, 7.62], "derived": "moved"})
+        problems = model_contract.baseline_problems(self.LOD2, moved)
+        self.assertTrue(any("min x" in p for p in problems), problems)
+
+    def test_units_and_axis_are_declared(self):
+        problems = model_contract.baseline_problems(self.LOD2, dict(self.base, units="feet", up="+z"))
+        self.assertTrue(any("units must be 'metres'" in p for p in problems), problems)
+        self.assertTrue(any("up must be '+y'" in p for p in problems), problems)
+
+    def test_a_malformed_baseline_is_a_problem_not_a_crash(self):
+        for bad in (None, ["x"], dict(self.base, floor_y_m="low")):
+            with self.subTest(bad=bad):
+                self.assertTrue(model_contract.baseline_problems(self.LOD2, bad))
+
+
 if __name__ == "__main__":
     unittest.main()

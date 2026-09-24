@@ -261,6 +261,73 @@ def front_problems(glb, front, entry_node):
     return []
 
 
+def glb_bounds(glb):
+    """(min, max) of every mesh in a flat .glb, in its own frame. `glb` is a
+    path or (name, bytes). Raises ValueError where front_problems() would
+    refuse: a node hierarchy, or a mesh without bounds."""
+    g = glb_json_bytes(glb[1]) if isinstance(glb, tuple) else glb_json(glb)
+    nodes = g.get("nodes", [])
+    if not isinstance(nodes, list) or not all(isinstance(n, dict) for n in nodes):
+        raise ValueError("`nodes` is not a list of objects")
+    if any(n.get("children") for n in nodes):
+        raise ValueError("it has a node hierarchy, which this does not resolve")
+    boxes = [_node_bounds(g, n) for n in nodes if "mesh" in n]
+    if not boxes:
+        raise ValueError("it has no meshes")
+    return ([min(b[0][i] for b in boxes) for i in range(3)],
+            [max(b[1][i] for b in boxes) for i in range(3)])
+
+
+BASELINE_TOL_M = 0.002
+
+
+def baseline_problems(glb, baseline, tol=BASELINE_TOL_M):
+    """Is the exported massing where the spec says it is (#131)?
+
+    THE LOD2 BASELINE, ASSERTED PER MODEL. The placement developer lays lod2
+    on a parcel, so its origin, axes, units and floor are the interface, and
+    nothing checked them: the barn cabin's floor moved from 0 to -0.972 m
+    when a crawlspace replaced the slab, silently. One set of numbers pins
+    all four -- the floor on Y (so Y is up), the plan on X and Z (so the
+    origin is where it was), all in metres (a file in feet is 3.28 times too
+    big) -- each held to `tol`, a couple of millimetres of Draco quantization.
+
+    `baseline` is spec.export.lod2_baseline: units, up, floor_y_m and x_m /
+    z_m, each value either a number or a mapping with `value`.
+    """
+    def val(key):
+        v = baseline.get(key)
+        return v.get("value") if isinstance(v, dict) else v
+
+    if not isinstance(baseline, dict):
+        return [f"lod2 baseline must be an object, found {type(baseline).__name__}"]
+    problems = []
+    if baseline.get("units") != "metres":
+        problems.append(f"lod2 baseline units must be 'metres', the glTF unit, "
+                        f"found {baseline.get('units')!r}")
+    if baseline.get("up") != "+y":
+        problems.append(f"lod2 baseline up must be '+y', the glTF up axis, "
+                        f"found {baseline.get('up')!r}")
+    floor, xs, zs = val("floor_y_m"), val("x_m"), val("z_m")
+    pair = lambda v: (isinstance(v, list) and len(v) == 2  # noqa: E731
+                      and all(_number(x) for x in v))
+    if not _number(floor) or not pair(xs) or not pair(zs):
+        return problems + ["lod2 baseline needs floor_y_m as a number and x_m, "
+                           "z_m as [min, max] pairs of numbers"]
+    name = glb[0] if isinstance(glb, tuple) else glb.name
+    try:
+        lo, hi = glb_bounds(glb)
+    except (OSError, ValueError) as e:
+        return problems + [f"{name}: cannot measure the massing: {e}"]
+    for what, got, want in (("floor (min y)", lo[1], floor),
+                            ("min x", lo[0], xs[0]), ("max x", hi[0], xs[1]),
+                            ("min z", lo[2], zs[0]), ("max z", hi[2], zs[1])):
+        if abs(got - want) > tol:
+            problems.append(f"{name}: {what} is {got:+.4f} m, the baseline "
+                            f"says {want:+.4f} m ({(got - want) * 1000:+.1f} mm)")
+    return problems
+
+
 def manifest_names(manifest):
     """(material targets, node names) a variants.json asks the page to touch:
     the materials its `sets` tint, and the nodes its `presence` options show

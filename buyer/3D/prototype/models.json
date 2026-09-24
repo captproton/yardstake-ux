@@ -23,6 +23,29 @@
       },
       "primary": "../models/barn_cabin_524/export/barn_cabin_524.glb",
       "thumbnail": "../models/barn_cabin_524/renders/ortho_front_S.png"
+    },
+    {
+      "id": "laurel_a1_460",
+      "name": "Laurel",
+      "area_sf": 460,
+      "area_key": "studio_sf",
+      "area_source": "A-0.0 project data 'S.F. OF PROPOSED ADU: 460 S.F.'; A-1.0 LIGHT & VENTILATION 'STUDIO: 460 S.F.'",
+      "storeys": {
+        "count": 1,
+        "loft": false,
+        "raw": "single storey, no loft",
+        "source": "A-2.0 front, rear and side elevations: one floor, F.F. to T.P. only"
+      },
+      "front": "-z",
+      "dir": "../models/laurel_a1_460",
+      "manifest": "../models/laurel_a1_460/export/variants.json",
+      "levels": {
+        "lod0": "../models/laurel_a1_460/export/laurel_a1_460_lod0.glb",
+        "lod1": "../models/laurel_a1_460/export/laurel_a1_460_lod1.glb",
+        "lod2": "../models/laurel_a1_460/export/laurel_a1_460_lod2.glb"
+      },
+      "primary": "../models/laurel_a1_460/export/laurel_a1_460.glb",
+      "thumbnail": null
     }
   ]
 }
