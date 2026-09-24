@@ -17,6 +17,7 @@ INPUT. The callers turn problems into a failed gate with a readable line. A
 TypeError from a malformed file is a traceback where a gate should have been.
 """
 import json
+import math
 import re
 import struct
 from pathlib import PurePosixPath
@@ -309,11 +310,14 @@ def baseline_problems(glb, baseline, tol=BASELINE_TOL_M):
         problems.append(f"lod2 baseline up must be '+y', the glTF up axis, "
                         f"found {baseline.get('up')!r}")
     floor, xs, zs = val("floor_y_m"), val("x_m"), val("z_m")
+    # FINITE, NOT JUST NUMERIC: every comparison with NaN is false, so a NaN
+    # floor would pass the tolerance check below without being checked.
+    finite = lambda x: _number(x) and math.isfinite(x)  # noqa: E731
     pair = lambda v: (isinstance(v, list) and len(v) == 2  # noqa: E731
-                      and all(_number(x) for x in v))
-    if not _number(floor) or not pair(xs) or not pair(zs):
-        return problems + ["lod2 baseline needs floor_y_m as a number and x_m, "
-                           "z_m as [min, max] pairs of numbers"]
+                      and all(finite(x) for x in v))
+    if not finite(floor) or not pair(xs) or not pair(zs):
+        return problems + ["lod2 baseline needs floor_y_m as a finite number and "
+                           "x_m, z_m as [min, max] pairs of finite numbers"]
     name = glb[0] if isinstance(glb, tuple) else glb.name
     try:
         lo, hi = glb_bounds(glb)

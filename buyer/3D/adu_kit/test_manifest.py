@@ -255,6 +255,17 @@ class Baseline(unittest.TestCase):
         self.assertTrue(any("units must be 'metres'" in p for p in problems), problems)
         self.assertTrue(any("up must be '+y'" in p for p in problems), problems)
 
+    def test_a_non_finite_value_is_refused_not_passed(self):
+        """Found by review: NaN compares false with everything, so a NaN
+        floor passed the tolerance check without being checked."""
+        nan, inf = float("nan"), float("inf")
+        for bad in (dict(self.base, floor_y_m={"value": nan, "derived": "x"}),
+                    dict(self.base, x_m={"value": [nan, 7.1628], "derived": "x"}),
+                    dict(self.base, z_m={"value": [-9.6012, inf], "derived": "x"})):
+            with self.subTest(bad=bad):
+                problems = model_contract.baseline_problems(self.LOD2, bad)
+                self.assertTrue(any("finite" in p for p in problems), problems)
+
     def test_a_malformed_baseline_is_a_problem_not_a_crash(self):
         for bad in (None, ["x"], dict(self.base, floor_y_m="low")):
             with self.subTest(bad=bad):
