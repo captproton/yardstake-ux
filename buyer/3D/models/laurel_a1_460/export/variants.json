@@ -1,0 +1,177 @@
+{
+  "model": {
+    "id": "laurel_a1_460",
+    "name": "Laurel",
+    "area_sf": 460,
+    "area_key": "studio_sf",
+    "area_source": "A-0.0 project data 'S.F. OF PROPOSED ADU: 460 S.F.'; A-1.0 LIGHT & VENTILATION 'STUDIO: 460 S.F.'",
+    "storeys": {
+      "count": 1,
+      "loft": false,
+      "raw": "single storey, no loft",
+      "source": "A-2.0 front, rear and side elevations: one floor, F.F. to T.P. only"
+    },
+    "front": "-z",
+    "entry_node": "Leaf_D-1",
+    "thumbnail": null,
+    "note": "Sacramento County Permit Ready ADU, Model A1 \"Laurel\": the studio plan, 460 sf, one shed roof. Its front is -z in this file, the opposite of the barn cabin. The exterior is stucco; the fibre-cement lap siding the sheet also offers arrives with #133.\n"
+  },
+  "note": "Runtime material swaps. Each option sets baseColorFactor on the named materials; Laurel ships no textures yet (#133).",
+  "sets": [
+    {
+      "id": "exterior_colour",
+      "label": "Exterior colour",
+      "targets": [
+        "adu_stucco"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "cream",
+          "label": "Cream",
+          "value": [
+            0.7,
+            0.579,
+            0.422,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "warm_white",
+          "label": "Warm white",
+          "value": [
+            0.8,
+            0.76,
+            0.68,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "greige",
+          "label": "Greige",
+          "value": [
+            0.45,
+            0.42,
+            0.37,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "charcoal",
+          "label": "Charcoal",
+          "value": [
+            0.06,
+            0.06,
+            0.065,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "roof_colour",
+      "label": "Roof colour",
+      "targets": [
+        "adu_roof_metal"
+      ],
+      "property": "baseColorFactor",
+      "options": [
+        {
+          "id": "dark_bronze",
+          "label": "Dark bronze",
+          "value": [
+            0.036,
+            0.036,
+            0.034,
+            1.0
+          ],
+          "default": true
+        },
+        {
+          "id": "slate_grey",
+          "label": "Slate grey",
+          "value": [
+            0.12,
+            0.13,
+            0.14,
+            1.0
+          ],
+          "default": false
+        },
+        {
+          "id": "galvalume",
+          "label": "Galvalume",
+          "value": [
+            0.45,
+            0.47,
+            0.48,
+            1.0
+          ],
+          "default": false
+        }
+      ]
+    }
+  ],
+  "views": [
+    {
+      "id": "full",
+      "label": "Exterior",
+      "default": true,
+      "hide": []
+    },
+    {
+      "id": "dollhouse",
+      "label": "Show interior",
+      "desc": "Roof off \u2014 look down into the rooms. Laurel has no ceiling objects to hide: the ceilings ARE the roof underside, because every wall runs to it.",
+      "hide": [
+        "Roof_shed"
+      ]
+    },
+    {
+      "id": "cutaway",
+      "label": "Cutaway",
+      "desc": "Dollhouse with the front wall and its skin removed, for a sectional look through the entry.",
+      "hide": [
+        "Roof_shed",
+        "Sheathing_front",
+        "Wall_front"
+      ]
+    },
+    {
+      "id": "interior_only",
+      "label": "Interior only",
+      "desc": "Partitions and slab alone, with the openings left in so the doors read.",
+      "hide": [
+        "Roof_shed",
+        "Sheathing_front",
+        "Sheathing_rear",
+        "Sheathing_x0",
+        "Sheathing_x24",
+        "Wall_front",
+        "Wall_rear",
+        "Wall_x0",
+        "Wall_x24"
+      ]
+    }
+  ],
+  "views_note": "Visibility modes for the viewer's SHOW INTERIOR control. Each lists the glTF node names to HIDE; show everything else. Node names, not prefixes, so no string matching is needed and a mode that matches nothing fails the export instead of the page.",
+  "dimensions": {
+    "units": "feet",
+    "main_body": {
+      "width": 24.0,
+      "depth": 19.1667,
+      "note": "the heated box, face of stud to face of stud (A-1.0)"
+    },
+    "overall": {
+      "width": 27.0,
+      "depth": 25.6667,
+      "note": "over the roof: 1'-6\" at each end, 5'-0\" over the entry and 1'-6\" at the rear"
+    },
+    "height_to_ridge": 10.7917,
+    "note": "TWO FOOTPRINTS. `main_body` is the building; `overall` is what the roof covers, with the 5'-0\" overhang over the entry. A setback check needs both, since many jurisdictions measure to the wall and cap eave projection separately."
+  }
+}

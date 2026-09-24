@@ -32,7 +32,7 @@ sys.path.insert(0, str(HERE))
 # nothing there shadows this model's.
 sys.path.append(str(HERE.parents[1]))
 from adu_kit.schema.model_contract import (  # noqa: E402
-    display_problems, identity_problems)
+    baseline_problems, display_problems, identity_problems)
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 # Feet to metres, the Draco .glb writer and the .glb reader know no building,
@@ -590,6 +590,14 @@ def main():
     print("-" * 76)
     ok &= report_lod2_contract(want2, lod2_nodes)
 
+    # THE LOD2 BASELINE, ASSERTED (#131): origin, axes, units and floor, on
+    # the lod2 just staged, against spec.export.lod2_baseline.
+    base_bad = baseline_problems(out / "barn_cabin_524_lod2.glb",
+                                 (spec.get("export") or {}).get("lod2_baseline"))
+    for p_ in base_bad:
+        print(f"  PROBLEM: {p_}")
+    ok &= not base_bad
+
     W = spec["envelope"]["main_body_width"]["ft"]
     exp_x = (W + 2 * spec["roof"]["eave_overhang"]["ft"]) * FOOT_M
     got_x = results["lod0"]["bbox"][0]
@@ -635,6 +643,8 @@ def main():
     ok &= bool(pres_ok)
     print(f"  [{'PASS' if not over else 'FAIL'}] every level within its size budget")
     print(f"  [{'PASS' if scale_ok else 'FAIL'}] glTF exported in metres at the right scale")
+    print(f"  [{'PASS' if not base_bad else 'FAIL'}] lod2 sits on its baseline: origin, "
+          f"axes, units and floor")
     print(f"  [{'PASS' if ok else 'FAIL'}] Draco applied and every object matched a material")
     print("=" * 76)
 

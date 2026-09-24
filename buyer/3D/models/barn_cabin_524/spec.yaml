@@ -1052,6 +1052,23 @@ export:
       - Wall_N
       - Wall_S
       - Wall_W
+  # THE LOD2 BASELINE (#131): where the massing sits, asserted on every
+  # export. Before this nothing checked it, and the floor moved from 0 to
+  # -0.972 m when the crawlspace replaced the slab without anything saying
+  # so. Each value is derived from this spec, not read off the export, so
+  # the export is held to the building rather than to itself.
+  lod2_baseline:
+    units: metres
+    up: "+y"
+    floor_y_m:
+      value: -0.9717
+      derived: "the stemwall's base, 3.188 ft below main FF: floor_assembly subfloor 0.073 + joist 0.99 + mud_sill 0.125 + foundation.stemwall height 2.0 = 3.188 ft x 0.3048"
+    x_m:
+      value: [-0.4572, 7.1628]
+      derived: "the eaves: -1.5 ft .. 22.0 + 1.5 ft (main_body_width + eave_overhang), x 0.3048. glTF X is Blender X."
+    z_m:
+      value: [-9.6012, 0.4572]
+      derived: "the rakes: glTF Z is Blender -Y, so -(6.0 porch + 24.0 body + 1.5 rake) .. +1.5 rake ft, x 0.3048"
 
 # ---------------------------------------------------------------------------
 doors:

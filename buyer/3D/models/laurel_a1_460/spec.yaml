@@ -41,7 +41,21 @@ meta:
     area_key: studio_sf
     storeys: {count: 1, loft: false, raw: "single storey, no loft",
               source: "A-2.0 front, rear and side elevations: one floor, F.F. to T.P. only"}
-    thumbnail_note: "no renders yet; the export (#131) makes them"
+    thumbnail_note: "no renders yet; a thumbnail is published once one exists"
+    note: >
+      Sacramento County Permit Ready ADU, Model A1 "Laurel": the studio plan,
+      460 sf, one shed roof. Its front is -z in this file, the opposite of
+      the barn cabin. The exterior is stucco; the fibre-cement lap siding the
+      sheet also offers arrives with #133.
+    # WHICH END THE PAGE OPENS ON (#117), in the EXPORTED file's frame: glTF,
+    # Y up. Laurel's front is Blender +Y, and glTF's Z is Blender's -Y, so
+    # the front exports to -Z -- the opposite of the barn cabin. finish.py
+    # refuses to publish unless `entry` sits at this end of the lod0 it just
+    # wrote, and verify_index.py gate 9 checks it again on every PR.
+    front:
+      glb: "-z"
+      entry: Leaf_D-1
+      source: "A-2.0 FRONT ELEVATION draws entry door 1 on the front wall, between windows A; A-1.0 puts door 1 in the Y 19'-2\" wall. Built at Blender +Y (frame.front)."
   front:
     end: "+Y, the 24'-0\" wall with entry door 1"
     note: "The fact #117 declares in the manifest. Not published by this spec."
@@ -678,6 +692,14 @@ windows:
     ft: 0.0208
     raw: "1/4\""
     assumed: "how far each member stands off the glazing plane, on BOTH faces, so the sash reads from inside as well as out. No sheet draws it; it is a modelling depth, not a measurement."
+  glass_thickness:
+    ft: 0.0208
+    raw: "1/4\""
+    assumed: >
+      a modelling thickness for the pane finish.py sets in each sash, not a
+      measurement. It must be thinner than the members stand proud of the
+      glazing plane on each side, so the pane's faces sit inside the
+      members rather than coplanar with them.
   glazing_plane:
     at: "the centre of the wall's stud depth"
     assumed: "no sheet gives a setback, and the schedules dimension the rough opening only. Centred is the one choice that needs no number nobody drew."
@@ -690,8 +712,82 @@ windows:
     sliding:  {units: 2, meeting_rail: false, source: "A-1.0 Window Schedule, mark E is SLIDING: two sashes passing at a meeting stile, which is the mullion above"}
 
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+materials:
+  status: "P4 (#131): stucco, the roof and the openings; textures and the stucco/siding swap are #133"
+  provenance: >
+    ONE SOURCE, AND IT IS A RENDERING. a1-laurel-rendering.jpg is the
+    designer's image of the finished building and the only appearance
+    evidence Laurel has (PLAN.md P4). Every colour below is `assumed` and
+    cites the crop it came from, each cropped and looked at before it was
+    measured (rule 4). The rendering is lit at golden hour: its sunlit
+    stucco reads sRGB (202, 182, 147), which is the light as much as the
+    wall. So, as the barn cabin does, HUE comes from a sample and LUMINANCE
+    is a physically plausible albedo -- one uncontrolled image cannot give
+    reflectance. The shaded side, lit by the sky, gives the stucco's hue.
+    Where the rendering does not show a material, the default is neutral and
+    says so.
+  sidedness:
+    default: single
+    note: "Every mesh Laurel builds is a closed box; finish.py gates that on what ships, which is what makes single-sided safe."
+  library:
+    stucco:
+      base_color_linear: [0.700, 0.579, 0.422]
+      roughness: 0.92
+      metallic: 0.0
+      assumed: "hue from the rendering's shaded side wall, crop (432,196)-(448,212), median sRGB (159,146,126), linear (0.347,0.287,0.209); scaled to a 0.70 albedo for a light cream stucco"
+    roof_metal:
+      base_color_linear: [0.036, 0.036, 0.034]
+      roughness: 0.45
+      metallic: 0.3
+      assumed: "the rendering does not show the roof surface; its roof edge does, crop (448,125)-(456,128), median sRGB (29,29,28), a near-neutral dark. A-2.0 ROOF PLAN NOTES say the gutters are COLOR TO MATCH STANDING SEAM ROOFING, so the edge stands for the roof. Albedo raised from the shadowed sample to a plausible dark painted metal."
+    window_frame:
+      base_color_linear: [0.020, 0.020, 0.020]
+      roughness: 0.55
+      metallic: 0.0
+      assumed: "the rendering's black window frames, crop (278,168)-(280,212), median sRGB (6,5,4); A-1.0 WINDOW INFORMATION 'FRAME: VINYL'. Albedo raised from the crushed shadow to a plausible black vinyl."
+    exterior_door:
+      base_color_linear: [0.022, 0.019, 0.015]
+      roughness: 0.60
+      metallic: 0.0
+      assumed: "the rendering's entry door below its lite, crop (239,224)-(249,243), median sRGB (24,20,14); a near-black warm door. Albedo raised to a plausible painted door."
+    interior_door:
+      base_color_linear: [0.780, 0.775, 0.760]
+      roughness: 0.70
+      metallic: 0.0
+      assumed: "not in the rendering, which shows no interior: a neutral painted white, declared rather than sampled"
+    drywall:
+      base_color_linear: [0.800, 0.795, 0.780]
+      roughness: 0.90
+      metallic: 0.0
+      assumed: "not in the rendering: a neutral painted drywall, declared rather than sampled. The walls' inner faces and the partitions; A-1.0 WALL LEGEND 'GYP. BOARD' names the board, not its paint."
+    concrete:
+      base_color_linear: [0.330, 0.325, 0.315]
+      roughness: 0.92
+      metallic: 0.0
+      assumed: "the slab is not visible in the rendering: a neutral concrete, the barn cabin's own value, declared rather than sampled"
+    glass:
+      base_color_linear: [0.055, 0.062, 0.070]
+      roughness: 0.08
+      metallic: 0.0
+      transmission: 0.85
+      assumed: "generic architectural glazing, the barn cabin's value; A-0.0 and the window notes give SHGC 0.21, which is not a colour"
+  assignment:
+    # object-name prefix -> library key. FIRST MATCH WINS, so the two
+    # exterior doors are named before every other leaf.
+    Roof_: roof_metal
+    Sheathing_: stucco
+    Wall_: drywall
+    P_: drywall
+    Slab: concrete
+    Sash_: window_frame
+    Leaf_D-1: exterior_door
+    Leaf_D-6: exterior_door
+    Leaf_: interior_door
+    Glazing_: glass
+
 export:
-  status: "the manifest itself is #131; the page's views rail is #133"
+  status: "P4 (#131): three levels, the manifest, the lod2 contract and baseline. The page's views rail is #133"
   # ONE DEFINITION OF WHAT EACH MODE HIDES. The barn cabin learned this the
   # hard way: views.py knew how to strip a roof and the web runtime had no way
   # to ask, so the answer existed twice. It lives here, in the spec, so that
@@ -725,6 +821,50 @@ export:
       label: "Interior only"
       desc: "Partitions and slab alone, with the openings left in so the doors read."
       hide: [ROOF, WALL, SKIN]
+  levels:
+    # What each level carries. lod2 is the placement developer's massing,
+    # built with no openings cut; lod1 is the exterior a buyer sees from the
+    # street; lod0 adds the interior.
+    lod0: "shell, roof, slab, every sash and leaf, glazing, partitions"
+    lod1: "shell, roof, slab, the exterior walls' sashes and leaves, glazing"
+    lod2: "shell, roof and slab, no openings cut"
+  budget_kb:
+    lod0: 1024
+    lod1: 512
+    lod2: 100
+    assumed: "ceilings, not measurements: Laurel is 33 meshes and about 1,300 triangles before glazing, flat-coloured, so every level should land far below them. A level that does not is a build that grew, and the gate says so."
+  lod2_contract:
+    note: >
+      THE PLACEMENT DEVELOPER'S FILE, AND A CHECKED PROMISE, as the barn
+      cabin's is: finish.py compares lod2's node names against this list and
+      refuses to publish if they differ. Changing it is a conversation with
+      whoever consumes lod2 first, then this list, then the commit.
+    nodes:
+      - Roof_shed
+      - Sheathing_front
+      - Sheathing_rear
+      - Sheathing_x0
+      - Sheathing_x24
+      - Slab
+      - Wall_front
+      - Wall_rear
+      - Wall_x0
+      - Wall_x24
+  # THE LOD2 BASELINE (#131): where the massing sits, asserted on every
+  # export, as the barn cabin's is. Derived from this spec, not read off the
+  # export, so the export is held to the building rather than to itself.
+  lod2_baseline:
+    units: metres
+    up: "+y"
+    floor_y_m:
+      value: -0.1016
+      derived: "the slab's underside: construction.foundation.slab 0.3333 ft below F.F. (build.py puts its top AT F.F.), x 0.3048"
+    x_m:
+      value: [-0.4572, 7.7724]
+      derived: "the roof's ends: -1.5 ft .. 24.0 + 1.5 ft (envelope.width + roof.overhangs.ends), x 0.3048. glTF X is Blender X."
+    z_m:
+      value: [-7.3660, 0.4572]
+      derived: "the roof's front and rear edges: glTF Z is Blender -Y, so -(19.1667 depth + 5.0 front overhang) .. +1.5 rear overhang ft, x 0.3048"
 
 variants:
   floor_plan_options:
@@ -735,7 +875,32 @@ variants:
       future: "a configurator choice (#133): a partition, pocket door 7, and window C operable to meet ventilation"
       bedroom_width: {ft: 9.5, raw: "9'-6\"", source: "A-1.0 drawing 2 1 BEDROOM FLOOR PLAN OPTION"}
       window_note: "A-1.0 drawing 2 'WINDOW TO BE OPERTIONAL FOR 1 BEDROOM OPTION TO MEET VENTILATION REQUIREMENTS'"
-  exterior_finish: "stucco or fiber cement lap siding, both on the sheet: a finish swap, not a decision (#131, #133)"
+  exterior_finish: >
+    stucco or fiber cement lap siding, both on the sheet: a finish swap, not
+    a decision. P4 (#131) ships STUCCO ALONE, decided 2026-09-24: the page's
+    `sets` swap only baseColorFactor, so until #133 adds textures a "Lap
+    siding" option would be smooth stucco in another colour. The swap lands
+    in #133, with the siding texture and the siding trim.
+  # THE FINISHES RAIL. Colour only, on the materials named; the default of
+  # each is the colour materials.library gives, which the rendering set.
+  sets:
+    - id: exterior_colour
+      label: Exterior colour
+      targets: [adu_stucco]
+      assumed: "the first option is materials.library.stucco, from the rendering; the others are a declared palette, not sampled, for a buyer to try"
+      options:
+        - {id: cream, label: Cream, value: [0.700, 0.579, 0.422], default: true}
+        - {id: warm_white, label: Warm white, value: [0.800, 0.760, 0.680]}
+        - {id: greige, label: Greige, value: [0.450, 0.420, 0.370]}
+        - {id: charcoal, label: Charcoal, value: [0.060, 0.060, 0.065]}
+    - id: roof_colour
+      label: Roof colour
+      targets: [adu_roof_metal]
+      assumed: "the first option is materials.library.roof_metal, from the rendering's roof edge; the others are declared standing-seam colours, not sampled"
+      options:
+        - {id: dark_bronze, label: Dark bronze, value: [0.036, 0.036, 0.034], default: true}
+        - {id: slate_grey, label: Slate grey, value: [0.120, 0.130, 0.140]}
+        - {id: galvalume, label: Galvalume, value: [0.450, 0.470, 0.480]}
   canopy:
     optional: true
     source: "A-2.0 FRONT ELEVATION 'OPTIONAL CANOPY SEE A-3.4'; A-3.4 AWNING DETAILS '2X6 CEDAR CANOPY FRAME'"
