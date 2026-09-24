@@ -7,7 +7,12 @@ passes unchanged.
 
     kernel.py      the geometry kernel: boxes, prisms, welds, sweeps, lofts,
                    booleans, reveals, in-plane UVs, reading a spec
-    export.py      feet to metres, the Draco .glb writer, the .glb reader
+    export.py      feet to metres, the Draco .glb writer, the .glb reader,
+                   the baseColorFactor patch
+    finish.py      materials, assignment, the closed-and-outward gate, the
+                   lod2 contract, staged publishing (#131)
+    manifest.py    the manifest's identity, sets and views blocks. No
+                   Blender, so test_manifest.py runs in CI (#131)
     verify_lib.py  inside_mesh(), for a model's gates
     sheets.py      harvest dimension CANDIDATES from a plan set PDF, never a
                    spec (#127). Plain Python, needs pdftotext:
@@ -27,7 +32,7 @@ more, but only what knows no building moves:
                         not. They move when a second model uses them.
     inside_mesh_cases   known answers about the barn cabin's own objects
 
-kernel, export and verify_lib run inside Blender (bpy, bmesh, mathutils);
-schema does not. A script puts buyer/3D on sys.path and imports
+kernel, export, finish and verify_lib run inside Blender (bpy, bmesh,
+mathutils); schema and manifest do not. A script puts buyer/3D on sys.path and imports
 `adu_kit.<module>`.
 """

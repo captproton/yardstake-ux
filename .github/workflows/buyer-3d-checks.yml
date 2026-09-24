@@ -83,6 +83,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: python -m unittest adu_kit.test_sheets adu_kit.test_spec_lint -v
 
+      # The manifest's identity, sets and views, rebuilt from the barn cabin's
+      # spec and .glb and held to its committed variants.json (#131).
+      - name: Manifest kit tests (adu_kit/test_manifest.py)
+        if: ${{ !cancelled() }}
+        run: python -m unittest adu_kit.test_manifest -v
+
       # Every number in a model spec is cited, and every drawn length is on
       # the sheet it cites (#128).
       - name: Laurel spec lint (adu_kit/spec_lint.py)
