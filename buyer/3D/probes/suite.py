@@ -173,7 +173,7 @@ class Run:
     fails: bool = True
     blender: bool = False  # run inside Blender, from `model`'s directory
     model: str = BARN      # which model's directory a Blender run starts in
-    # A case ABOUT a crash expects its traceback; every other case fails on one.
+    # A case ABOUT a crash must print its traceback; every other case fails on one.
     traceback_expected: bool = False
     timeout: int = 900  # seconds; a run that exceeds it is a failed case, not a hang
 
@@ -367,6 +367,8 @@ def run_case(case, base: Path, blender: Optional[str]) -> Result:
                                f"{'non-zero' if run.fails else '0'}")
             if "Traceback" in out and not run.traceback_expected:
                 reasons.append(f"{label} printed a traceback")
+            elif run.traceback_expected and "Traceback" not in out:
+                reasons.append(f"{label} was expected to crash and printed no traceback")
         # Restore permissions a case removed, so the directory can be cleaned.
         for path in work.rglob("*"):
             try:
