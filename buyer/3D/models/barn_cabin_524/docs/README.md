@@ -222,6 +222,7 @@ already produced two false reports about working code.
 | `verify_fixtures.py` | **`python3`** — spec only, no Blender | *(no scene)* |
 | `verify_front_elevation.py` | `blender --background` | **`barn_cabin_524_textured.blend`** |
 | `verify_tier1` `tier2` `openings` `geometry` `mounted` `furniture` `views` | `blender --background` | `barn_cabin_524.blend` |
+| `verify_frame.py` | `blender --background --python verify_frame.py` | opens `barn_cabin_524.blend` itself |
 
 Two traps, both sprung for real:
 
@@ -236,7 +237,14 @@ Two traps, both sprung for real:
   door having regressed to a slab. It now refuses that scene with `[ABSENT]`
   and **exit code 2**, distinct from a real failure's **1**.
 
-A green suite means all nine, each run its own way. Anything else is a claim.
+A green suite means all ten, each run its own way. Anything else is a claim.
+
+**`verify_frame.py` is the only gate that knows left from right** (#145).
+Every other gate places openings through the same compass convention the
+build uses, so a building read off the plan backwards would pass them all. It
+holds the mesh to what A1.1 draws on the viewer's left and right, and
+`probes/cases_frame.py` proves it fails on a mirror image and passes on a
+rotation.
 
 ## Ownership
 
