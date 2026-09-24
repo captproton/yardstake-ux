@@ -12,7 +12,7 @@ byte-different but visually identical images, because the swap was looking for
 the wrong node type and silently failing. A gate on names alone would have
 passed.
 
-    blender --background --python variant_demo.py -- MODEL.glb VARIANTS.json OUTDIR
+    blender --background --python-exit-code 1 --python variant_demo.py -- MODEL.glb VARIANTS.json OUTDIR
 
 Writes one PNG per theme plus a side-by-side `variants.png`, and prints the
 mean wall colour of each so the difference is a number, not an impression.
@@ -211,7 +211,7 @@ def montage(out, cfg):
     print(f"  [montage] {cfg['out']}  {w}x{h}")
 
 
-USAGE = ("blender --background --python variant_demo.py"
+USAGE = ("blender --background --python-exit-code 1 --python variant_demo.py"
          " -- MODEL.glb VARIANTS.json OUTDIR")
 
 

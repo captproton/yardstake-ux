@@ -6,7 +6,7 @@ and offset is read from the spec; the only literals are geometric constants
 (2 for halving, 12 for a pitch denominator) and mesh bookkeeping.
 
 Run:
-    blender --background --python models/laurel_a1_460/build.py -- [--out DIR]
+    blender --background --python-exit-code 1 --python models/laurel_a1_460/build.py -- [--out DIR]
                                                                   [--no-openings]
 
 Coordinate system (feet, Blender +Z up) — spec.frame, and verify_spec.py

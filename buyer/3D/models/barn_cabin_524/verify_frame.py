@@ -29,7 +29,7 @@ fact below reads plainly at 40 dpi:
 "Front" is where the porch is, taken from the mesh. Everything else follows
 from that and from +Z being up.
 
-    blender --background --python verify_frame.py
+    blender --background --python-exit-code 1 --python verify_frame.py
 
 It opens barn_cabin_524.blend beside it rather than trusting whatever scene it
 was handed (rule 28). Exit 1 on a failed gate.

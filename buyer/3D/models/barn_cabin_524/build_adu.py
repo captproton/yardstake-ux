@@ -6,7 +6,7 @@ pitch and offset is read from the spec. The only literals here are geometric
 constants (2 for halving a span, 12 for pitch denominators) and mesh bookkeeping.
 
 Run:
-    blender --background --python build_adu.py -- [--out DIR] [--no-openings]
+    blender --background --python-exit-code 1 --python build_adu.py -- [--out DIR] [--no-openings]
 
 Coordinate system (feet, Blender +Z up):
     X  0 .. W          west wall .. east wall

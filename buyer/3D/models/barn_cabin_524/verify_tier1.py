@@ -8,7 +8,7 @@ Checks the things a render cannot be trusted to show:
   4. floor finishes tile the interior without gaps or overlap
   5. everything new is confined to the Finish collection
 
-    blender --background barn_cabin_524.blend --python verify_tier1.py
+    blender --background barn_cabin_524.blend --python-exit-code 1 --python verify_tier1.py
 """
 import sys
 import math

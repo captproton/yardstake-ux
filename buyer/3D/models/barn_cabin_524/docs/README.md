@@ -220,9 +220,17 @@ already produced two false reports about working code.
 | Script | Run it with | Against |
 |---|---|---|
 | `verify_fixtures.py` | **`python3`** — spec only, no Blender | *(no scene)* |
-| `verify_front_elevation.py` | `blender --background` | **`barn_cabin_524_textured.blend`** |
-| `verify_tier1` `tier2` `openings` `geometry` `mounted` `furniture` `views` | `blender --background` | `barn_cabin_524.blend` |
-| `verify_frame.py` | `blender --background --python verify_frame.py` | opens `barn_cabin_524.blend` itself |
+| `verify_front_elevation.py` | `blender --background --python-exit-code 1` | **`barn_cabin_524_textured.blend`** |
+| `verify_tier1` `tier2` `openings` `geometry` `mounted` `furniture` `views` | `blender --background --python-exit-code 1` | `barn_cabin_524.blend` |
+| `verify_frame.py` | `blender --background --python-exit-code 1 --python verify_frame.py` | opens `barn_cabin_524.blend` itself |
+
+**Always pass `--python-exit-code 1`, before `--python`** (#151). Without it
+Blender exits **0** when a script raises an uncaught exception: it prints the
+traceback and reports success. A gate's own failures exit 1 either way; it
+is a CRASH that would otherwise read as a pass. The flag leaves a script's
+own `sys.exit()` codes alone, so `verify_front_elevation.py`'s exit 2 still
+means the wrong scene. The probe harness passes it, and
+`probes/cases_blender.py` proves a crash exits non-zero.
 
 Two traps, both sprung for real:
 

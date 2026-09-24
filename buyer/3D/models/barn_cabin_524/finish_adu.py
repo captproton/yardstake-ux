@@ -6,7 +6,7 @@ library and assignment map from spec.yaml (no colours hardcoded here), fills the
 openings with glazing and door panels, then exports three LOD levels as .glb
 with Draco mesh compression for the Three.js track.
 
-    blender --background --python finish_adu.py -- [--out DIR]
+    blender --background --python-exit-code 1 --python finish_adu.py -- [--out DIR]
 
 Scene is authored at 1 Blender unit = 1 foot, and the export is in metres per
 glTF convention.
