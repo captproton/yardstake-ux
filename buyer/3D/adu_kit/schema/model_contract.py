@@ -311,8 +311,15 @@ def baseline_problems(glb, baseline, tol=BASELINE_TOL_M):
                         f"found {baseline.get('up')!r}")
     floor, xs, zs = val("floor_y_m"), val("x_m"), val("z_m")
     # FINITE, NOT JUST NUMERIC: every comparison with NaN is false, so a NaN
-    # floor would pass the tolerance check below without being checked.
-    finite = lambda x: _number(x) and math.isfinite(x)  # noqa: E731
+    # floor would pass the tolerance check below without being checked. An
+    # int too large for a float raises OverflowError in isfinite(); it is no
+    # more a position than NaN is.
+    def finite(x):
+        try:
+            return _number(x) and math.isfinite(x)
+        except OverflowError:
+            return False
+
     pair = lambda v: (isinstance(v, list) and len(v) == 2  # noqa: E731
                       and all(finite(x) for x in v))
     if not finite(floor) or not pair(xs) or not pair(zs):

@@ -241,7 +241,7 @@ class Baseline(unittest.TestCase):
     def test_the_barn_cabins_lod2_sits_on_its_baseline(self):
         self.assertEqual(model_contract.baseline_problems(self.LOD2, self.base), [])
 
-    def test_lod0_does_not_its_footing_reaches_lower(self):
+    def test_lod0_misses_the_baseline_its_footing_reaches_lower(self):
         problems = model_contract.baseline_problems(BARN / "export" / "barn_cabin_524_lod0.glb", self.base)
         self.assertTrue(any("floor (min y) is -1.1750 m" in p for p in problems), problems)
 
@@ -261,7 +261,10 @@ class Baseline(unittest.TestCase):
         nan, inf = float("nan"), float("inf")
         for bad in (dict(self.base, floor_y_m={"value": nan, "derived": "x"}),
                     dict(self.base, x_m={"value": [nan, 7.1628], "derived": "x"}),
-                    dict(self.base, z_m={"value": [-9.6012, inf], "derived": "x"})):
+                    dict(self.base, z_m={"value": [-9.6012, inf], "derived": "x"}),
+                    # Found by review: too large for a float, so isfinite()
+                    # raised OverflowError instead of returning False.
+                    dict(self.base, floor_y_m={"value": 10 ** 400, "derived": "x"})):
             with self.subTest(bad=bad):
                 problems = model_contract.baseline_problems(self.LOD2, bad)
                 self.assertTrue(any("finite" in p for p in problems), problems)
