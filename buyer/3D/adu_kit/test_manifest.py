@@ -83,6 +83,29 @@ class Sets(unittest.TestCase):
         _, problems = manifest.sets_block(self.v(default=False), {"adu_wall"})
         self.assertIn("wall needs exactly one default", problems)
 
+    def test_an_rgba_value_keeps_its_alpha(self):
+        """Found by review: alpha was appended unconditionally, so a valid
+        four-number colour became five and the contract refused it."""
+        sets, problems = manifest.sets_block(self.v(value=[0.1, 0.2, 0.3, 1.0]), {"adu_wall"})
+        self.assertEqual(problems, [])
+        self.assertEqual(sets[0]["options"][0]["value"], [0.1, 0.2, 0.3, 1.0])
+
+    def test_no_sets_list_is_a_problem_not_a_crash(self):
+        for variants in ({}, {"sets": "wall"}, None):
+            with self.subTest(variants=variants):
+                sets, problems = manifest.sets_block(variants, {"adu_wall"})
+                self.assertEqual(sets, [])
+                self.assertIn("variants.sets must be a list", problems[0])
+
+    def test_a_malformed_set_is_named_not_raised(self):
+        for bad in ("wall", {"id": "wall", "label": "Wall", "targets": ["adu_wall"]},
+                    {"id": "wall", "label": "Wall", "targets": ["adu_wall"],
+                     "options": [{"id": "a", "label": "A"}]}):
+            with self.subTest(bad=bad):
+                _, problems = manifest.sets_block({"sets": [bad]}, {"adu_wall"})
+                self.assertTrue(any(p.startswith("variants.sets[0] is malformed")
+                                    for p in problems), problems)
+
 
 class Views(unittest.TestCase):
     NODES = {"Roof_main", "Wall_front", "Wall_rear", "Slab"}
@@ -130,6 +153,30 @@ class Views(unittest.TestCase):
                   {"id": "b", "label": "B", "default": True, "hide": ["roof"]}), self.NODES)
         self.assertTrue(any("exactly one default" in p for p in problems), problems)
 
+    def test_malformed_shapes_are_named_not_raised(self):
+        """Found by review: a YAML typo in display_modes raised AttributeError
+        or TypeError and aborted the export with a traceback."""
+        ok_mode = {"id": "x", "label": "X", "default": True, "hide": ["roof"]}
+        cases = {
+            "display_modes must be an object": ["full"],
+            "groups must map each group": {"groups": ["Roof_"], "modes": [ok_mode]},
+            "groups.roof must be a list of name prefixes": {"groups": {"roof": "Roof_"},
+                                                            "modes": [ok_mode]},
+            "modes must be a list": {"groups": {"roof": ["Roof_"]}, "modes": {"x": ok_mode}},
+            "modes[0] must be an object": {"groups": {"roof": ["Roof_"]}, "modes": ["full"]},
+            "modes[0].label must be a non-empty string": {
+                "groups": {"roof": ["Roof_"]}, "modes": [{"id": "x", "default": True, "hide": []}]},
+            "modes[0].hide must be a list of names": {
+                "groups": {"roof": ["Roof_"]}, "modes": [dict(ok_mode, hide="roof")]},
+            "modes[0].hide_objects must be a list of names": {
+                "groups": {"roof": ["Roof_"]}, "modes": [dict(ok_mode, hide_objects="Wall_front")]},
+        }
+        for expected, dm in cases.items():
+            with self.subTest(expected=expected):
+                views, problems = manifest.views_block(dm, self.NODES)
+                self.assertIsNone(views)
+                self.assertTrue(any(expected in p for p in problems), problems)
+
 
 class Identity(unittest.TestCase):
 
@@ -159,6 +206,21 @@ class Identity(unittest.TestCase):
         _, problems = manifest.identity_block(
             self.spec(front={"glb": "-z", "entry": "Door_D-FRONT"}), LOD0, "")
         self.assertTrue(any("but front is declared -z" in p for p in problems), problems)
+
+    def test_malformed_levels_are_named_not_raised(self):
+        """Found by review: `spec["meta"]` raised KeyError on a spec without
+        one, and a list where a mapping belongs raised AttributeError."""
+        good = self.spec()
+        cases = {
+            "meta must be an object": dict(good, meta=["m"]),
+            "meta.index must be an object": dict(good, meta=dict(good["meta"], index=["x"])),
+            "areas_declared must be an object": dict(good, areas_declared=[500]),
+            "meta.index.area_key is unset": {"areas_declared": good["areas_declared"]},
+        }
+        for expected, spec in cases.items():
+            with self.subTest(expected=expected):
+                _, problems = manifest.identity_block(spec, LOD0, "")
+                self.assertTrue(any(expected in p for p in problems), problems)
 
 
 if __name__ == "__main__":

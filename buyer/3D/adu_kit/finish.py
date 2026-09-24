@@ -10,12 +10,14 @@ and its manifest are byte-identical before and after.
 What stays with each model: glazing (it reads that building's openings),
 furniture, the dimensions block, and the scale gate.
 """
-import os
-import shutil
 from pathlib import Path
 
 import bpy
 import bmesh
+
+# Staged publishing needs no Blender, so it lives where CI can test it;
+# re-exported here because a finish script reaches for it here.
+from .publish import promote, stage  # noqa: F401
 
 
 def make_materials(spec, texture_dir, textured=True):
@@ -116,8 +118,16 @@ def assign(spec, mats, extra_slots=None):
     slot 2 (drywall). materials.clear() RESETS every polygon's index to 0,
     which once silently discarded that tagging, so the indices are captured
     first and restored once the slots exist.
+
+    THE SLOTS MUST BE 1, 2, ... n, WITH NO GAP. Materials are appended in
+    slot order after the base at 0, so they land at 1..n whatever the keys
+    say; a gap like {2: ...} would restore faces to a slot that does not
+    exist. Refused here, before any mesh is touched.
     """
     extra = extra_slots or {}
+    if sorted(extra) != list(range(1, len(extra) + 1)):
+        raise ValueError(f"extra_slots must be numbered 1..{len(extra)} with no "
+                         f"gap, found {sorted(extra)}")
     rules = list(spec["materials"]["assignment"].items())
     unmatched = []
     for ob in bpy.data.objects:
@@ -204,33 +214,3 @@ def report_lod2_contract(want, got):
     print("    If this change is intended, it is a CONVERSATION first,"
           " then spec.export.lod2_contract, then the commit.")
     return False
-
-
-def stage(final_out):
-    """A fresh staging directory beside `final_out`.
-
-    EVERYTHING IS WRITTEN BESIDE THE REAL DIRECTORY AND MOVED IN AT THE END.
-    Fixed artefact by artefact three times before it was fixed once: a run
-    that failed a gate still published some files beside older ones, a
-    generation mix that never existed as a set. Nothing in `final_out`
-    changes until every gate has passed.
-    """
-    final_out = Path(final_out)
-    final_out.mkdir(parents=True, exist_ok=True)
-    out = final_out.parent / (final_out.name + ".staging")
-    if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True)
-    return out
-
-
-def promote(out, final_out):
-    """Move every staged file into `final_out`, as a set.
-
-    os.replace is atomic per file on one filesystem, and the staging
-    directory is a sibling of the real one, so it always is. A reader between
-    two replaces sees two consistent files, never a half-written one.
-    """
-    for src in sorted(Path(out).iterdir()):
-        os.replace(src, Path(final_out) / src.name)
-    shutil.rmtree(out, ignore_errors=True)

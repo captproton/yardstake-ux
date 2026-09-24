@@ -10,7 +10,9 @@ passes unchanged.
     export.py      feet to metres, the Draco .glb writer, the .glb reader,
                    the baseColorFactor patch
     finish.py      materials, assignment, the closed-and-outward gate, the
-                   lod2 contract, staged publishing (#131)
+                   lod2 contract (#131)
+    publish.py     staged publishing: an export directory holds exactly one
+                   generation. No Blender (#131)
     manifest.py    the manifest's identity, sets and views blocks. No
                    Blender, so test_manifest.py runs in CI (#131)
     verify_lib.py  inside_mesh(), for a model's gates
@@ -33,6 +35,6 @@ more, but only what knows no building moves:
     inside_mesh_cases   known answers about the barn cabin's own objects
 
 kernel, export, finish and verify_lib run inside Blender (bpy, bmesh,
-mathutils); schema and manifest do not. A script puts buyer/3D on sys.path and imports
+mathutils); schema, manifest and publish do not. A script puts buyer/3D on sys.path and imports
 `adu_kit.<module>`.
 """

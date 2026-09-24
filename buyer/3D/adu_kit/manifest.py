@@ -29,21 +29,33 @@ def sets_block(variants, materials_present):
     """`sets`: the finishes rail. Every option is a baseColorFactor, so this
     block is the entire cost of the picker -- no extra geometry, no extra
     textures. Checked against the materials actually exported, so a typo in
-    the spec fails here rather than silently doing nothing in the browser."""
+    the spec fails here rather than silently doing nothing in the browser.
+
+    A colour is RGB or RGBA; alpha is added only when it is missing. The
+    contract accepts both, and appending to four numbers made five.
+    """
     problems, sets = [], []
-    for st in variants["sets"]:
-        for t in st["targets"]:
-            if t not in materials_present:
-                problems.append(f"{st['id']} -> unknown material {t}")
-        opts = [{"id": o["id"], "label": o["label"],
-                 "value": list(o["value"]) + [1.0],
-                 "default": bool(o.get("default"))} for o in st["options"]]
-        if sum(o["default"] for o in opts) != 1:
-            problems.append(f"{st['id']} needs exactly one default")
-        sets.append({"id": st["id"], "label": st["label"],
-                     "targets": st["targets"],
-                     "property": variants.get("property", "baseColorFactor"),
-                     "options": opts})
+    spec_sets = variants.get("sets") if isinstance(variants, dict) else None
+    if not isinstance(spec_sets, list):
+        return [], [f"variants.sets must be a list of finish sets, found "
+                    f"{type(spec_sets).__name__}"]
+    for i, st in enumerate(spec_sets):
+        try:
+            for t in st["targets"]:
+                if t not in materials_present:
+                    problems.append(f"{st['id']} -> unknown material {t}")
+            opts = [{"id": o["id"], "label": o["label"],
+                     "value": list(o["value"]) + ([1.0] if len(o["value"]) == 3 else []),
+                     "default": bool(o.get("default"))} for o in st["options"]]
+            if sum(o["default"] for o in opts) != 1:
+                problems.append(f"{st['id']} needs exactly one default")
+            sets.append({"id": st["id"], "label": st["label"],
+                         "targets": st["targets"],
+                         "property": variants.get("property", "baseColorFactor"),
+                         "options": opts})
+        except (KeyError, TypeError, AttributeError) as e:
+            problems.append(f"variants.sets[{i}] is malformed: "
+                            f"{type(e).__name__}: {e}")
     return sets, problems
 
 
@@ -66,8 +78,20 @@ def identity_block(spec, lod0, note):
     as build_index.py and verify_index.py do.
     """
     problems = []
-    meta = spec["meta"]
-    idx = meta.get("index") or {}
+
+    # Each level is input and checked before it is read (rule 25): a `meta`
+    # or `index` of the wrong type is a problem that names it, and the rest
+    # of the block is still examined against an empty one.
+    def mapping(v, where):
+        if v is None or isinstance(v, dict):
+            return v or {}
+        problems.append(f"{where} must be an object, found {type(v).__name__}")
+        return {}
+
+    spec = mapping(spec, "the spec")
+    meta = mapping(spec.get("meta"), "meta")
+    idx = mapping(meta.get("index"), "meta.index")
+    declared = mapping(spec.get("areas_declared"), "areas_declared")
     area_key = idx.get("area_key")
     if not (isinstance(area_key, str) and area_key):
         problems.append("meta.index.area_key is unset; the index cannot "
@@ -75,7 +99,7 @@ def identity_block(spec, lod0, note):
         area_key_ok = False
     else:
         area_key_ok = True
-    area = (spec.get("areas_declared") or {}).get(area_key) if area_key_ok else None
+    area = declared.get(area_key) if area_key_ok else None
     if area_key_ok and area is None:
         problems.append(f"meta.index.area_key is {area_key!r}, which is not a "
                         f"key of areas_declared")
@@ -108,6 +132,37 @@ def identity_block(spec, lod0, note):
     return model, problems
 
 
+def _strings(v):
+    return isinstance(v, list) and all(isinstance(x, str) for x in v)
+
+
+def _display_mode_shape(groups, modes):
+    """What is wrong with the shape of display_modes, before it is resolved."""
+    where = "spec.export.display_modes"
+    if not isinstance(groups, dict):
+        return [f"{where}.groups must map each group to a list of name "
+                f"prefixes, found {type(groups).__name__}"]
+    problems = [f"{where}.groups.{g} must be a list of name prefixes, found "
+                f"{type(v).__name__}" for g, v in groups.items() if not _strings(v)]
+    if not isinstance(modes, list):
+        return problems + [f"{where}.modes must be a list of modes, found "
+                           f"{type(modes).__name__}"]
+    for i, m in enumerate(modes):
+        if not isinstance(m, dict):
+            problems.append(f"{where}.modes[{i}] must be an object, found "
+                            f"{type(m).__name__}")
+            continue
+        for key in ("id", "label"):
+            if not isinstance(m.get(key), str) or not m.get(key):
+                problems.append(f"{where}.modes[{i}].{key} must be a non-empty "
+                                f"string, found {m.get(key)!r}")
+        for key in ("hide", "hide_objects"):
+            if key in m and not _strings(m[key]):
+                problems.append(f"{where}.modes[{i}].{key} must be a list of "
+                                f"names, found {type(m[key]).__name__}")
+    return problems
+
+
 def views_block(display_modes, nodes_present):
     """`views`: the modes behind the page's SHOW INTERIOR control, resolved
     to node NAMES. Returns (views, problems); views is None when the modes
@@ -126,11 +181,20 @@ def views_block(display_modes, nodes_present):
     """
     dm = display_modes
     problems = []
+    if dm and not isinstance(dm, dict):
+        return None, [f"spec.export.display_modes must be an object with "
+                      f"`groups` and `modes`, found {type(dm).__name__}"]
     if not dm or not dm.get("groups") or not dm.get("modes"):
         problems.append("spec.export.display_modes is missing or empty — "
                         "views.py requires it and the page's SHOW INTERIOR "
                         "control is built from it")
         return None, problems
+    # THE SHAPES BEFORE ANY OF IT IS READ: a YAML typo is a problem naming
+    # the key, not a traceback that aborts the export after the levels were
+    # written.
+    shape = _display_mode_shape(dm["groups"], dm["modes"])
+    if shape:
+        return None, shape
     groups, views = dm["groups"], []
     # EVERY PREFIX, NOT EVERY GROUP, NOT EVERY MODE. A typo hides inside a
     # group that has other members, and views.py reads the same typo, so the

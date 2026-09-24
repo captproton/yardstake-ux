@@ -85,9 +85,9 @@ jobs:
 
       # The manifest's identity, sets and views, rebuilt from the barn cabin's
       # spec and .glb and held to its committed variants.json (#131).
-      - name: Manifest kit tests (adu_kit/test_manifest.py)
+      - name: Manifest and publishing kit tests (adu_kit/test_manifest.py, test_publish.py)
         if: ${{ !cancelled() }}
-        run: python -m unittest adu_kit.test_manifest -v
+        run: python -m unittest adu_kit.test_manifest adu_kit.test_publish -v
 
       # Every number in a model spec is cited, and every drawn length is on
       # the sheet it cites (#128).
