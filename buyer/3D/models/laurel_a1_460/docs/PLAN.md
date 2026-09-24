@@ -223,7 +223,10 @@ cabin, so it stays with the barn cabin until Laurel proves what is generic:
   them (step 10, #133).
 - The base-colour patch and the variants manifest emission read the barn
   cabin's spec shape. They move when Laurel's export shows which parts are
-  generic (step 7, #131).
+  generic (step 7, #131). **Moved in [#153](https://github.com/captproton/yardstake-ux/pull/153)**,
+  step 7's PR A: `adu_kit/finish.py`, `publish.py` and `manifest.py`, with
+  the barn cabin's export byte-identical. Glazing, furniture presence, the
+  dimensions block and the scale gate stay with the barn cabin.
 
 It is **two PRs**, so a problem shows up as the page's or the kernel's, not
 both: **A** moves the kernel, the export helpers and `inside_mesh()`; **B**
@@ -454,12 +457,15 @@ the **build** and turn the gate red.
 
 Kit code does nearly all of this.
 
-Model-specific work is the material set: standing seam metal roofing, and the
-two declared exterior finishes. **Stucco and fibre-cement lap siding are a
-finish variant, not a decision** — the sheet offers both, so ship both in the
-manifest as a material swap. That is exactly what the configurator's `sets`
-block is for, and **at P4** it costs no extra geometry. It stops being purely
-a material swap once exterior trim arrives in Tier 1; see
+Model-specific work is the material set: standing seam metal roofing, and
+stucco. **Stucco and fibre-cement lap siding are a finish variant, not a
+decision** — the sheet offers both — **but P4 ships stucco alone** (decided
+2026-09-24). The page's `sets` can swap only `baseColorFactor`, so until #133
+adds textures a "Lap siding" option would be smooth stucco in another colour:
+an option labelled for something the buyer cannot see. P4 ships stucco with
+an exterior-colour set, and the stucco/siding swap arrives in #133 with the
+siding texture and the siding trim. It was never purely a material swap
+once exterior trim arrives in Tier 1; see
 [Tier 1 trim](#tier-1-trim--the-barn-cabins-values-declared-assumed).
 
 **Colour.** `a1-laurel-rendering.jpg` is the only appearance source Laurel
@@ -574,8 +580,8 @@ project and will need its own placement rule relative to the slab.
 Furniture reuses the barn cabin's arrangements through the `presence` block.
 The bedroom-versus-office swap transfers directly.
 
-For the configurator (Tier 2): the stucco / fibre-cement swap is a `sets`
-group with linear colours; every layout ships in the file and `presence`
+For the configurator (Tier 2): the stucco / fibre-cement swap, moved here
+from P4 so it lands with the siding texture and trim that make it visible; every layout ships in the file and `presence`
 names each node it shows; and a furnished manifest carries a `disclosure`.
 Laurel has no loft and no porch, so it has **no** porch layout group and no
 `with_porch` footprint. That is not a gap to fill: the page renders the
@@ -621,7 +627,7 @@ Each line is one pull request.
    - **Faced by the page:** the first view, the sun and the dimension overlay come from one basis built from `front`. For `+z` it reproduces the old constants exactly. `fixture_side_entry_box` opens from +X with no code knowing it.
    - **The axis notes were wrong**, not the exporter: they described the mirrored P2 build.
    - **The reviews** found the same thing again, a check that passes by not running, in four forms: a malformed manifest that crashed gate 9, a nested file the check could not place, a page that borrowed a missing front, and a gate comparing names but not directions. #149 found a fifth: **Blender exits 0 on an uncaught exception**, filed as [#151](https://github.com/captproton/yardstake-ux/issues/151) and fixed in [#152](https://github.com/captproton/yardstake-ux/pull/152): the probe harness and every documented Blender command pass `--python-exit-code 1`, and a probe proves a crash exits non-zero.
-7. [#131](https://github.com/captproton/yardstake-ux/issues/131) **Next.** P4 materials, the stucco/siding swap, three levels, manifest, baseline. **Laurel's front is `-z`**: Blender +Y exports to glTF −Z. Its spec declares `meta.index.front` with `glb: "-z"` and `entry: Leaf_D-1`, and the export refuses anything else. Its new Blender gates run as every Blender script now does, with `--python-exit-code 1` before `--python`, so a crash in one fails instead of passing. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
+7. [#131](https://github.com/captproton/yardstake-ux/issues/131) **In progress, two PRs.** **PR A done** ([#153](https://github.com/captproton/yardstake-ux/pull/153)): the export machinery both models need moved into `adu_kit/` (`finish.py`, `publish.py`, `manifest.py`), the barn cabin byte-identical, and the manifest blocks tested in CI. Review hardened it: a malformed spec is a named problem, never a traceback, and `export/` holds exactly one generation. **PR B next:** P4 materials (stucco only; the swap moves to #133), three levels, manifest, baseline. **Laurel's front is `-z`**: Blender +Y exports to glTF −Z. Its spec declares `meta.index.front` with `glb: "-z"` and `entry: Leaf_D-1`, and the export refuses anything else. Its new Blender gates run as every Blender script now does, with `--python-exit-code 1` before `--python`, so a crash in one fails instead of passing. **Laurel lands on the page with no page code; closes [#111](https://github.com/captproton/yardstake-ux/issues/111).**
 8. [#132](https://github.com/captproton/yardstake-ux/issues/132) Tier 1 finishes and trim, using the [barn cabin's trim values, declared `assumed`](#tier-1-trim--the-barn-cabins-values-declared-assumed): siding exterior trim as its own nodes, none under stucco. Also [P3b](#p3b--overlay-against-the-a-10-plan), the A-1.0 plan overlay, which tests door 5, doors 3 and 4, and the partition faces against the drawn ink.
 9. [#119](https://github.com/captproton/yardstake-ux/issues/119) **Declare where each footprint sits**, so the overlay stops centring. A page change, before Laurel's dimensions are trusted.
 10. [#133](https://github.com/captproton/yardstake-ux/issues/133) Tier 2 textures and configurator: `sets`, `presence`, `views`, `dimensions`, `disclosure` meeting the page's contract.
