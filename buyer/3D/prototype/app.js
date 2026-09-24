@@ -57,19 +57,22 @@ function frontBasis(key) {
   return { key, front, up, side, view };
 }
 
-// The manifest's identity block first -- it is the header's source -- then
-// the index row. Two that disagree, or neither declaring one of FRONTS, is a
-// load failure with a reason: opening on a guess is what #117 removed.
+// BOTH MUST DECLARE IT, AND AGREE. The contract requires `front` in the
+// manifest's identity and in the index row, so either one missing is a file
+// that fails the contract -- a load failure with a reason, not a front
+// borrowed from the other source. Opening on a guess is what #117 removed.
 function readFront(manifest, row) {
-  const declared = isObject(manifest.model) ? manifest.model.front : undefined;
-  const front = declared ?? row.front;
-  if (!Object.hasOwn(FRONTS, front)) {
-    throw new Error(`its front is ${JSON.stringify(front)}, not one of ${Object.keys(FRONTS).join(', ')}`);
+  const known = Object.keys(FRONTS).join(', ');
+  const fromManifest = isObject(manifest.model) ? manifest.model.front : undefined;
+  for (const [where, front] of [['manifest', fromManifest], ['index', row.front]]) {
+    if (!Object.hasOwn(FRONTS, front)) {
+      throw new Error(`its ${where} declares the front as ${JSON.stringify(front)}, not one of ${known}`);
+    }
   }
-  if (declared !== undefined && row.front !== undefined && declared !== row.front) {
-    throw new Error(`its manifest says the front is ${declared} and the index says ${row.front}`);
+  if (fromManifest !== row.front) {
+    throw new Error(`its manifest says the front is ${fromManifest} and the index says ${row.front}`);
   }
-  return front;
+  return fromManifest;
 }
 
 const LEVEL = /^lod(\d+)$/;

@@ -14,7 +14,9 @@ below is a way to declare the wrong end, or to declare one nothing can check:
 """
 from pathlib import Path
 
-from suite import (Case, ContractCase, Run, app_js, barn, barn_glb, index,
+import json
+
+from suite import (Case, ContractCase, Run, app_js, barn, barn_glb, glb, index,
                    index_gates, manifest, page_gates, read_json, replace,
                    write_json)
 
@@ -59,6 +61,24 @@ def _set(path_of, *keys_value):
     return setup
 
 
+def _nested_door() -> tuple:
+    """A door whose own bounds say +Z, under a mesh-less parent that moves it
+    20 m toward -Z. Read node by node it is at the front; in the scene the
+    page draws, it is past the back wall. Found by review (#150)."""
+    def acc(lo, hi):
+        return {"componentType": 5126, "count": 8, "type": "VEC3", "min": lo, "max": hi}
+    g = {
+        "asset": {"version": "2.0"},
+        "accessors": [acc([0, 0, -9], [7, 3, 0]), acc([3, 0, -0.1], [4, 2, 0])],
+        "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]},
+                   {"primitives": [{"attributes": {"POSITION": 1}}]}],
+        "nodes": [{"name": "Body", "mesh": 0},
+                  {"name": "Group", "translation": [0, 0, -20], "children": [2]},
+                  {"name": "Door", "mesh": 1}],
+    }
+    return ("nested.glb", glb(json.dumps(g)))
+
+
 CASES = [
     ContractCase(G, "the barn cabin's identity, with its front, passes",
                  lambda mc, root: mc.identity_problems(_identity(root))),
@@ -76,6 +96,9 @@ CASES = [
     ContractCase(G, "declared +x: the door is on no side at all",
                  lambda mc, root: mc.front_problems(barn_glb(root), "+x", DOOR),
                  "but front is declared +x"),
+    ContractCase(G, "an entry moved by a parent the check cannot see",
+                 lambda mc, root: mc.front_problems(_nested_door(), "+z", "Door"),
+                 "it has a node hierarchy (parents: ['Group'])"),
     ContractCase(G, "an entry node the file does not have",
                  lambda mc, root: mc.front_problems(barn_glb(root), "+z", "Door_D-NOWHERE"),
                  "has 0 nodes named 'Door_D-NOWHERE'"),

@@ -228,6 +228,15 @@ def front_problems(glb, front, entry_node):
         nodes = g.get("nodes", [])
         if not isinstance(nodes, list) or not all(isinstance(n, dict) for n in nodes):
             raise ValueError("`nodes` is not a list of objects")
+        # A FLAT FILE ONLY. A mesh under a parent sits where the parent's
+        # transform puts it, and this reads each node in its own frame -- so a
+        # parent WITHOUT a mesh would move its children unseen, and an entry
+        # at the opposite end could pass. Refused rather than resolved: every
+        # export so far is flat, and a hierarchy should fail here, not pass.
+        parents = [n.get("name") for n in nodes if n.get("children")]
+        if parents:
+            raise ValueError(f"it has a node hierarchy (parents: {parents}), "
+                             f"which this check does not resolve")
         boxes = [_node_bounds(g, n) for n in nodes if "mesh" in n]
         entry = [n for n in nodes if n.get("name") == entry_node]
         if len(entry) != 1:
