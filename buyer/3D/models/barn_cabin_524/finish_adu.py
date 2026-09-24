@@ -214,6 +214,11 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     v = spec.get("variants")
     if not v:
         return None, []
+    # Truthy is not a mapping: `variants: [x]` reached v.get("presence")
+    # below and raised. A readable problem, like everything else here.
+    if not isinstance(v, dict):
+        return None, [f"spec.variants must be an object with `sets`, found "
+                      f"{type(v).__name__}"]
     sets, problems = kit_manifest.sets_block(v, materials_present)
     # ---- presence: a SIBLING of sets, never an overload of it -------------
     pres_spec = v.get("presence")

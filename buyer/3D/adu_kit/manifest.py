@@ -142,8 +142,12 @@ def _display_mode_shape(groups, modes):
     if not isinstance(groups, dict):
         return [f"{where}.groups must map each group to a list of name "
                 f"prefixes, found {type(groups).__name__}"]
-    problems = [f"{where}.groups.{g} must be a list of name prefixes, found "
-                f"{type(v).__name__}" for g, v in groups.items() if not _strings(v)]
+    # Names are text: YAML reads `2:` as an int, and one int among string
+    # names makes every later sort of the groups raise TypeError.
+    problems = [f"{where}.groups has a name that is not text: {g!r}"
+                for g in groups if not isinstance(g, str)]
+    problems += [f"{where}.groups.{g} must be a list of name prefixes, found "
+                 f"{type(v).__name__}" for g, v in groups.items() if not _strings(v)]
     if not isinstance(modes, list):
         return problems + [f"{where}.modes must be a list of modes, found "
                            f"{type(modes).__name__}"]

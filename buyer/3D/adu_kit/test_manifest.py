@@ -164,6 +164,11 @@ class Views(unittest.TestCase):
                                                             "modes": [ok_mode]},
             "modes must be a list": {"groups": {"roof": ["Roof_"]}, "modes": {"x": ok_mode}},
             "modes[0] must be an object": {"groups": {"roof": ["Roof_"]}, "modes": ["full"]},
+            # Found by review: YAML reads `2:` as an int, and sorting the
+            # group names for the unknown-group message then raised TypeError.
+            "groups has a name that is not text: 2": {
+                "groups": {2: ["Roof_"], "roof": ["Roof_"]},
+                "modes": [dict(ok_mode, hide=["ceiling"])]},
             "modes[0].label must be a non-empty string": {
                 "groups": {"roof": ["Roof_"]}, "modes": [{"id": "x", "default": True, "hide": []}]},
             "modes[0].hide must be a list of names": {

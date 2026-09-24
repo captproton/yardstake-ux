@@ -41,6 +41,16 @@ def promote(out, final_out):
     finds. The export directory is generated output and nothing else, so a
     file this run did not write is a file from another generation.
     Directories are left alone: an export writes none.
+
+    WHAT THIS DOES NOT PROMISE: THE SET IS NOT SWAPPED ATOMICALLY. Files are
+    replaced one at a time, so a reader looking DURING a promote could see
+    new levels beside the old manifest. That reader does not exist here: an
+    export runs on a developer's machine and its result reaches anyone only
+    by being committed, and build_index.py runs afterwards, never
+    concurrently. A directory swap would leave a moment with no export/ at
+    all, and making it truly atomic needs a symlink or reader coordination
+    for a reader that is not there. If an export ever publishes to a
+    directory something serves live, this is the function to change.
     """
     out, final_out = Path(out), Path(final_out)
     staged = sorted(out.iterdir())

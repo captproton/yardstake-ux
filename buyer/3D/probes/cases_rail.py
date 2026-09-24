@@ -11,6 +11,18 @@ G = "#120 rail"
 CHAIR = "\U0001FA91"  # one code point, two UTF-16 units
 
 
+def _variants_is_a_list(root: Path) -> None:
+    """Found by review (#131): sets_block reports a malformed `variants`, but
+    finish_adu.py went on to call v.get("presence") on it and raised."""
+    spec = barn(root) / "spec.yaml"
+    text = spec.read_bytes()
+    old = b"\nvariants:\n"
+    if text.count(old) != 1:
+        raise AssertionError("spec.yaml no longer has exactly one top-level variants:")
+    # The block moves to a spare key, so the YAML stays valid.
+    spec.write_bytes(text.replace(old, b"\nvariants: [not, a, mapping]\nvariants_moved_aside:\n"))
+
+
 def _disclosure_note_is_a_number(root: Path) -> None:
     spec = barn(root) / "spec.yaml"
     text = spec.read_bytes()
@@ -62,6 +74,9 @@ CASES = [
     Case(G, "a disclosure_note that is a number",
          edit(manifest, lambda m: m.__setitem__("disclosure_note", 123)),
          index_gates(), "disclosure_note must be a string when present, found int"),
+    Case(G, "Blender: variants as a list in the spec is reported, not a crash",
+         _variants_is_a_list, [Run("finish_adu.py", fails=True, blender=True)],
+         "spec.variants must be an object with `sets`, found list"),
     Case(G, "Blender: a disclosure_note of 123 in the spec is reported, not a crash",
          _disclosure_note_is_a_number, [Run("finish_adu.py", fails=True, blender=True)],
          "presence `disclosure_note` must be text, found int"),
