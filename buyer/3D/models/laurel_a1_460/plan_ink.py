@@ -39,12 +39,19 @@ PAGE = 4                                      # A-1.0
 NS = "{http://www.w3.org/2000/svg}"
 NUM = r"-?\d+(?:\.\d+)?(?:e-?\d+)?"
 
-# The frame's registration: page points of the ticks on the 19'-2" string
-# (Y 19'-2" .. Y 0) and the 24'-0" string (X 24 .. X 0). Plot bookkeeping,
-# not building dimensions: the ticks are read, and the feet come from the
-# strings they carry.
-TICK_Y_FRONT_PT, TICK_Y_REAR_PT, DEPTH_FT = 291.27, 636.03, 19.1667
-TICK_X_TOP_PT, TICK_X_BOTTOM_PT, WIDTH_FT = 1057.35, 1489.05, 24.0
+# WHERE TO LOOK for the frame's four ticks, in page points: the 19'-2" string
+# (Y 19'-2" at its front tick, Y 0 at its rear) runs along page y 1571.4, and
+# the 24'-0" string (X 24 at the top, X 0 at the bottom) along page x 181.4.
+# These are a search, not the frame: frame() finds the ticks the SVG actually
+# draws within TICK_REACH_PT of each and measures from THEM, and refuses if
+# one is missing -- so a page that moved or rescaled fails rather than
+# yielding a frame that is consistently wrong.
+LOOK_FRONT, LOOK_REAR = (291.3, 1571.4), (636.0, 1571.4)
+LOOK_TOP, LOOK_BOTTOM = (181.4, 1057.4), (181.4, 1489.1)
+DEPTH_FT, WIDTH_FT = 19.1667, 24.0            # the two strings' own values
+TICK_REACH_PT = 3.0
+TICK_MAX_PT = 8.0                             # a tick stroke is a few points long
+SCALE_AGREE = 1e-3                            # the two strings' scales, relative
 STUD_LINE_PT = 0.48                           # the stroke A-1.0 draws a stud face with
 STROKE_TOL_PT = 0.05
 
@@ -66,7 +73,9 @@ def segments(svg_text):
         if el.get("stroke") in (None, "none"):
             continue
         m = re.fullmatch(r"matrix\((.*)\)", el.get("transform", "matrix(1,0,0,1,0,0)"))
-        a, b, c, d, e, f = (float(v) for v in m.group(1).split(","))
+        # SVG allows commas, whitespace or both between a matrix's numbers;
+        # cairo writes "0.12, 0, ..." today, and another version need not.
+        a, b, c, d, e, f = (float(v) for v in re.split(r"[\s,]+", m.group(1).strip()))
         toks = re.findall(r"[MLCZ]|" + NUM, el.get("d", ""))
         cur = start = None
         i = 0
@@ -92,17 +101,42 @@ def segments(svg_text):
     return out
 
 
-def frame():
-    """(pt per ft, page x of Y 0, page y of X 0), from the two strings' ticks."""
-    sy = (TICK_Y_REAR_PT - TICK_Y_FRONT_PT) / DEPTH_FT
-    sx = (TICK_X_BOTTOM_PT - TICK_X_TOP_PT) / WIDTH_FT
-    return (sx + sy) / 2, TICK_Y_REAR_PT, TICK_X_BOTTOM_PT
+def tick(segs, look):
+    """The centre of the dimension tick the drawing puts near `look`: the
+    mean of the short diagonal strokes within TICK_REACH_PT of it (pdftocairo
+    writes each tick as two half-strokes). Raises ValueError if there is
+    none -- a frame is never guessed."""
+    near = []
+    for p, q, _ in segs:
+        dx, dy = abs(p[0] - q[0]), abs(p[1] - q[1])
+        if dx > 1 and dy > 1 and (dx * dx + dy * dy) ** 0.5 < TICK_MAX_PT:
+            mx, my = (p[0] + q[0]) / 2, (p[1] + q[1]) / 2
+            if abs(mx - look[0]) < TICK_REACH_PT and abs(my - look[1]) < TICK_REACH_PT:
+                near.append((mx, my))
+    if not near:
+        raise ValueError(f"no dimension tick within {TICK_REACH_PT} pt of {look}: "
+                         f"the page has moved or changed, and the frame cannot be read")
+    return (sum(x for x, _ in near) / len(near), sum(y for _, y in near) / len(near))
+
+
+def frame(segs):
+    """(pt per ft, page x of Y 0, page y of X 0), MEASURED from the ticks the
+    drawing carries: the 19'-2" string's two and the 24'-0" string's two.
+    The two strings must agree on the scale, or it is refused."""
+    front, rear = tick(segs, LOOK_FRONT), tick(segs, LOOK_REAR)
+    top, bottom = tick(segs, LOOK_TOP), tick(segs, LOOK_BOTTOM)
+    sy = (rear[0] - front[0]) / DEPTH_FT
+    sx = (bottom[1] - top[1]) / WIDTH_FT
+    if abs(sx - sy) > SCALE_AGREE * sy:
+        raise ValueError(f"the 19'-2\" string gives {sy:.4f} pt/ft and the 24'-0\" "
+                         f"string {sx:.4f}: the frame is not one scale")
+    return (sx + sy) / 2, rear[0], bottom[1]
 
 
 def stud_lines(segs):
     """Stud-face lines in Laurel's frame: {"along_X": [(Y, X0, X1)], "along_Y": [(X, Y0, Y1)]}.
     A line running along X is page-vertical, because A-1.0 draws X up the page."""
-    s, y0_px, x0_py = frame()
+    s, y0_px, x0_py = frame(segs)
     to_Y = lambda px: (y0_px - px) / s          # noqa: E731
     to_X = lambda py: (x0_py - py) / s          # noqa: E731
     along_X, along_Y = [], []
@@ -186,8 +220,9 @@ def measure(spec, lines):
 def main():
     import yaml
     spec = yaml.safe_load((HERE / "spec.yaml").read_text())
-    s, _, _ = frame()
-    lines = stud_lines(segments(svg()))
+    segs = segments(svg())
+    s, _, _ = frame(segs)
+    lines = stud_lines(segs)
     parts, doors = measure(spec, lines)
     print(f"A-1.0 at {s:.4f} pt/ft")
     for pid, (near, far) in parts.items():

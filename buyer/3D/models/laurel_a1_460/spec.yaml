@@ -980,41 +980,22 @@ discrepancies:
     source: "A-2.0 SIDE (RIGHT) ELEVATION, FRONT ELEVATION and detail 7 ROOF SECTION; S1.0 MODEL A- ROOF FRAMING"
 
   - id: the-half-inch-in-the-interior-strings
+    status: resolved
     resolved: >
-      By #132, reading each string's own end ticks off the PDF's vectors. The
-      strings never disagreed: #129 read the 7'-3" and 3'-2" strings as
-      ending at Y 4.1667, and their ticks end at 4.2083, P_laundry_E's real
-      face. With that wall half an inch nearer the front, the 5'-2", 7'-3",
-      3'-2" and 3'-9" strings, the 3'-6" closet and the drawn ink all agree
-      to within 0.05". The 3'-9" string is the rear wall's inside face to
-      P_laundry_E, not door 5. What follows is the entry as #129 wrote it.
-    impact: >
-      Two of A-1.0's interior strings do not land on the same faces as the
-      rest, by half an inch and by an unknown amount.
-
-      The 5'-2" string drawn above the PANTRY runs along Y. Read from
-      P_bath_W's kitchen face (Y 6.2917) it ends at Y 11.4583; the 7'-3" and
-      3'-2" strings put P_block_W's living-room face at Y 11.4167. The two
-      readings differ by 1/2", which is one thickness of gyp board -- the
-      likeliest cause is one string drawn to a finished face and the other to
-      face of stud, on a sheet whose note says face of stud U.N.O.
-
-      The 3'-9" string drawn in the BATH beside door 5 runs along Y. Scaling
-      puts its ends at about Y 4.67 and Y 0.92, which is neither a pair of
-      wall faces nor the door opening this spec writes. What it dimensions is
-      not established.
-    resolution: >
-      interior_partitions.layout follows the 7'-3" and 3'-2" reading, because
-      those two agree with each other, with the 6'-2" and 2'-6" depths, and
-      with the scale check to within 0.6", while the 5'-2" reading disagrees
-      with the scale check by more. The half inch is below what the page can
-      show and below what #130's overlay can resolve.
-
-      The 3'-9" string is left unresolved. Door 5's opening is written from
-      the schedule's 3'-0" width and the drawn end of P_bath_S, and is marked
-      `assumed`. Nothing in this model depends on 3'-9" meaning what one
-      guess or another says it means, so nothing is invented to make it fit.
-    open: "if #130's overlay of the side elevations disagrees at the bath, this string is the first thing to re-read"
+      By #132, reading each string's own end ticks off A-1.0's vectors
+      (plan_ink.py). The strings never disagreed. The 7'-3" and 3'-2" strings
+      end on P_laundry_E's stud face at Y 4.2083, and with that wall there,
+      the 5'-2", 7'-3", 3'-2" and 3'-9" strings, the 3'-6" closet and the
+      drawn ink all agree to within 0.05". interior_partitions.layout now
+      follows that reading, and plan_overlay holds it to the ink. The 3'-9"
+      string is the rear wall's inside face to P_laundry_E; it does not
+      dimension door 5.
+    was: >
+      #129 read the 7'-3" and 3'-2" strings as ending at Y 4.1667, which put
+      P_block_W, P_laundry_W and P_laundry_E each half an inch toward the
+      rear and left the 5'-2" string half an inch out. It chose that reading
+      because a 400 dpi raster, resolving about an inch, could not tell the
+      two apart, and it left the 3'-9" string unresolved. The vectors can.
   - id: the-first-draft-of-this-spec-mirrored-the-plan
     impact: >
       The first draft put X 0 at the kitchen and bath end and said X ran left to
