@@ -21,12 +21,9 @@ because it makes Blender's own UI read in feet, but it is not load-bearing.
 import sys
 import json
 import shutil
-import os
-import struct
 from pathlib import Path
 
 import bpy
-import bmesh
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -35,7 +32,7 @@ sys.path.insert(0, str(HERE))
 # nothing there shadows this model's.
 sys.path.append(str(HERE.parents[1]))
 from adu_kit.schema.model_contract import (  # noqa: E402
-    display_problems, front_problems, identity_problems)
+    display_problems, identity_problems)
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 # Feet to metres, the Draco .glb writer and the .glb reader know no building,
@@ -43,101 +40,35 @@ from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E40
 # to_metres is not called here any more; it stays importable from this module,
 # as every moved name does.
 from adu_kit.export import FOOT_M, to_metres, export_glb, glb_info  # noqa: E402,F401
+# THE FINISHING STEPS EVERY MODEL TAKES moved to the kit for #131, when Laurel
+# became the second model to export: materials, assignment, the closure gate,
+# the lod2 contract, staged publishing, and the manifest's identity, sets and
+# views. What stays here reads this building: glazing, furniture presence,
+# the dimensions block and the scale gate.
+from adu_kit import manifest as kit_manifest  # noqa: E402
+from adu_kit.export import patch_base_color_factors as _patch_factors  # noqa: E402
+from adu_kit.finish import (  # noqa: E402,F401
+    assign as _assign, closure_problems, lod2_contract_nodes,
+    make_materials as _make_materials, promote, report_lod2_contract, stage)
+
+# The barn cabin's tagged faces: build_adu.mark_reveals() sets slot 1 on
+# reveals (trim) and slot 2 on inward faces (drywall).
+REVEAL_SLOTS = {1: "trim", 2: "drywall"}
+MODEL_NOTE = (
+    "`id` is an identifier and `name` is what a buyer reads; they "
+    "are not interchangeable and this model is why. The id says "
+    "524 -- it came from the source PDF's filename -- and every "
+    "measurable thing says 528: the sheet's own S.F. notes, and "
+    "22'-0\" x 24'-0\" = 528.0 sf of built geometry. See "
+    "spec.discrepancies."
+    "the-model-id-says-524-and-every-measurable-thing-says-528.")
 
 
 # ---------------------------------------------------------------------------
 def make_materials(spec, textured=True):
-    lib = spec["materials"]["library"]
-    _sd = spec["materials"].get("sidedness") or {}
-    two_sided = set(_sd.get("double_sided") or {})
-    # THE DEFAULT HAS TO DO SOMETHING OR IT SHOULD NOT BE THERE. It was
-    # published and ignored -- the builder hard-coded single and read only the
-    # exception list, so setting `default: double` changed nothing and the
-    # gate agreed, because it ignored the field too.
-    _default_single = _sd.get("default", "single") == "single"
+    """adu_kit.finish.make_materials, with this model's texture directory."""
     tdir = HERE / spec.get("textures", {}).get("dir", "textures/")
-    out = {}
-    for name, m in lib.items():
-        mat = bpy.data.materials.new(f"adu_{name}")
-        mat.use_nodes = True
-        nt = mat.node_tree
-        bsdf = nt.nodes["Principled BSDF"]
-        r, g, b = m["base_color_linear"]
-        bsdf.inputs["Base Color"].default_value = (r, g, b, 1.0)
-
-        # Textures, where the spec declares them. A base-colour map carries the
-        # colour itself, so the factor is left white and not double-tinted.
-        maps = (m.get("maps") or {}) if textured else {}
-        for slot, fname in maps.items():
-            path = tdir / fname
-            if not path.exists():
-                raise SystemExit(f"[tex] missing {path}")
-            img = bpy.data.images.load(str(path), check_existing=True)
-            tex = nt.nodes.new("ShaderNodeTexImage")
-            tex.image = img
-            tex.location = (-600, {"base_color": 300, "normal": -300,
-                                   "roughness": 0}.get(slot, 0))
-            if slot == "base_color":
-                img.colorspace_settings.name = "sRGB"
-                if m.get("neutral_albedo"):
-                    # The map carries luminance only; the colour stays on the
-                    # factor so a configurator can swap it without new textures.
-                    mix = nt.nodes.new("ShaderNodeMixRGB")
-                    mix.blend_type = "MULTIPLY"
-                    mix.location = (-300, 300)
-                    mix.inputs["Fac"].default_value = 1.0
-                    mix.inputs["Color2"].default_value = (r, g, b, 1.0)
-                    nt.links.new(tex.outputs["Color"], mix.inputs["Color1"])
-                    nt.links.new(mix.outputs["Color"], bsdf.inputs["Base Color"])
-                else:
-                    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-                    bsdf.inputs["Base Color"].default_value = (1, 1, 1, 1)
-            elif slot == "normal":
-                img.colorspace_settings.name = "Non-Color"
-                nm = nt.nodes.new("ShaderNodeNormalMap")
-                nm.location = (-300, -300)
-                nt.links.new(tex.outputs["Color"], nm.inputs["Color"])
-                nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
-            elif slot == "roughness":
-                img.colorspace_settings.name = "Non-Color"
-                nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
-        # SINGLE-SIDED UNLESS THE SPEC SAYS OTHERWISE. Blender writes
-        # glTF `doubleSided = not use_backface_culling`, and the default left
-        # every material double-sided by omission rather than by decision.
-        mat.use_backface_culling = _default_single != (name in two_sided)
-
-        bsdf.inputs["Roughness"].default_value = m.get("roughness", 0.8)
-        bsdf.inputs["Metallic"].default_value = m.get("metallic", 0.0)
-        if m.get("emissive_linear"):
-            # The look of a lit lamp. Blender's glTF exporter turns Emission
-            # into emissiveFactor, and a strength above 1 into
-            # KHR_materials_emissive_strength — so day/night at runtime is the
-            # same kind of swap the colour variants already do, on a different
-            # property. No KHR_lights_punctual is written and none is wanted:
-            # see materials.lamp_glow.
-            # Socket name moved between Blender versions the same way
-            # Transmission did below — "Emission" in 3.x, "Emission Color" in
-            # 4.x and later. Probe rather than assume, so this does not become
-            # a silent no-emission material on an LTS build.
-            er, eg, eb = m["emissive_linear"]
-            for key in ("Emission Color", "Emission"):
-                if key in bsdf.inputs:
-                    bsdf.inputs[key].default_value = (er, eg, eb, 1.0)
-                    break
-            else:
-                raise SystemExit(f"[mat] {name}: no emission colour socket on "
-                                 "Principled BSDF; emissive_linear cannot be applied")
-            if "Emission Strength" in bsdf.inputs:
-                bsdf.inputs["Emission Strength"].default_value = m.get(
-                    "emissive_strength", 1.0)
-        if m.get("transmission"):
-            for key in ("Transmission Weight", "Transmission"):
-                if key in bsdf.inputs:
-                    bsdf.inputs[key].default_value = m["transmission"]
-                    break
-            mat.blend_method = "BLEND"
-        out[name] = mat
-    return out
+    return _make_materials(spec, tdir, textured=textured)
 
 
 def default_furniture(spec, coll):
@@ -154,34 +85,8 @@ def default_furniture(spec, coll):
 
 
 def assign(spec, mats):
-    """Apply spec.materials.assignment by object-name prefix. First match wins."""
-    rules = list(spec["materials"]["assignment"].items())
-    unmatched = []
-    for ob in bpy.data.objects:
-        if ob.type != "MESH":
-            continue
-        for prefix, mname in rules:
-            if ob.name.startswith(prefix):
-                # materials.clear() RESETS every polygon's material_index to 0,
-                # which silently discarded the reveal tagging from
-                # build_adu.mark_reveals(). Capture the indices first and put
-                # them back once both slots exist.
-                # slot 1 = trim (reveals), slot 2 = drywall (inward face)
-                EXTRA = {1: "trim", 2: "drywall"}
-                tagged = {i: poly.material_index
-                          for i, poly in enumerate(ob.data.polygons)
-                          if poly.material_index in EXTRA}
-                ob.data.materials.clear()
-                ob.data.materials.append(mats[mname])
-                if tagged:
-                    for slot in sorted(EXTRA):
-                        ob.data.materials.append(mats[EXTRA[slot]])
-                    for i, slot in tagged.items():
-                        ob.data.polygons[i].material_index = slot
-                break
-        else:
-            unmatched.append(ob.name)
-    return unmatched
+    """adu_kit.finish.assign, keeping this model's reveal and inward-face slots."""
+    return _assign(spec, mats, REVEAL_SLOTS)
 
 
 # ---------------------------------------------------------------------------
@@ -279,47 +184,8 @@ def add_glazing(spec, geo, coll):
 
 
 def patch_base_color_factors(path, spec):
-    """Write baseColorFactor for the neutral-albedo materials.
-
-    Blender's exporter does not recognise a multiply node feeding Base Color,
-    so it emits baseColorTexture with no factor — which would ship the model
-    untinted, since those maps carry luminance only. Two node types were tried
-    before settling on patching the file, which is deterministic and does not
-    depend on the exporter matching a graph pattern.
-    """
-    lib = spec["materials"]["library"]
-    raw = path.read_bytes()
-    assert raw[:4] == b"glTF"
-    chunks, off = [], 12
-    while off < len(raw):
-        clen, ctype = struct.unpack_from("<II", raw, off)
-        chunks.append([ctype, raw[off + 8: off + 8 + clen]])
-        off += 8 + clen
-    n = 0
-    for c in chunks:
-        if c[0] != 0x4E4F534A:
-            continue
-        js = json.loads(c[1].decode("utf-8"))
-        for m in js.get("materials", []):
-            # removeprefix, NOT replace: replace() strips "adu_" anywhere in the
-            # name, so a material called "adu_wall_adu_trim" would map to the
-            # wrong spec key. Unnamed materials are skipped rather than raising.
-            name = m.get("name")
-            if not name:
-                continue
-            key = name[4:] if name.startswith("adu_") else name
-            spec_m = lib.get(key, {})
-            if not spec_m.get("neutral_albedo"):
-                continue
-            r, g, b = spec_m["base_color_linear"]
-            m.setdefault("pbrMetallicRoughness", {})["baseColorFactor"] = [r, g, b, 1.0]
-            n += 1
-        blob = json.dumps(js, separators=(",", ":")).encode("utf-8")
-        blob += b" " * ((4 - len(blob) % 4) % 4)          # pad with spaces
-        c[1] = blob
-    body = b"".join(struct.pack("<II", len(c[1]), c[0]) + c[1] for c in chunks)
-    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
-    return n
+    """adu_kit.export.patch_base_color_factors, over this spec's library."""
+    return _patch_factors(path, spec["materials"]["library"])
 
 
 def arrangement_nodes(spec, arr_id):
@@ -348,21 +214,12 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     v = spec.get("variants")
     if not v:
         return None, []
-    problems = []
-    sets = []
-    for st in v["sets"]:
-        for t in st["targets"]:
-            if t not in materials_present:
-                problems.append(f"{st['id']} -> unknown material {t}")
-        opts = [{"id": o["id"], "label": o["label"],
-                 "value": list(o["value"]) + [1.0],
-                 "default": bool(o.get("default"))} for o in st["options"]]
-        if sum(o["default"] for o in opts) != 1:
-            problems.append(f"{st['id']} needs exactly one default")
-        sets.append({"id": st["id"], "label": st["label"],
-                     "targets": st["targets"],
-                     "property": v.get("property", "baseColorFactor"),
-                     "options": opts})
+    # Truthy is not a mapping: `variants: [x]` reached v.get("presence")
+    # below and raised. A readable problem, like everything else here.
+    if not isinstance(v, dict):
+        return None, [f"spec.variants must be an object with `sets`, found "
+                      f"{type(v).__name__}"]
+    sets, problems = kit_manifest.sets_block(v, materials_present)
     # ---- presence: a SIBLING of sets, never an overload of it -------------
     pres_spec = v.get("presence")
     presence = []
@@ -404,79 +261,13 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
         if stray:
             problems.append(f"furniture nodes no presence set controls: {stray}")
 
-    # ── IDENTITY ──────────────────────────────────────────────────────────
-    # `"model": "barn_cabin_524"` was a STRING LITERAL IN THE BUILDER, which
-    # is rule 4 broken in the one file that hands the page its contract: the
-    # spec owns every name, and this one was typed here. It also gave the page
-    # nothing to render a header with -- an id is not a display name, and
-    # `barn_cabin_524` is not a thing to show a buyer.
-    #
-    # WHICH AREA, NAMED RATHER THAN PICKED. `areas_declared` holds five
-    # numbers that mean different things. The spec names the key and the
-    # source string rides along, so a card that says "528 sf" can say which
-    # 528 -- and so that the next model, whose sheet counts area differently,
-    # says so instead of being silently coerced into this one's convention.
-    #
-    # THIS BLOCK ONLY FINDS THE AREA RECORD. Whether what it finds is valid --
-    # a string name, a positive area WITH its source, a storeys block of the
-    # right shape -- is model_contract.identity_problems(), run on the built
-    # block below, and the same function build_index.py and verify_index.py
-    # run. Checking presence here and types elsewhere is how a truthy
-    # `display_name: 123` and an area record with no `source` got published.
-    meta = spec["meta"]
-    idx = meta.get("index") or {}
-    area_key = idx.get("area_key")
-    if not (isinstance(area_key, str) and area_key):
-        problems.append("meta.index.area_key is unset; the index cannot "
-                        "publish an area it was not told to publish")
-        area_key_ok = False
-    else:
-        area_key_ok = True
-    area = (spec.get("areas_declared") or {}).get(area_key) if area_key_ok else None
-    if area_key_ok and area is None:
-        problems.append(f"meta.index.area_key is {area_key!r}, which is not a "
-                        f"key of areas_declared")
-    elif area is not None and not isinstance(area, dict):
-        problems.append(f"areas_declared.{area_key} must be an object with "
-                        f"`value` and `source`, found {area!r}")
-    area = area if isinstance(area, dict) else {}
-
-    # WHICH END IS THE FRONT (#117), declared rather than assumed, and HELD TO
-    # THE FILE: the entry door must sit at that end of the lod0 just staged.
-    # A wrong declaration is a building the page opens from behind, so it
-    # fails here instead of there.
-    front = idx.get("front") if isinstance(idx.get("front"), dict) else {}
-    if not isinstance(front.get("entry"), str) or not front.get("entry"):
-        problems.append("meta.index.front.entry is unset; nothing can prove "
-                        "the declared front is the building's front")
-    else:
-        problems += front_problems(out / "barn_cabin_524_lod0.glb",
-                                   front.get("glb"), front["entry"])
+    # ── IDENTITY: adu_kit.manifest.identity_block, held to the lod0 staged ──
+    ident, bad = kit_manifest.identity_block(spec, out / "barn_cabin_524_lod0.glb",
+                                             MODEL_NOTE)
+    problems += bad
 
     manifest = {
-        "model": {
-            "id": meta.get("model_id"),
-            "name": meta.get("display_name"),
-            "area_sf": area.get("value"),
-            "area_key": area_key,
-            "area_source": area.get("source"),
-            "storeys": idx.get("storeys"),
-            "front": front.get("glb"),
-            "entry_node": front.get("entry"),
-            # Relative to the MODEL DIRECTORY, so the index can rebase it and
-            # nothing downstream has to know where this model lives. Optional:
-            # a model with no render yet publishes null rather than a path
-            # that 404s, and the page falls back.
-            "thumbnail": idx.get("thumbnail"),
-            "note": (
-                "`id` is an identifier and `name` is what a buyer reads; they "
-                "are not interchangeable and this model is why. The id says "
-                "524 -- it came from the source PDF's filename -- and every "
-                "measurable thing says 528: the sheet's own S.F. notes, and "
-                "22'-0\" x 24'-0\" = 528.0 sf of built geometry. See "
-                "spec.discrepancies."
-                "the-model-id-says-524-and-every-measurable-thing-says-528."),
-        },
+        "model": ident,
         "note": ("Runtime material swaps. Each option sets baseColorFactor on the "
                  "named materials; the albedo maps are neutral, so no textures "
                  "need loading and none ship per option."),
@@ -516,81 +307,13 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
                             f"{type(disc_note).__name__}")
         elif (disc_note or "").strip():
             manifest["disclosure_note"] = disc_note.strip()
-    # ---- what the page needs under the viewer ----------------------------
-    # The configurator this model answers puts two buttons below the 3D view:
-    # SHOW INTERIOR and SHOW DIMENSIONS. Until now it could drive neither.
-    # views.py has known how to strip a roof since Tier 1 and it is a BLENDER
-    # tool -- the rule never reached the browser.
-    #
-    # RESOLVED TO NODE NAMES, NOT SHIPPED AS PREFIXES. A runtime should not
-    # have to string-match its way to a roof, and a prefix with a typo would
-    # hide nothing while looking like it worked. Resolving here also means a
-    # mode that matches nothing FAILS THE BUILD, below, rather than shipping
-    # a button that does not move.
-    # REQUIRED, NOT OPTIONAL. `if dm:` let a spec with no display_modes
-    # publish a manifest with no `views` and no complaint -- while views.py
-    # indexes spec.export.display_modes unconditionally at import. One
-    # consumer tolerant, the other fatal, over the same missing block.
-    dm = (spec.get("export") or {}).get("display_modes")
-    if not dm or not dm.get("groups") or not dm.get("modes"):
-        problems.append("spec.export.display_modes is missing or empty — "
-                        "views.py requires it and the page's SHOW INTERIOR "
-                        "control is built from it")
-    if dm and dm.get("groups") and dm.get("modes"):
-        groups, views = dm["groups"], []
-        # EVERY GROUP, NOT EVERY MODE. Checking that a mode hides SOMETHING is
-        # not enough: misspell `roof` and `dollhouse` still resolves the
-        # ceiling, so it hides ceilings, passes, and ships a "Show interior"
-        # button that leaves the roof on. Worse, views.py reads the same
-        # misspelling, so the two consumers agree perfectly about being wrong
-        # and the agreement gate passes too. A group that matches no node is
-        # the defect, wherever it is used.
-        # EVERY PREFIX, NOT EVERY GROUP. Checking that a group matches
-        # SOMETHING lets a typo hide inside a group that has other members:
-        # misspell `Porch_ceiling` in `ceiling` and `Ceil_` still matches, so
-        # the group resolves, the gate passes, and the porch ceiling stays up
-        # in "Show interior". Both consumers read the same typo, so the
-        # agreement gate sees nothing wrong either. Each prefix must earn its
-        # place.
-        for gid, prefixes in groups.items():
-            dead = [x for x in prefixes
-                    if not any(n.startswith(x) for n in nodes_present)]
-            if dead:
-                problems.append(
-                    f"display-mode group {gid!r} has prefixes that match no "
-                    f"exported node: {dead}")
-        ids = [m["id"] for m in dm["modes"]]
-        if len(set(ids)) != len(ids):
-            problems.append(f"display modes have duplicate ids: {ids}")
-        if sum(bool(m.get("default")) for m in dm["modes"]) != 1:
-            problems.append("display modes need exactly one default — the page "
-                            "has to open on something, and on one thing")
-        # A MISSPELT GROUP MUST FAIL LIKE EVERYTHING ELSE HERE. `groups[g]`
-        # raised KeyError, so a typo in a mode's composition aborted the whole
-        # export with a traceback -- after the LODs were written -- instead of
-        # the readable PROBLEM every other malformed input gets.
-        unknown = sorted({g for m in dm["modes"] for g in m["hide"]
-                          if g not in groups})
-        if unknown:
-            problems.append(f"display modes reference groups that do not "
-                            f"exist: {unknown} (have {sorted(groups)})")
-        for m in dm["modes"] if not unknown else []:
-            pref = tuple(x for g in m["hide"] for x in groups[g])
-            hide = sorted(n for n in nodes_present if n.startswith(pref))
-            if m["hide"] and not hide:
-                problems.append(
-                    f"display mode {m['id']!r} hides nothing — its prefixes "
-                    f"{list(pref)} match no exported node")
-            views.append({k: val for k, val in (
-                ("id", m["id"]), ("label", m["label"]),
-                ("desc", m.get("desc")), ("default", m.get("default")),
-                ("hide", hide)) if val is not None})
+    # ---- what the page needs under the viewer: adu_kit.manifest.views_block
+    views, bad = kit_manifest.views_block(
+        (spec.get("export") or {}).get("display_modes"), nodes_present)
+    problems += bad
+    if views is not None:
         manifest["views"] = views
-        manifest["views_note"] = (
-            "Visibility modes for the viewer's SHOW INTERIOR control. Each "
-            "lists the glTF node names to HIDE; show everything else. Node "
-            "names, not prefixes, so no string matching is needed and a mode "
-            "that matches nothing fails the export instead of the page.")
+        manifest["views_note"] = kit_manifest.VIEWS_NOTE
 
     # ---- the numbers the SHOW DIMENSIONS overlay needs --------------------
     env, rf = spec["envelope"], spec["roof"]
@@ -678,74 +401,12 @@ def save_viewable_blend(spec, dest):
     return dest
 
 
-def lod2_contract_nodes(spec):
-    """The declared lod2 node list, or None if the spec declares none.
-
-    lod2 is the placement developer's handoff. The plan has said for twelve
-    PRs that it must not change without a conversation -- and #98 changed it
-    anyway, by welding three objects that happened to live in the `shell` and
-    `roof` collections lod2 keeps. Nothing failed, because the guarantee was
-    written in a document and checked by nobody.
-
-    Geometry is not the thing at risk -- welding preserves every vertex -- the
-    INTERFACE is: how many nodes, and the names they address objects by.
-
-    `(spec.get("export") or {})` rather than `spec.get("export", {})`: the
-    default only fires on a MISSING key, and deleting the contract block
-    leaves `export:` present and null.
-    """
-    contract = (spec.get("export") or {}).get("lod2_contract") or {}
-    return sorted(contract.get("nodes") or []) or None
-
-
-def report_lod2_contract(want, got):
-    """Print the verdict. True only if the contract is satisfied.
-
-    FAILS CLOSED, and that is the whole point. A guard of the form
-    `if contract:` would make deleting the spec block a silent way to switch
-    off the only enforcement the handoff has -- the same shape of mistake #98
-    made, one level up. No contract is not "nothing to check"; it is the
-    check missing.
-    """
-    if not want:
-        print("lod2 CONTRACT MISSING - spec.export.lod2_contract declares no nodes.")
-        print("    This gate is the only thing holding the placement developer's"
-              " handoff. Absent, it fails.")
-        return False
-    if got is None:
-        print("lod2 CONTRACT UNCHECKABLE - lod2 was never exported, so the"
-              " contract could not be compared.")
-        return False
-    if sorted(got) == want:
-        print(f"lod2 contract: {len(want)} nodes, unchanged")
-        return True
-    print("lod2 CONTRACT BROKEN - this is the placement developer's file")
-    for n in sorted(set(want) - set(got)):
-        print(f"    GONE: {n}")
-    for n in sorted(set(got) - set(want)):
-        print(f"     NEW: {n}")
-    print("    If this change is intended, it is a CONVERSATION first,"
-          " then spec.export.lod2_contract, then the commit.")
-    return False
-
-
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     final_out = (Path(argv[argv.index("--out") + 1]) if "--out" in argv
                  else HERE / "export")
-    final_out.mkdir(parents=True, exist_ok=True)
-    # EVERYTHING IS WRITTEN BESIDE THE REAL DIRECTORY AND MOVED IN AT THE END.
-    # This has been fixed three times artefact by artefact -- lod2 in #99, the
-    # manifest and then the primary .glb in this PR -- and each fix left the
-    # next one exposed: a run that failed its BUDGET gate still published new
-    # LODs and a new manifest beside the old primary, which is a generation
-    # mix that never existed as a set. Staging is the fix that does not need a
-    # fourth. Nothing in export/ changes until every gate has passed.
-    out = final_out.parent / (final_out.name + ".staging")
-    if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True)
-    out.mkdir(parents=True, exist_ok=True)
+    # Nothing in export/ changes until every gate has passed: adu_kit.finish.
+    out = stage(final_out)
 
     spec = load_spec(HERE / "spec.yaml")
     results = {}
@@ -823,29 +484,10 @@ def main():
         info["unmatched_materials"] = unmatched
         info["textured"] = textured
         results[lod] = info
-        # THE SAFETY PRECONDITION, CHECKED ON WHAT SHIPS. This lived in
-        # verify_tier2, which runs against barn_cabin_524.blend -- and glazing
-        # is created HERE, so the eleven meshes that actually ship in lod0 and
-        # lod1 were outside the gate that justifies culling them. Checked on
-        # `keep`, which is the export set by definition.
-        #
-        # CLOSURE IS NOT ENOUGH EITHER. Every edge having two faces proves the
-        # mesh is sealed; glTF culls by WINDING, so a sealed mesh wound inside
-        # out has its exterior culled and vanishes. Signed volume is the test:
-        # positive means the faces face out.
-        for o in keep:
-            if not o.data.polygons:
-                continue
-            bm = bmesh.new()
-            bm.from_mesh(o.data)
-            open_e = sum(1 for e in bm.edges if len(e.link_faces) != 2)
-            vol = bm.calc_volume(signed=True)
-            bm.free()
-            if open_e:
-                sided_geo.append(f"{lod}:{o.name} is not closed ({open_e} edges)")
-            elif vol <= 0:
-                sided_geo.append(f"{lod}:{o.name} is wound inside out "
-                                 f"(signed volume {vol:.4f})")
+        # THE SAFETY PRECONDITION, CHECKED ON WHAT SHIPS: every mesh closed
+        # and wound outwards (adu_kit.finish.closure_problems). Glazing is
+        # created HERE, so this is checked on `keep`, the export set.
+        sided_geo += closure_problems(keep, lod)
 
         if lod == "lod0":
             lod0_nodes = {o.name for o in keep}
@@ -1005,13 +647,8 @@ def main():
     if ok and scale_ok:
         (out / "barn_cabin_524.glb").write_bytes(
             (out / "barn_cabin_524_lod0.glb").read_bytes())
-        # PROMOTE AS A SET. os.replace is atomic per file on one filesystem,
-        # and the staging directory is a sibling of the real one so it always
-        # is. A reader between two replaces sees two consistent files, never
-        # a half-written one.
-        for src in sorted(out.iterdir()):
-            os.replace(src, final_out / src.name)
-        shutil.rmtree(out, ignore_errors=True)
+        # PROMOTE AS A SET (adu_kit.finish.promote).
+        promote(out, final_out)
         print(f"\npublished {len(list(final_out.iterdir()))} files to "
               f"{final_out}")
         blend = save_viewable_blend(spec, HERE / "barn_cabin_524_textured.blend")

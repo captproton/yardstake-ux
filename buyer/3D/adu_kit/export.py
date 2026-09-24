@@ -82,4 +82,47 @@ def glb_info(path):
     )
 
 
+def patch_base_color_factors(path, library):
+    """Write baseColorFactor for the neutral-albedo materials of `library`
+    (spec.materials.library). Moved for #131 from the barn cabin's
+    finish_adu.py.
+
+    Blender's exporter does not recognise a multiply node feeding Base Color,
+    so it emits baseColorTexture with no factor -- which would ship the model
+    untinted, since those maps carry luminance only. Patching the file is
+    deterministic and does not depend on the exporter matching a graph.
+    """
+    raw = path.read_bytes()
+    assert raw[:4] == b"glTF"
+    chunks, off = [], 12
+    while off < len(raw):
+        clen, ctype = struct.unpack_from("<II", raw, off)
+        chunks.append([ctype, raw[off + 8: off + 8 + clen]])
+        off += 8 + clen
+    n = 0
+    for c in chunks:
+        if c[0] != 0x4E4F534A:
+            continue
+        js = json.loads(c[1].decode("utf-8"))
+        for m in js.get("materials", []):
+            # removeprefix, NOT replace: replace() strips "adu_" anywhere in
+            # the name. Unnamed materials are skipped rather than raising.
+            name = m.get("name")
+            if not name:
+                continue
+            key = name[4:] if name.startswith("adu_") else name
+            spec_m = library.get(key, {})
+            if not spec_m.get("neutral_albedo"):
+                continue
+            r, g, b = spec_m["base_color_linear"]
+            m.setdefault("pbrMetallicRoughness", {})["baseColorFactor"] = [r, g, b, 1.0]
+            n += 1
+        blob = json.dumps(js, separators=(",", ":")).encode("utf-8")
+        blob += b" " * ((4 - len(blob) % 4) % 4)          # pad with spaces
+        c[1] = blob
+    body = b"".join(struct.pack("<II", len(c[1]), c[0]) + c[1] for c in chunks)
+    path.write_bytes(struct.pack("<4sII", b"glTF", 2, 12 + len(body)) + body)
+    return n
+
+
 # ---------------------------------------------------------------------------
