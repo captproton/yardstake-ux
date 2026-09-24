@@ -121,6 +121,27 @@ class VerifySpec(unittest.TestCase):
                         "    front_overhang:\n      ft: 6.0000")
         self.assertGateFails(r, "A-2.0's drawn geometry agrees with A-1.0's dimension strings")
 
+    # ── A-1.0's ink against the layout (#132, P3b) ───────────────────────
+
+    def test_p_block_w_back_where_129_read_it(self):
+        """Half an inch toward the rear, where #129 put it. The 5'-2" string
+        and the ink both refuse it."""
+        r = self.broken("      at_ft: 11.4583\n", "      at_ft: 11.4167\n")
+        self.assertGateFails(r, "A-1.0's drawn partitions and interior doors agree with the layout")
+
+    def test_door_2_back_against_the_closet_wall(self):
+        """Where #129 put it, 4 1/2" from where A-1.0 draws it."""
+        r = self.broken("      a_ft: 6.7478\n      b_ft: 10.7478\n",
+                        "      a_ft: 7.125\n      b_ft: 11.125\n")
+        self.assertGateFails(r, "A-1.0's drawn partitions and interior doors agree with the layout")
+
+    def test_an_empty_plan_overlay_does_not_skip_its_gate(self):
+        text = SPEC.read_text()
+        i = text.index("plan_overlay:")
+        j = text.index("\n# ---", i)
+        r = run(text[:i] + "plan_overlay: {}\n" + text[j + 1:])
+        self.assertGateFails(r, "the spec has the blocks these gates read")
+
     def test_an_interior_string_that_changes_axis(self):
         # Found by review: the gate compared raw text only, so 7'-3" could be
         # recorded as running along X -- an axis the faces it is read between
@@ -135,15 +156,15 @@ class VerifySpec(unittest.TestCase):
 
     def test_one_partition_running_through_another(self):
         # P_laundry_W extended past P_block_W into the living room.
-        r = self.broken("      at_ft: 7.625\n", "      at_ft: 11.25\n")
+        r = self.broken("      at_ft: 7.6667\n", "      at_ft: 11.25\n")
         self.assertGateFails(r, "no partition runs through another")
 
     def test_an_interior_door_that_is_not_its_schedule_width(self):
-        r = self.broken("      a_ft: 7.125\n", "      a_ft: 8.125\n")
+        r = self.broken("      a_ft: 6.7478\n", "      a_ft: 7.7478\n")
         self.assertGateFails(r, "every interior door is its schedule width")
 
     def test_an_interior_door_outside_its_wall(self):
-        r = self.broken("      a_ft: 0.7083\n      b_ft: 3.7083\n",
+        r = self.broken("      a_ft: 0.75\n      b_ft: 3.75\n",
                         "      a_ft: 15.0\n      b_ft: 18.0\n")
         self.assertGateFails(r, "every interior door is its schedule width")
 

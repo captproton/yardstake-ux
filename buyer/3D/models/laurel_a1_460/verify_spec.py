@@ -196,6 +196,13 @@ def check(spec):
          "the closet and laundry block"),
         ("3'-2\"", "Y", part["P_laundry_W"]["far"] - part["P_laundry_E"]["near"],
          "the laundry"),
+        # Two more, resolved by #132 reading the strings' own ticks: until then
+        # neither landed on a pair of faces #129's reading used.
+        ("5'-2\"", "Y", part["P_block_W"]["near"] - part["P_bath_W"]["far"],
+         "P_bath_W's kitchen face to P_block_W's living face"),
+        ("3'-9\"", "Y", part["P_laundry_E"]["near"]
+         - float(spec["construction"]["exterior_wall"]["stud_depth"]["ft"]),
+         "the rear wall's inside face to P_laundry_E"),
     ]
     wrong = []
     for raw, axis, got, what in reads:
@@ -314,6 +321,40 @@ def check(spec):
          float(spec["roof"]["overhangs"]["front"]["ft"]))
     gate(not off, "A-2.0's drawn geometry agrees with A-1.0's dimension strings",
          "; ".join(off))
+
+    # ── A-1.0's ink against the layout (#132, P3b) ────────────────────────
+    # The interior's counterpart of the elevation overlay above: where A-1.0
+    # DRAWS each partition's stud faces and each door, read off the PDF's
+    # vectors by plan_ink.py, against where the layout's strings put them.
+    # Indexed, like the elevation block, so a missing or empty block fails.
+    po = spec["plan_overlay"]
+    ptol = po["tolerance_in"]["value"] / 12.0
+    # the measurements, not the citation that sits beside them
+    drawn = {k: v for k, v in po["faces"].items() if k != "source"}
+    centres = {k: v for k, v in po["door_centres"].items() if k != "source"}
+    poff = []
+    if set(drawn) != set(part):
+        poff.append(f"plan_overlay.faces names {sorted(set(drawn) ^ set(part))} "
+                    f"that the layout does not, or the other way round")
+    for pid, r in part.items():
+        if pid not in drawn:
+            continue
+        for what, want, got in (("face", r["near"], drawn[pid][0]),
+                                ("far face", r["far"], drawn[pid][1])):
+            if abs(got - want) > ptol:
+                poff.append(f"{pid} {what}: A-1.0 draws {got:.4f}, the layout "
+                            f"gives {want:.4f} ({(got - want) * 12:+.2f} in)")
+    for d in layout["door_openings"]:
+        if d["id"] not in centres:
+            poff.append(f"{d['id']} has no drawn centre in plan_overlay")
+            continue
+        want = (float(d["a_ft"]) + float(d["b_ft"])) / 2
+        got = float(centres[d["id"]])
+        if abs(got - want) > ptol:
+            poff.append(f"{d['id']} centre: A-1.0 draws {got:.4f}, the layout "
+                        f"gives {want:.4f} ({(got - want) * 12:+.2f} in)")
+    gate(not poff, "A-1.0's drawn partitions and interior doors agree with the layout",
+         "; ".join(poff))
 
     gate(not missing, "every row of the door schedule is built or recorded as an option",
          "not placed: " + ", ".join(missing))
