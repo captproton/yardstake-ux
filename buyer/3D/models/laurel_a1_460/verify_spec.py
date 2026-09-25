@@ -41,6 +41,14 @@ from adu_kit.sheets import parse_length  # noqa: E402
 
 TOL = 0.0005
 FAILED = []
+BARN_SPEC = HERE.parent / "barn_cabin_524" / "spec.yaml"
+
+# The ten values #132 takes from the barn cabin (PLAN.md, Tier 1 trim).
+BORROWED_TRIM = ("casing_width", "head_casing_height", "baseboard_height",
+                 "interior_stool_projection", "interior_stool_thickness",
+                 "interior_apron_height", "exterior_sill_thickness",
+                 "exterior_sill_projection", "exterior_apron_height",
+                 "reveal_material")
 
 # A SPEC IS READ, NOT OBEYED (rule 25). These two used to be `startswith("+")`
 # and `== "X"` with an else, in the verifier as well as in the build: so
@@ -76,6 +84,40 @@ def close(a, b):
 
 def span(opening, lo, hi):
     return opening[lo], opening[hi]
+
+
+def trim_problems(trim, barn_trim):
+    """What is wrong with spec.trim's borrowed values.
+
+    Each of the ten is the barn cabin's own value, by its `raw` (the barn
+    cabin rounds `ft` to three places, and its raw is the value); names the
+    barn-cabin key it came from; and is `assumed`, citing no sheet of
+    Laurel's -- confidence does not cross buildings, so a borrowed value that
+    cited a `source` would be claiming a measurement nobody took on Laurel.
+    """
+    bad = []
+    for key in BORROWED_TRIM:
+        row, barn = trim.get(key), barn_trim.get(key)
+        if not isinstance(row, dict):
+            bad.append(f"{key} is missing")
+            continue
+        if row.get("borrowed") != f"trim.{key}":
+            bad.append(f"{key} does not name the barn-cabin key it came from "
+                       f"(borrowed: {row.get('borrowed')!r})")
+        if not (isinstance(row.get("assumed"), str) and row["assumed"].strip()) or "source" in row:
+            bad.append(f"{key} must be `assumed` and cite no Laurel sheet")
+        if key == "reveal_material":
+            if row.get("value") != barn:
+                bad.append(f"{key} is {row.get('value')!r}, the barn cabin's is {barn!r}")
+            continue
+        if not isinstance(barn, dict) or row.get("raw") != barn.get("raw"):
+            bad.append(f"{key} is {row.get('raw')!r}, the barn cabin's is "
+                       f"{(barn or {}).get('raw')!r}")
+            continue
+        exact = parse_length(row["raw"])
+        if exact is None or not close(row.get("ft", float("nan")), exact):
+            bad.append(f"{key}: ft {row.get('ft')} is not its raw {row['raw']}")
+    return bad
 
 
 def check(spec):
@@ -358,6 +400,21 @@ def check(spec):
 
     gate(not missing, "every row of the door schedule is built or recorded as an option",
          "not placed: " + ", ".join(missing))
+
+    # ── Tier 1 trim (#132): the barn cabin's ten values, declared assumed ──
+    import yaml
+    barn = yaml.safe_load(BARN_SPEC.read_text())["trim"]
+    bad = trim_problems(spec["trim"], barn)
+    gate(not bad, "the ten borrowed trim values are the barn cabin's, each assumed and naming its key",
+         "; ".join(bad))
+
+    # The stucco reveal is the Sheathing_ skin's cut face (spec.trim
+    # .stucco_reveal), which holds only while the skin is as thick as the
+    # reveal A-3.0 dimensions.
+    ew = spec["construction"]["exterior_wall"]
+    gate(close(ew["casing_reveal"]["ft"], ew["sheathing"]["ft"]),
+         "the stucco reveal is the sheathing skin's cut face, at the same thickness",
+         f"casing_reveal {ew['casing_reveal']['ft']} vs sheathing {ew['sheathing']['ft']}")
 
 
 def main(argv):

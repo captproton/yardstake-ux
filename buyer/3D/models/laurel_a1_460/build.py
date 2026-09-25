@@ -25,11 +25,14 @@ spec.construction.exterior_wall.cladding_modelled.
 
 WHAT THIS BUILDS: slab, exterior walls, the seven interior partitions, the
 single shed roof with its overhangs, vaulted ceilings that follow the roof,
-and every opening in the two schedules cut with a sash or a leaf.
+every opening in the two schedules cut with a sash or a leaf, and Tier 1
+trim (#132): casing, stools and baseboard inside, and the siding exterior
+trim, which is built and held back from every export until #133.
 
-WHAT IT DOES NOT: fixtures (#134), finishes and trim (#132, #133), the
-1-bedroom option (a configurator variant, spec.variants), and the optional
-entry canopy (#144, whose dimensions are not on a harvested sheet).
+WHAT IT DOES NOT: fixtures (#134), textures and the stucco/siding swap
+(#133), the 1-bedroom option (a configurator variant, spec.variants), and
+the optional entry canopy (#144, whose dimensions are not on a harvested
+sheet).
 """
 
 import sys
@@ -43,6 +46,7 @@ from adu_kit.kernel import (  # noqa: E402,F401
     load_spec, box, box_geom, prism_geom, weld, multibox, sash_geom,
     difference, collection, world_bbox, mark_reveals, ft,
 )
+from adu_kit.verify_lib import inside_mesh  # noqa: E402
 
 FAILED = []
 SKIPPED = []
@@ -61,6 +65,9 @@ SASH_FRAME_MEMBERS = 4  # jambs, sill and head: the four every frame has, whatev
 VERTS_PER_BOX = 8       # how a welded member count is read back off a mesh
 CORNER_TOL = 1e-4       # ft, matching a boolean's output vertex to the cut it came from
 INCHES_PER_FOOT = 12    # unit arithmetic, for a spec tolerance given in inches and a report that prints them
+UP = 0.9                # a face whose normal's Z exceeds this faces up: the slab's top
+SPAN_PLACES = 4         # decimal places openings are compared to when grouping a window with its transom; the spec writes feet to 4
+MIN_RUN = 1e-3          # ft; a baseboard run shorter than this is a sliver where a casing meets a corner, not a run
 
 
 def gate(ok, label, detail=""):
@@ -158,10 +165,19 @@ def build(spec, cut_openings=True):
     roof_coll = collection("Roof")
     openings = collection("Openings")
     site = collection("Site")
+    trim_coll = collection("Trim")
+    siding_coll = collection("SidingTrim")
 
     # ---- slab ------------------------------------------------------------
     # Slab on grade: its top IS the finished floor, so it sits below Z 0.
-    box("Slab", 0.0, W, 0.0, D, -slab_t, 0.0, site)
+    # The floor finish is a material on that top face (spec.finishes.floor),
+    # not a layer, so the face is tagged for materials.face_slots and every
+    # height the elevations dimension stays where it is.
+    slab = box("Slab", 0.0, W, 0.0, D, -slab_t, 0.0, site)
+    floor_slot = {v: k for k, v in spec["materials"]["face_slots"].items()}["floor"]
+    for poly in slab.data.polygons:
+        if poly.normal.z > UP:
+            poly.material_index = floor_slot
 
     # ---- exterior walls ---------------------------------------------------
     # Each wall runs from the slab to the underside of the roof, so the
@@ -199,9 +215,7 @@ def build(spec, cut_openings=True):
     # ---- interior partitions ---------------------------------------------
     layout = spec["interior_partitions"]["layout"]
     for row in layout["partitions"]:
-        near = row["at_ft"]
-        far = near + it if _sign(row["id"], row["studs_toward"]) > 0 else near - it
-        lo, hi = sorted((near, far))
+        lo, hi = _partition_band(row, it)
         a, b = sorted((row["from_ft"], row["to_ft"]))
         # EVERY PARTITION IS A YZ PRISM, both orientations, because the roof
         # rises with Y and so does the head of any wall with any extent in Y
@@ -400,11 +414,150 @@ def build(spec, cut_openings=True):
                             else (d0, d1, b0, b1, o["z0"], o["z1"]))
                 sashes.append(multibox(name, [spec_box], openings))
 
+    # ---- Tier 1 trim (#132) ------------------------------------------------
+    # spec.trim says what each value is and where it came from; every one is
+    # the barn cabin's, declared `assumed`.
+    tr = spec["trim"]
+    cw = tr["casing_width"]["ft"]
+    hh = tr["head_casing_height"]["ft"]
+    bh = tr["baseboard_height"]["ft"]
+    stock = tr["interior_stool_thickness"]["ft"]   # the 1x every member is cut from
+    stool_p = tr["interior_stool_projection"]["ft"]
+    apron = tr["interior_apron_height"]["ft"]
+    sill_t = tr["exterior_sill_thickness"]["ft"]
+    sill_p = tr["exterior_sill_projection"]["ft"]
+    ext_apron = tr["exterior_apron_height"]["ft"]
+    horn = cw / 2                  # stool horns and the siding head cap: a proportion
+
+    def members(along, face, out, a0, a1, lo_z, hi_z, window, sill_depth, sill_thick, apron_h):
+        """The boxes that case one opening on one face.
+
+        `face` is the wall face the trim is fixed to and `out` the way it
+        stands off it (+1 or -1 along the wall's depth axis). Jambs and a
+        head band for every opening; under a window, a sill -- a stool
+        inside, a sill board outside -- and an apron below it. A door has a
+        threshold, not a sill, as the barn cabin found after burying one in
+        its porch slab.
+        """
+        def bx(b0, b1, d0, d1, z0, z1):
+            d0, d1 = sorted((d0, d1))
+            return (b0, b1, d0, d1, z0, z1) if along == "x" else (d0, d1, b0, b1, z0, z1)
+        skin = face + out * stock
+        parts = [bx(a0 - cw, a0, face, skin, lo_z, hi_z),
+                 bx(a1, a1 + cw, face, skin, lo_z, hi_z),
+                 bx(a0 - cw, a1 + cw, face, skin, hi_z, hi_z + hh)]
+        if window:
+            under = lo_z - sill_thick
+            parts += [bx(a0 - cw - horn, a1 + cw + horn, face, face + out * sill_depth, under, lo_z),
+                      bx(a0 - cw, a1 + cw, face, skin, under - apron_h, under)]
+        return parts
+
+    # A STACK IS CASED AS ONE OPENING. W-A1 and its transom W-B1 share a
+    # width and a wall with 8" of wall between them, and two casings would
+    # cross there: A's head band runs up to 7.39 ft and B's stool and apron
+    # down to 7.31. So each (wall, span) is one cased opening, from the
+    # lowest sill to the highest head; the lowest unit decides the sill.
+    stacks = {}
+    for o in built:
+        stacks.setdefault((o["wall"], round(o["a0"], SPAN_PLACES), round(o["a1"], SPAN_PLACES)), []).append(o)
+
+    def stack_span(group):
+        low = min(group, key=lambda o: o["z0"])
+        return low["z0"], max(o["z1"] for o in group), low["id"].startswith("W-")
+
+    trim_parts = {host: [] for host in walls if host.startswith(("Wall_", "P_"))}
+    siding_parts = []
+    faces = room_faces(spec)
+    for (host, a0, a1), group in stacks.items():
+        lo_z, hi_z, window = stack_span(group)
+        for face in faces[host]:
+            trim_parts[host] += members(face["along"], face["at"], face["into"], a0, a1,
+                                        lo_z, hi_z, window, stool_p, stock, apron)
+        if host in skin_of:
+            outer, out = outer_face(spec, host)
+            siding_parts += members(group[0]["along"], outer, out, a0, a1, lo_z, hi_z,
+                                    window, sill_p, sill_t, ext_apron)
+
+    # BASEBOARD along every room face, broken where a doorway's casing comes
+    # down to the floor. Runs pass through the ends of partitions that abut
+    # them and hide there, which is what keeps a corner closed without a
+    # mitre table.
+    for host, fl in faces.items():
+        doors = sorted((a0 - cw, a1 + cw) for (h, a0, a1), g in stacks.items()
+                       if h == host and not stack_span(g)[2])
+        for face in fl:
+            start = face["from"]
+            for d0, d1 in doors + [(face["to"], face["to"])]:
+                if d0 - start > MIN_RUN:
+                    trim_parts[host] += members_run(face, start, d0, bh, stock)
+                start = max(start, d1)
+
+    trim = [multibox(f"Trim_{host}", parts, trim_coll)
+            for host, parts in trim_parts.items() if parts]
+    siding = multibox("Trim_ext_siding", siding_parts, siding_coll)
+
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
-               depths=depths, skin_of=skin_of)
+               depths=depths, skin_of=skin_of, trim=trim, siding=siding)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
-                     Openings=openings, Site=site)
+                     Openings=openings, Site=site, Trim=trim_coll, SidingTrim=siding_coll)
+
+
+def _partition_band(row, it):
+    """(lo, hi): where a partition sits across its run -- its cited face and
+    the face its studs run toward. ONE DEFINITION for the wall and the trim
+    on it, so a partition that moves takes its casing and baseboard along."""
+    near = row["at_ft"]
+    far = near + it if _sign(row["id"], row["studs_toward"]) > 0 else near - it
+    return tuple(sorted((near, far)))
+
+
+def members_run(face, a0, a1, height, stock):
+    """One baseboard run on a room face, as a box spec."""
+    d0, d1 = sorted((face["at"], face["at"] + face["into"] * stock))
+    return ([(a0, a1, d0, d1, 0.0, height)] if face["along"] == "x"
+            else [(d0, d1, a0, a1, 0.0, height)])
+
+
+def room_faces(spec):
+    """{host: [face]} -- every wall face a room sees, from the spec.
+
+    A face is {along, at, into, from, to}: the axis it runs along ("x" or
+    "y"), its position across that axis, the way the room lies from it (+1
+    or -1), and its extent. An exterior wall has one, its inside face of
+    stud; a partition has two. The exterior walls' faces run between the
+    other two walls' inside faces, and a partition's between its own ends.
+    """
+    env, con = spec["envelope"], spec["construction"]
+    W, D = env["width"]["ft"], env["depth"]["ft"]
+    t = con["exterior_wall"]["stud_depth"]["ft"]
+    layout = spec["interior_partitions"]["layout"]
+    it = layout["thickness"]["ft"]
+    faces = {
+        "Wall_rear":  [{"along": "x", "at": t, "into": DIRECTIONS["+Y"], "from": t, "to": W - t}],
+        "Wall_front": [{"along": "x", "at": D - t, "into": DIRECTIONS["-Y"], "from": t, "to": W - t}],
+        "Wall_x0":    [{"along": "y", "at": t, "into": DIRECTIONS["+X"], "from": t, "to": D - t}],
+        "Wall_x24":   [{"along": "y", "at": W - t, "into": DIRECTIONS["-X"], "from": t, "to": D - t}],
+    }
+    for row in layout["partitions"]:
+        lo, hi = _partition_band(row, it)
+        a, b = sorted((row["from_ft"], row["to_ft"]))
+        along = "x" if _axis(row["id"], row["runs_along"]) == "X" else "y"
+        across = "Y" if along == "x" else "X"      # a face's room lies across its run
+        faces[row["id"]] = [
+            {"along": along, "at": lo, "into": DIRECTIONS["-" + across], "from": a, "to": b},
+            {"along": along, "at": hi, "into": DIRECTIONS["+" + across], "from": a, "to": b}]
+    return faces
+
+
+def outer_face(spec, wall):
+    """(position, outward sign) of an exterior wall's modelled outer face:
+    face of stud plus sheathing, where the siding trim is fixed."""
+    env, con = spec["envelope"], spec["construction"]
+    W, D = env["width"]["ft"], env["depth"]["ft"]
+    s = con["exterior_wall"]["sheathing"]["ft"]
+    return {"Wall_rear": (-s, DIRECTIONS["-Y"]), "Wall_front": (D + s, DIRECTIONS["+Y"]),
+            "Wall_x0": (-s, DIRECTIONS["-X"]), "Wall_x24": (W + s, DIRECTIONS["+X"])}[wall]
 
 
 def _wall_band(walls, wall, along):
@@ -483,6 +636,18 @@ def report(spec, geo, colls):
 
     ok, why = _door_one_has_its_sidelite(spec, geo)
     gate(ok, "door 1 is a leaf AND a glazed sidelite, as the schedule describes", why)
+
+    ok, why = _every_opening_cased(spec, geo)
+    gate(ok, "every opening is cased on each room side, and every window has its stool and apron", why)
+
+    ok, why = _baseboard_runs(spec, geo)
+    gate(ok, "every room face carries baseboard, and no doorway is blocked by it", why)
+
+    ok, why = _siding_trim(spec, geo)
+    gate(ok, "the siding exterior trim is built on every exterior opening, as its own node", why)
+
+    ok, why = _trim_inside_its_walls(spec, geo)
+    gate(ok, "no trim runs outside the rooms or above the roof underside", why)
 
     ok, why = _no_degenerate()
     gate(ok, "no NaN or degenerate geometry", why)
@@ -875,6 +1040,145 @@ def _where_a10_draws_them(spec):
         if abs(got - want) > tol:
             wrong.append(f"{d['id']}'s leaf centres on {got:.4f}, A-1.0 draws {want:.4f} "
                          f"({(got - want) * INCHES_PER_FOOT:+.2f} in)")
+    return not wrong, "; ".join(wrong)
+
+
+# ---------------------------------------------------------------------------
+# Tier 1 trim (#132). Each gate asks the MESH whether a point is inside it,
+# at a place worked out here from spec.trim and the openings -- never from
+# the boxes build() made, so deleting a member cannot delete its check
+# (rule 29). The points sit in the middle of a member, clear of the corners
+# where members overlap, because inside_mesh reads the nearest face.
+# ---------------------------------------------------------------------------
+def _pt(along, a, depth, z):
+    from mathutils import Vector
+    return Vector((a, depth, z)) if along == "x" else Vector((depth, a, z))
+
+
+def _stacks(geo):
+    """{(host, a0, a1): (lowest sill, highest head, is a window)} -- a window
+    and the transom over it are one cased opening (spec.trim)."""
+    out = {}
+    for o in geo["built"]:
+        key = (o["wall"], round(o["a0"], SPAN_PLACES), round(o["a1"], SPAN_PLACES))
+        out.setdefault(key, []).append(o)
+    return {k: (min(o["z0"] for o in g), max(o["z1"] for o in g),
+                min(g, key=lambda o: o["z0"])["id"].startswith("W-"))
+            for k, g in out.items()}
+
+
+def _cased(ob, along, face, out, a0, a1, lo_z, hi_z, window, tr, sill_depth, sill_thick, apron_h):
+    """The members missing from one opening's casing on one face, by name."""
+    cw = tr["casing_width"]["ft"]
+    stock = tr["interior_stool_thickness"]["ft"]
+    hh = tr["head_casing_height"]["ft"]
+    mid_d = face + out * stock / 2
+    probes = {"left jamb": _pt(along, a0 - cw / 2, mid_d, (lo_z + hi_z) / 2),
+              "right jamb": _pt(along, a1 + cw / 2, mid_d, (lo_z + hi_z) / 2),
+              "head": _pt(along, (a0 + a1) / 2, mid_d, hi_z + hh / 2)}
+    if window:
+        # IN THE HORN, where the sill is the only member. Under the opening the
+        # apron's top face lies half a sill's thickness away, as near as the
+        # sill's own faces, and inside_mesh reads the nearest face: a probe
+        # there found no sill on every window while every sill was built.
+        probes["sill"] = _pt(along, a0 - cw - (cw / 2) / 2, face + out * sill_depth / 2,
+                             lo_z - sill_thick / 2)
+        probes["apron"] = _pt(along, (a0 + a1) / 2, mid_d, lo_z - sill_thick - apron_h / 2)
+    return [name for name, p in probes.items() if ob is None or not inside_mesh(ob, p)]
+
+
+def _every_opening_cased(spec, geo):
+    """Interior casing on every room face an opening has: one for an exterior
+    wall, two for a partition. A window also has its stool and apron."""
+    tr = spec["trim"]
+    faces = room_faces(spec)
+    wrong = []
+    for (host, a0, a1), (lo_z, hi_z, window) in sorted(_stacks(geo).items()):
+        ob = bpy.data.objects.get(f"Trim_{host}")
+        for f in faces[host]:
+            missing = _cased(ob, f["along"], f["at"], f["into"], a0, a1, lo_z, hi_z, window,
+                             tr, tr["interior_stool_projection"]["ft"],
+                             tr["interior_stool_thickness"]["ft"],
+                             tr["interior_apron_height"]["ft"])
+            if missing:
+                wrong.append(f"{host} {a0:.4f}..{a1:.4f} on its face at {f['at']:.4f}: "
+                             f"no {', '.join(missing)}")
+    return not wrong, "; ".join(wrong)
+
+
+def _baseboard_runs(spec, geo):
+    """Baseboard on every stretch of every room face that is not a doorway,
+    and none across a doorway."""
+    tr = spec["trim"]
+    cw, bh = tr["casing_width"]["ft"], tr["baseboard_height"]["ft"]
+    stock = tr["interior_stool_thickness"]["ft"]
+    stacks = _stacks(geo)
+    wrong = []
+    for host, fl in room_faces(spec).items():
+        ob = bpy.data.objects.get(f"Trim_{host}")
+        doors = sorted((a0, a1) for (h, a0, a1), (_, _, win) in stacks.items()
+                       if h == host and not win)
+        for f in fl:
+            d = f["at"] + f["into"] * stock / 2
+            start = f["from"]
+            for a0, a1 in doors + [(f["to"] + cw, f["to"] + cw)]:
+                if a0 - cw - start > cw:           # a stretch worth a probe
+                    p = _pt(f["along"], (start + a0 - cw) / 2, d, bh / 2)
+                    if ob is None or not inside_mesh(ob, p):
+                        wrong.append(f"{host}'s face at {f['at']:.4f} has no baseboard "
+                                     f"between {start:.4f} and {a0 - cw:.4f}")
+                if a1 > a0:
+                    p = _pt(f["along"], (a0 + a1) / 2, d, bh / 2)
+                    if ob is not None and inside_mesh(ob, p):
+                        wrong.append(f"baseboard runs across the doorway in {host} "
+                                     f"at {a0:.4f}..{a1:.4f}")
+                start = max(start, a1 + cw)
+    return not wrong, "; ".join(wrong)
+
+
+def _siding_trim(spec, geo):
+    """Trim_ext_siding cases every exterior opening on the outer face, with a
+    sill and apron under each window -- built, although no export carries it
+    (spec.export.held_back). It is its own node, outside the Trim collection
+    the interior trim is exported from."""
+    tr = spec["trim"]
+    ob = bpy.data.objects.get("Trim_ext_siding")
+    if ob is None:
+        return False, "Trim_ext_siding was not built"
+    wrong = []
+    if any(c.name == "Trim" for c in ob.users_collection):
+        wrong.append("Trim_ext_siding is in the Trim collection, which lod0 exports")
+    for (host, a0, a1), (lo_z, hi_z, window) in sorted(_stacks(geo).items()):
+        if host not in geo["skin_of"]:
+            continue
+        along = next(f["along"] for f in room_faces(spec)[host])
+        outer, out = outer_face(spec, host)
+        missing = _cased(ob, along, outer, out, a0, a1, lo_z, hi_z, window, tr,
+                         tr["exterior_sill_projection"]["ft"],
+                         tr["exterior_sill_thickness"]["ft"],
+                         tr["exterior_apron_height"]["ft"])
+        if missing:
+            wrong.append(f"{host} {a0:.4f}..{a1:.4f} outside: no {', '.join(missing)}")
+    return not wrong, "; ".join(wrong)
+
+
+def _trim_inside_its_walls(spec, geo):
+    """Interior trim stays between the exterior walls' inside faces, and no
+    trim, inside or out, rises above the roof underside where it stands."""
+    W, D, t, shed = geo["W"], geo["D"], geo["t"], geo["shed"]
+    wrong = []
+    for ob in geo["trim"] + [geo["siding"]]:
+        inside = ob.name != "Trim_ext_siding"
+        for v in ob.data.vertices:
+            x, y, z = ob.matrix_world @ v.co
+            if inside and not (t - MESH_TOL <= x <= W - t + MESH_TOL
+                               and t - MESH_TOL <= y <= D - t + MESH_TOL and z >= -MESH_TOL):
+                wrong.append(f"{ob.name} reaches ({x:.3f}, {y:.3f}, {z:.3f}), outside the rooms")
+                break
+            if z > shed.under(y) + MESH_TOL:
+                wrong.append(f"{ob.name} reaches z {z:.3f} at y {y:.3f}, above the roof "
+                             f"underside at {shed.under(y):.3f}")
+                break
     return not wrong, "; ".join(wrong)
 
 

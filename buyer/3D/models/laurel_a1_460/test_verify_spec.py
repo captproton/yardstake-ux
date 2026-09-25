@@ -135,6 +135,26 @@ class VerifySpec(unittest.TestCase):
                         "      a_ft: 7.125\n      b_ft: 11.125\n")
         self.assertGateFails(r, "A-1.0's drawn partitions and interior doors agree with the layout")
 
+    def test_a_borrowed_trim_value_that_drifts_from_the_barn_cabin(self):
+        r = self.broken('  casing_width:\n    ft: 0.2917\n    raw: "3 1/2\\""\n',
+                        '  casing_width:\n    ft: 0.3333\n    raw: "4\\""\n')
+        self.assertGateFails(r, "the ten borrowed trim values are the barn cabin's, "
+                                "each assumed and naming its key")
+
+    def test_a_borrowed_trim_value_claiming_a_laurel_source(self):
+        # Confidence does not cross buildings: a value the barn cabin measured
+        # is still only assumed on Laurel, whose sheets never measured it.
+        r = self.broken('    assumed: "the head band over each opening, borrowed from the barn cabin"\n',
+                        '    source: "A-1.0, measured"\n')
+        self.assertGateFails(r, "the ten borrowed trim values are the barn cabin's, "
+                                "each assumed and naming its key")
+
+    def test_a_casing_reveal_the_skin_no_longer_matches(self):
+        r = self.broken('    casing_reveal: {ft: 0.0313, raw: "3/8\\""',
+                        '    casing_reveal: {ft: 0.0417, raw: "1/2\\""')
+        self.assertGateFails(r, "the stucco reveal is the sheathing skin's cut face, "
+                                "at the same thickness")
+
     def test_an_empty_plan_overlay_does_not_skip_its_gate(self):
         text = SPEC.read_text()
         i = text.index("plan_overlay:")

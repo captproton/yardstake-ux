@@ -25,11 +25,11 @@ def _spec(root: Path) -> Path:
 def _slab_lowered(root: Path) -> None:
     path = model_dir(root, LAUREL) / "build.py"
     text = path.read_text()
-    old = '    box("Slab", 0.0, W, 0.0, D, -slab_t, 0.0, site)\n'
+    old = '    slab = box("Slab", 0.0, W, 0.0, D, -slab_t, 0.0, site)\n'
     if text.count(old) != 1:
         raise AssertionError("build.py no longer builds the slab in one line "
                              "the case can find. The case is stale.")
-    path.write_text(text.replace(old, '    box("Slab", 0.0, W, 0.0, D, -slab_t - 1.0, 0.0, site)\n'))
+    path.write_text(text.replace(old, '    slab = box("Slab", 0.0, W, 0.0, D, -slab_t - 1.0, 0.0, site)\n'))
 
 
 CASES = [

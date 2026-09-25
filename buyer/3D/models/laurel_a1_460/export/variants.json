@@ -138,6 +138,7 @@
       "hide": [
         "Roof_shed",
         "Sheathing_front",
+        "Trim_Wall_front",
         "Wall_front"
       ]
     },
@@ -151,6 +152,10 @@
         "Sheathing_rear",
         "Sheathing_x0",
         "Sheathing_x24",
+        "Trim_Wall_front",
+        "Trim_Wall_rear",
+        "Trim_Wall_x0",
+        "Trim_Wall_x24",
         "Wall_front",
         "Wall_rear",
         "Wall_x0",

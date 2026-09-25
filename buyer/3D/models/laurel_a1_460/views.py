@@ -90,10 +90,16 @@ if _missing:
 # ---------------------------------------------------------------------------
 # visibility
 # ---------------------------------------------------------------------------
+# BUILT AND HELD BACK (spec.export.held_back): the siding exterior trim is in
+# the file for #133 and in no export, and this blend shows the stucco finish,
+# so no mode shows it.
+_HELD = set((SPEC["export"].get("held_back") or {}).get("nodes") or ())
+
+
 def _apply(mode_id):
     mode = next(m for m in _DM["modes"] if m["id"] == mode_id)
     prefixes = tuple(p for g in mode["hide"] for p in _G[g])
-    by_name = set(mode.get("hide_objects") or ())
+    by_name = set(mode.get("hide_objects") or ()) | _HELD
     for ob in bpy.data.objects:
         hide = ob.name in by_name or (bool(prefixes) and ob.name.startswith(prefixes))
         ob.hide_set(hide)

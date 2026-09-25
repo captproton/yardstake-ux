@@ -85,17 +85,38 @@ def opening_id(name):
 
 
 def level_objects(lod, geo, colls, glazing):
-    """What each level exports, as spec.export.levels describes it."""
+    """What each level exports, as spec.export.levels describes it.
+
+    NEVER THE SidingTrim COLLECTION: the siding exterior trim is built and
+    held back until #133 (spec.export.held_back). It is named nowhere here,
+    and held_back_problems() checks every level that was written for it."""
     keep = (list(colls["Shell"].objects) + list(colls["Roof"].objects)
             + list(colls["Site"].objects))
     if lod == "lod2":
         return keep
     if lod == "lod0":
         return (keep + list(colls["Openings"].objects)
-                + list(colls["Partitions"].objects) + glazing)
+                + list(colls["Partitions"].objects) + list(colls["Trim"].objects)
+                + glazing)
     outside = exterior_ids(geo)
     return keep + [o for o in colls["Openings"].objects
                    if opening_id(o.name) in outside] + glazing
+
+
+def held_back_problems(spec, paths):
+    """spec.export.held_back: each node is BUILT, and no written level
+    carries it. Built, because a node #133 is to decide about has to exist;
+    in no level, because the page would show siding trim on stucco."""
+    held = (spec["export"].get("held_back") or {}).get("nodes") or []
+    problems = [f"{n} is held back but was not built" for n in held
+                if bpy.data.objects.get(n) is None]
+    for path in paths:
+        shipped = sorted(set(held) & set(glb_names(path)[1]))
+        if shipped:
+            problems.append(f"{path.name} carries {shipped}, which spec.export."
+                            f"held_back keeps out of every level until "
+                            f"{spec['export']['held_back'].get('until')}")
+    return problems
 
 
 def dimensions(spec):
@@ -160,7 +181,14 @@ def save_viewable_blend(spec, dest):
     geo, colls = build(spec, cut_openings=True)
     mats = make_materials(spec, HERE / "textures", textured=False)
     add_glazing(spec, geo, collection("Glazing"))
-    assign(spec, mats)
+    assign(spec, mats, spec["materials"].get("face_slots"))
+    # The review blend shows the stucco finish, so what is held back for
+    # #133 is in the file and hidden, as views.py keeps it.
+    for name in (spec["export"].get("held_back") or {}).get("nodes") or []:
+        ob = bpy.data.objects.get(name)
+        if ob is not None:
+            ob.hide_set(True)
+            ob.hide_viewport = ob.hide_render = True
     bpy.ops.wm.save_as_mainfile(filepath=str(dest))
     return dest
 
@@ -180,13 +208,13 @@ def main():
         shutil.rmtree(out, ignore_errors=True)
         raise SystemExit(1)
 
-    results, closure, unmatched = {}, [], {}
+    results, closure, unmatched, held = {}, [], {}, []
     for lod in LEVELS:
         geo, colls = build(spec, cut_openings=(lod != "lod2"))
         mats = make_materials(spec, HERE / "textures", textured=False)
         glazing = ([] if lod == "lod2"
                    else add_glazing(spec, geo, collection("Glazing")))
-        unmatched[lod] = assign(spec, mats)
+        unmatched[lod] = assign(spec, mats, spec["materials"].get("face_slots"))
         keep = level_objects(lod, geo, colls, glazing)
         if lod == "lod2" and not report_lod2_contract(
                 want2, sorted(o.name for o in keep)):
@@ -199,6 +227,7 @@ def main():
         export_glb(path, keep)
         results[lod] = glb_info(path)
         results[lod]["objects"] = len(keep)
+        held += held_back_problems(spec, [path])
 
     vpath, vproblems = write_manifest(spec, out, out / f"{model_id}_lod0.glb")
     base_bad = baseline_problems(out / f"{model_id}_lod2.glb",
@@ -215,7 +244,7 @@ def main():
         print(f"{lod}  {i['objects']:3d} objects  {i['meshes']:3d} meshes  "
               f"{i['materials']:2d} mats  {i['size_kb']:7.1f} KB / {budget[lod]} KB  "
               f"bbox {bb} m  {'draco' if DRACO in i['extensions'] else 'NO DRACO'}")
-    for p_ in closure + vproblems + base_bad:
+    for p_ in closure + vproblems + base_bad + held:
         print(f"  PROBLEM: {p_}")
     stray = sorted({n for names in unmatched.values() for n in names})
 
@@ -226,6 +255,7 @@ def main():
         ("every level within its size budget",
          all(results[k]["size_kb"] <= v for k, v in budget.items())),
         ("lod2 sits on its baseline: origin, axes, units and floor", not base_bad),
+        ("the siding exterior trim is built, and held back from every level (#133)", not held),
         ("the manifest meets the page's contract, and the entry sits at its front",
          vpath is not None),
     ]
