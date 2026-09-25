@@ -169,11 +169,31 @@
     "main_body": {
       "width": 24.0,
       "depth": 19.1667,
+      "extent": {
+        "x": [
+          0.0,
+          7.3152
+        ],
+        "z": [
+          -5.842,
+          -0.0
+        ]
+      },
       "note": "the heated box, face of stud to face of stud (A-1.0)"
     },
     "overall": {
       "width": 27.0,
       "depth": 25.6667,
+      "extent": {
+        "x": [
+          -0.4572,
+          7.7724
+        ],
+        "z": [
+          -7.366,
+          0.4572
+        ]
+      },
       "note": "over the roof: 1'-6\" at each end, 5'-0\" over the entry and 1'-6\" at the rear"
     },
     "height_to_ridge": 10.7917,
