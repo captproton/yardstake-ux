@@ -13,6 +13,10 @@ WHAT IS READ, AND HOW IT IS REGISTERED.
   * The frame comes from the sheet's own dimension ticks. The 19'-2" and
     24'-0" strings' end ticks sit on the outside faces of stud (A-1.0: "ALL
     DIMENSIONS TO FACE OF STUD U.N.O."), which fixes X 0, Y 0 and the scale.
+    Each pair of ticks is confirmed by its LABEL: the sheet's text layer
+    (pdftotext, via adu_kit.sheets) must put that string's value centred
+    between them and beside their line, so a tick from some other string
+    is refused rather than used.
     The plot is 17.9875 pt/ft, 0.07% under a true 1/4" = 1'-0".
   * A face is a 0.48 pt stroke: the sheet draws each stud face as a thin line
     and each gyp board face as a thick one.
@@ -34,6 +38,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[1]))  # buyer/3D, for adu_kit
+from adu_kit import sheets  # noqa: E402
+
 PDF = HERE.parents[1] / "example plans" / "sacramento_adus" / "adu-plan-full-set-a1-laurel.pdf"
 PAGE = 4                                      # A-1.0
 NS = "{http://www.w3.org/2000/svg}"
@@ -48,7 +55,11 @@ NUM = r"-?\d+(?:\.\d+)?(?:e-?\d+)?"
 # yielding a frame that is consistently wrong.
 LOOK_FRONT, LOOK_REAR = (291.3, 1571.4), (636.0, 1571.4)
 LOOK_TOP, LOOK_BOTTOM = (181.4, 1057.4), (181.4, 1489.1)
-DEPTH_FT, WIDTH_FT = 19.1667, 24.0            # the two strings' own values
+DEPTH_TEXT, WIDTH_TEXT = "19'-2\"", "24'-0\""   # the two strings, as written
+DEPTH_FT = float(sheets.parse_length(DEPTH_TEXT))
+WIDTH_FT = float(sheets.parse_length(WIDTH_TEXT))
+LABEL_CENTRE_PT = 2.0                         # a string's label is centred between its ticks
+LABEL_BESIDE_PT = 15.0                        # ...and sits just off their line
 TICK_REACH_PT = 3.0
 TICK_MAX_PT = 8.0                             # a tick stroke is a few points long
 SCALE_AGREE = 1e-3                            # the two strings' scales, relative
@@ -63,6 +74,12 @@ def svg(page=PAGE, pdf=PDF):
         subprocess.run(["pdftocairo", "-svg", "-f", str(page), "-l", str(page),
                         str(pdf), str(out)], check=True, capture_output=True)
         return out.read_text()
+
+
+def labels(page=PAGE, pdf=PDF):
+    """A-1.0's feet-and-inches dimension labels, with their page boxes: the
+    harvester's candidates, read from the same page's text layer."""
+    return sheets.harvest(Path(pdf), [page])
 
 
 def segments(svg_text):
@@ -119,12 +136,32 @@ def tick(segs, look):
     return (sum(x for x, _ in near) / len(near), sum(y for _, y in near) / len(near))
 
 
-def frame(segs):
+def labelled(a, b, text, marks):
+    """Refuse the ticks a and b unless the label `text` is centred between
+    them and beside their line. A string's value is written at its middle,
+    so this ties the pair to THAT string: ticks from a neighbouring string,
+    or a pair that straddles two, have no such label."""
+    along = 0 if abs(a[1] - b[1]) < abs(a[0] - b[0]) else 1   # 0: the string runs across the page
+    mid, line = (a[along] + b[along]) / 2, (a[1 - along] + b[1 - along]) / 2
+    value = sheets.parse_length(text)
+    for c in marks:
+        centre = ((c.box[0] + c.box[2]) / 2, (c.box[1] + c.box[3]) / 2)
+        if (c.feet == value and abs(centre[along] - mid) < LABEL_CENTRE_PT
+                and abs(centre[1 - along] - line) < LABEL_BESIDE_PT):
+            return
+    raise ValueError(f"no {text} label centred between the ticks at {a} and {b}: "
+                     f"they are not that string's, and the frame cannot be read")
+
+
+def frame(segs, marks):
     """(pt per ft, page x of Y 0, page y of X 0), MEASURED from the ticks the
-    drawing carries: the 19'-2" string's two and the 24'-0" string's two.
-    The two strings must agree on the scale, or it is refused."""
+    drawing carries: the 19'-2" string's two and the 24'-0" string's two,
+    each pair confirmed by its label in `marks` (labels()). The two strings
+    must agree on the scale, or it is refused."""
     front, rear = tick(segs, LOOK_FRONT), tick(segs, LOOK_REAR)
     top, bottom = tick(segs, LOOK_TOP), tick(segs, LOOK_BOTTOM)
+    labelled(front, rear, DEPTH_TEXT, marks)
+    labelled(top, bottom, WIDTH_TEXT, marks)
     sy = (rear[0] - front[0]) / DEPTH_FT
     sx = (bottom[1] - top[1]) / WIDTH_FT
     if abs(sx - sy) > SCALE_AGREE * sy:
@@ -133,10 +170,10 @@ def frame(segs):
     return (sx + sy) / 2, rear[0], bottom[1]
 
 
-def stud_lines(segs):
+def stud_lines(segs, marks):
     """Stud-face lines in Laurel's frame: {"along_X": [(Y, X0, X1)], "along_Y": [(X, Y0, Y1)]}.
     A line running along X is page-vertical, because A-1.0 draws X up the page."""
-    s, y0_px, x0_py = frame(segs)
+    s, y0_px, x0_py = frame(segs, marks)
     to_Y = lambda px: (y0_px - px) / s          # noqa: E731
     to_X = lambda py: (x0_py - py) / s          # noqa: E731
     along_X, along_Y = [], []
@@ -220,9 +257,9 @@ def measure(spec, lines):
 def main():
     import yaml
     spec = yaml.safe_load((HERE / "spec.yaml").read_text())
-    segs = segments(svg())
-    s, _, _ = frame(segs)
-    lines = stud_lines(segs)
+    segs, marks = segments(svg()), labels()
+    s, _, _ = frame(segs, marks)
+    lines = stud_lines(segs, marks)
     parts, doors = measure(spec, lines)
     print(f"A-1.0 at {s:.4f} pt/ft")
     for pid, (near, far) in parts.items():

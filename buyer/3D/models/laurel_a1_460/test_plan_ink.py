@@ -6,7 +6,7 @@ test_plan_ink.py — spec.plan_overlay is what A-1.0 draws (#132).
 The overlay's numbers were measured once off A-1.0's vectors by plan_ink.py.
 This measures them again, on every run, so a hand-edited number -- or a
 reader that changed -- fails here instead of quietly moving a wall. Needs
-pdftocairo (poppler), which CI installs for the harvester.
+pdftocairo and pdftotext (poppler), which CI installs for the harvester.
 """
 import shutil
 import unittest
@@ -20,19 +20,20 @@ HERE = Path(__file__).resolve().parent
 FIT_FT = 0.001                 # the recorded values are rounded to 4 places
 
 
-@unittest.skipUnless(shutil.which("pdftocairo"), "needs pdftocairo (poppler)")
+@unittest.skipUnless(shutil.which("pdftocairo") and shutil.which("pdftotext"),
+                     "needs pdftocairo and pdftotext (poppler)")
 class PlanInk(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         cls.spec = yaml.safe_load((HERE / "spec.yaml").read_text())
-        cls.segs = plan_ink.segments(plan_ink.svg())
-        cls.parts, cls.doors = plan_ink.measure(cls.spec, plan_ink.stud_lines(cls.segs))
+        cls.segs, cls.marks = plan_ink.segments(plan_ink.svg()), plan_ink.labels()
+        cls.parts, cls.doors = plan_ink.measure(cls.spec, plan_ink.stud_lines(cls.segs, cls.marks))
         cls.po = cls.spec["plan_overlay"]
 
     def test_the_scale_is_the_recorded_one(self):
         """Measured from the ticks the drawing carries, not from constants."""
-        self.assertAlmostEqual(plan_ink.frame(self.segs)[0], self.po["scale"]["pt_per_ft"], places=3)
+        self.assertAlmostEqual(plan_ink.frame(self.segs, self.marks)[0], self.po["scale"]["pt_per_ft"], places=3)
 
     def test_a_page_that_moved_is_refused_not_misread(self):
         """Found by review: the frame was four hard-coded page points, so a
@@ -41,7 +42,29 @@ class PlanInk(unittest.TestCase):
         looks, and it refuses."""
         moved = [((p[0] + 10, p[1]), (q[0] + 10, q[1]), w) for p, q, w in self.segs]
         with self.assertRaises(ValueError):
-            plan_ink.frame(moved)
+            plan_ink.frame(moved, self.marks)
+
+    def test_ticks_without_their_label_are_refused(self):
+        """Found by review: nothing showed the four ticks were the 19'-2" and
+        24'-0" strings' own. Each pair must now have its label centred
+        between them. Move the 19'-2" label 20 pt along its string, as if
+        the ticks were a neighbour's, and the frame refuses."""
+        import dataclasses
+        moved = [dataclasses.replace(c, box=(c.box[0] + 20, c.box[1], c.box[2] + 20, c.box[3]))
+                 if c.raw.replace(" ", "") == plan_ink.DEPTH_TEXT else c for c in self.marks]
+        self.assertNotEqual(moved, self.marks)
+        with self.assertRaisesRegex(ValueError, "19'-2"):
+            plan_ink.frame(self.segs, moved)
+
+    def test_a_label_of_another_value_does_not_confirm(self):
+        """The label must say the string's value: the 24'-0" label's box
+        with 23'-0" written in it confirms nothing."""
+        import dataclasses
+        from fractions import Fraction
+        other = [dataclasses.replace(c, feet=Fraction(23)) if c.feet == 24 else c
+                 for c in self.marks]
+        with self.assertRaisesRegex(ValueError, "24'-0"):
+            plan_ink.frame(self.segs, other)
 
     def test_every_face_is_the_recorded_one(self):
         faces = {k: v for k, v in self.po["faces"].items() if k != "source"}
@@ -70,7 +93,7 @@ class PlanInk(unittest.TestCase):
     def test_a_partition_three_inches_off_is_not_found(self):
         """The reader looks within 3" of the layout, so a layout that has
         drifted further finds no wall -- a failure, never a match."""
-        lines = plan_ink.stud_lines(self.segs)
+        lines = plan_ink.stud_lines(self.segs, self.marks)
         near, far = plan_ink.partition(lines, "X", 11.4583 + 0.5, 11.1667 + 0.5, 11.2917, 17.4583)
         self.assertIsNone(near)
 
