@@ -33,6 +33,51 @@ def modes(*ms, groups=None):
             "modes": list(ms)}
 
 
+class FaceSlots(unittest.TestCase):
+    """Found by review (#156): a spec round-tripped through JSON, as
+    kernel.load_spec does in a Blender with no PyYAML, has string keys."""
+
+    LIB = {"library": {"floor": {}, "trim": {}}}
+
+    def test_a_json_round_trip_keeps_whole_number_slots(self):
+        mats = json.loads(json.dumps(dict(self.LIB, face_slots={1: "floor"})))
+        self.assertEqual(list(mats["face_slots"]), ["1"])
+        self.assertEqual(manifest.face_slots(mats), ({1: "floor"}, []))
+
+    def test_no_face_slots_is_none(self):
+        self.assertEqual(manifest.face_slots(self.LIB), ({}, []))
+
+    def test_a_slot_that_is_not_a_number_is_a_problem(self):
+        _, problems = manifest.face_slots(dict(self.LIB, face_slots={"top": "floor"}))
+        self.assertIn("not a whole number", problems[0])
+
+    def test_a_slot_naming_no_material_is_a_problem(self):
+        _, problems = manifest.face_slots(dict(self.LIB, face_slots={1: "carpet"}))
+        self.assertIn("does not define", problems[0])
+
+    def test_a_slot_whose_name_is_not_text_is_a_problem_not_a_traceback(self):
+        for bad in ([], {"a": 1}, 3):
+            with self.subTest(name=bad):
+                _, problems = manifest.face_slots(dict(self.LIB, face_slots={1: bad}))
+                self.assertIn("must name a material", problems[0])
+
+    def test_a_library_that_is_not_a_mapping_is_a_problem(self):
+        _, problems = manifest.face_slots({"library": ["floor"], "face_slots": {1: "floor"}})
+        self.assertIn("does not define", problems[0])
+
+    def test_one_slot_declared_twice_is_a_problem_not_an_overwrite(self):
+        for keys in ((1, "1"), ("1", "01")):
+            with self.subTest(keys=keys):
+                slots, problems = manifest.face_slots(
+                    dict(self.LIB, face_slots={keys[0]: "floor", keys[1]: "trim"}))
+                self.assertIn("more than once", problems[0])
+                self.assertEqual(slots, {1: "floor"})
+
+    def test_a_gap_is_a_problem(self):
+        _, problems = manifest.face_slots(dict(self.LIB, face_slots={2: "floor"}))
+        self.assertIn("no gap", problems[0])
+
+
 class KnownAnswers(unittest.TestCase):
     """The barn cabin's published manifest, rebuilt."""
 

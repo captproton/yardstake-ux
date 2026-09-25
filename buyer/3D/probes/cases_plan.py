@@ -30,9 +30,9 @@ def _patch(work: Path, old: str, new: str, what: str) -> None:
 
 def _block_wall_moved(work: Path) -> None:
     _patch(work,
-           '        near = row["at_ft"]\n        far = near + it if',
-           '        near = row["at_ft"] + (1.0 if row["id"] == "P_block_W" else 0.0)\n'
-           '        far = near + it if',
+           '    near = row["at_ft"]\n    far = near + it if',
+           '    near = row["at_ft"] + (1.0 if row["id"] == "P_block_W" else 0.0)\n'
+           '    far = near + it if',
            "P_block_W moved")
 
 

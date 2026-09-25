@@ -644,7 +644,16 @@ fixtures:
                            source: "A-2.0 REAR ELEVATION and SIDE (LEFT) ELEVATION 'MINI-SPLIT CONDENSER'"}
 
 finishes:
-  status: "not yet: Tier 1 (#132) and Tier 2 (#133)"
+  status: "Tier 1 (#132): the trim (spec.trim) and the floor below. Textures and the stucco/siding swap are Tier 2 (#133)"
+  floor:
+    material: floor
+    assumed: >
+      NO SHEET NAMES A FLOOR FINISH: A-1.0's room tags, notes and legend
+      carry none, and neither do A-0.1 and A-0.2. The rendering shows no
+      interior. So the floor is a neutral mid-tone, declared, not sampled
+      (materials.library.floor). It is a material on the slab's top face,
+      not a layer: levels.finished_floor is Z 0, the slab's top, and a
+      finish thickness would move every height the elevations dimension.
   exterior_options: [stucco, fiber_cement_lap_siding]
   exterior_source: "A-1.0 WALL LEGEND; A-2.0 FRONT ELEVATION 'EXTERIOR FINISH OPTIONS'"
   roofing: standing_seam_metal
@@ -757,9 +766,141 @@ windows:
     sliding:  {units: 2, meeting_rail: false, source: "A-1.0 Window Schedule, mark E is SLIDING: two sashes passing at a meeting stile, which is the mullion above"}
 
 # ---------------------------------------------------------------------------
+trim:
+  # TIER 1 TRIM (#132, PR B), decided 2026-09-23 (PLAN.md "Tier 1 trim").
+  #
+  # Laurel's sheets dimension ONE of the eleven numbers a cased opening needs:
+  # the 3/8" reveal at the stucco's metal casing bead
+  # (construction.exterior_wall.casing_reveal). The other ten are the barn
+  # cabin's spec.trim values, each copied here as `assumed` with the key it
+  # came from in `borrowed`. CONFIDENCE DOES NOT CROSS BUILDINGS: several
+  # were measured on the barn cabin's A1.1, and none was measured on Laurel,
+  # so every one is assumed here. `barn` says what the barn cabin's evidence
+  # was without claiming its standing. verify_spec.py holds each value to the
+  # barn cabin's spec, so the two cannot drift apart unnoticed.
+  #
+  # The barn cabin's `ft` values are rounded to three places, and two of
+  # them disagree with their own `raw` by a few hundredths of an inch
+  # (head_casing_height 0.383 for 4 5/8", which is 0.3854). The RAW is the
+  # value; each `ft` below is its exact conversion.
+  #
+  # WHERE THE TRIM GOES.
+  #   * Interior casing, on every opening's room side: jambs and a head band
+  #     for a door, and a stool and apron under a window as well. A window
+  #     stacked under its transom (W-A1 and W-B1, W-A2 and W-B2) is cased as
+  #     one opening: jambs from the lower sill to the upper head, one head
+  #     band, one stool. The 8" of wall between the two units stays wall.
+  #   * Baseboard along every room face, broken at each doorway's casing.
+  #   * Both are the same under stucco and siding: the interior is not a
+  #     variant.
+  #   * EXTERIOR trim only under lap siding (A-3.2 details 3 and 4, FIBER
+  #     CEMENT TRIM): casing, head, sill and apron, as the named node
+  #     Trim_ext_siding. It is BUILT and NOT EXPORTED until #133 decides how
+  #     a finish choice shows it (decided 2026-09-24). Stucco gets none: A-3.0
+  #     details 3 and 4 end the plaster at a METAL CASING BEAD.
+  #   * The 1X6 WINDSORONE TRIM BOARD A-3.4 notes is the canopy's attachment
+  #     (#144), not window trim.
+  #
+  # Trim sits on the FACE OF STUD, as everything in this model does. The
+  # 1/2" gyp board is carried as a material, not a thickness
+  # (interior_partitions.layout.thickness), so a casing stands off the stud
+  # face by its own stock and no more.
+  #
+  # PROPORTIONS, NOT NUMBERS: a stool's horns and the siding head's cap run
+  # past the casing by half a casing width each side, and a window's
+  # exterior sill by the same. Those are the barn cabin's build_adu.py
+  # proportions, carried as proportions.
+  status: "Tier 1 (#132): built. The siding exterior trim is built and held back from every export until #133."
+  casing_width:
+    ft: 0.2917
+    raw: "3 1/2\""
+    assumed: "1x4 casing stock, borrowed from the barn cabin; no Laurel sheet dimensions a casing"
+    borrowed: trim.casing_width
+    barn: "measured_approx on the barn cabin's A1.1 front elevation, where it read 5.0\" and 3.1\" on two jambs; 1x4 stock sits between"
+    applies: "interior casing; the siding exterior casing"
+  head_casing_height:
+    ft: 0.3854
+    raw: "4 5/8\""
+    assumed: "the head band over each opening, borrowed from the barn cabin"
+    borrowed: trim.head_casing_height
+    barn: "measured on the barn cabin's A1.1 as a band at z 7.00-7.38 ft over a 7'-0\" head"
+    applies: "interior casing; the siding exterior casing"
+  baseboard_height:
+    ft: 0.2917
+    raw: "3 1/2\""
+    assumed: "a stock baseboard, borrowed from the barn cabin; no Laurel sheet draws one"
+    borrowed: trim.baseboard_height
+    barn: "assumed there too: not drawn on any of its sheets"
+    applies: "interior, both finishes"
+  interior_stool_projection:
+    ft: 0.0729
+    raw: "7/8\""
+    assumed: "how far a window stool stands past the wall face, borrowed from the barn cabin"
+    borrowed: trim.interior_stool_projection
+    barn: "assumed there too: stock 1x stool nosing; its plan set has no interior elevation"
+    applies: "interior, both finishes"
+    what_would_settle_it: "an interior elevation or a section at a window; Laurel's set has neither"
+  interior_stool_thickness:
+    ft: 0.0625
+    raw: "3/4\""
+    assumed: "nominal 1x stock, borrowed from the barn cabin"
+    borrowed: trim.interior_stool_thickness
+    barn: "assumed there too: nominal 1x stock, the section its casing is cut from"
+    applies: "interior, both finishes. The build also uses it for the STOCK every casing, apron and baseboard is cut from: how far each stands off its wall"
+  interior_apron_height:
+    ft: 0.2917
+    raw: "3 1/2\""
+    assumed: "the board under a window stool, borrowed from the barn cabin"
+    borrowed: trim.interior_apron_height
+    barn: "assumed there too: set equal to its casing width, by convention"
+    applies: "interior, both finishes"
+  exterior_sill_thickness:
+    ft: 0.1667
+    raw: "2\""
+    assumed: "the siding sill board under each window, borrowed from the barn cabin"
+    borrowed: trim.exterior_sill_thickness
+    barn: "measured on the barn cabin's A1.1: three windows at 1.92\", 1.92\" and 2.16\""
+    applies: "siding only"
+    what_would_settle_it: "A-3.2 detail 4 (lap siding sill) is drawn at 6\" = 1'-0\", fine enough to measure the sill from its ink"
+  exterior_sill_projection:
+    ft: 0.125
+    raw: "1 1/2\""
+    assumed: "stock sill nosing, borrowed from the barn cabin"
+    borrowed: trim.exterior_sill_projection
+    barn: "assumed there too: an elevation foreshortens a projection to nothing"
+    applies: "siding only"
+    what_would_settle_it: "A-3.2 detail 4, a section through the sill"
+  exterior_apron_height:
+    ft: 0.3021
+    raw: "3 5/8\""
+    assumed: "the siding apron under each window sill, borrowed from the barn cabin"
+    borrowed: trim.exterior_apron_height
+    barn: "measured_approx on the barn cabin's A1.1: 3.60\", 3.60\" and 3.84\" between two drawn edges"
+    applies: "siding only"
+    what_would_settle_it: "A-3.2 detail 4"
+  reveal_material:
+    value: trim
+    assumed: "the reveal of a SIDING opening takes the trim material, as the barn cabin's does"
+    borrowed: trim.reveal_material
+    barn: "its reveal_note: jamb, head and sill faces take trim, not siding"
+    applies: "siding only, and only once #133 builds the siding finish: nothing in this build reads it yet. Under STUCCO the reveal is stucco: see stucco_reveal"
+  stucco_reveal:
+    material: stucco
+    derived: >
+      A-3.0 details 3 and 4 end the plaster at a METAL CASING BEAD with a
+      3/8" reveal (construction.exterior_wall.casing_reveal). The build's
+      Sheathing_ skin is 3/8" thick (construction.exterior_wall.sheathing)
+      and takes the stucco material, so its cut faces round each opening ARE
+      that reveal, in stucco, with no extra geometry. verify_spec.py holds
+      the two 3/8" values equal; if either changes, this reading has to be
+      made again. Where the stucco return stops, the Wall_ return beyond it
+      is the drywall's, and the glazing plane (windows.glazing_plane,
+      assumed) decides where the sash sits in it.
+
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 materials:
-  status: "P4 (#131): stucco, the roof and the openings; textures and the stucco/siding swap are #133"
+  status: "P4 (#131): stucco, the roof and the openings. Tier 1 (#132): trim and floor. Textures and the stucco/siding swap are #133"
   provenance: >
     ONE SOURCE, AND IT IS A RENDERING. a1-laurel-rendering.jpg is the
     designer's image of the finished building and the only appearance
@@ -811,6 +952,16 @@ materials:
       roughness: 0.92
       metallic: 0.0
       assumed: "the slab is not visible in the rendering: a neutral concrete, the barn cabin's own value, declared rather than sampled"
+    trim:
+      base_color_linear: [0.860, 0.855, 0.840]
+      roughness: 0.45
+      metallic: 0.0
+      assumed: "not in the rendering, which shows the stucco finish and no interior: a painted semi-gloss white, declared rather than sampled. Brighter and glossier than the drywall so a casing reads against its wall. The siding exterior trim, held back until #133, takes it too."
+    floor:
+      base_color_linear: [0.300, 0.230, 0.160]
+      roughness: 0.60
+      metallic: 0.0
+      assumed: "no sheet names a floor finish and the rendering shows no interior (finishes.floor): a neutral mid-tone, declared rather than sampled"
     glass:
       base_color_linear: [0.055, 0.062, 0.070]
       roughness: 0.08
@@ -830,6 +981,11 @@ materials:
     Leaf_D-6: exterior_door
     Leaf_: interior_door
     Glazing_: glass
+    Trim_: trim
+  # FACES A BUILD TAGS, by polygon material index (adu_kit.finish.assign's
+  # extra_slots). build.py tags the slab's top face 1: the floor.
+  face_slots:
+    1: floor
 
 export:
   status: "P4 (#131): three levels, the manifest, the lod2 contract and baseline. The page's views rail is #133"
@@ -847,6 +1003,10 @@ export:
       PARTITION: ["P_"]
       OPENING:   ["Sash_", "Leaf_"]
       SITE:      ["Slab"]
+      TRIM:      ["Trim_"]
+    # TRIM IS NAMED FOR THE WALL IT HANGS ON (Trim_Wall_front, Trim_P_bath_W),
+    # so a mode that hides a wall hides its casing and baseboard with it
+    # instead of leaving them floating.
     front_group: "the +Y side: Wall_front and Sheathing_front, named in modes by object"
     modes:
     - id: full
@@ -861,18 +1021,28 @@ export:
       label: "Cutaway"
       desc: "Dollhouse with the front wall and its skin removed, for a sectional look through the entry."
       hide: [ROOF]
-      hide_objects: [Wall_front, Sheathing_front]
+      hide_objects: [Wall_front, Sheathing_front, Trim_Wall_front]
     - id: interior_only
       label: "Interior only"
       desc: "Partitions and slab alone, with the openings left in so the doors read."
       hide: [ROOF, WALL, SKIN]
+      hide_objects: [Trim_Wall_front, Trim_Wall_rear, Trim_Wall_x0, Trim_Wall_x24]
   levels:
     # What each level carries. lod2 is the placement developer's massing,
     # built with no openings cut; lod1 is the exterior a buyer sees from the
     # street; lod0 adds the interior.
-    lod0: "shell, roof, slab, every sash and leaf, glazing, partitions"
+    lod0: "shell, roof, slab, every sash and leaf, glazing, partitions, interior trim"
     lod1: "shell, roof, slab, the exterior walls' sashes and leaves, glazing"
     lod2: "shell, roof and slab, no openings cut"
+  # BUILT, NOT SHIPPED (#132, decided 2026-09-24). The siding exterior trim
+  # exists as a named node so #133 can decide how a finish choice shows it
+  # (PLAN.md, the open question for #133 with #113). Until then finish.py
+  # leaves these out of every level and refuses to publish a level that
+  # carries one, and views.py keeps them hidden in the review blend, which
+  # shows the stucco finish.
+  held_back:
+    nodes: [Trim_ext_siding]
+    until: "#133"
   budget_kb:
     lod0: 1024
     lod1: 512
