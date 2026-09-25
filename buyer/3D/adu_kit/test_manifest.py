@@ -55,6 +55,16 @@ class FaceSlots(unittest.TestCase):
         _, problems = manifest.face_slots(dict(self.LIB, face_slots={1: "carpet"}))
         self.assertIn("does not define", problems[0])
 
+    def test_a_slot_whose_name_is_not_text_is_a_problem_not_a_traceback(self):
+        for bad in ([], {"a": 1}, 3):
+            with self.subTest(name=bad):
+                _, problems = manifest.face_slots(dict(self.LIB, face_slots={1: bad}))
+                self.assertIn("must name a material", problems[0])
+
+    def test_a_library_that_is_not_a_mapping_is_a_problem(self):
+        _, problems = manifest.face_slots({"library": ["floor"], "face_slots": {1: "floor"}})
+        self.assertIn("does not define", problems[0])
+
     def test_a_gap_is_a_problem(self):
         _, problems = manifest.face_slots(dict(self.LIB, face_slots={2: "floor"}))
         self.assertIn("no gap", problems[0])

@@ -53,7 +53,12 @@ def face_slots(materials):
             problems.append(f"materials.face_slots has a slot that is not a whole "
                             f"number: {key!r}")
             continue
-        if name not in library:
+        # A NAME IS TEXT. `name not in library` on a list or a mapping raised
+        # TypeError (unhashable) instead of naming the slot. Found by review.
+        if not isinstance(name, str):
+            problems.append(f"materials.face_slots slot {text} must name a material, "
+                            f"found {type(name).__name__}")
+        elif not isinstance(library, dict) or name not in library:
             problems.append(f"materials.face_slots slot {text} names {name!r}, "
                             f"which materials.library does not define")
         slots[int(text)] = name
