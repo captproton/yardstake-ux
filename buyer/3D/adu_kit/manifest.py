@@ -61,6 +61,13 @@ def face_slots(materials):
         elif not isinstance(library, dict) or name not in library:
             problems.append(f"materials.face_slots slot {text} names {name!r}, "
                             f"which materials.library does not define")
+        # ONE DECLARATION PER SLOT. `1`, "1" and "01" are three YAML keys and
+        # one slot; overwriting kept whichever came last, and YAML and the
+        # JSON fallback need not agree on which that is. Found by review.
+        if int(text) in slots:
+            problems.append(f"materials.face_slots declares slot {int(text)} more "
+                            f"than once (as {key!r} again)")
+            continue
         slots[int(text)] = name
     if sorted(slots) != list(range(1, len(slots) + 1)):
         problems.append(f"materials.face_slots must be numbered 1..{len(slots)} "

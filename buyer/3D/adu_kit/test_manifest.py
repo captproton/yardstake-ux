@@ -65,6 +65,14 @@ class FaceSlots(unittest.TestCase):
         _, problems = manifest.face_slots({"library": ["floor"], "face_slots": {1: "floor"}})
         self.assertIn("does not define", problems[0])
 
+    def test_one_slot_declared_twice_is_a_problem_not_an_overwrite(self):
+        for keys in ((1, "1"), ("1", "01")):
+            with self.subTest(keys=keys):
+                slots, problems = manifest.face_slots(
+                    dict(self.LIB, face_slots={keys[0]: "floor", keys[1]: "trim"}))
+                self.assertIn("more than once", problems[0])
+                self.assertEqual(slots, {1: "floor"})
+
     def test_a_gap_is_a_problem(self):
         _, problems = manifest.face_slots(dict(self.LIB, face_slots={2: "floor"}))
         self.assertIn("no gap", problems[0])
