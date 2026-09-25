@@ -9,6 +9,7 @@ never the spec (rule 19), one member at a time:
   * baseboard run straight across every doorway            must FAIL
   * the siding trim put in the collection lod0 exports     must FAIL
   * finish.py exporting the held-back siding trim in lod0  must FAIL
+  * the slab left untagged, so the floor is concrete       must FAIL
   * the trim as built                                      must PASS
 """
 from pathlib import Path
@@ -63,6 +64,13 @@ def _siding_exported(work: Path) -> None:
            "the siding trim exported in lod0")
 
 
+def _floor_untagged(work: Path) -> None:
+    _patch(work, BUILD,
+           '            poly.material_index = floor_slot\n',
+           '            pass\n',
+           "the slab's top face left untagged")
+
+
 CASES = [
     Case("trim", "laurel: the X 0 wall's windows built with no interior casing",
          _x0_uncased,
@@ -80,6 +88,10 @@ CASES = [
          _siding_exported,
          [Run(FINISH, fails=True, blender=True, model=LAUREL)],
          contains="laurel_a1_460_lod0.glb carries ['Trim_ext_siding']"),
+    Case("trim", "laurel: the slab's top face left untagged fails the floor gate",
+         _floor_untagged,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         contains="0 slab faces carry the floor slot 1, not 1"),
     Case("trim", "laurel: the trim as built passes every trim gate",
          None,
          [Run(BUILD, fails=False, blender=True, model=LAUREL)],

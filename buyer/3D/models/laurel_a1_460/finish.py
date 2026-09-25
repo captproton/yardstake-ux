@@ -30,6 +30,7 @@ sys.path.append(str(HERE.parents[1]))          # buyer/3D, where adu_kit lives
 from build import _wall_band, build, load_spec  # noqa: E402
 from adu_kit import manifest as kit_manifest  # noqa: E402
 from adu_kit.export import export_glb, glb_info  # noqa: E402
+from adu_kit.manifest import face_slots  # noqa: E402
 from adu_kit.finish import (  # noqa: E402
     assign, closure_problems, lod2_contract_nodes, make_materials, promote,
     report_lod2_contract, stage)
@@ -181,7 +182,7 @@ def save_viewable_blend(spec, dest):
     geo, colls = build(spec, cut_openings=True)
     mats = make_materials(spec, HERE / "textures", textured=False)
     add_glazing(spec, geo, collection("Glazing"))
-    assign(spec, mats, spec["materials"].get("face_slots"))
+    assign(spec, mats, face_slots(spec["materials"])[0])
     # The review blend shows the stucco finish, so what is held back for
     # #133 is in the file and hidden, as views.py keeps it.
     for name in (spec["export"].get("held_back") or {}).get("nodes") or []:
@@ -201,6 +202,12 @@ def main():
     model_id = spec["meta"]["model_id"]
     out = stage(final_out)
 
+    slots, bad = face_slots(spec["materials"])
+    if bad:
+        print("\nNOTHING EXPORTED: " + "; ".join(bad))
+        shutil.rmtree(out, ignore_errors=True)
+        raise SystemExit(1)
+
     want2 = lod2_contract_nodes(spec)
     if not want2:
         report_lod2_contract(want2, None)
@@ -214,7 +221,7 @@ def main():
         mats = make_materials(spec, HERE / "textures", textured=False)
         glazing = ([] if lod == "lod2"
                    else add_glazing(spec, geo, collection("Glazing")))
-        unmatched[lod] = assign(spec, mats, spec["materials"].get("face_slots"))
+        unmatched[lod] = assign(spec, mats, slots)
         keep = level_objects(lod, geo, colls, glazing)
         if lod == "lod2" and not report_lod2_contract(
                 want2, sorted(o.name for o in keep)):

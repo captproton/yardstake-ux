@@ -107,6 +107,8 @@ def _apply(mode_id):
     return mode
 
 
+# `full` hides nothing the spec's mode names -- but it still hides _HELD,
+# as every mode does: "everything" in this blend is everything that ships.
 def full():            return _apply("full")
 def dollhouse():       return _apply("dollhouse")
 def cutaway():         return _apply("cutaway")

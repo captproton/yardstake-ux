@@ -25,6 +25,44 @@ VIEWS_NOTE = (
     "that matches nothing fails the export instead of the page.")
 
 
+def face_slots(materials):
+    """spec.materials.face_slots as {int slot: library key}, and problems.
+
+    WHOLE-NUMBER SLOTS, WHATEVER THE LOADER DID. The key is a polygon
+    material index, and YAML reads `1:` as an int -- but kernel.load_spec's
+    fallback, for a Blender with no PyYAML, round-trips the spec through
+    JSON, whose keys are strings, so the same spec came back as {"1": ...}.
+    A build that looked the slot up got "1" for a material index, and
+    finish.assign refused the map. Found by review. So both ends read the
+    slots through here: digits become ints, anything else is a problem.
+
+    The slots must be 1..n with no gap (assign's own rule), and each must
+    name a material the library defines.
+    """
+    if not isinstance(materials, dict) or materials.get("face_slots") is None:
+        return {}, []
+    raw = materials["face_slots"]
+    if not isinstance(raw, dict):
+        return {}, [f"materials.face_slots must map slot numbers to materials, "
+                    f"found {type(raw).__name__}"]
+    library = materials.get("library") or {}
+    slots, problems = {}, []
+    for key, name in raw.items():
+        text = str(key)
+        if isinstance(key, bool) or not text.isdigit():
+            problems.append(f"materials.face_slots has a slot that is not a whole "
+                            f"number: {key!r}")
+            continue
+        if name not in library:
+            problems.append(f"materials.face_slots slot {text} names {name!r}, "
+                            f"which materials.library does not define")
+        slots[int(text)] = name
+    if sorted(slots) != list(range(1, len(slots) + 1)):
+        problems.append(f"materials.face_slots must be numbered 1..{len(slots)} "
+                        f"with no gap, found {sorted(slots)}")
+    return slots, problems
+
+
 def sets_block(variants, materials_present):
     """`sets`: the finishes rail. Every option is a baseColorFactor, so this
     block is the entire cost of the picker -- no extra geometry, no extra

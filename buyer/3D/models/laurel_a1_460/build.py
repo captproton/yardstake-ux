@@ -47,6 +47,7 @@ from adu_kit.kernel import (  # noqa: E402,F401
     difference, collection, world_bbox, mark_reveals, ft,
 )
 from adu_kit.verify_lib import inside_mesh  # noqa: E402
+from adu_kit.manifest import face_slots  # noqa: E402
 
 FAILED = []
 SKIPPED = []
@@ -174,7 +175,7 @@ def build(spec, cut_openings=True):
     # not a layer, so the face is tagged for materials.face_slots and every
     # height the elevations dimension stays where it is.
     slab = box("Slab", 0.0, W, 0.0, D, -slab_t, 0.0, site)
-    floor_slot = {v: k for k, v in spec["materials"]["face_slots"].items()}["floor"]
+    floor_slot = _floor_slot(spec)
     for poly in slab.data.polygons:
         if poly.normal.z > UP:
             poly.material_index = floor_slot
@@ -429,7 +430,8 @@ def build(spec, cut_openings=True):
     ext_apron = tr["exterior_apron_height"]["ft"]
     horn = cw / 2                  # stool horns and the siding head cap: a proportion
 
-    def members(along, face, out, a0, a1, lo_z, hi_z, window, sill_depth, sill_thick, apron_h):
+    def members(along, face, out, a0, a1, lo_z, hi_z, window, sill_depth, sill_thick, apron_h,
+                cap=0.0):
         """The boxes that case one opening on one face.
 
         `face` is the wall face the trim is fixed to and `out` the way it
@@ -438,6 +440,9 @@ def build(spec, cut_openings=True):
         inside, a sill board outside -- and an apron below it. A door has a
         threshold, not a sill, as the barn cabin found after burying one in
         its porch slab.
+
+        `cap` is how far the head runs past the jambs each side: nothing
+        inside, and the siding head's cap outside (spec.trim).
         """
         def bx(b0, b1, d0, d1, z0, z1):
             d0, d1 = sorted((d0, d1))
@@ -445,7 +450,7 @@ def build(spec, cut_openings=True):
         skin = face + out * stock
         parts = [bx(a0 - cw, a0, face, skin, lo_z, hi_z),
                  bx(a1, a1 + cw, face, skin, lo_z, hi_z),
-                 bx(a0 - cw, a1 + cw, face, skin, hi_z, hi_z + hh)]
+                 bx(a0 - cw - cap, a1 + cw + cap, face, skin, hi_z, hi_z + hh)]
         if window:
             under = lo_z - sill_thick
             parts += [bx(a0 - cw - horn, a1 + cw + horn, face, face + out * sill_depth, under, lo_z),
@@ -476,7 +481,7 @@ def build(spec, cut_openings=True):
         if host in skin_of:
             outer, out = outer_face(spec, host)
             siding_parts += members(group[0]["along"], outer, out, a0, a1, lo_z, hi_z,
-                                    window, sill_p, sill_t, ext_apron)
+                                    window, sill_p, sill_t, ext_apron, cap=horn)
 
     # BASEBOARD along every room face, broken where a doorway's casing comes
     # down to the floor. Runs pass through the ends of partitions that abut
@@ -501,6 +506,16 @@ def build(spec, cut_openings=True):
                depths=depths, skin_of=skin_of, trim=trim, siding=siding)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
                      Openings=openings, Site=site, Trim=trim_coll, SidingTrim=siding_coll)
+
+
+def _floor_slot(spec):
+    """The polygon material index spec.materials.face_slots gives the floor,
+    as a whole number whichever loader read the spec (adu_kit.manifest
+    .face_slots)."""
+    slots, bad = face_slots(spec["materials"])
+    if bad or "floor" not in slots.values():
+        raise SystemExit("spec.materials.face_slots: " + ("; ".join(bad) or "no slot is the floor"))
+    return {v: k for k, v in slots.items()}["floor"]
 
 
 def _partition_band(row, it):
@@ -648,6 +663,9 @@ def report(spec, geo, colls):
 
     ok, why = _trim_inside_its_walls(spec, geo)
     gate(ok, "no trim runs outside the rooms or above the roof underside", why)
+
+    ok, why = _floor_on_the_slab(spec)
+    gate(ok, "the floor finish is the slab's top face, at the finished floor", why)
 
     ok, why = _no_degenerate()
     gate(ok, "no NaN or degenerate geometry", why)
@@ -1067,7 +1085,8 @@ def _stacks(geo):
             for k, g in out.items()}
 
 
-def _cased(ob, along, face, out, a0, a1, lo_z, hi_z, window, tr, sill_depth, sill_thick, apron_h):
+def _cased(ob, along, face, out, a0, a1, lo_z, hi_z, window, tr, sill_depth, sill_thick, apron_h,
+           cap=False):
     """The members missing from one opening's casing on one face, by name."""
     cw = tr["casing_width"]["ft"]
     stock = tr["interior_stool_thickness"]["ft"]
@@ -1076,6 +1095,9 @@ def _cased(ob, along, face, out, a0, a1, lo_z, hi_z, window, tr, sill_depth, sil
     probes = {"left jamb": _pt(along, a0 - cw / 2, mid_d, (lo_z + hi_z) / 2),
               "right jamb": _pt(along, a1 + cw / 2, mid_d, (lo_z + hi_z) / 2),
               "head": _pt(along, (a0 + a1) / 2, mid_d, hi_z + hh / 2)}
+    if cap:
+        # past the jamb, where only the siding head's cap reaches
+        probes["head cap"] = _pt(along, a0 - cw - (cw / 2) / 2, mid_d, hi_z + hh / 2)
     if window:
         # IN THE HORN, where the sill is the only member. Under the opening the
         # apron's top face lies half a sill's thickness away, as near as the
@@ -1156,7 +1178,7 @@ def _siding_trim(spec, geo):
         missing = _cased(ob, along, outer, out, a0, a1, lo_z, hi_z, window, tr,
                          tr["exterior_sill_projection"]["ft"],
                          tr["exterior_sill_thickness"]["ft"],
-                         tr["exterior_apron_height"]["ft"])
+                         tr["exterior_apron_height"]["ft"], cap=True)
         if missing:
             wrong.append(f"{host} {a0:.4f}..{a1:.4f} outside: no {', '.join(missing)}")
     return not wrong, "; ".join(wrong)
@@ -1180,6 +1202,25 @@ def _trim_inside_its_walls(spec, geo):
                              f"underside at {shed.under(y):.3f}")
                 break
     return not wrong, "; ".join(wrong)
+
+
+def _floor_on_the_slab(spec):
+    """The floor finish is a material on ONE face: the slab's top, facing
+    up at Z 0 (spec.finishes.floor). Not the underside, not an edge, and not
+    missing -- a slab left untagged exports as concrete wall to wall and
+    passes everything else. Found by review: nothing checked it."""
+    slab = bpy.data.objects.get("Slab")
+    if slab is None:
+        return False, "no Slab"
+    slot = _floor_slot(spec)
+    tagged = [p for p in slab.data.polygons if p.material_index == slot]
+    if len(tagged) != 1:
+        return False, f"{len(tagged)} slab faces carry the floor slot {slot}, not 1"
+    p = tagged[0]
+    z = (slab.matrix_world @ p.center).z
+    if p.normal.z <= UP or abs(z) > MESH_TOL:
+        return False, f"the floor slot is on a face at z {z:.4f} facing {tuple(round(c, 2) for c in p.normal)}"
+    return True, ""
 
 
 def _no_degenerate():

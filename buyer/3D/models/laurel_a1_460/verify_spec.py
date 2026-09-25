@@ -38,6 +38,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))  # buyer/3D, for adu_kit
 from adu_kit import spec_lint  # noqa: E402
 from adu_kit.sheets import parse_length  # noqa: E402
+from adu_kit.manifest import face_slots  # noqa: E402
 
 TOL = 0.0005
 FAILED = []
@@ -411,6 +412,12 @@ def check(spec):
     # The stucco reveal is the Sheathing_ skin's cut face (spec.trim
     # .stucco_reveal), which holds only while the skin is as thick as the
     # reveal A-3.0 dimensions.
+    slots, bad = face_slots(spec["materials"])
+    if "floor" not in slots.values():
+        bad.append("no slot is the floor, which finishes.floor puts on the slab's top face")
+    gate(not bad, "materials.face_slots are whole slots 1..n naming library materials, one of them the floor",
+         "; ".join(bad))
+
     ew = spec["construction"]["exterior_wall"]
     gate(close(ew["casing_reveal"]["ft"], ew["sheathing"]["ft"]),
          "the stucco reveal is the sheathing skin's cut face, at the same thickness",
