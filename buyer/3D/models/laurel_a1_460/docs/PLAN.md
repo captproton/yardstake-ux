@@ -425,9 +425,19 @@ They belong to [P3b](#p3b--overlay-against-the-a-10-plan).
 
 The same named-feature method, pointed at the floor plan. It is the only step
 that tests the interior against a drawing. It lands with Tier 1 in
-[#132](https://github.com/captproton/yardstake-ux/issues/132) as one of that
-step's done-when items, not as a PR of its own, because #132 is the next step
-that builds the interior.
+[#132](https://github.com/captproton/yardstake-ux/issues/132), as that step's
+first PR ([#155](https://github.com/captproton/yardstake-ux/pull/155)), ahead of
+the trim, because it moves the walls and doors the trim wraps.
+
+**Done (#155).** It was read from A-1.0's **vectors**, not a raster:
+`plan_ink.py` has `pdftocairo` write the page as SVG, registers the frame on the
+19'-2" and 24'-0" strings' own ticks (each pair confirmed by its label in the
+text layer), and reads a partition as the pair of 0.48 pt stud-face lines 3 1/2"
+apart and a door as its gap's centre. It found three walls (P_block_W,
+P_laundry_W, P_laundry_E) half an inch off and door 2 4 1/2" off, and resolved
+the "half inch in the interior strings" discrepancy: the strings never
+disagreed. Partition height stays `assumed` with a `what_would_settle_it`, since
+no section on A-3.0 to A-3.5 cuts a partition. The plan below is kept as written.
 
 A-1.0 is vector, and the harvester already returns every string with its page
 rectangle, so the plan's scale and origin come from the sheet's own dimension
@@ -634,7 +644,11 @@ Each line is one pull request.
    - **The lod2 baseline is asserted per model**, for both: `model_contract.baseline_problems()` holds origin, axes, units and floor to values derived from each spec (Laurel −0.1016 m, the barn cabin −0.9717 m). Non-finite values are refused.
    - **Verified in the browser** from the model picker: Laurel opens from its front, fits, swaps colours, shows its interior, and draws its dimensions along the front.
    - **Known, and #119's:** the overlay centres the footprint on the model's box, and Laurel's 5'-0" front overhang pulls it 0.53 m forward of the walls. The legend also says "Ridge" for a shed roof's top.
-8. [#132](https://github.com/captproton/yardstake-ux/issues/132) **Next.** Tier 1 finishes and trim, using the [barn cabin's trim values, declared `assumed`](#tier-1-trim--the-barn-cabins-values-declared-assumed): siding exterior trim as its own nodes, none under stucco. Also [P3b](#p3b--overlay-against-the-a-10-plan), the A-1.0 plan overlay, which tests door 5, doors 3 and 4, and the partition faces against the drawn ink.
+8. [#132](https://github.com/captproton/yardstake-ux/issues/132) **In progress, two PRs** (decided 2026-09-24: P3b first, because it moves what the trim wraps).
+   - **PR A done ([#155](https://github.com/captproton/yardstake-ux/pull/155)): [P3b](#p3b--overlay-against-the-a-10-plan), the interior against A-1.0's ink, read as vectors to hundredths of an inch.** Three partitions moved +1/2", door 2 moved 4 1/2" to its drawn centre, doors 3 and 5 about 1/2"; door 4 confirmed. The 5'-2", 7'-3", 3'-2" and 3'-9" strings, the closet and the ink now agree within 0.05", and the interior-strings discrepancy is resolved.
+   - **Its gates:** `spec.plan_overlay` records the drawn faces and door centres; `verify_spec.py` holds the layout to them (0.5" per feature), `test_plan_ink.py` re-measures A-1.0 on every CI run, and `build.py` holds the **built** mesh to them, so a wrong spec and a build that follows it no longer pass together. `probes/cases_plan.py` moves a wall and a door in the build and turns it red. Probes 177.
+   - **Review** hardened the reader: any SVG transform spacing parses, and the frame is measured from the ticks the drawing carries, each pair confirmed by its label, so a moved page or a neighbour's tick is refused rather than misread.
+   - **PR B next:** Tier 1 finishes and trim, using the [barn cabin's trim values, declared `assumed`](#tier-1-trim--the-barn-cabins-values-declared-assumed): interior casing, baseboard, stool and apron, the floor finish, and the siding exterior trim built as its own nodes but not exported until #133 (decided 2026-09-24); none under stucco.
 9. [#119](https://github.com/captproton/yardstake-ux/issues/119) **Declare where each footprint sits**, so the overlay stops centring. A page change, before Laurel's dimensions are trusted.
 10. [#133](https://github.com/captproton/yardstake-ux/issues/133) Tier 2 textures and configurator: `sets`, `presence`, `views`, `dimensions`, `disclosure` meeting the page's contract.
 11. [#134](https://github.com/captproton/yardstake-ux/issues/134) Tier 3 fixtures, including the water heater and the mini-split.
