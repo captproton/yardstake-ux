@@ -460,6 +460,9 @@ def report(spec, geo, colls):
     ok, why = _every_partition_built(spec, geo)
     gate(ok, "every partition in the spec was built, where the spec puts it", why)
 
+    ok, why = _where_a10_draws_them(spec)
+    gate(ok, "the built partitions and interior doors sit where A-1.0 draws them", why)
+
     # the frame is not mirrored — checked on GEOMETRY, not on the spec
     ok, why = _frame_not_mirrored(spec, geo)
     gate(ok, "not mirrored: D and E open on the X 24 wall, the C windows on X 0", why)
@@ -827,6 +830,52 @@ def _door_one_has_its_sidelite(spec, geo):
             if name not in bpy.data.objects:
                 bad.append(f"{oid}: {name} was not built")
     return not bad, "; ".join(bad)
+
+
+def _where_a10_draws_them(spec):
+    """P3b (#132): the BUILT walls and leaves, held to A-1.0's INK.
+
+    _every_partition_built compares the mesh with the spec, so a spec that is
+    wrong and a build that follows it pass together -- which is how #129's
+    half-inch misreading of three walls and its door 2 stood for two steps.
+    This compares the mesh with spec.plan_overlay: where A-1.0 draws each
+    stud face and each door, measured off the PDF's vectors by plan_ink.py
+    and re-measured by test_plan_ink.py. Two readings of one drawing, as
+    #130's elevation overlay is for the outside.
+
+    A partition is its mesh's extent across its run; a door is its leaf's
+    centre along its wall, since the schedule, not the ink, gives the width.
+    """
+    po = spec["plan_overlay"]
+    tol = po["tolerance_in"]["value"] / INCHES_PER_FOOT
+    drawn = {k: v for k, v in po["faces"].items() if k != "source"}
+    centres = {k: v for k, v in po["door_centres"].items() if k != "source"}
+    layout = spec["interior_partitions"]["layout"]
+    by_id = {r["id"]: r for r in layout["partitions"]}
+    wrong = []
+    for row in layout["partitions"]:
+        ob = bpy.data.objects.get(row["id"])
+        if ob is None or row["id"] not in drawn:
+            wrong.append(f"{row['id']}: {'not built' if ob is None else 'not in plan_overlay'}")
+            continue
+        lo, hi = world_bbox([ob])
+        ci = 1 if _axis(row["id"], row["runs_along"]) == "X" else 0   # across the run
+        want = sorted(drawn[row["id"]])
+        if abs(lo[ci] - want[0]) > tol or abs(hi[ci] - want[1]) > tol:
+            wrong.append(f"{row['id']} is built {lo[ci]:.4f}..{hi[ci]:.4f}, A-1.0 draws "
+                         f"{want[0]:.4f}..{want[1]:.4f}")
+    for d in layout["door_openings"]:
+        leaf = bpy.data.objects.get(f"Leaf_{d['id']}")
+        if leaf is None or d["id"] not in centres:
+            wrong.append(f"{d['id']}: {'no leaf built' if leaf is None else 'not in plan_overlay'}")
+            continue
+        lo, hi = world_bbox([leaf])
+        ai = 0 if _axis(d["in"], by_id[d["in"]]["runs_along"]) == "X" else 1  # along the wall
+        got, want = (lo[ai] + hi[ai]) / 2, float(centres[d["id"]])
+        if abs(got - want) > tol:
+            wrong.append(f"{d['id']}'s leaf centres on {got:.4f}, A-1.0 draws {want:.4f} "
+                         f"({(got - want) * INCHES_PER_FOOT:+.2f} in)")
+    return not wrong, "; ".join(wrong)
 
 
 def _no_degenerate():
