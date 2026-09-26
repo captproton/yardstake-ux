@@ -90,10 +90,11 @@ if _missing:
 # ---------------------------------------------------------------------------
 # visibility
 # ---------------------------------------------------------------------------
-# BUILT AND HELD BACK (spec.export.held_back): the siding exterior trim is in
-# the file for #133 and in no export, and this blend shows the stucco finish,
-# so no mode shows it.
-_HELD = set((SPEC["export"].get("held_back") or {}).get("nodes") or ())
+# THE DEFAULT FINISH (spec.variants.presence): every node a presence option
+# shows that is not its group's default stays hidden, whatever the mode --
+# the siding skins and their trim, under the stucco the page opens on.
+_HELD = {n for g in (SPEC.get("variants") or {}).get("presence") or []
+         for o in g["options"] if not o.get("default") for n in o.get("show") or []}
 
 
 def _apply(mode_id):
@@ -108,7 +109,7 @@ def _apply(mode_id):
 
 
 # `full` hides nothing the spec's mode names -- but it still hides _HELD,
-# as every mode does: "everything" in this blend is everything that ships.
+# as every mode does: the finish not chosen is not part of "everything".
 def full():            return _apply("full")
 def dollhouse():       return _apply("dollhouse")
 def cutaway():         return _apply("cutaway")

@@ -14,15 +14,16 @@
     "front": "-z",
     "entry_node": "Leaf_D-1",
     "thumbnail": null,
-    "note": "Sacramento County Permit Ready ADU, Model A1 \"Laurel\": the studio plan, 460 sf, one shed roof. Its front is -z in this file, the opposite of the barn cabin. The exterior is stucco; the fibre-cement lap siding the sheet also offers arrives with #133.\n"
+    "note": "Sacramento County Permit Ready ADU, Model A1 \"Laurel\": the studio plan, 460 sf, one shed roof. Its front is -z in this file, the opposite of the barn cabin. The exterior is stucco or fibre-cement lap siding, the two finishes the sheet offers, chosen on the page.\n"
   },
-  "note": "Runtime material swaps. Each option sets baseColorFactor on the named materials; Laurel ships no textures yet (#133).",
+  "note": "Runtime material swaps. Each option sets baseColorFactor on the named materials, which the stucco and siding textures carry as luminance only, so a colour holds on either finish. The finish itself is a presence choice: it swaps the skin.",
   "sets": [
     {
       "id": "exterior_colour",
       "label": "Exterior colour",
       "targets": [
-        "adu_stucco"
+        "adu_stucco",
+        "adu_siding"
       ],
       "property": "baseColorFactor",
       "options": [
@@ -116,6 +117,41 @@
       ]
     }
   ],
+  "presence": [
+    {
+      "id": "exterior_finish",
+      "label": "Exterior finish",
+      "property": "visible",
+      "options": [
+        {
+          "id": "stucco",
+          "label": "Stucco",
+          "show": [
+            "Sheathing_front",
+            "Sheathing_rear",
+            "Sheathing_x0",
+            "Sheathing_x24"
+          ],
+          "default": true
+        },
+        {
+          "id": "lap_siding",
+          "label": "Lap siding",
+          "show": [
+            "Siding_front",
+            "Siding_rear",
+            "Siding_x0",
+            "Siding_x24",
+            "Trim_ext_siding_front",
+            "Trim_ext_siding_rear",
+            "Trim_ext_siding_x0",
+            "Trim_ext_siding_x24"
+          ],
+          "default": false
+        }
+      ]
+    }
+  ],
   "views": [
     {
       "id": "full",
@@ -138,7 +174,9 @@
       "hide": [
         "Roof_shed",
         "Sheathing_front",
+        "Siding_front",
         "Trim_Wall_front",
+        "Trim_ext_siding_front",
         "Wall_front"
       ]
     },
@@ -152,10 +190,18 @@
         "Sheathing_rear",
         "Sheathing_x0",
         "Sheathing_x24",
+        "Siding_front",
+        "Siding_rear",
+        "Siding_x0",
+        "Siding_x24",
         "Trim_Wall_front",
         "Trim_Wall_rear",
         "Trim_Wall_x0",
         "Trim_Wall_x24",
+        "Trim_ext_siding_front",
+        "Trim_ext_siding_rear",
+        "Trim_ext_siding_x0",
+        "Trim_ext_siding_x24",
         "Wall_front",
         "Wall_rear",
         "Wall_x0",

@@ -517,7 +517,11 @@ function readPresence(manifest, problems) {
 function readDisclosure(manifest, problems) {
   const d = manifest?.disclosure;
   if (d == null) {
-    if (Array.isArray(manifest?.presence) && manifest.presence.length) {
+    // Furniture is a group that furnishes a room. A group with no `room` -- an
+    // exterior finish choosing the building's own skin -- shows the building,
+    // not something sold separately. Mirrors model_contract.disclosure_problems.
+    const furnishesARoom = (g) => isObject(g) && Object.hasOwn(g, 'room');
+    if (Array.isArray(manifest?.presence) && manifest.presence.some(furnishesARoom)) {
       refuse(problems, 'disclosure', 'the manifest shows furniture and carries no disclosure');
     }
     return '';

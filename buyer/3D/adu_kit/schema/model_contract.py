@@ -681,7 +681,14 @@ def disclosure_problems(manifest):
     d = manifest.get("disclosure")
     presence = manifest.get("presence")
     if d is None:
-        if isinstance(presence, list) and presence:
+        # FURNITURE IS A GROUP THAT FURNISHES A ROOM. A presence group with a
+        # `room` shows what a buyer would not get with the building, so the
+        # page must say so; one without -- an exterior finish choosing the
+        # building's own skin (#133) -- shows the building, and a "furniture
+        # not included" line under it would be false. Mirrors
+        # furnishesARoom() in prototype/app.js.
+        if isinstance(presence, list) and any(
+                isinstance(g, dict) and "room" in g for g in presence):
             problems.append("disclosure is required: the manifest shows "
                             "furniture, and the model cannot say it is not "
                             "included")

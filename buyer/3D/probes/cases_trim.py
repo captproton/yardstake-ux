@@ -7,8 +7,6 @@ never the spec (rule 19), one member at a time:
 
   * the window-side casing skipped on the X 0 wall         must FAIL
   * baseboard run straight across every doorway            must FAIL
-  * the siding trim put in the collection lod0 exports     must FAIL
-  * finish.py exporting the held-back siding trim in lod0  must FAIL
   * the slab left untagged, so the floor is concrete       must FAIL
   * the trim as built                                      must PASS
 """
@@ -17,10 +15,8 @@ from pathlib import Path
 from suite import LAUREL, Case, Run, model_dir
 
 BUILD = "build.py"
-FINISH = "finish.py"
 CASED = "every opening is cased on each room side"
 BASEBOARD = "every room face carries baseboard, and no doorway is blocked by it"
-SIDING = "the siding exterior trim is built on every exterior opening, as its own node"
 
 
 def _patch(work: Path, name: str, old: str, new: str, what: str) -> None:
@@ -49,21 +45,6 @@ def _baseboard_across_doors(work: Path) -> None:
            "baseboard run across every doorway")
 
 
-def _siding_in_trim(work: Path) -> None:
-    _patch(work, BUILD,
-           '    siding = multibox("Trim_ext_siding", siding_parts, siding_coll)\n',
-           '    siding = multibox("Trim_ext_siding", siding_parts, trim_coll)\n',
-           "the siding trim put in the Trim collection")
-
-
-def _siding_exported(work: Path) -> None:
-    _patch(work, FINISH,
-           '                + list(colls["Partitions"].objects) + list(colls["Trim"].objects)\n',
-           '                + list(colls["Partitions"].objects) + list(colls["Trim"].objects)\n'
-           '                + list(colls["SidingTrim"].objects)\n',
-           "the siding trim exported in lod0")
-
-
 def _floor_untagged(work: Path) -> None:
     _patch(work, BUILD,
            '            poly.material_index = floor_slot\n',
@@ -80,14 +61,6 @@ CASES = [
          _baseboard_across_doors,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],
          contains="baseboard runs across the doorway in P_pantry_N"),
-    Case("trim", "laurel: the siding trim built into the collection lod0 exports",
-         _siding_in_trim,
-         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
-         contains="Trim_ext_siding is in the Trim collection"),
-    Case("trim", "laurel: finish.py ships the held-back siding trim in lod0",
-         _siding_exported,
-         [Run(FINISH, fails=True, blender=True, model=LAUREL)],
-         contains="laurel_a1_460_lod0.glb carries ['Trim_ext_siding']"),
     Case("trim", "laurel: the slab's top face left untagged fails the floor gate",
          _floor_untagged,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],
