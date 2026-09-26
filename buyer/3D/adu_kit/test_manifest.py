@@ -100,6 +100,25 @@ class Extents(unittest.TestCase):
         self.assertTrue(problems and "width runs along z" in problems[0], problems)
 
 
+class Infinity(unittest.TestCase):
+    """Found by review (#157): JSON reads 1e400 as infinity. The page's
+    Number.isFinite refuses it, so the contract must too, or an index gate
+    passes a manifest the page will not load."""
+
+    def dims(self, **fp):
+        base = {"width": 22.0, "depth": 24.0, "extent": {"x": [0.0, 6.7056], "z": [-9.144, -1.8288]}}
+        return {"model": {"front": "+z"}, "dimensions": {"units": "feet", "main_body": dict(base, **fp)}}
+
+    def test_an_infinite_extent_is_refused(self):
+        m = json.loads('{"x": [0.0, 1e400], "z": [-9.144, -1.8288]}')
+        problems = model_contract.display_problems(self.dims(extent=m, width=float("inf")))
+        self.assertTrue(any("extent.x must be [min, max]" in p for p in problems), problems)
+
+    def test_an_infinite_width_is_refused(self):
+        problems = model_contract.display_problems(self.dims(width=float("inf")))
+        self.assertTrue(any("width must be a positive number" in p for p in problems), problems)
+
+
 class KnownAnswers(unittest.TestCase):
     """The barn cabin's published manifest, rebuilt."""
 

@@ -47,6 +47,13 @@ def _number(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def _finite(v):
+    # A number the page can use. JSON reads 1e400 as infinity, which
+    # _number() accepts and the page's Number.isFinite refuses -- so a gate
+    # could pass a block the page will not load. Found by review (#157).
+    return _number(v) and math.isfinite(v)
+
+
 def _relative(v, parent_ok):
     """A POSIX path a browser can resolve against a base URL."""
     if not _text(v) or "\\" in v:
@@ -441,7 +448,7 @@ def dimensions_problems(dims, where="dimensions"):
     if "note" in dims and not isinstance(dims["note"], str):
         problems.append(f"{where}.note must be a string when present")
     if "height_to_ridge" in dims and not (
-            _number(dims["height_to_ridge"]) and dims["height_to_ridge"] > 0):
+            _finite(dims["height_to_ridge"]) and dims["height_to_ridge"] > 0):
         problems.append(f"{where}.height_to_ridge must be a positive number, "
                         f"found {dims['height_to_ridge']!r}")
     footprints = 0
@@ -454,7 +461,7 @@ def dimensions_problems(dims, where="dimensions"):
             continue
         footprints += 1
         for f in ("width", "depth"):
-            if not (_number(v.get(f)) and v.get(f) > 0):
+            if not (_finite(v.get(f)) and v.get(f) > 0):
                 problems.append(f"{where}.{key}.{f} must be a positive number, "
                                 f"found {v.get(f)!r}")
         if "note" in v and not isinstance(v["note"], str):
@@ -472,7 +479,7 @@ def _extent_shape_problems(e, at):
     problems = []
     for axis in EXTENT_AXES:
         pair = e[axis]
-        if not (isinstance(pair, list) and len(pair) == 2 and all(_number(n) for n in pair)
+        if not (isinstance(pair, list) and len(pair) == 2 and all(_finite(n) for n in pair)
                 and pair[0] < pair[1]):
             problems.append(f"{at}.{axis} must be [min, max], two numbers rising, "
                             f"found {pair!r}")
@@ -504,7 +511,7 @@ def extent_problems(dims, front, where="dimensions"):
         if key in DIMENSION_FIELDS or not _extent_ok(v):
             continue
         for axis, size in ((along, "width"), (out, "depth")):
-            if not _number(v.get(size)):
+            if not _finite(v.get(size)):
                 continue
             span = v["extent"][axis][1] - v["extent"][axis][0]
             if abs(span - v[size] * metres) > EXTENT_TOL_M:
