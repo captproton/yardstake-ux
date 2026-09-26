@@ -13,6 +13,7 @@ BUILD or the EXPORT one way each and require the refusal:
   * lod0 exported without the siding collection                 must FAIL
   * a presence block that is a list of numbers                  must FAIL, readably
   * a group given a `room`, with no disclosure in the spec       must FAIL
+  * `controls` missing the siding trim's prefix                 must FAIL
   * a presence group that furnishes no room, with no disclosure must PASS
   * the finish as built                                         must PASS
 
@@ -109,6 +110,15 @@ def _finish_group_given_a_room(work: Path) -> None:
            "the finish group given a room")
 
 
+def _controls_miss_the_trim(work: Path) -> None:
+    # Found by review: the prefixes were only used to collect names, so one
+    # left out passed while `show` still listed the nodes.
+    _patch(work, "spec.yaml",
+           '      controls: [Sheathing_, Siding_, Trim_ext_siding_]\n',
+           '      controls: [Sheathing_, Siding_]\n',
+           "the siding trim's prefix left out of controls")
+
+
 def _a_room_less_group_without_disclosure(m):
     for g in m["presence"]:
         g.pop("room", None)
@@ -149,6 +159,10 @@ CASES = [
          _finish_group_given_a_room,
          [Run(FINISH, fails=True, blender=True, model=LAUREL)],
          contains="disclosure is required"),
+    Case(G, "laurel: controls that miss the siding trim's prefix",
+         _controls_miss_the_trim,
+         [Run(FINISH, fails=True, blender=True, model=LAUREL)],
+         contains="Trim_ext_siding_front is shown but no `controls` prefix covers it"),
     Case(G, "a presence group that furnishes no room needs no disclosure",
          edit(manifest, _a_room_less_group_without_disclosure),
          index_gates(fails=False)),

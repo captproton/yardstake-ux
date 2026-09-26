@@ -157,6 +157,16 @@ def presence_block(groups, nodes):
         if not g.get("controls"):
             problems.append(f"presence {gid}: declares no `controls`, so nothing "
                             f"checks that every node it swaps is owned")
+        # THE PREFIXES ARE HELD TO THE EXPORT TOO, as views_block holds a
+        # mode's: every shown name falls under one, and every one matches a
+        # node. Otherwise a missing or misspelt prefix passed whenever the
+        # `show` lists happened to name the nodes, and the ownership check
+        # above covered nothing. Found by review.
+        prefixes = tuple(g.get("controls") or ())
+        problems += [f"presence {gid}: {n} is shown but no `controls` prefix covers it"
+                     for n in sorted(set(shown)) if not n.startswith(prefixes)]
+        problems += [f"presence {gid}: `controls` prefix {x!r} matches no exported node"
+                     for x in prefixes if not any(n.startswith(x) for n in nodes)]
         block = {"id": gid, "label": g.get("label")}
         # `room` IS KEPT. It is what marks a group as furniture, and so what
         # makes the page require the "not included" disclosure: dropping it
