@@ -12,6 +12,7 @@ BUILD or the EXPORT one way each and require the refusal:
   * only the first opening on each wall given its reveal        must FAIL
   * lod0 exported without the siding collection                 must FAIL
   * a presence block that is a list of numbers                  must FAIL, readably
+  * a group given a `room`, with no disclosure in the spec       must FAIL
   * a presence group that furnishes no room, with no disclosure must PASS
   * the finish as built                                         must PASS
 
@@ -98,6 +99,16 @@ def _presence_is_numbers(work: Path) -> None:
            "presence replaced by a list of numbers")
 
 
+def _finish_group_given_a_room(work: Path) -> None:
+    # Found by review: presence_block dropped `room`, the key that makes the
+    # page require the furniture disclosure. Kept now, so a group that names a
+    # room and a spec with no disclosure must fail the export.
+    _patch(work, "spec.yaml",
+           '    - id: exterior_finish\n      label: Exterior finish\n',
+           '    - id: exterior_finish\n      label: Exterior finish\n      room: exterior\n',
+           "the finish group given a room")
+
+
 def _a_room_less_group_without_disclosure(m):
     for g in m["presence"]:
         g.pop("room", None)
@@ -134,6 +145,10 @@ CASES = [
          _presence_is_numbers,
          [Run(FINISH, fails=True, blender=True, model=LAUREL)],
          contains="variants.presence[0] must be an object, found int"),
+    Case(G, "laurel: a group that names a room requires the disclosure",
+         _finish_group_given_a_room,
+         [Run(FINISH, fails=True, blender=True, model=LAUREL)],
+         contains="disclosure is required"),
     Case(G, "a presence group that furnishes no room needs no disclosure",
          edit(manifest, _a_room_less_group_without_disclosure),
          index_gates(fails=False)),

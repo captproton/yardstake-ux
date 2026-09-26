@@ -157,10 +157,18 @@ def presence_block(groups, nodes):
         if not g.get("controls"):
             problems.append(f"presence {gid}: declares no `controls`, so nothing "
                             f"checks that every node it swaps is owned")
-        out.append({"id": gid, "label": g.get("label"), "property": "visible",
-                    "options": [{"id": o.get("id"), "label": o.get("label"),
-                                 "show": list(o.get("show") or []),
-                                 "default": bool(o.get("default"))} for o in opts]})
+        block = {"id": gid, "label": g.get("label")}
+        # `room` IS KEPT. It is what marks a group as furniture, and so what
+        # makes the page require the "not included" disclosure: dropping it
+        # would let a furnished room ship without one. Its type is the
+        # contract's to check. Found by review.
+        if "room" in g:
+            block["room"] = g["room"]
+        block["property"] = "visible"
+        block["options"] = [{"id": o.get("id"), "label": o.get("label"),
+                             "show": list(o.get("show") or []),
+                             "default": bool(o.get("default"))} for o in opts]
+        out.append(block)
     return out, problems
 
 
@@ -255,13 +263,20 @@ def save_viewable_blend(spec, dest):
     mats = make_materials(spec, HERE / "textures", textured=True)
     add_glazing(spec, geo, collection("Glazing"))
     assign(spec, mats, face_slots(spec["materials"])[0])
-    # Each presence group's DEFAULT option, as the page opens: the stucco
-    # skin shows and the siding with its trim is in the file, hidden.
+    # Each presence group as the page opens it: its default option, or its
+    # FIRST when none is marked -- the contract allows that, and the page
+    # and views.py both fall back to the first. Found by review: with no
+    # default this hid every option, and the blend showed no finish at all.
+    # Here the stucco skin shows and the siding with its trim is hidden.
     for g in (spec.get("variants") or {}).get("presence") or []:
-        for o in g["options"]:
+        opts = g["options"]
+        chosen = next((o for o in opts if o.get("default")), opts[0] if opts else None)
+        for o in opts:
+            if o is chosen:
+                continue
             for name in o.get("show") or []:
                 ob = bpy.data.objects.get(name)
-                if ob is not None and not o.get("default"):
+                if ob is not None:
                     ob.hide_set(True)
                     ob.hide_viewport = ob.hide_render = True
     bpy.ops.wm.save_as_mainfile(filepath=str(dest))
