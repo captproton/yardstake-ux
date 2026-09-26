@@ -36,7 +36,8 @@ from adu_kit.finish import (  # noqa: E402
     report_lod2_contract, stage)
 from adu_kit.kernel import box, collection  # noqa: E402
 from adu_kit.schema.model_contract import (  # noqa: E402
-    baseline_problems, display_problems, glb_names, identity_problems)
+    baseline_problems, display_problems, footprint_problems, glb_names,
+    identity_problems)
 
 # lod2 first: its node contract is checked before ANY export, so a rejected
 # build leaves every file in export/ as it was.
@@ -120,16 +121,35 @@ def held_back_problems(spec, paths):
     return problems
 
 
+# THE NODES EACH FOOTPRINT IS (#119), in lod2: the heated box is the four
+# stud walls, face of stud to face of stud; the extent over the eaves is the
+# roof. finish.py holds each footprint's extent to these, as published.
+FOOTPRINT_WITNESSES = {
+    "main_body": ["Wall_front", "Wall_rear", "Wall_x0", "Wall_x24"],
+    "overall": ["Roof_shed"],
+}
+
+
 def dimensions(spec):
-    """The SHOW DIMENSIONS overlay's numbers. Width runs along the front."""
+    """The SHOW DIMENSIONS overlay's numbers. Width runs along the front.
+
+    Each footprint carries its EXTENT (#119): where it sits in the file, so
+    the overlay places it instead of centring it on the model's box. Laurel
+    needs that more than most: its 5'-0" front overhang against 1'-6" at the
+    rear pulls the box's centre 0.53 m off the walls'. Derived from the same
+    spec numbers as the sizes, in the build's frame -- X 0..W, Y 0..D from
+    the rear -- and checked against the exported walls and roof."""
     env, ov = spec["envelope"], spec["roof"]["overhangs"]
     w, d = env["width"]["ft"], env["depth"]["ft"]
+    ends, front, rear = ov["ends"]["ft"], ov["front"]["ft"], ov["rear"]["ft"]
     return {
         "units": "feet",
         "main_body": {"width": w, "depth": d,
+                      "extent": kit_manifest.extent_m((0.0, w), (0.0, d)),
                       "note": "the heated box, face of stud to face of stud (A-1.0)"},
-        "overall": {"width": w + 2 * ov["ends"]["ft"],
-                    "depth": d + ov["front"]["ft"] + ov["rear"]["ft"],
+        "overall": {"width": w + 2 * ends,
+                    "depth": d + front + rear,
+                    "extent": kit_manifest.extent_m((-ends, w + ends), (-rear, d + front)),
                     "note": f"over the roof: {ov['ends']['raw']} at each end, "
                             f"{ov['front']['raw']} over the entry and "
                             f"{ov['rear']['raw']} at the rear"},
@@ -165,6 +185,8 @@ def write_manifest(spec, out, lod0):
         manifest["views"] = views
         manifest["views_note"] = kit_manifest.VIEWS_NOTE
     manifest["dimensions"] = dimensions(spec)
+    problems += footprint_problems(out / f"{model_id}_lod2.glb", manifest["dimensions"],
+                                   FOOTPRINT_WITNESSES)
     problems += identity_problems(manifest["model"], "model")
     problems += display_problems(manifest)
     if model_id != ident.get("id"):

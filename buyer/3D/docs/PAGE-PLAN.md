@@ -270,9 +270,12 @@ at `prototype/` cannot reach a single model. Locally:
   one mode — which is still applied — or for none.
 - **Footprints are listed, one is drawn.** The overlay draws `with_porch`,
   else `main_body`, else `overall`, and the legend lists every footprint
-  with the manifest's own note. Sizes carry no position, so the drawn one is
-  centred: exact for `with_porch` and `overall` here, 0.914 m out for
-  `main_body` — [#119](https://github.com/captproton/yardstake-ux/issues/119).
+  with the manifest's own note. Since [#119](https://github.com/captproton/yardstake-ux/issues/119)
+  each footprint may carry an `extent` — `{x: [min, max], z: [min, max]}` in
+  the file's metres — and the drawn one is **placed** from it; the export
+  holds every extent to the nodes that are that footprint, and
+  `verify_index.py` gate 10 to the full-detail file. A footprint without one
+  is centred on the model and the legend says it is approximate.
 - **Units are read, and kept in step.** An unknown unit refuses the block;
   `verify_prototype.py` gate 4 fails if `app.js` and `model_contract` accept
   different units.
@@ -371,10 +374,10 @@ at `prototype/` cannot reach a single model. Locally:
 - **Taking parts away breaks nothing.** The reduced barn cabin renders two
   layout groups and two view buttons with no problems and no console errors;
   the identity-only model loads and orbits with no controls and no rail.
-- **Missing `with_porch` falls back, but in the wrong place.** The overlay
-  draws `main_body`, labelled correctly, 0.914 m from the real heated box,
-  because a manifest gives footprints no position — measured here, carried
-  by [#119](https://github.com/captproton/yardstake-ux/issues/119).
+- **Missing `with_porch` falls back, and is placed.** The overlay draws
+  `main_body` on the real heated box, 0.914 m off the model's centre, from
+  the extent the barn cabin's manifest now carries — measured here as a
+  defect, fixed by [#119](https://github.com/captproton/yardstake-ux/issues/119).
 - **A fixture is only as good as its freshness.** The reduced fixture is
   derived from the barn cabin's manifest, not copied, and generation stops
   if the barn cabin no longer has what it removes. Gate 3 and
@@ -454,7 +457,7 @@ Not in the sequence, because nothing above is blocked on it:
 |---|---|---|
 | [#113](https://github.com/captproton/yardstake-ux/issues/113) | **Three tiers of variant** | the pre-bake / compose boundary, needed before a SECOND builder arrives |
 | [#117](https://github.com/captproton/yardstake-ux/issues/117) | **Declare the model's front** | **done**: `front` is in the identity and every index row; `finish_adu.py` and `verify_index.py` gate 9 hold it to where the entry door sits in the `.glb`; the page derives its first view, sun and overlay from it, and `fixture_side_entry_box` opens on its +X side with no code knowing it. Step 6 of the [Laurel plan](../models/laurel_a1_460/docs/PLAN.md); Laurel's front will be −Z. |
-| [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | `dimensions` gives sizes, not positions; the overlay centres the footprint, which puts `main_body` 0.914 m out. Needed before an off-centre footprint is drawn: step 9 of the Laurel plan |
+| [#119](https://github.com/captproton/yardstake-ux/issues/119) | **Declare where each footprint sits** | **done**: every footprint carries an `extent`, held to the geometry by each export and by `verify_index.py` gate 10; the page places it, and says "approximate" when a manifest has none. `main_body` is drawn on the heated box, and Laurel's overlay sits on its walls. Step 9 of the Laurel plan |
 | [#121](https://github.com/captproton/yardstake-ux/issues/121) | **Keep the probe suite** | the break-one-thing checks that proved every gate, in the repo with one command, run against a copy — **done** ([#123](https://github.com/captproton/yardstake-ux/pull/123)); 92 cases at the time, 139 now, and 13 harness self-checks |
 | [#139](https://github.com/captproton/yardstake-ux/issues/139) | **Run the checks in CI** | nothing ran them on GitHub; every "green" was a hand run on one Mac — **done** ([#140](https://github.com/captproton/yardstake-ux/pull/140)); the six checks that need no Blender run on every PR and push to `main` touching `buyer/3D/`, proved to fail on a deliberate break. Not yet a required check on `main` |
 

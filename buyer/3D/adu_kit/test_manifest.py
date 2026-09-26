@@ -78,6 +78,54 @@ class FaceSlots(unittest.TestCase):
         self.assertIn("no gap", problems[0])
 
 
+class Extents(unittest.TestCase):
+    """#119: a footprint's extent, from a model's frame in feet."""
+
+    def test_blender_y_becomes_minus_gltf_z_in_metres(self):
+        # The barn cabin's heated box: X 0..22, Y 6..30 ft behind the porch.
+        self.assertEqual(manifest.extent_m((0.0, 22.0), (6.0, 30.0)),
+                         {"x": [0.0, 6.7056], "z": [-9.144, -1.8288]})
+
+    def test_an_extent_that_agrees_with_its_size(self):
+        dims = {"units": "feet", "main_body": {
+            "width": 22.0, "depth": 24.0, "extent": {"x": [0.0, 6.7056], "z": [-9.144, -1.8288]}}}
+        self.assertEqual(model_contract.extent_problems(dims, "+z"), [])
+
+    def test_width_runs_along_the_front(self):
+        # The same extent, read with the front on X: the width is now the Z
+        # span, which is 24 ft, not 22.
+        dims = {"units": "feet", "main_body": {
+            "width": 22.0, "depth": 24.0, "extent": {"x": [0.0, 6.7056], "z": [-9.144, -1.8288]}}}
+        problems = model_contract.extent_problems(dims, "+x")
+        self.assertTrue(problems and "width runs along z" in problems[0], problems)
+
+
+class Infinity(unittest.TestCase):
+    """Found by review (#157): JSON reads 1e400 as infinity. The page's
+    Number.isFinite refuses it, so the contract must too, or an index gate
+    passes a manifest the page will not load."""
+
+    def dims(self, **fp):
+        base = {"width": 22.0, "depth": 24.0, "extent": {"x": [0.0, 6.7056], "z": [-9.144, -1.8288]}}
+        return {"model": {"front": "+z"}, "dimensions": {"units": "feet", "main_body": dict(base, **fp)}}
+
+    def test_an_infinite_extent_is_refused(self):
+        m = json.loads('{"x": [0.0, 1e400], "z": [-9.144, -1.8288]}')
+        problems = model_contract.display_problems(self.dims(extent=m, width=float("inf")))
+        self.assertTrue(any("extent.x must be [min, max]" in p for p in problems), problems)
+
+    def test_an_integer_too_big_for_a_float_is_refused_not_a_traceback(self):
+        problems = model_contract.display_problems(self.dims(width=10 ** 1000))
+        self.assertTrue(any("width must be a positive number" in p for p in problems), problems)
+        m = {"x": [0, 10 ** 1000], "z": [-9.144, -1.8288]}
+        problems = model_contract.display_problems(self.dims(extent=m))
+        self.assertTrue(any("extent.x must be [min, max]" in p for p in problems), problems)
+
+    def test_an_infinite_width_is_refused(self):
+        problems = model_contract.display_problems(self.dims(width=float("inf")))
+        self.assertTrue(any("width must be a positive number" in p for p in problems), problems)
+
+
 class KnownAnswers(unittest.TestCase):
     """The barn cabin's published manifest, rebuilt."""
 

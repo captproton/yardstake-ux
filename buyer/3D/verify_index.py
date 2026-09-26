@@ -274,6 +274,39 @@ def main():
           f"declared front — "
           + ", ".join(f"{r['id']} {r['front']}" for r in good))
 
+    # ── 10. every placed footprint lies on its building (#119) ────────────
+    # A footprint's `extent` places the overlay's outline in the scene. The
+    # export holds each to the nodes that are that footprint; this holds what
+    # was published to the full-detail file, with no Blender, so a manifest
+    # edited by hand -- or a re-export of one file and not the other -- is a
+    # failed gate rather than an outline drawn beside the building. A
+    # footprint with no extent is drawn centred and labelled approximate.
+    placed, n_placed = [], 0
+    for r in good:
+        glb, path = r["levels"].get("lod0") or r["primary"], ROOT / r["manifest"]
+        try:
+            dims = json.loads(path.read_text()).get("dimensions")
+            lo, hi = model_contract.glb_bounds(ROOT / glb)
+        except (ValueError, OSError, AttributeError):
+            continue  # gates 2, 7 and 8 report an unreadable file or manifest
+        tol = model_contract.EXTENT_TOL_M
+        for key, v in (dims or {}).items() if isinstance(dims, dict) else ():
+            e = v.get("extent") if isinstance(v, dict) else None
+            if not isinstance(e, dict):
+                continue
+            n_placed += 1
+            for axis, i in (("x", 0), ("z", 2)):
+                pair = e.get(axis)
+                if (isinstance(pair, list) and len(pair) == 2
+                        and all(isinstance(n, (int, float)) for n in pair)
+                        and (pair[0] < lo[i] - tol or pair[1] > hi[i] + tol)):
+                    placed.append(f"{r['id']}: {key}'s extent.{axis} [{pair[0]:.3f}, "
+                                  f"{pair[1]:.3f}] m runs outside {glb}'s "
+                                  f"[{lo[i]:.3f}, {hi[i]:.3f}] m")
+    problems += placed
+    print(f"  [{'PASS' if not placed else 'FAIL'}] every placed footprint lies within "
+          f"its full-detail file — {n_placed} extent(s) checked")
+
     print("-" * 76)
     if problems:
         print(f"{len(problems)} PROBLEM(S):")

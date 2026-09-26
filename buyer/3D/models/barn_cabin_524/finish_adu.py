@@ -32,7 +32,7 @@ sys.path.insert(0, str(HERE))
 # nothing there shadows this model's.
 sys.path.append(str(HERE.parents[1]))
 from adu_kit.schema.model_contract import (  # noqa: E402
-    baseline_problems, display_problems, identity_problems)
+    baseline_problems, display_problems, footprint_problems, identity_problems)
 from build_adu import (load_spec, build, box, multibox, collection,  # noqa: E402
                        ft)
 # Feet to metres, the Draco .glb writer and the .glb reader know no building,
@@ -316,6 +316,10 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
         manifest["views_note"] = kit_manifest.VIEWS_NOTE
 
     # ---- the numbers the SHOW DIMENSIONS overlay needs --------------------
+    # EACH FOOTPRINT CARRIES ITS EXTENT (#119), so the page places it rather
+    # than centring it on the model's box -- which put main_body 0.914 m out,
+    # since the porch sits at one end. In the build's frame: X 0..W, and Y
+    # from the porch's front edge (Y 0) back through the porch to the body.
     env, rf = spec["envelope"], spec["roof"]
     w = env["main_body_width"]["ft"]
     body = env["main_body_depth"]["ft"]
@@ -324,8 +328,10 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     manifest["dimensions"] = {
         "units": "feet",
         "main_body": {"width": w, "depth": body,
+                      "extent": kit_manifest.extent_m((0.0, w), (porch, porch + body)),
                       "note": "the heated box, wall face to wall face"},
         "with_porch": {"width": w, "depth": body + porch,
+                       "extent": kit_manifest.extent_m((0.0, w), (0.0, porch + body)),
                        "note": "the slab footprint; the porch is covered, not heated"},
         # EAVE EXTENDS X, RAKE EXTENDS Y, and this had them the other way
         # round. build_adu draws the roof profile from -eave to W + eave --
@@ -334,6 +340,8 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
         # right by coincidence; any spec that differed would have shipped the
         # building's width and depth swapped.
         "overall": {"width": w + 2 * eave, "depth": body + porch + 2 * rake,
+                    "extent": kit_manifest.extent_m((-eave, w + eave),
+                                                    (-rake, porch + body + rake)),
                     "note": f"over the {rf['eave_overhang']['raw']} eave "
                             f"(width) and rake (depth)"},
         "height_to_ridge": rf["elevation_calibration"]["ridge_top_of_roof"]["ft"],
@@ -351,6 +359,13 @@ def emit_variants(out, spec, materials_present, nodes_present=frozenset()):
     # variants.json sitting in export/ for anyone who picked it up between
     # runs. #99 fixed exactly this for lod2 and the manifest kept the old
     # habit. The previous good file stays where it is.
+    # Each extent against the nodes that ARE that footprint, in the lod2 this
+    # run just wrote: the four walls, the walls and the porch slab, the roof.
+    problems += footprint_problems(out / "barn_cabin_524_lod2.glb", manifest["dimensions"], {
+        "main_body": ["Wall_N", "Wall_S", "Wall_W", "Wall_E"],
+        "with_porch": ["Wall_N", "Wall_S", "Wall_W", "Wall_E", "Porch_slab"],
+        "overall": ["Roof_main"],
+    })
     problems += identity_problems(manifest["model"], "model")
     # The page refuses a views or dimensions block that is malformed anywhere
     # (#108); refuse to publish one, with the same rules.
