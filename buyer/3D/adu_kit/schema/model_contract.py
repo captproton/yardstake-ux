@@ -51,7 +51,15 @@ def _finite(v):
     # A number the page can use. JSON reads 1e400 as infinity, which
     # _number() accepts and the page's Number.isFinite refuses -- so a gate
     # could pass a block the page will not load. Found by review (#157).
-    return _number(v) and math.isfinite(v)
+    # A JSON integer can be too big for a float at all (10**1000), and
+    # math.isfinite then raises OverflowError instead of answering. The page
+    # reads that number as Infinity, so it is not finite here either.
+    if not _number(v):
+        return False
+    try:
+        return math.isfinite(v)
+    except OverflowError:
+        return False
 
 
 def _relative(v, parent_ok):

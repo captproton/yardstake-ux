@@ -114,6 +114,13 @@ class Infinity(unittest.TestCase):
         problems = model_contract.display_problems(self.dims(extent=m, width=float("inf")))
         self.assertTrue(any("extent.x must be [min, max]" in p for p in problems), problems)
 
+    def test_an_integer_too_big_for_a_float_is_refused_not_a_traceback(self):
+        problems = model_contract.display_problems(self.dims(width=10 ** 1000))
+        self.assertTrue(any("width must be a positive number" in p for p in problems), problems)
+        m = {"x": [0, 10 ** 1000], "z": [-9.144, -1.8288]}
+        problems = model_contract.display_problems(self.dims(extent=m))
+        self.assertTrue(any("extent.x must be [min, max]" in p for p in problems), problems)
+
     def test_an_infinite_width_is_refused(self):
         problems = model_contract.display_problems(self.dims(width=float("inf")))
         self.assertTrue(any("width must be a positive number" in p for p in problems), problems)
