@@ -6,6 +6,7 @@ with its exterior trim, swapped by one presence group. These cases break the
 BUILD or the EXPORT one way each and require the refusal:
 
   * the siding skins built into the Shell collection           must FAIL
+  * the siding trim built into the Trim collection              must FAIL
   * a siding skin left uncut                                    must FAIL
   * the siding reveals left untagged                            must FAIL
   * only the first opening on each wall given its reveal        must FAIL
@@ -44,6 +45,15 @@ def _siding_in_shell(work: Path) -> None:
            '            walls[name] = weld(name, [geom], siding_coll)\n',
            '            walls[name] = weld(name, [geom], shell)\n',
            "the siding skins built into Shell")
+
+
+def _siding_trim_in_trim(work: Path) -> None:
+    # Found by review: lod0 exports Trim, so the trim still showed there, but
+    # lod1 exports only Siding, and the street view lost it silently.
+    _patch(work, BUILD,
+           '    siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, siding_coll)\n',
+           '    siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, trim_coll)\n',
+           "the siding trim built into Trim")
 
 
 def _siding_uncut(work: Path) -> None:
@@ -100,6 +110,10 @@ CASES = [
          _siding_in_shell,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],
          contains="Siding_front is not in the Siding collection alone"),
+    Case(G, "laurel: the siding trim built into the Trim collection",
+         _siding_trim_in_trim,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         contains="Trim_ext_siding_front is in ['Trim'], not the Siding collection alone"),
     Case(G, "laurel: the front siding skin left uncut",
          _siding_uncut,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],

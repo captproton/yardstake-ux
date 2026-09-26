@@ -1207,9 +1207,14 @@ def _baseboard_runs(spec, geo):
 
 def _siding_trim(spec, geo):
     """Each wall's Trim_ext_siding_<wall> cases every opening in it on the
-    outer face, head cap and all, with a sill and apron under each window."""
+    outer face, head cap and all, with a sill and apron under each window --
+    and sits in the Siding collection alone. lod1 exports that collection and
+    not Trim, so siding trim anywhere else would vanish from the street view
+    while lod0 still carried it. Found by review."""
     tr = spec["trim"]
-    wrong = []
+    wrong = [f"{ob.name} is in {[c.name for c in ob.users_collection]}, not the "
+             f"Siding collection alone" for ob in geo["siding"]
+             if [c.name for c in ob.users_collection] != ["Siding"]]
     for (host, a0, a1), (lo_z, hi_z, window) in sorted(_stacks(geo).items()):
         if host not in geo["skin_of"]:
             continue
