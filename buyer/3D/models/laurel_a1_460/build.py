@@ -1248,10 +1248,26 @@ def _siding_skins(spec, geo):
                          f"{_volume(stucco):.4f}: one was cut differently")
         if [c.name for c in siding.users_collection] != ["Siding"]:
             wrong.append(f"{siding.name} is not in the Siding collection alone")
-        has_openings = any(o["wall"] == wall for o in geo["built"])
-        if geo["cut"] and has_openings and not any(
-                p.material_index == trim_slot for p in siding.data.polygons):
-            wrong.append(f"{siding.name} has openings and no reveal face in the trim slot")
+        # EVERY OPENING'S REVEAL, not the skin's: one tagged face anywhere
+        # passed a skin whose other openings were left siding-coloured. Found
+        # by review. Each opening needs a trim-slot face on each of its four
+        # sides -- two jambs, the head and the sill, where the stack has one.
+        if geo["cut"]:
+            across = 1 if wall in ("Wall_front", "Wall_rear") else 0
+            along = 1 - across
+            tagged = [siding.matrix_world @ p.center for p in siding.data.polygons
+                      if p.material_index == trim_slot]
+            for o in (o for o in geo["built"] if o["wall"] == wall):
+                a0, a1, z0, z1 = o["a0"], o["a1"], o["z0"], o["z1"]
+                sides = {"jamb at " + f"{a0:.4f}": lambda c, a=a0: abs(c[along] - a) < MESH_TOL and z0 < c.z < z1,
+                         "jamb at " + f"{a1:.4f}": lambda c, a=a1: abs(c[along] - a) < MESH_TOL and z0 < c.z < z1,
+                         "head": lambda c: abs(c.z - z1) < MESH_TOL and a0 < c[along] < a1}
+                if z0 > MESH_TOL:                        # a door has no sill in the skin
+                    sides["sill"] = lambda c: abs(c.z - z0) < MESH_TOL and a0 < c[along] < a1
+                missing = [s for s, hit in sides.items() if not any(hit(c) for c in tagged)]
+                if missing:
+                    wrong.append(f"{siding.name}: {o['id']} has no trim reveal at its "
+                                 f"{', '.join(missing)}")
         for ob in (siding, stucco):
             if not ob.data.uv_layers:
                 wrong.append(f"{ob.name} carries no UVs for its texture")

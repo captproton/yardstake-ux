@@ -116,8 +116,35 @@ def presence_block(groups, nodes):
     of them that no option shows would never appear, and one two options
     show would be half of two finishes at once. `controls` stays in the spec:
     the page needs only the options."""
+    # READ, NOT OBEYED (rule 25): a malformed block is a named problem, and
+    # nothing partial is published. Found by review: `presence: [1]`, or an
+    # option that is a scalar, raised mid-export instead.
+    if groups is None:
+        return [], []
+    if not isinstance(groups, list):
+        return [], [f"variants.presence must be a list of groups, found {type(groups).__name__}"]
+    shape = []
+    for i, g in enumerate(groups):
+        if not isinstance(g, dict):
+            shape.append(f"variants.presence[{i}] must be an object, found {type(g).__name__}")
+            continue
+        for key in ("options", "controls"):
+            if key in g and not isinstance(g[key], list):
+                shape.append(f"variants.presence[{i}].{key} must be a list")
+        for j, o in enumerate(g.get("options") if isinstance(g.get("options"), list) else []):
+            if not isinstance(o, dict):
+                shape.append(f"variants.presence[{i}].options[{j}] must be an object, "
+                             f"found {type(o).__name__}")
+            elif not (isinstance(o.get("show", []), list)
+                      and all(isinstance(n, str) for n in o.get("show", []))):
+                shape.append(f"variants.presence[{i}].options[{j}].show must be a list of names")
+        if not all(isinstance(p, str) for p in g.get("controls") or []
+                   if isinstance(g.get("controls"), list)):
+            shape.append(f"variants.presence[{i}].controls must be a list of prefixes")
+    if shape:
+        return [], shape
     problems, out = [], []
-    for g in groups or []:
+    for g in groups:
         gid = g.get("id")
         opts = g.get("options") or []
         shown = [n for o in opts for n in (o.get("show") or [])]
@@ -191,7 +218,9 @@ def write_manifest(spec, out, lod0):
     views, bad = kit_manifest.views_block(
         (spec.get("export") or {}).get("display_modes"), nodes)
     problems += bad
-    presence, bad = presence_block((spec.get("variants") or {}).get("presence"), nodes)
+    variants = spec.get("variants")
+    presence, bad = presence_block(variants.get("presence") if isinstance(variants, dict) else None,
+                                   nodes)
     problems += bad
     manifest = {
         "model": ident,
