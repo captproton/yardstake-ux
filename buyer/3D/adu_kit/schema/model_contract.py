@@ -47,6 +47,21 @@ def _number(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def _finite(v):
+    # A number the page can use. JSON reads 1e400 as infinity, which
+    # _number() accepts and the page's Number.isFinite refuses -- so a gate
+    # could pass a block the page will not load. Found by review (#157).
+    # A JSON integer can be too big for a float at all (10**1000), and
+    # math.isfinite then raises OverflowError instead of answering. The page
+    # reads that number as Infinity, so it is not finite here either.
+    if not _number(v):
+        return False
+    try:
+        return math.isfinite(v)
+    except OverflowError:
+        return False
+
+
 def _relative(v, parent_ok):
     """A POSIX path a browser can resolve against a base URL."""
     if not _text(v) or "\\" in v:
@@ -380,8 +395,19 @@ def manifest_names(manifest):
 # Keep in step with UNITS in prototype/app.js -- verify_prototype.py gate 4
 # fails if they differ, since a unit only one side knows is a manifest one side
 # passes and the other refuses.
-DIMENSION_UNITS = ("feet", "foot", "ft", "metres", "meters", "m")
+UNIT_METRES = {"feet": 0.3048, "foot": 0.3048, "ft": 0.3048,
+               "metres": 1.0, "meters": 1.0, "m": 1.0}
+DIMENSION_UNITS = tuple(UNIT_METRES)
 DIMENSION_FIELDS = ("units", "note", "height_to_ridge")
+
+# WHERE A FOOTPRINT SITS (#119). `extent` is {"x": [min, max], "z": [min, max]}
+# in the FILE's frame and in METRES, whatever `units` says: it places the
+# outline in the scene, where width and depth only size it. A centimetre,
+# because the widths are written in feet to four places and the geometry is
+# Draco-quantized; a footprint off by more is one the overlay would draw in
+# the wrong place.
+EXTENT_AXES = ("x", "z")
+EXTENT_TOL_M = 0.01
 
 
 def views_problems(views, where="views"):
@@ -430,7 +456,7 @@ def dimensions_problems(dims, where="dimensions"):
     if "note" in dims and not isinstance(dims["note"], str):
         problems.append(f"{where}.note must be a string when present")
     if "height_to_ridge" in dims and not (
-            _number(dims["height_to_ridge"]) and dims["height_to_ridge"] > 0):
+            _finite(dims["height_to_ridge"]) and dims["height_to_ridge"] > 0):
         problems.append(f"{where}.height_to_ridge must be a positive number, "
                         f"found {dims['height_to_ridge']!r}")
     footprints = 0
@@ -443,13 +469,106 @@ def dimensions_problems(dims, where="dimensions"):
             continue
         footprints += 1
         for f in ("width", "depth"):
-            if not (_number(v.get(f)) and v.get(f) > 0):
+            if not (_finite(v.get(f)) and v.get(f) > 0):
                 problems.append(f"{where}.{key}.{f} must be a positive number, "
                                 f"found {v.get(f)!r}")
         if "note" in v and not isinstance(v["note"], str):
             problems.append(f"{where}.{key}.note must be a string when present")
+        if "extent" in v:
+            problems += _extent_shape_problems(v["extent"], f"{where}.{key}.extent")
     if not footprints:
         problems.append(f"{where} has no footprint")
+    return problems
+
+
+def _extent_shape_problems(e, at):
+    if not isinstance(e, dict) or set(e) != set(EXTENT_AXES):
+        return [f"{at} must be an object with exactly {list(EXTENT_AXES)}"]
+    problems = []
+    for axis in EXTENT_AXES:
+        pair = e[axis]
+        if not (isinstance(pair, list) and len(pair) == 2 and all(_finite(n) for n in pair)
+                and pair[0] < pair[1]):
+            problems.append(f"{at}.{axis} must be [min, max], two numbers rising, "
+                            f"found {pair!r}")
+    return problems
+
+
+def _extent_ok(v):
+    return isinstance(v, dict) and "extent" in v and not _extent_shape_problems(v["extent"], "")
+
+
+def extent_problems(dims, front, where="dimensions"):
+    """Each footprint's extent agrees with its own width and depth.
+
+    Width runs ALONG the front and depth out of it (#117), so for a front
+    on Z the width is the X span, and for a front on X it is the Z span. A
+    footprint whose extent and size disagree would be drawn at one size and
+    labelled with another. Needs a front the contract knows; the shapes are
+    dimensions_problems' to report.
+    """
+    if not isinstance(dims, dict) or front not in FRONTS:
+        return []
+    units = dims.get("units")
+    metres = UNIT_METRES.get(units.lower()) if isinstance(units, str) else None
+    if metres is None:
+        return []
+    along, out = ("x", "z") if front[1] == "z" else ("z", "x")
+    problems = []
+    for key, v in dims.items():
+        if key in DIMENSION_FIELDS or not _extent_ok(v):
+            continue
+        for axis, size in ((along, "width"), (out, "depth")):
+            if not _finite(v.get(size)):
+                continue
+            span = v["extent"][axis][1] - v["extent"][axis][0]
+            if abs(span - v[size] * metres) > EXTENT_TOL_M:
+                problems.append(
+                    f"{where}.{key}.extent spans {span:.3f} m in {axis}, but its "
+                    f"{size} is {v[size]} {units} ({v[size] * metres:.3f} m); with "
+                    f"the front at {front}, the {size} runs along {axis}")
+    return problems
+
+
+def nodes_bounds(glb, names):
+    """(min, max) over the named mesh nodes of a flat .glb, in its frame.
+    Raises ValueError if a name is not a mesh node in the file."""
+    g = glb_json_bytes(glb[1]) if isinstance(glb, tuple) else glb_json(glb)
+    by_name = {n.get("name"): n for n in g.get("nodes", []) if isinstance(n, dict) and "mesh" in n}
+    missing = sorted(set(names) - set(by_name))
+    if missing:
+        raise ValueError(f"no mesh node named {missing}")
+    boxes = [_node_bounds(g, by_name[n]) for n in names]
+    return ([min(b[0][i] for b in boxes) for i in range(3)],
+            [max(b[1][i] for b in boxes) for i in range(3)])
+
+
+def footprint_problems(glb, dims, witnesses, tol=EXTENT_TOL_M):
+    """Each footprint's extent against the nodes that ARE that footprint in
+    the exported file (#119): `witnesses` maps a footprint to node names --
+    the walls for the heated box, the walls and the porch slab for the slab
+    footprint, the roof for the extent over the eaves. Written by a model's
+    export and held to what it wrote, so an extent that drifted from the
+    geometry fails the export instead of drawing in the wrong place."""
+    if not isinstance(dims, dict):
+        return ["dimensions is not an object"]
+    problems = []
+    for key, names in witnesses.items():
+        v = dims.get(key)
+        if not _extent_ok(v):
+            problems.append(f"dimensions.{key} has no usable extent to check")
+            continue
+        try:
+            lo, hi = nodes_bounds(glb, names)
+        except ValueError as e:
+            problems.append(f"dimensions.{key}: {e}")
+            continue
+        for axis, i in (("x", 0), ("z", 2)):
+            want = v["extent"][axis]
+            if abs(want[0] - lo[i]) > tol or abs(want[1] - hi[i]) > tol:
+                problems.append(
+                    f"dimensions.{key}.extent.{axis} is [{want[0]:.3f}, {want[1]:.3f}] m "
+                    f"but {', '.join(names)} span [{lo[i]:.3f}, {hi[i]:.3f}] m")
     return problems
 
 
@@ -732,8 +851,11 @@ def display_problems(manifest):
     controls under the viewer)."""
     if not isinstance(manifest, dict):
         return [f"manifest must be an object, found {type(manifest).__name__}"]
+    model = manifest.get("model")
+    front = model.get("front") if isinstance(model, dict) else None
     return (sets_problems(manifest.get("sets"))
             + presence_problems(manifest.get("presence"))
             + disclosure_problems(manifest)
             + views_problems(manifest.get("views"))
-            + dimensions_problems(manifest.get("dimensions")))
+            + dimensions_problems(manifest.get("dimensions"))
+            + extent_problems(manifest.get("dimensions"), front))

@@ -525,16 +525,46 @@
     "main_body": {
       "width": 22.0,
       "depth": 24.0,
+      "extent": {
+        "x": [
+          0.0,
+          6.7056
+        ],
+        "z": [
+          -9.144,
+          -1.8288
+        ]
+      },
       "note": "the heated box, wall face to wall face"
     },
     "with_porch": {
       "width": 22.0,
       "depth": 30.0,
+      "extent": {
+        "x": [
+          0.0,
+          6.7056
+        ],
+        "z": [
+          -9.144,
+          -0.0
+        ]
+      },
       "note": "the slab footprint; the porch is covered, not heated"
     },
     "overall": {
       "width": 25.0,
       "depth": 33.0,
+      "extent": {
+        "x": [
+          -0.4572,
+          7.1628
+        ],
+        "z": [
+          -9.6012,
+          0.4572
+        ]
+      },
       "note": "over the 18\" eave (width) and rake (depth)"
     },
     "height_to_ridge": 17.807,

@@ -25,6 +25,18 @@ VIEWS_NOTE = (
     "that matches nothing fails the export instead of the page.")
 
 
+FOOT_M = 0.3048
+
+
+def extent_m(x_ft, y_ft):
+    """A footprint's `extent` (#119), from its X and Y range in a model's
+    Blender frame, in feet: glTF X is Blender X, glTF Z is Blender -Y, and
+    the extent is in metres. Rounded to the millimetre."""
+    xs = sorted(round(v * FOOT_M, 4) for v in x_ft)
+    zs = sorted(round(-v * FOOT_M, 4) for v in y_ft)
+    return {"x": xs, "z": zs}
+
+
 def face_slots(materials):
     """spec.materials.face_slots as {int slot: library key}, and problems.
 

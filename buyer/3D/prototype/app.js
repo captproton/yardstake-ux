@@ -97,6 +97,14 @@ const UNITS = {
 // declares is listed after these, in the manifest's own order.
 const FOOTPRINT_ORDER = ['with_porch', 'main_body', 'overall'];
 
+// WHERE A FOOTPRINT SITS (#119). `extent` is {x: [min, max], z: [min, max]} in
+// the file's frame, in metres whatever `units` says, and places the outline;
+// width and depth only size it. Keep in step with model_contract.EXTENT_AXES
+// and EXTENT_TOL_M: an extent whose span disagrees with its width or depth by
+// more than a centimetre would be drawn at one size and labelled another.
+const EXTENT_AXES = ['x', 'z'];
+const EXTENT_TOL_M = 0.01;
+
 // The only material property and the only node property this page applies.
 // A block that asks for anything else is refused whole, not half-applied.
 const SET_PROPERTY = 'baseColorFactor';
@@ -345,8 +353,25 @@ function readDimensions(manifest, problems) {
   };
   const footprints = Object.entries(d)
     .filter(([key]) => !DIMENSION_FIELDS.has(key))
-    .map(([key, v]) => ({ key, width: v.width, depth: v.depth, note: v.note ?? '' }))
+    .map(([key, v]) => ({ key, width: v.width, depth: v.depth, note: v.note ?? '', extent: v.extent ?? null }))
     .sort((a, b) => rank(a.key) - rank(b.key));
+  // A SPAN THAT DISAGREES WITH ITS SIZE IS REFUSED, like any other malformed
+  // block: width runs along the front (#117), so for a front on Z it is the
+  // X span. The front was read and checked before the controls are built.
+  const front = manifest.model.front;
+  const unit = UNITS[d.units.toLowerCase()];
+  const [along, out] = front[1] === 'z' ? ['x', 'z'] : ['z', 'x'];
+  for (const fp of footprints) {
+    if (!fp.extent) continue;
+    for (const [axis, size] of [[along, 'width'], [out, 'depth']]) {
+      const span = fp.extent[axis][1] - fp.extent[axis][0];
+      if (Math.abs(span - fp[size] * unit.metres) > EXTENT_TOL_M) {
+        refuse(problems, 'dimensions',
+          `${fp.key}.extent spans ${span.toFixed(3)} m in ${axis}, but its ${size} is ${fp[size]} ${d.units}`);
+        return null;
+      }
+    }
+  }
   return {
     unit: UNITS[d.units.toLowerCase()],
     footprints,
@@ -369,6 +394,18 @@ function dimensionsProblem(d) {
     if (!isObject(v)) return `${key} is neither a footprint nor units, note or height_to_ridge`;
     if (!positive(v.width) || !positive(v.depth)) return `${key} needs a positive width and depth`;
     if (v.note !== undefined && typeof v.note !== 'string') return `${key}.note is not a string`;
+    if (v.extent !== undefined) {
+      const e = v.extent;
+      if (!isObject(e) || Object.keys(e).sort().join() !== EXTENT_AXES.join()) {
+        return `${key}.extent is not an object with exactly ${EXTENT_AXES.join(' and ')}`;
+      }
+      for (const axis of EXTENT_AXES) {
+        const pair = e[axis];
+        if (!Array.isArray(pair) || pair.length !== 2 || !pair.every(Number.isFinite) || !(pair[0] < pair[1])) {
+          return `${key}.extent.${axis} is not [min, max], two numbers rising`;
+        }
+      }
+    }
     footprints += 1;
   }
   return footprints ? null : 'no footprint';
@@ -1049,17 +1086,20 @@ function createViewer(container) {
     tintState = { found: seen.size, missing: [...tints.keys()].filter((n) => !seen.has(n)) };
   }
 
-  // THE DIMENSION OVERLAY. The manifest gives each footprint's width and
-  // depth, not where it sits, so the drawn footprint is centred on the
-  // building's plan box. That is exact when the footprint is symmetric within
-  // the box -- a slab with even eaves around it -- and wrong for one pushed to
-  // an end by an appendage, which is why the overlay draws only the first
-  // footprint and lists the rest rather than placing them all (#119).
+  // THE DIMENSION OVERLAY. A footprint with an `extent` is PLACED: its outline
+  // sits where the manifest says, in the file's own frame, which the page
+  // never moves (#119). One without is centred on the building's plan box
+  // and marked approximate -- exact only when the footprint is symmetric in
+  // the box. A heated box with an appendage at one end, or a deeper overhang
+  // on one side than the other, is not, and centring put one 0.9 m out.
   function buildOverlay(dims) {
     const fp = dims.footprints[0];
     const w = fp.width * dims.unit.metres;
     const d = fp.depth * dims.unit.metres;
-    const c = fitted.box.getCenter(new THREE.Vector3());
+    const placed = Boolean(fp.extent);
+    const c = placed
+      ? new THREE.Vector3((fp.extent.x[0] + fp.extent.x[1]) / 2, 0, (fp.extent.z[0] + fp.extent.z[1]) / 2)
+      : fitted.box.getCenter(new THREE.Vector3());
     const y = info.floor + fitted.box.getSize(new THREE.Vector3()).y * 0.004;
     // DRAWN IN THE FRONT'S TERMS, not the file's axes: `a` runs along the
     // front (the width), `b` out of it (the depth). For a +Z front, a is X
@@ -1117,6 +1157,7 @@ function createViewer(container) {
 
     overlayInfo = {
       footprint: fp.key,
+      placed,
       front: basis.key,
       width: w,
       depth: d,
@@ -1475,6 +1516,9 @@ function renderLegend(legend, dims) {
   };
   const [drawn, ...others] = dims.footprints;
   line('Drawn:', describe(drawn));
+  // SAID, NOT HIDDEN: a footprint the manifest does not place is drawn
+  // centred on the model, which is only right if it is symmetric (#119).
+  if (!drawn.extent) line('Approximate:', 'this model does not say where the footprint sits, so it is drawn centred on the model');
   for (const fp of others) line('Also:', describe(fp));
   if (dims.ridge !== null) line('Ridge:', `${formatLength(dims.ridge)} ${dims.unit.label} above the floor datum`);
 }
