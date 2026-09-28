@@ -51,7 +51,7 @@ the string `barn_cabin`, a room name, or a set id, that is a defect.
 | `presence` | 3 room arrangements, node names to **show** | the layout rail |
 | `views` | 4 modes, node names to **hide** | SHOW INTERIOR |
 | `dimensions` | 3 footprints + ridge, in feet | SHOW DIMENSIONS |
-| `disclosure` | the furniture-not-included text — copy only, at most 200 characters; the reasoning is `disclosure_note` | required UI copy, on screen |
+| `disclosure` | the furniture-not-included text — copy only, at most 200 characters; the reasoning is `disclosure_note`. Required when a `presence` group names a `room` (it furnishes one); a group with no room, such as an exterior finish, needs none ([#133](https://github.com/captproton/yardstake-ux/issues/133)) | required UI copy, on screen |
 
 Plus `barn_cabin_524.glb` (960 KB, Draco), `lod1` (234 KB), `lod2` (30 KB).
 

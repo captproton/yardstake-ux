@@ -557,18 +557,21 @@ stucco/siding swap is not purely a material change:
 
 The interior is the same under both finishes. Its trim is not a variant.
 
-**Open question for [#133](https://github.com/captproton/yardstake-ux/issues/133),
-with [#113](https://github.com/captproton/yardstake-ux/issues/113).** The page
-keeps `sets` (colours) and `presence` (nodes shown) as independent groups, so
-choosing a finish cannot show or hide the siding trim. The choices are:
+**Settled in [#133](https://github.com/captproton/yardstake-ux/issues/133)
+(decided 2026-09-26).** The page keeps `sets` (colours) and `presence` (nodes
+shown) as independent groups, so choosing a finish could not show or hide the
+siding trim. #132 left three choices open: a presence group beside the colour
+set, a contract change linking the two, or always showing the trim. #133
+took the first, and it turned out not to have the pairing problem feared
+here:
 
-- a presence group for the exterior finish that sits beside the colour set,
-  which lets a buyer pair siding colours with stucco trim;
-- a contract change linking the two, which is a page change;
-- or always showing the siding trim, which is wrong for stucco.
-
-#132 does not decide this. It builds the siding exterior trim as its own
-named nodes, so any of the three can use them.
+- **The finish is a presence group**, `exterior_finish`: `stucco` shows the
+  stucco skins, `lap_siding` shows the siding skins **and** the siding trim.
+  Skin and trim are one option, so they cannot be mismatched.
+- **One colour set tints both finishes' materials**, so there is no second
+  colour set to pair wrongly: a colour holds whichever finish is shown.
+- **The one contract change** is the furniture disclosure, now required only
+  for a group that names a `room`.
 
 **What would settle it.** A-3.2 details 3 and 4 are drawn at 6" = 1'-0". That
 is twenty-four times the elevations' scale, and fine enough to measure the
@@ -650,7 +653,7 @@ Each line is one pull request.
    - **Review** hardened the reader: any SVG transform spacing parses, and the frame is measured from the ticks the drawing carries, each pair confirmed by its label, so a moved page or a neighbour's tick is refused rather than misread.
    - **PR B done ([#156](https://github.com/captproton/yardstake-ux/pull/156)): Tier 1 trim and the floor.** `spec.trim` carries the [barn cabin's ten values, each `assumed`](#tier-1-trim--the-barn-cabins-values-declared-assumed) and naming its barn-cabin key; `verify_spec` holds each to the barn cabin's spec by its raw value.
    - **What is built:** interior casing on every opening's room side, a stool and apron under each window, and baseboard on every room face broken at doorways. A window and its transom are cased as one opening. Trim is one object per wall it hangs on (`Trim_Wall_front`, `Trim_P_bath_W`, ...), so the cutaway and interior-only modes hide it with its wall. The floor is a declared neutral material on the slab's top face (`materials.face_slots`), not a layer, since no sheet names a finish.
-   - **Stucco and siding:** stucco gets no exterior trim; its 3/8" reveal is the sheathing skin's cut face, which is 3/8" thick, and `verify_spec` holds the two equal. The siding exterior trim is built as `Trim_ext_siding` and **held back** (`spec.export.held_back`): `finish.py` refuses to publish a level that carries it, and the review blend keeps it hidden. How a finish choice shows it stays #133's question.
+   - **Stucco and siding:** stucco gets no exterior trim; its 3/8" reveal is the sheathing skin's cut face, which is 3/8" thick, and `verify_spec` holds the two equal. The siding exterior trim was built as `Trim_ext_siding` and **held back** (`spec.export.held_back`) until #133 decided how a finish choice shows it. **Superseded by step 10:** it now ships, one node per wall, owned by the `lap_siding` option.
    - **Its gates:** five build gates (casing on every room side, baseboard on every face and across no doorway, the siding trim on every exterior opening, no trim outside the rooms or above the roof, the floor on the slab's top face), each asking the mesh about points worked out from `spec.trim`. `probes/cases_trim.py` breaks each and requires FAIL. Probes 183.
    - **Review** found the face-slot keys turned to strings by `load_spec`'s JSON fallback; `adu_kit.manifest.face_slots()` now reads them for the build, the export and `verify_spec`, and refuses a non-number, a non-text name, a gap or a slot declared twice by name.
    - **Left open, small:** `finishes.floor.material` and `face_slots` both name the floor and nothing checks they agree; and the baseboard gate probes only stretches longer than a casing width. Copilot's later summaries pointed at "floor-material consistency" and "baseboard coverage" without stating a finding.

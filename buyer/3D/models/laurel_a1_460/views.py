@@ -16,6 +16,11 @@ The functions stay callable by hand. VISIBILITY modes come from the spec:
     cutaway()        dollhouse, plus the front wall and its skin off
     interior_only()  partitions and slab alone
 
+LAYOUTS come from spec.variants.presence, as the page's rail does. The panel
+has a row per group -- Exterior finish: Stucco / Lap siding -- and by hand:
+
+    choose("exterior_finish", "lap_siding")   swap the skin, keep the mode
+
 CAMERA presets move the view instead:
 
     living()    standing at the entry, looking back across the living room
@@ -90,25 +95,51 @@ if _missing:
 # ---------------------------------------------------------------------------
 # visibility
 # ---------------------------------------------------------------------------
-# BUILT AND HELD BACK (spec.export.held_back): the siding exterior trim is in
-# the file for #133 and in no export, and this blend shows the stucco finish,
-# so no mode shows it.
-_HELD = set((SPEC["export"].get("held_back") or {}).get("nodes") or ())
+# THE LAYOUT CHOICES (spec.variants.presence), composed with the mode as the
+# page composes them: a node shows only if the mode does not hide it AND,
+# where a group names it, the chosen option shows it. Each group starts on
+# its default -- the stucco finish the page opens on -- and the panel's
+# Finish row changes it. The mode last applied is kept, so choosing a finish
+# does not throw the view back to Exterior.
+_GROUPS = (SPEC.get("variants") or {}).get("presence") or []
+_CHOSEN = {g["id"]: next((o["id"] for o in g["options"] if o.get("default")),
+                         g["options"][0]["id"]) for g in _GROUPS}
+_STATE = {"mode": "full"}
+
+
+def _hidden_by_layouts():
+    """Every node a group names that its chosen option does not show."""
+    hidden = set()
+    for g in _GROUPS:
+        shown = next(set(o.get("show") or ()) for o in g["options"] if o["id"] == _CHOSEN[g["id"]])
+        hidden |= {n for o in g["options"] for n in o.get("show") or ()} - shown
+    return hidden
 
 
 def _apply(mode_id):
     mode = next(m for m in _DM["modes"] if m["id"] == mode_id)
     prefixes = tuple(p for g in mode["hide"] for p in _G[g])
-    by_name = set(mode.get("hide_objects") or ()) | _HELD
+    by_name = set(mode.get("hide_objects") or ()) | _hidden_by_layouts()
     for ob in bpy.data.objects:
         hide = ob.name in by_name or (bool(prefixes) and ob.name.startswith(prefixes))
         ob.hide_set(hide)
         ob.hide_viewport = hide
+    _STATE["mode"] = mode_id
     return mode
 
 
-# `full` hides nothing the spec's mode names -- but it still hides _HELD,
-# as every mode does: "everything" in this blend is everything that ships.
+def choose(group_id, option_id):
+    """Pick a layout option, as the page's rail does, and redraw the mode."""
+    group = next((g for g in _GROUPS if g["id"] == group_id), None)
+    if group is None or option_id not in {o["id"] for o in group["options"]}:
+        raise ValueError(f"no option {option_id!r} in presence group {group_id!r}")
+    _CHOSEN[group_id] = option_id
+    return _apply(_STATE["mode"])
+
+
+# `full` hides nothing the spec's mode names -- but it still hides what the
+# chosen layouts do not show: the finish not chosen is not part of
+# "everything".
 def full():            return _apply("full")
 def dollhouse():       return _apply("dollhouse")
 def cutaway():         return _apply("cutaway")
@@ -313,6 +344,22 @@ class LAUREL_OT_view(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class LAUREL_OT_choose(bpy.types.Operator):
+    bl_idname = "laurel.choose"
+    bl_label = "Laurel layout"
+    bl_options = {"REGISTER", "UNDO"}
+    group: bpy.props.StringProperty()
+    option: bpy.props.StringProperty()
+
+    def execute(self, context):
+        try:
+            choose(self.group, self.option)
+        except ValueError as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
 class LAUREL_PT_views(bpy.types.Panel):
     bl_label = "Laurel — views"
     bl_space_type = "VIEW_3D"
@@ -324,13 +371,23 @@ class LAUREL_PT_views(bpy.types.Panel):
         col.label(text="Show")
         for mid, label, desc in _MODES:
             col.operator("laurel.view", text=label).action = mid
+        # One row per presence group -- the exterior finish -- with the chosen
+        # option pressed, from the spec the page's rail is built from.
+        for g in _GROUPS:
+            col.separator()
+            col.label(text=g.get("label") or g["id"])
+            row = col.row(align=True)
+            for o in g["options"]:
+                op = row.operator("laurel.choose", text=o.get("label") or o["id"],
+                                  depress=_CHOSEN[g["id"]] == o["id"])
+                op.group, op.option = g["id"], o["id"]
         col.separator()
         col.label(text="Stand")
         for fid, label in _PRESET_LABELS:
             col.operator("laurel.view", text=label).action = fid
 
 
-_CLASSES = (LAUREL_OT_view, LAUREL_PT_views)
+_CLASSES = (LAUREL_OT_view, LAUREL_OT_choose, LAUREL_PT_views)
 
 
 def _drop(name):

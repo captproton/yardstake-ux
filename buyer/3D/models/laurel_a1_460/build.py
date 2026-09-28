@@ -25,14 +25,15 @@ spec.construction.exterior_wall.cladding_modelled.
 
 WHAT THIS BUILDS: slab, exterior walls, the seven interior partitions, the
 single shed roof with its overhangs, vaulted ceilings that follow the roof,
-every opening in the two schedules cut with a sash or a leaf, and Tier 1
-trim (#132): casing, stools and baseboard inside, and the siding exterior
-trim, which is built and held back from every export until #133.
+every opening in the two schedules cut with a sash or a leaf, Tier 1 trim
+(#132): casing, stools and baseboard inside, and Tier 2's two exterior
+finishes (#133): a stucco skin and a lap-siding skin over the same
+sheathing face, the siding with its exterior trim, both UV-mapped for their
+textures. The page shows one finish at a time (spec.variants.presence).
 
-WHAT IT DOES NOT: fixtures (#134), textures and the stucco/siding swap
-(#133), the 1-bedroom option (a configurator variant, spec.variants), and
-the optional entry canopy (#144, whose dimensions are not on a harvested
-sheet).
+WHAT IT DOES NOT: fixtures (#134), the 1-bedroom option (a configurator
+variant, spec.variants), and the optional entry canopy (#144, whose
+dimensions are not on a harvested sheet).
 """
 
 import sys
@@ -44,7 +45,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.append(str(HERE.parents[1]))          # buyer/3D, where adu_kit lives
 from adu_kit.kernel import (  # noqa: E402,F401
     load_spec, box, box_geom, prism_geom, weld, multibox, sash_geom,
-    difference, collection, world_bbox, mark_reveals, ft,
+    difference, collection, world_bbox, mark_reveals, ft, uv_project,
 )
 from adu_kit.verify_lib import inside_mesh  # noqa: E402
 from adu_kit.manifest import face_slots  # noqa: E402
@@ -167,7 +168,7 @@ def build(spec, cut_openings=True):
     openings = collection("Openings")
     site = collection("Site")
     trim_coll = collection("Trim")
-    siding_coll = collection("SidingTrim")
+    siding_coll = collection("Siding")        # the siding finish: its skins and its trim
 
     # ---- slab ------------------------------------------------------------
     # Slab on grade: its top IS the finished floor, so it sits below Z 0.
@@ -199,7 +200,11 @@ def build(spec, cut_openings=True):
     # sides, and an opening's cutter spans its wall's whole depth -- so a hole
     # in the front would have been punched straight through the rear skin as
     # well. Per-wall objects keep each cut inside the face it belongs to.
-    skin_of = {}
+    # TWO SKINS PER WALL, ONE PER FINISH (#133). The siding skin is the same
+    # solid as the stucco one, in the Siding collection: the page shows one or
+    # the other (spec.variants.presence), so they are never drawn together,
+    # and lod2's contract keeps the stucco skin alone.
+    skin_of, siding_of = {}, {}
     if sheath:
         faces = {
             "Wall_rear":  box_geom(-sheath, W + sheath, -sheath, 0.0, 0.0, shed.under(0.0)),
@@ -212,6 +217,9 @@ def build(spec, cut_openings=True):
             name = wall.replace("Wall_", "Sheathing_")
             walls[name] = weld(name, [geom], shell)
             skin_of[wall] = name
+            name = wall.replace("Wall_", "Siding_")
+            walls[name] = weld(name, [geom], siding_coll)
+            siding_of[wall] = name
 
     # ---- interior partitions ---------------------------------------------
     layout = spec["interior_partitions"]["layout"]
@@ -321,6 +329,8 @@ def build(spec, cut_openings=True):
         if o["wall"] in skin_of:
             cutter(f"cut_skin_{o['id']}", skin_of[o["wall"]], o["a0"], o["a1"],
                    o["z0"], o["z1"], o["along"], depth=sheath)
+            cutter(f"cut_siding_{o['id']}", siding_of[o["wall"]], o["a0"], o["a1"],
+                   o["z0"], o["z1"], o["along"], depth=sheath)
 
     # THE OPENING GATE IS A VOLUME GATE. A boolean that imprints edges on a
     # coplanar face without removing material leaves corners and a face count
@@ -344,6 +354,31 @@ def build(spec, cut_openings=True):
             before = _volume(walls[wall])
             difference(walls[wall], cl)
             volumes[wall] = (before, _volume(walls[wall]))
+
+    # ---- the siding's reveals, and the textured skins' UVs (#133) ---------
+    # A SIDING OPENING'S REVEAL IS TRIM (spec.trim.reveal_material), as the
+    # barn cabin's is: the skin's faces inside each cut take the trim slot of
+    # materials.face_slots. Found by position, not by shape: a face is a
+    # reveal if it faces across the wall and its centre lies within an
+    # opening's rectangle, so a raked top edge, whose normal also leans off
+    # the wall's axis, is never mistaken for one.
+    trim_slot = _face_slot(spec, spec["trim"]["reveal_material"]["value"])
+    for wall, skin in siding_of.items():
+        ob = walls[skin]
+        across = 1 if wall in ("Wall_front", "Wall_rear") else 0     # the wall's depth axis
+        along = 1 - across
+        rects = [(o["a0"], o["a1"], o["z0"], o["z1"]) for o in built if o["wall"] == wall]
+        for poly in ob.data.polygons:
+            if abs(poly.normal[across]) > UP:
+                continue                                    # the skin's own faces
+            c = poly.center
+            if any(a0 - MESH_TOL <= c[along] <= a1 + MESH_TOL and z0 - MESH_TOL <= c.z <= z1 + MESH_TOL
+                   for a0, a1, z0, z1 in rects):
+                poly.material_index = trim_slot
+    tx = spec["texturing"]
+    for name, ob in walls.items():
+        if name.startswith(tuple(tx["textured"])):
+            uv_project(ob, tx["tile_ft"]["value"])
 
     # ---- sashes and leaves ------------------------------------------------
     # Every opening gets what it is: a window gets a sash, a door gets a leaf.
@@ -471,7 +506,7 @@ def build(spec, cut_openings=True):
         return low["z0"], max(o["z1"] for o in group), low["id"].startswith("W-")
 
     trim_parts = {host: [] for host in walls if host.startswith(("Wall_", "P_"))}
-    siding_parts = []
+    siding_parts = {}
     faces = room_faces(spec)
     for (host, a0, a1), group in stacks.items():
         lo_z, hi_z, window = stack_span(group)
@@ -480,8 +515,9 @@ def build(spec, cut_openings=True):
                                         lo_z, hi_z, window, stool_p, stock, apron)
         if host in skin_of:
             outer, out = outer_face(spec, host)
-            siding_parts += members(group[0]["along"], outer, out, a0, a1, lo_z, hi_z,
-                                    window, sill_p, sill_t, ext_apron, cap=horn)
+            siding_parts.setdefault(host, []).extend(
+                members(group[0]["along"], outer, out, a0, a1, lo_z, hi_z,
+                        window, sill_p, sill_t, ext_apron, cap=horn))
 
     # BASEBOARD along every room face, broken where a doorway's casing comes
     # down to the floor. Runs pass through the ends of partitions that abut
@@ -499,23 +535,31 @@ def build(spec, cut_openings=True):
 
     trim = [multibox(f"Trim_{host}", parts, trim_coll)
             for host, parts in trim_parts.items() if parts]
-    siding = multibox("Trim_ext_siding", siding_parts, siding_coll)
+    # ONE NODE PER WALL, like the interior trim, so the cutaway can hide the
+    # front wall's siding trim with the front wall.
+    siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, siding_coll)
+              for host, parts in siding_parts.items()]
 
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
-               depths=depths, skin_of=skin_of, trim=trim, siding=siding)
+               depths=depths, skin_of=skin_of, siding_of=siding_of, trim=trim, siding=siding)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
-                     Openings=openings, Site=site, Trim=trim_coll, SidingTrim=siding_coll)
+                     Openings=openings, Site=site, Trim=trim_coll, Siding=siding_coll)
 
 
-def _floor_slot(spec):
-    """The polygon material index spec.materials.face_slots gives the floor,
+def _face_slot(spec, material):
+    """The polygon material index spec.materials.face_slots gives `material`,
     as a whole number whichever loader read the spec (adu_kit.manifest
     .face_slots)."""
     slots, bad = face_slots(spec["materials"])
-    if bad or "floor" not in slots.values():
-        raise SystemExit("spec.materials.face_slots: " + ("; ".join(bad) or "no slot is the floor"))
-    return {v: k for k, v in slots.items()}["floor"]
+    if bad or material not in slots.values():
+        raise SystemExit("spec.materials.face_slots: "
+                         + ("; ".join(bad) or f"no slot is {material!r}"))
+    return {v: k for k, v in slots.items()}[material]
+
+
+def _floor_slot(spec):
+    return _face_slot(spec, "floor")
 
 
 def _partition_band(row, it):
@@ -659,7 +703,10 @@ def report(spec, geo, colls):
     gate(ok, "every room face carries baseboard, and no doorway is blocked by it", why)
 
     ok, why = _siding_trim(spec, geo)
-    gate(ok, "the siding exterior trim is built on every exterior opening, as its own node", why)
+    gate(ok, "the siding exterior trim cases every exterior opening, one node per wall", why)
+
+    ok, why = _siding_skins(spec, geo)
+    gate(ok, "each wall's siding skin is its stucco skin's solid, with trim reveals and UVs", why)
 
     ok, why = _trim_inside_its_walls(spec, geo)
     gate(ok, "no trim runs outside the rooms or above the roof underside", why)
@@ -923,9 +970,9 @@ def _every_row_built(spec, geo):
     for o in geo["built"]:
         area = (o["a1"] - o["a0"]) * (o["z1"] - o["z0"])
         hosts = [(o["wall"], geo["depths"].get(o["wall"]))]
-        skin = geo["skin_of"].get(o["wall"])
-        if skin:
-            hosts.append((skin, geo["depths"].get(skin)))
+        for skin in (geo["skin_of"].get(o["wall"]), geo["siding_of"].get(o["wall"])):
+            if skin:
+                hosts.append((skin, geo["depths"].get(skin)))
         for wall, depth in hosts:
             if depth is None:
                 missing.append(f"{o['id']} was never cut into {wall}")
@@ -1159,20 +1206,20 @@ def _baseboard_runs(spec, geo):
 
 
 def _siding_trim(spec, geo):
-    """Trim_ext_siding cases every exterior opening on the outer face, with a
-    sill and apron under each window -- built, although no export carries it
-    (spec.export.held_back). It is its own node, outside the Trim collection
-    the interior trim is exported from."""
+    """Each wall's Trim_ext_siding_<wall> cases every opening in it on the
+    outer face, head cap and all, with a sill and apron under each window --
+    and sits in the Siding collection alone. lod1 exports that collection and
+    not Trim, so siding trim anywhere else would vanish from the street view
+    while lod0 still carried it. Found by review."""
     tr = spec["trim"]
-    ob = bpy.data.objects.get("Trim_ext_siding")
-    if ob is None:
-        return False, "Trim_ext_siding was not built"
-    wrong = []
-    if any(c.name == "Trim" for c in ob.users_collection):
-        wrong.append("Trim_ext_siding is in the Trim collection, which lod0 exports")
+    wrong = [f"{ob.name} is in {[c.name for c in ob.users_collection]}, not the "
+             f"Siding collection alone" for ob in geo["siding"]
+             if [c.name for c in ob.users_collection] != ["Siding"]]
     for (host, a0, a1), (lo_z, hi_z, window) in sorted(_stacks(geo).items()):
         if host not in geo["skin_of"]:
             continue
+        name = host.replace("Wall_", "Trim_ext_siding_")
+        ob = bpy.data.objects.get(name)
         along = next(f["along"] for f in room_faces(spec)[host])
         outer, out = outer_face(spec, host)
         missing = _cased(ob, along, outer, out, a0, a1, lo_z, hi_z, window, tr,
@@ -1180,7 +1227,55 @@ def _siding_trim(spec, geo):
                          tr["exterior_sill_thickness"]["ft"],
                          tr["exterior_apron_height"]["ft"], cap=True)
         if missing:
-            wrong.append(f"{host} {a0:.4f}..{a1:.4f} outside: no {', '.join(missing)}")
+            wrong.append(f"{name} at {a0:.4f}..{a1:.4f}: no {', '.join(missing)}")
+    return not wrong, "; ".join(wrong)
+
+
+def _siding_skins(spec, geo):
+    """The siding finish (#133): every wall's Siding_ skin is the SAME solid as
+    its stucco skin, so choosing a finish changes the surface and never the
+    building; it sits in the Siding collection, which lod2 never exports; its
+    cut faces carry the trim slot (trim.reveal_material); and both skins
+    carry UVs for their textures."""
+    trim_slot = _face_slot(spec, spec["trim"]["reveal_material"]["value"])
+    wrong = []
+    for wall, stucco_name in geo["skin_of"].items():
+        siding = bpy.data.objects.get(geo["siding_of"].get(wall, ""))
+        stucco = bpy.data.objects.get(stucco_name)
+        if siding is None or stucco is None:
+            wrong.append(f"{wall} lacks a skin: {stucco_name} or its siding")
+            continue
+        (sl, sh), (tl, th) = world_bbox([siding]), world_bbox([stucco])
+        if any(abs(a - b) > MESH_TOL for a, b in zip(list(sl) + list(sh), list(tl) + list(th))):
+            wrong.append(f"{siding.name} is not the same extent as {stucco.name}")
+        if abs(_volume(siding) - _volume(stucco)) > VOL_TOL:
+            wrong.append(f"{siding.name} holds {_volume(siding):.4f} cu ft, {stucco.name} "
+                         f"{_volume(stucco):.4f}: one was cut differently")
+        if [c.name for c in siding.users_collection] != ["Siding"]:
+            wrong.append(f"{siding.name} is not in the Siding collection alone")
+        # EVERY OPENING'S REVEAL, not the skin's: one tagged face anywhere
+        # passed a skin whose other openings were left siding-coloured. Found
+        # by review. Each opening needs a trim-slot face on each of its four
+        # sides -- two jambs, the head and the sill, where the stack has one.
+        if geo["cut"]:
+            across = 1 if wall in ("Wall_front", "Wall_rear") else 0
+            along = 1 - across
+            tagged = [siding.matrix_world @ p.center for p in siding.data.polygons
+                      if p.material_index == trim_slot]
+            for o in (o for o in geo["built"] if o["wall"] == wall):
+                a0, a1, z0, z1 = o["a0"], o["a1"], o["z0"], o["z1"]
+                sides = {"jamb at " + f"{a0:.4f}": lambda c, a=a0: abs(c[along] - a) < MESH_TOL and z0 < c.z < z1,
+                         "jamb at " + f"{a1:.4f}": lambda c, a=a1: abs(c[along] - a) < MESH_TOL and z0 < c.z < z1,
+                         "head": lambda c: abs(c.z - z1) < MESH_TOL and a0 < c[along] < a1}
+                if z0 > MESH_TOL:                        # a door has no sill in the skin
+                    sides["sill"] = lambda c: abs(c.z - z0) < MESH_TOL and a0 < c[along] < a1
+                missing = [s for s, hit in sides.items() if not any(hit(c) for c in tagged)]
+                if missing:
+                    wrong.append(f"{siding.name}: {o['id']} has no trim reveal at its "
+                                 f"{', '.join(missing)}")
+        for ob in (siding, stucco):
+            if not ob.data.uv_layers:
+                wrong.append(f"{ob.name} carries no UVs for its texture")
     return not wrong, "; ".join(wrong)
 
 
@@ -1189,8 +1284,8 @@ def _trim_inside_its_walls(spec, geo):
     trim, inside or out, rises above the roof underside where it stands."""
     W, D, t, shed = geo["W"], geo["D"], geo["t"], geo["shed"]
     wrong = []
-    for ob in geo["trim"] + [geo["siding"]]:
-        inside = ob.name != "Trim_ext_siding"
+    for ob in geo["trim"] + geo["siding"]:
+        inside = not ob.name.startswith("Trim_ext_siding_")
         for v in ob.data.vertices:
             x, y, z = ob.matrix_world @ v.co
             if inside and not (t - MESH_TOL <= x <= W - t + MESH_TOL

@@ -29,7 +29,7 @@ sys.path.insert(0, str(HERE))
 sys.path.append(str(HERE.parents[1]))          # buyer/3D, where adu_kit lives
 from build import _wall_band, build, load_spec  # noqa: E402
 from adu_kit import manifest as kit_manifest  # noqa: E402
-from adu_kit.export import export_glb, glb_info  # noqa: E402
+from adu_kit.export import export_glb, glb_info, patch_base_color_factors  # noqa: E402
 from adu_kit.manifest import face_slots  # noqa: E402
 from adu_kit.finish import (  # noqa: E402
     assign, closure_problems, lod2_contract_nodes, make_materials, promote,
@@ -89,36 +89,97 @@ def opening_id(name):
 def level_objects(lod, geo, colls, glazing):
     """What each level exports, as spec.export.levels describes it.
 
-    NEVER THE SidingTrim COLLECTION: the siding exterior trim is built and
-    held back until #133 (spec.export.held_back). It is named nowhere here,
-    and held_back_problems() checks every level that was written for it."""
+    The SIDING collection -- the siding skins and their trim -- goes in lod0
+    and lod1, where a buyer can choose it (#133), and never in lod2, whose
+    contract is the stucco skin alone."""
     keep = (list(colls["Shell"].objects) + list(colls["Roof"].objects)
             + list(colls["Site"].objects))
     if lod == "lod2":
         return keep
+    siding = list(colls["Siding"].objects)
     if lod == "lod0":
-        return (keep + list(colls["Openings"].objects)
+        return (keep + siding + list(colls["Openings"].objects)
                 + list(colls["Partitions"].objects) + list(colls["Trim"].objects)
                 + glazing)
     outside = exterior_ids(geo)
-    return keep + [o for o in colls["Openings"].objects
-                   if opening_id(o.name) in outside] + glazing
+    return keep + siding + [o for o in colls["Openings"].objects
+                            if opening_id(o.name) in outside] + glazing
 
 
-def held_back_problems(spec, paths):
-    """spec.export.held_back: each node is BUILT, and no written level
-    carries it. Built, because a node #133 is to decide about has to exist;
-    in no level, because the page would show siding trim on stucco."""
-    held = (spec["export"].get("held_back") or {}).get("nodes") or []
-    problems = [f"{n} is held back but was not built" for n in held
-                if bpy.data.objects.get(n) is None]
-    for path in paths:
-        shipped = sorted(set(held) & set(glb_names(path)[1]))
-        if shipped:
-            problems.append(f"{path.name} carries {shipped}, which spec.export."
-                            f"held_back keeps out of every level until "
-                            f"{spec['export']['held_back'].get('until')}")
-    return problems
+def presence_block(groups, nodes):
+    """`presence`: spec.variants.presence as the page reads it, with each
+    group's `controls` checked against the nodes the export carries, and
+    problems.
+
+    EVERY NODE A GROUP CONTROLS IS SHOWN BY EXACTLY ONE OF ITS OPTIONS. A
+    group declares the name prefixes it controls; any exported node with one
+    of them that no option shows would never appear, and one two options
+    show would be half of two finishes at once. `controls` stays in the spec:
+    the page needs only the options."""
+    # READ, NOT OBEYED (rule 25): a malformed block is a named problem, and
+    # nothing partial is published. Found by review: `presence: [1]`, or an
+    # option that is a scalar, raised mid-export instead.
+    if groups is None:
+        return [], []
+    if not isinstance(groups, list):
+        return [], [f"variants.presence must be a list of groups, found {type(groups).__name__}"]
+    shape = []
+    for i, g in enumerate(groups):
+        if not isinstance(g, dict):
+            shape.append(f"variants.presence[{i}] must be an object, found {type(g).__name__}")
+            continue
+        for key in ("options", "controls"):
+            if key in g and not isinstance(g[key], list):
+                shape.append(f"variants.presence[{i}].{key} must be a list")
+        for j, o in enumerate(g.get("options") if isinstance(g.get("options"), list) else []):
+            if not isinstance(o, dict):
+                shape.append(f"variants.presence[{i}].options[{j}] must be an object, "
+                             f"found {type(o).__name__}")
+            elif not (isinstance(o.get("show", []), list)
+                      and all(isinstance(n, str) for n in o.get("show", []))):
+                shape.append(f"variants.presence[{i}].options[{j}].show must be a list of names")
+        if not all(isinstance(p, str) for p in g.get("controls") or []
+                   if isinstance(g.get("controls"), list)):
+            shape.append(f"variants.presence[{i}].controls must be a list of prefixes")
+    if shape:
+        return [], shape
+    problems, out = [], []
+    for g in groups:
+        gid = g.get("id")
+        opts = g.get("options") or []
+        shown = [n for o in opts for n in (o.get("show") or [])]
+        owned = sorted(n for n in nodes if n.startswith(tuple(g.get("controls") or ())))
+        problems += [f"presence {gid}: {n} is shown by no option" for n in owned if n not in shown]
+        problems += [f"presence {gid}: {n} is shown by {shown.count(n)} options"
+                     for n in sorted(set(shown)) if shown.count(n) > 1]
+        problems += [f"presence {gid}: {n} is shown but not in the export"
+                     for n in sorted(set(shown) - set(nodes))]
+        if not g.get("controls"):
+            problems.append(f"presence {gid}: declares no `controls`, so nothing "
+                            f"checks that every node it swaps is owned")
+        # THE PREFIXES ARE HELD TO THE EXPORT TOO, as views_block holds a
+        # mode's: every shown name falls under one, and every one matches a
+        # node. Otherwise a missing or misspelt prefix passed whenever the
+        # `show` lists happened to name the nodes, and the ownership check
+        # above covered nothing. Found by review.
+        prefixes = tuple(g.get("controls") or ())
+        problems += [f"presence {gid}: {n} is shown but no `controls` prefix covers it"
+                     for n in sorted(set(shown)) if not n.startswith(prefixes)]
+        problems += [f"presence {gid}: `controls` prefix {x!r} matches no exported node"
+                     for x in prefixes if not any(n.startswith(x) for n in nodes)]
+        block = {"id": gid, "label": g.get("label")}
+        # `room` IS KEPT. It is what marks a group as furniture, and so what
+        # makes the page require the "not included" disclosure: dropping it
+        # would let a furnished room ship without one. Its type is the
+        # contract's to check. Found by review.
+        if "room" in g:
+            block["room"] = g["room"]
+        block["property"] = "visible"
+        block["options"] = [{"id": o.get("id"), "label": o.get("label"),
+                             "show": list(o.get("show") or []),
+                             "default": bool(o.get("default"))} for o in opts]
+        out.append(block)
+    return out, problems
 
 
 # THE NODES EACH FOOTPRINT IS (#119), in lod2: the heated box is the four
@@ -175,11 +236,18 @@ def write_manifest(spec, out, lod0):
     views, bad = kit_manifest.views_block(
         (spec.get("export") or {}).get("display_modes"), nodes)
     problems += bad
+    variants = spec.get("variants")
+    presence, bad = presence_block(variants.get("presence") if isinstance(variants, dict) else None,
+                                   nodes)
+    problems += bad
     manifest = {
         "model": ident,
         "note": ("Runtime material swaps. Each option sets baseColorFactor on "
-                 "the named materials; Laurel ships no textures yet (#133)."),
+                 "the named materials, which the stucco and siding textures "
+                 "carry as luminance only, so a colour holds on either finish. "
+                 "The finish itself is a presence choice: it swaps the skin."),
         "sets": sets,
+        "presence": presence,
     }
     if views is not None:
         manifest["views"] = views
@@ -202,16 +270,25 @@ def save_viewable_blend(spec, dest):
     """lod0 with its materials, as a .blend to open and look at. build.py's
     .blend is grey: the materials are made here. Gitignored."""
     geo, colls = build(spec, cut_openings=True)
-    mats = make_materials(spec, HERE / "textures", textured=False)
+    mats = make_materials(spec, HERE / "textures", textured=True)
     add_glazing(spec, geo, collection("Glazing"))
     assign(spec, mats, face_slots(spec["materials"])[0])
-    # The review blend shows the stucco finish, so what is held back for
-    # #133 is in the file and hidden, as views.py keeps it.
-    for name in (spec["export"].get("held_back") or {}).get("nodes") or []:
-        ob = bpy.data.objects.get(name)
-        if ob is not None:
-            ob.hide_set(True)
-            ob.hide_viewport = ob.hide_render = True
+    # Each presence group as the page opens it: its default option, or its
+    # FIRST when none is marked -- the contract allows that, and the page
+    # and views.py both fall back to the first. Found by review: with no
+    # default this hid every option, and the blend showed no finish at all.
+    # Here the stucco skin shows and the siding with its trim is hidden.
+    for g in (spec.get("variants") or {}).get("presence") or []:
+        opts = g["options"]
+        chosen = next((o for o in opts if o.get("default")), opts[0] if opts else None)
+        for o in opts:
+            if o is chosen:
+                continue
+            for name in o.get("show") or []:
+                ob = bpy.data.objects.get(name)
+                if ob is not None:
+                    ob.hide_set(True)
+                    ob.hide_viewport = ob.hide_render = True
     bpy.ops.wm.save_as_mainfile(filepath=str(dest))
     return dest
 
@@ -237,10 +314,12 @@ def main():
         shutil.rmtree(out, ignore_errors=True)
         raise SystemExit(1)
 
-    results, closure, unmatched, held = {}, [], {}, []
+    results, closure, unmatched = {}, [], {}
+    untextured = set(spec["texturing"].get("untextured_levels") or [])
     for lod in LEVELS:
         geo, colls = build(spec, cut_openings=(lod != "lod2"))
-        mats = make_materials(spec, HERE / "textures", textured=False)
+        textured = lod not in untextured
+        mats = make_materials(spec, HERE / "textures", textured=textured)
         glazing = ([] if lod == "lod2"
                    else add_glazing(spec, geo, collection("Glazing")))
         unmatched[lod] = assign(spec, mats, slots)
@@ -254,9 +333,12 @@ def main():
         closure += closure_problems(keep, lod)
         path = out / f"{model_id}_{lod}.glb"
         export_glb(path, keep)
+        if textured:
+            # Blender writes a neutral map with no factor; the colour is put
+            # back on the material, as the barn cabin's is (adu_kit.export).
+            patch_base_color_factors(path, spec["materials"]["library"])
         results[lod] = glb_info(path)
         results[lod]["objects"] = len(keep)
-        held += held_back_problems(spec, [path])
 
     vpath, vproblems = write_manifest(spec, out, out / f"{model_id}_lod0.glb")
     base_bad = baseline_problems(out / f"{model_id}_lod2.glb",
@@ -273,7 +355,7 @@ def main():
         print(f"{lod}  {i['objects']:3d} objects  {i['meshes']:3d} meshes  "
               f"{i['materials']:2d} mats  {i['size_kb']:7.1f} KB / {budget[lod]} KB  "
               f"bbox {bb} m  {'draco' if DRACO in i['extensions'] else 'NO DRACO'}")
-    for p_ in closure + vproblems + base_bad + held:
+    for p_ in closure + vproblems + base_bad:
         print(f"  PROBLEM: {p_}")
     stray = sorted({n for names in unmatched.values() for n in names})
 
@@ -284,8 +366,8 @@ def main():
         ("every level within its size budget",
          all(results[k]["size_kb"] <= v for k, v in budget.items())),
         ("lod2 sits on its baseline: origin, axes, units and floor", not base_bad),
-        ("the siding exterior trim is built, and held back from every level (#133)", not held),
-        ("the manifest meets the page's contract, and the entry sits at its front",
+        ("the manifest meets the page's contract, the entry sits at its front, "
+         "and every finish node is shown by exactly one option",
          vpath is not None),
     ]
     print("-" * 76)

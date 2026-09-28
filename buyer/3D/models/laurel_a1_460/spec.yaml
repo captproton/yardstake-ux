@@ -45,8 +45,8 @@ meta:
     note: >
       Sacramento County Permit Ready ADU, Model A1 "Laurel": the studio plan,
       460 sf, one shed roof. Its front is -z in this file, the opposite of
-      the barn cabin. The exterior is stucco; the fibre-cement lap siding the
-      sheet also offers arrives with #133.
+      the barn cabin. The exterior is stucco or fibre-cement lap siding, the
+      two finishes the sheet offers, chosen on the page.
     # WHICH END THE PAGE OPENS ON (#117), in the EXPORTED file's frame: glTF,
     # Y up. Laurel's front is Blender +Y, and glTF's Z is Blender's -Y, so
     # the front exports to -Z -- the opposite of the barn cabin. finish.py
@@ -644,7 +644,7 @@ fixtures:
                            source: "A-2.0 REAR ELEVATION and SIDE (LEFT) ELEVATION 'MINI-SPLIT CONDENSER'"}
 
 finishes:
-  status: "Tier 1 (#132): the trim (spec.trim) and the floor below. Textures and the stucco/siding swap are Tier 2 (#133)"
+  status: "Tier 1 (#132): the trim (spec.trim) and the floor below. Tier 2 (#133): the stucco and siding textures (spec.texturing) and the finish choice (variants.presence)"
   floor:
     material: floor
     assumed: >
@@ -794,10 +794,11 @@ trim:
   #   * Both are the same under stucco and siding: the interior is not a
   #     variant.
   #   * EXTERIOR trim only under lap siding (A-3.2 details 3 and 4, FIBER
-  #     CEMENT TRIM): casing, head, sill and apron, as the named node
-  #     Trim_ext_siding. It is BUILT and NOT EXPORTED until #133 decides how
-  #     a finish choice shows it (decided 2026-09-24). Stucco gets none: A-3.0
-  #     details 3 and 4 end the plaster at a METAL CASING BEAD.
+  #     CEMENT TRIM): casing, head, sill and apron, one node per wall
+  #     (Trim_ext_siding_front, ...). It ships with the siding: both are shown
+  #     by the `lap_siding` option of variants.presence.exterior_finish and
+  #     hidden by `stucco` (#133, decided 2026-09-26). Stucco gets none:
+  #     A-3.0 details 3 and 4 end the plaster at a METAL CASING BEAD.
   #   * The 1X6 WINDSORONE TRIM BOARD A-3.4 notes is the canopy's attachment
   #     (#144), not window trim.
   #
@@ -810,7 +811,7 @@ trim:
   # past the casing by half a casing width each side, and a window's
   # exterior sill by the same. Those are the barn cabin's build_adu.py
   # proportions, carried as proportions.
-  status: "Tier 1 (#132): built. The siding exterior trim is built and held back from every export until #133."
+  status: "Tier 1 (#132): built. The siding exterior trim ships with the siding finish (#133)."
   casing_width:
     ft: 0.2917
     raw: "3 1/2\""
@@ -883,7 +884,7 @@ trim:
     assumed: "the reveal of a SIDING opening takes the trim material, as the barn cabin's does"
     borrowed: trim.reveal_material
     barn: "its reveal_note: jamb, head and sill faces take trim, not siding"
-    applies: "siding only, and only once #133 builds the siding finish: nothing in this build reads it yet. Under STUCCO the reveal is stucco: see stucco_reveal"
+    applies: "siding only: build.py tags the Siding_ skin's cut faces with the trim material (materials.face_slots). Under STUCCO the reveal is stucco: see stucco_reveal"
   stucco_reveal:
     material: stucco
     derived: >
@@ -898,9 +899,43 @@ trim:
       assumed) decides where the sash sits in it.
 
 # ---------------------------------------------------------------------------
+texturing:
+  # TIER 2 (#133). The two exterior finishes are the only textured materials;
+  # everything else is flat colour. The textures are procedural
+  # (make_textures.py, with adu_kit.textures) and NEUTRAL: they carry light
+  # and shade only, and the colour rides on the glTF baseColorFactor, so the
+  # page's colour set still recolours a textured wall.
+  #
+  # ONE TILE FOR BOTH, SIZED BY THE SIDING. A lap texture repeats cleanly only
+  # on a course line, so the tile is a whole number of courses and a course a
+  # whole number of pixels. uv_project lays every textured face out at
+  # tile_ft per repeat, in the face's own plane.
+  siding_exposure:
+    ft: 0.5833
+    raw: "7\""
+    assumed: >
+      NO SHEET DIMENSIONS IT. A-3.2's LAP SIDING NOTES bound it: boards at
+      most 12" wide, lapped at least 1 1/4", so the exposure is at most
+      10 3/4". 7" is the exposure of the common 8 1/4" fibre-cement board.
+    what_would_settle_it: "the siding product, or an elevation drawn with courses; A-2.0 draws none"
+  texel_density_px_per_ft:
+    value: 144
+    assumed: "chosen so a 7-inch course is a whole 84 px; near the barn cabin's 128 px/ft, which it chose to keep a lap course crisp at walkthrough distance"
+  tile_ft:
+    value: 7.0
+    derived: "twelve courses of siding_exposure, so the siding repeats on a course line"
+  tile_size_px:
+    value: 1008
+    derived: "tile_ft x texel_density_px_per_ft = 7 x 144"
+  textured: [Sheathing_, Siding_]
+  textured_note: "object-name prefixes that get UVs: the two skins, and nothing else samples a map"
+  untextured_levels: [lod2]
+  untextured_reason: "lod2 is the placement developer's massing, as the barn cabin's is: flat colour, and within its 100 KB budget"
+
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 materials:
-  status: "P4 (#131): stucco, the roof and the openings. Tier 1 (#132): trim and floor. Textures and the stucco/siding swap are #133"
+  status: "P4 (#131): stucco, the roof and the openings. Tier 1 (#132): trim and floor. Tier 2 (#133): the stucco and siding textures, and siding"
   provenance: >
     ONE SOURCE, AND IT IS A RENDERING. a1-laurel-rendering.jpg is the
     designer's image of the finished building and the only appearance
@@ -922,6 +957,17 @@ materials:
       roughness: 0.92
       metallic: 0.0
       assumed: "hue from the rendering's shaded side wall, crop (432,196)-(448,212), median sRGB (159,146,126), linear (0.347,0.287,0.209); scaled to a 0.70 albedo for a light cream stucco"
+      neutral_albedo: true
+      maps: {base_color: stucco_albedo.png, normal: stucco_normal.png}
+      texture: "a sand-float finish: A-3.0 detail 1 calls for 3 COAT CEMENT PLASTER and names no finish, so the grain is declared, not read"
+    siding:
+      base_color_linear: [0.700, 0.579, 0.422]
+      roughness: 0.75
+      metallic: 0.0
+      assumed: "the rendering shows the stucco finish, not the siding: the siding takes the same cream so the Exterior colour set means the same thing on either finish"
+      neutral_albedo: true
+      maps: {base_color: siding_albedo.png, normal: siding_normal.png}
+      texture: "FIBER CEMENT LAP SIDING (A-3.2 detail 1) at texturing.siding_exposure"
     roof_metal:
       base_color_linear: [0.036, 0.036, 0.034]
       roughness: 0.45
@@ -973,6 +1019,7 @@ materials:
     # exterior doors are named before every other leaf.
     Roof_: roof_metal
     Sheathing_: stucco
+    Siding_: siding
     Wall_: drywall
     P_: drywall
     Slab: concrete
@@ -983,9 +1030,12 @@ materials:
     Glazing_: glass
     Trim_: trim
   # FACES A BUILD TAGS, by polygon material index (adu_kit.finish.assign's
-  # extra_slots). build.py tags the slab's top face 1: the floor.
+  # extra_slots). build.py tags the slab's top face 1, the floor, and the
+  # siding skin's cut faces round each opening 2, the trim
+  # (trim.reveal_material).
   face_slots:
     1: floor
+    2: trim
 
 export:
   status: "P4 (#131): three levels, the manifest, the lod2 contract and baseline. The page's views rail is #133"
@@ -999,7 +1049,7 @@ export:
     groups:
       ROOF:      ["Roof_"]
       WALL:      ["Wall_"]
-      SKIN:      ["Sheathing_"]
+      SKIN:      ["Sheathing_", "Siding_"]
       PARTITION: ["P_"]
       OPENING:   ["Sash_", "Leaf_"]
       SITE:      ["Slab"]
@@ -1007,7 +1057,7 @@ export:
     # TRIM IS NAMED FOR THE WALL IT HANGS ON (Trim_Wall_front, Trim_P_bath_W),
     # so a mode that hides a wall hides its casing and baseboard with it
     # instead of leaving them floating.
-    front_group: "the +Y side: Wall_front and Sheathing_front, named in modes by object"
+    front_group: "the +Y side: Wall_front, its two skins and its trim, named in modes by object"
     modes:
     - id: full
       label: "Exterior"
@@ -1021,28 +1071,20 @@ export:
       label: "Cutaway"
       desc: "Dollhouse with the front wall and its skin removed, for a sectional look through the entry."
       hide: [ROOF]
-      hide_objects: [Wall_front, Sheathing_front, Trim_Wall_front]
+      hide_objects: [Wall_front, Sheathing_front, Siding_front, Trim_Wall_front, Trim_ext_siding_front]
     - id: interior_only
       label: "Interior only"
       desc: "Partitions and slab alone, with the openings left in so the doors read."
       hide: [ROOF, WALL, SKIN]
-      hide_objects: [Trim_Wall_front, Trim_Wall_rear, Trim_Wall_x0, Trim_Wall_x24]
+      hide_objects: [Trim_Wall_front, Trim_Wall_rear, Trim_Wall_x0, Trim_Wall_x24,
+                     Trim_ext_siding_front, Trim_ext_siding_rear, Trim_ext_siding_x0, Trim_ext_siding_x24]
   levels:
     # What each level carries. lod2 is the placement developer's massing,
     # built with no openings cut; lod1 is the exterior a buyer sees from the
     # street; lod0 adds the interior.
-    lod0: "shell, roof, slab, every sash and leaf, glazing, partitions, interior trim"
-    lod1: "shell, roof, slab, the exterior walls' sashes and leaves, glazing"
-    lod2: "shell, roof and slab, no openings cut"
-  # BUILT, NOT SHIPPED (#132, decided 2026-09-24). The siding exterior trim
-  # exists as a named node so #133 can decide how a finish choice shows it
-  # (PLAN.md, the open question for #133 with #113). Until then finish.py
-  # leaves these out of every level and refuses to publish a level that
-  # carries one, and views.py keeps them hidden in the review blend, which
-  # shows the stucco finish.
-  held_back:
-    nodes: [Trim_ext_siding]
-    until: "#133"
+    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim; textured"
+    lod1: "shell and both finishes' skins, roof, slab, the exterior walls' sashes and leaves, glazing, the siding trim; textured"
+    lod2: "shell (the stucco skin only), roof and slab, no openings cut; flat colour"
   budget_kb:
     lod0: 1024
     lod1: 512
@@ -1091,18 +1133,19 @@ variants:
       bedroom_width: {ft: 9.5, raw: "9'-6\"", source: "A-1.0 drawing 2 1 BEDROOM FLOOR PLAN OPTION"}
       window_note: "A-1.0 drawing 2 'WINDOW TO BE OPERTIONAL FOR 1 BEDROOM OPTION TO MEET VENTILATION REQUIREMENTS'"
   exterior_finish: >
-    stucco or fiber cement lap siding, both on the sheet: a finish swap, not
-    a decision. P4 (#131) ships STUCCO ALONE, decided 2026-09-24: the page's
-    `sets` swap only baseColorFactor, so until #133 adds textures a "Lap
-    siding" option would be smooth stucco in another colour. The swap lands
-    in #133, with the siding texture and the siding trim.
+    stucco or fiber cement lap siding, both on the sheet: a buyer's choice,
+    not the designer's. A finish is GEOMETRY as well as colour -- its own
+    textured skin, and for siding its exterior trim -- so it is a presence
+    group below, not a colour set (#133, decided 2026-09-26). The skin and
+    its trim are one option, so they cannot be mismatched. P4 (#131) shipped
+    stucco alone until the siding texture existed.
   # THE FINISHES RAIL. Colour only, on the materials named; the default of
   # each is the colour materials.library gives, which the rendering set.
   sets:
     - id: exterior_colour
       label: Exterior colour
-      targets: [adu_stucco]
-      assumed: "the first option is materials.library.stucco, from the rendering; the others are a declared palette, not sampled, for a buyer to try"
+      targets: [adu_stucco, adu_siding]
+      assumed: "the first option is materials.library.stucco, from the rendering; the others are a declared palette, not sampled, for a buyer to try. It tints both finishes' materials, so the chosen colour holds whichever finish is shown"
       options:
         - {id: cream, label: Cream, value: [0.700, 0.579, 0.422], default: true}
         - {id: warm_white, label: Warm white, value: [0.800, 0.760, 0.680]}
@@ -1116,6 +1159,25 @@ variants:
         - {id: dark_bronze, label: Dark bronze, value: [0.036, 0.036, 0.034], default: true}
         - {id: slate_grey, label: Slate grey, value: [0.120, 0.130, 0.140]}
         - {id: galvalume, label: Galvalume, value: [0.450, 0.470, 0.480]}
+  # THE FINISH CHOICE (#133). A presence group with no `room`: it swaps the
+  # building's skin, it does not furnish a room, so it asks for no
+  # furniture disclosure (model_contract.disclosure_problems). Every node
+  # either option names is controlled by exactly one of them, and finish.py
+  # holds that on what it exports.
+  presence:
+    - id: exterior_finish
+      label: Exterior finish
+      source: "A-1.0 WALL LEGEND and A-2.0 FRONT ELEVATION 'EXTERIOR FINISH OPTIONS': stucco (A-3.0) or fiber cement lap siding (A-3.2)"
+      controls: [Sheathing_, Siding_, Trim_ext_siding_]
+      options:
+        - id: stucco
+          label: Stucco
+          default: true
+          show: [Sheathing_front, Sheathing_rear, Sheathing_x0, Sheathing_x24]
+        - id: lap_siding
+          label: Lap siding
+          show: [Siding_front, Siding_rear, Siding_x0, Siding_x24,
+                 Trim_ext_siding_front, Trim_ext_siding_rear, Trim_ext_siding_x0, Trim_ext_siding_x24]
   canopy:
     optional: true
     source: "A-2.0 FRONT ELEVATION 'OPTIONAL CANOPY SEE A-3.4'; A-3.4 AWNING DETAILS '2X6 CEDAR CANOPY FRAME'"
