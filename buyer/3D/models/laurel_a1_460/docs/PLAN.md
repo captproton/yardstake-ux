@@ -663,8 +663,15 @@ Each line is one pull request.
    - **The page** places the drawn footprint from its extent, and centres one without and says it is approximate. Verified in the browser: Laurel's `main_body` on its walls, and the reduced barn fixture's `main_body` 0.914 m off centre with no special case.
    - **Review** made every number in the dimensions block finite, as the page requires, including an integer too large for a float.
    - **Not done:** drawing several footprints at once. The extents make it possible; the page still draws one and lists the rest.
-10. [#133](https://github.com/captproton/yardstake-ux/issues/133) **Next.** Tier 2 textures and configurator: `sets`, `presence`, `views`, `dimensions`, `disclosure` meeting the page's contract.
-11. [#134](https://github.com/captproton/yardstake-ux/issues/134) Tier 3 fixtures, including the water heater and the mini-split.
+10. [#133](https://github.com/captproton/yardstake-ux/issues/133) **Done ([#158](https://github.com/captproton/yardstake-ux/pull/158)). Textures, and the exterior finish is a buyer's choice: stucco or lap siding.**
+   - **The finish is a presence group** (decided 2026-09-26): `stucco` shows the four stucco skins, `lap_siding` the four siding skins and the siding trim, one node per wall. Skin and trim are one option, so they cannot be mismatched; one Exterior colour set tints both finishes' materials. The [Tier 1 trim](#tier-1-trim--the-barn-cabins-values-declared-assumed) section records the decision.
+   - **The one contract change:** the furniture disclosure is required only for a presence group that names a `room`, in `model_contract` and `app.js` together. The barn cabin's groups all name rooms, so its disclosure is still required.
+   - **Textures:** procedural and neutral, the colour on the factor. Lap siding at a 7" exposure (`assumed`: A-3.2 bounds it at 10 3/4" or less) and a declared sand-float stucco, on a 7 ft tile of twelve courses; 87 KB for four maps. The texture helpers moved to `adu_kit/textures.py`, the barn cabin's PNGs byte-identical. CI checks the committed textures against the spec, as pixels.
+   - **Build:** a siding skin per wall, the same solid as its stucco skin, in a `Siding` collection lod2 never exports; its reveals take the trim material; both skins UV-mapped. **Export:** lod0 155 KB, lod1 134 KB, both finishes and textured; lod2 flat, its contract unchanged. The held-back machinery from #132 is gone.
+   - **Verified in the browser:** opens on stucco; Lap siding shows the courses and trim and goes into the link; a colour holds on either finish; the cutaway and interior-only modes hide the siding with its walls; the overlay stays on the walls. The Blender review panel gained a Finish row.
+   - **Review** tightened the gates in six rounds: every opening's reveal, the siding trim's collection, presence read as untrusted input, `room` kept for #135's furniture, `controls` held to the export, and the texture check in CI. Probes 199.
+   - **Left open, small:** the page files the finish under its "LAYOUT" heading; a heading of its own would read better.
+11. [#134](https://github.com/captproton/yardstake-ux/issues/134) **Next.** Tier 3 fixtures, including the water heater and the mini-split.
 12. [#135](https://github.com/captproton/yardstake-ux/issues/135) Furniture and arrangements.
 
 Steps 1 and 2 are the ones that pay for themselves across Richmond and the six
