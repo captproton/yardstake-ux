@@ -105,3 +105,15 @@ jobs:
       - name: Laurel spec geometry tests (models/laurel_a1_460/test_verify_spec.py)
         if: ${{ !cancelled() }}
         run: python -m unittest discover -s models/laurel_a1_460 -p "test_*.py" -v
+
+      # The committed textures are what the spec generates (#133): a changed
+      # exposure or tile with the old PNGs left in place fails here. Compared
+      # as pixels, to within one level, since zlib and libm differ by platform.
+      # Pinned to the versions that made the committed textures.
+      - name: Install numpy and Pillow for the texture check
+        if: ${{ !cancelled() }}
+        run: python -m pip install --quiet "numpy==2.5.2" "Pillow==12.0.0"
+
+      - name: Laurel textures match their generator (make_textures.py --check)
+        if: ${{ !cancelled() }}
+        run: python models/laurel_a1_460/make_textures.py --check

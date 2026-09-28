@@ -20,8 +20,9 @@ Exterior colour set recolours a textured wall (spec.texturing).
 
 The tile is spec.texturing.tile_size_px square and a whole number of
 courses, so the siding repeats on a course line. `--check` regenerates in
-memory and compares with what is committed, as make_fixtures.py does, so a
-spec change that moves the texture cannot ship with the old one.
+memory and compares the PIXELS with what is committed, to within one level,
+as make_fixtures.py compares its files, so a spec change that moves the
+texture cannot ship with the old one. CI runs it.
 """
 import io
 import sys
@@ -75,12 +76,27 @@ def render(spec):
     return made
 
 
+# PIXELS, NOT BYTES. A PNG's bytes depend on the zlib that compressed it, and
+# CI's Linux and a Mac need not agree; and linear_to_srgb's pow() comes from
+# each platform's maths library, which can round one level differently. A
+# texture that is actually stale -- a changed exposure, a new tile -- differs
+# by far more than one level in far more than a few pixels.
+PIXEL_TOL = 1
+
+
+def _same_pixels(path, png):
+    if not path.is_file():
+        return False
+    have = np.asarray(Image.open(path)).astype(np.int16)
+    want = np.asarray(Image.open(io.BytesIO(png))).astype(np.int16)
+    return have.shape == want.shape and int(np.abs(have - want).max()) <= PIXEL_TOL
+
+
 def main(argv):
     spec = yaml.safe_load((HERE / "spec.yaml").read_text())
     made = render(spec)
     if "--check" in argv:
-        stale = [n for n, b in made.items()
-                 if not (OUT / n).is_file() or (OUT / n).read_bytes() != b]
+        stale = [n for n, b in made.items() if not _same_pixels(OUT / n, b)]
         if stale:
             print(f"FAIL  textures differ from what make_textures.py generates: {stale}")
             return 1
