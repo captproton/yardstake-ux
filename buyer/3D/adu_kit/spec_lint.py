@@ -38,6 +38,17 @@ makes every number say where it came from, and checks what it can:
    for equipment the plans name by model (#134) -- and must carry an http(s)
    URL, so it cites a document someone can open, as `source` cites a sheet.
    It does not excuse a drawn length (rule 4): those are the plan set's.
+6. NO KEY IS A NUMBER. The walk checks values, so a number used as a mapping
+   key (`envelope: {42: wide}`) was never checked and the spec passed (#143).
+   A key is a name. The one exception is `materials.face_slots`, whose keys
+   are polygon material slots -- indexes, not measurements -- and which is
+   held here to adu_kit.manifest.face_slots' own rule instead: whole numbers
+   1..n with no gap, each naming a material the library defines, so the
+   exemption cannot become a place to put an uncited number.
+7. NOTHING CONTAINS ITSELF. PyYAML can load an alias inside its own anchor
+   (`a: &a` then `self: *a`) as a mapping that holds itself; walking it
+   recursed until Python gave up (#143). A container met again on its own
+   path is a named problem, and the walk goes no further into it.
 
 WHAT RULE 4 PROVES, AND WHAT IT DOES NOT. It proves the sheet contains that
 length somewhere; it does not prove which dimension it is. `4'-0"` appears
@@ -59,10 +70,12 @@ from pathlib import Path
 from typing import Optional
 
 from adu_kit import sheets
+from adu_kit.manifest import face_slots
 
 CITATIONS = ("source", "derived", "assumed", "published")
 URL = re.compile(r"https?://\S+")
 FT_TOLERANCE = 0.0005
+NUMBERED_KEYS = "materials.face_slots"     # rule 6's one exception, checked by manifest.face_slots
 
 
 def _is_number(v) -> bool:
@@ -215,7 +228,21 @@ def lint(spec, harvested: Optional[dict] = None, titles: Optional[dict] = None) 
         if not any(sheets.parse_length(value) in harvested.get(p, ()) for p in pages):
             problems.append(f"{where}: {label} is not a dimension on {', '.join(named)} (pages {pages})")
 
+    on_path = set()                            # ids of the containers being walked (rule 7)
+
     def walk(node, path, stack):
+        if isinstance(node, (dict, list)):
+            if id(node) in on_path:
+                problems.append(f"{path or 'the spec'} contains itself, through a YAML alias "
+                                f"inside its own anchor; nothing in it can be checked")
+                return
+            on_path.add(id(node))
+            try:
+                _walk(node, path, stack)
+            finally:
+                on_path.discard(id(node))
+
+    def _walk(node, path, stack):
         if isinstance(node, dict):
             here = stack + [node]
             own = node.get("source")
@@ -233,6 +260,9 @@ def lint(spec, harvested: Optional[dict] = None, titles: Optional[dict] = None) 
                     problems.append(f"{path}: raw {node['raw']} is {float(feet):.4f} ft, not ft {ft}")
             for key, value in node.items():
                 child = f"{path}.{key}" if path else str(key)
+                if _is_number(key) and path != NUMBERED_KEYS:
+                    problems.append(f"{child}: the key {key!r} is a number, and a key is never "
+                                    f"checked for a citation; name it, or make it a cited value")
                 if _is_number(value):
                     number(value, child, here)
                 elif is_drawn_length(value):
@@ -250,6 +280,8 @@ def lint(spec, harvested: Optional[dict] = None, titles: Optional[dict] = None) 
                     walk(value, child, stack)
 
     walk(spec, "", [])
+    _, bad = face_slots(spec.get("materials"))
+    problems += bad
     return problems
 
 
@@ -270,14 +302,21 @@ def read_plan(pdf: Path, pages) -> tuple:
     return harvested, titles
 
 
-def count_numbers(node) -> int:
+def count_numbers(node, _on_path=None) -> int:
+    """The numbers among a spec's values. A container met again on its own
+    path is not counted twice, or forever: lint() names it (rule 7)."""
     if _is_number(node):
         return 1
-    if isinstance(node, dict):
-        return sum(count_numbers(v) for v in node.values())
-    if isinstance(node, list):
-        return sum(count_numbers(v) for v in node)
-    return 0
+    if not isinstance(node, (dict, list)):
+        return 0
+    on_path = _on_path if _on_path is not None else set()
+    if id(node) in on_path:
+        return 0
+    on_path.add(id(node))
+    try:
+        return sum(count_numbers(v, on_path) for v in (node.values() if isinstance(node, dict) else node))
+    finally:
+        on_path.discard(id(node))
 
 
 def main(argv: Optional[list] = None) -> int:
