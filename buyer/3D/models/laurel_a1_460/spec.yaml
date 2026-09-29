@@ -636,7 +636,37 @@ plan_overlay:
 
 # ---------------------------------------------------------------------------
 fixtures:
-  status: "not yet: Tier 3 (#134) measures and builds them"
+  status: "Tier 3 (#134): PR A measures the interior fixtures off A-1.0 (below); PR B builds them; PR C reads and places the mini-split condenser off A-2.0"
+  # WHERE A-1.0 DRAWS EACH FIXTURE, in plan feet: read off the sheet's VECTORS
+  # by fixture_ink.py, in the frame plan_ink.py registers on the 19'-2" and
+  # 24'-0" strings, and measured again on every CI run by
+  # test_fixture_ink.py, so these cannot drift from the drawing.
+  #
+  # THEY ARE THE DRAWING'S NUMBERS, not a fixture catalogue's. The range is
+  # 30" by 27 1/2" because A-1.0 draws it so; the vanity's 36" agrees with its
+  # own label. Heights are not here: a plan has none (PR B assumes them, as
+  # the barn cabin did). Nor is the mini-split's indoor unit: no sheet draws
+  # one, and A-1.1 powers only the condenser.
+  #
+  # THE WALL SIDE IS THE FINISHED FACE. Each fixture against a wall stops at
+  # the gyp board, half an inch in from the stud face: the vanity's back at
+  # Y 5.9591 against P_bath_W's stud face at 6.0, the kitchen's backs at
+  # X 23.5013 against the X 24 wall's 23.5417. This model carries the board as
+  # a material, not a thickness, so PR B takes a fixture's wall side to the
+  # stud face; these numbers stay as drawn.
+  drawn:
+    source: "A-1.0 floor plan, the fixtures' thin (0.24 pt) line work, measured by fixture_ink.py"
+    method: "rect: the largest closed rectangle in the fixture's window (dashed for the dishwasher); sides: the tub's long sides; ink: the toilet's whole outline; circle: the water heater's one curved path; counter: its front line, between the refrigerator and the range"
+    range:        {x: [21.2063, 23.5013], y: [16.1663, 18.6681], note: "30\" wide, its burner grid drawn inside; A-1.1 'FOR ELEC. RANGE'"}
+    sink:         {x: [21.6667, 23.4146], y: [11.2495, 13.7512], note: "a 30\" sink, set into the counter"}
+    refrigerator: {x: [21.4999, 23.5013], y: [6.3326, 8.8344], note: "REF, 30\" wide, its door swing drawn in front of it"}
+    dishwasher:   {x: [21.4866, 23.4813], y: [8.8611, 10.8625], note: "DW, 24\" square, drawn DASHED: it is under the counter"}
+    vanity:       {x: [15.0021, 17.9974], y: [4.1245, 5.9591], note: "its label says 36\" VANITY; the ink is 35.9\""}
+    washer_dryer: {x: [11.8332, 14.3350], y: [4.6915, 7.1865], note: "W/D, a 30\" stacked pair: one box on the plan"}
+    tub:          {x: [20.9995, 23.5013], y: [0.9556, 5.9591], note: "a 60\" by 30\" tub against the X 24 wall; A-1.0's notes call for a tub or shower surround"}
+    toilet:       {x: [18.6713, 20.3324], y: [3.3373, 5.9591], note: "its tank against P_bath_W, the bowl toward the rear wall: 31 1/2\" deep, 20\" at the tank"}
+    water_heater: {x: [15.1554, 16.9700], y: [6.4595, 8.2941], note: "W/H, a 22\" circle in the pantry: the Rheem named below"}
+    counter:      {x: [21.4999, 23.5013], y: [8.8344, 16.1663], note: "not drawn as a box: its front line at X 21.5, from the refrigerator's side to the range's -- 88\" of counter with the sink and dishwasher in it"}
   named_equipment:
     water_heater: {model: "RHEEM PROPH 40T2R H37515", kind: "NEEA-rated heat pump water heater", location: pantry,
                    source: "A-1.0 WATER HEATER NOTES 'PER CF1R: NEEA RATED WATER HEATER HEAT PUMP MODEL, RHEEM PROPH 40T2R H37515'; A-1.0 floor plan W/H in PANTRY"}

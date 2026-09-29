@@ -82,6 +82,30 @@ def labels(page=PAGE, pdf=PDF):
     return sheets.harvest(Path(pdf), [page])
 
 
+def matrix(el):
+    """An SVG element's transform as (a, b, c, d, e, f)."""
+    m = re.fullmatch(r"matrix\((.*)\)", el.get("transform", "matrix(1,0,0,1,0,0)"))
+    # SVG allows commas, whitespace or both between a matrix's numbers;
+    # cairo writes "0.12, 0, ..." today, and another version need not.
+    return tuple(float(v) for v in re.split(r"[\s,]+", m.group(1).strip()))
+
+
+def paths(svg_text):
+    """Every stroked path as (stroke width, [points]), in page points with y
+    down -- EVERY coordinate the path names, curve control points included.
+    A circle drawn as Beziers has its control points on its bounding box, so
+    this is what measures one; segments() keeps only curve end points."""
+    out = []
+    for el in ET.fromstring(svg_text).iter(NS + "path"):
+        if el.get("stroke") in (None, "none"):
+            continue
+        a, b, c, d, e, f = matrix(el)
+        nums = [float(n) for n in re.findall(NUM, el.get("d", ""))]
+        pts = [(a * x + c * y + e, b * x + d * y + f) for x, y in zip(nums[::2], nums[1::2])]
+        out.append((float(el.get("stroke-width", "1")) * abs(a), pts))
+    return out
+
+
 def segments(svg_text):
     """Every stroked straight segment: ((x0, y0), (x1, y1), stroke width), in
     page points with y down. Curves contribute their end points only."""
@@ -89,10 +113,7 @@ def segments(svg_text):
     for el in ET.fromstring(svg_text).iter(NS + "path"):
         if el.get("stroke") in (None, "none"):
             continue
-        m = re.fullmatch(r"matrix\((.*)\)", el.get("transform", "matrix(1,0,0,1,0,0)"))
-        # SVG allows commas, whitespace or both between a matrix's numbers;
-        # cairo writes "0.12, 0, ..." today, and another version need not.
-        a, b, c, d, e, f = (float(v) for v in re.split(r"[\s,]+", m.group(1).strip()))
+        a, b, c, d, e, f = matrix(el)
         toks = re.findall(r"[MLCZ]|" + NUM, el.get("d", ""))
         cur = start = None
         i = 0

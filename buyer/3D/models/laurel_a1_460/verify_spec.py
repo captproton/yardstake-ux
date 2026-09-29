@@ -121,6 +121,56 @@ def trim_problems(trim, barn_trim):
     return bad
 
 
+# THE COUNTER HOLDS these: the sink is set into it and the dishwasher is
+# under it, so each lies inside the counter's footprint by design.
+IN_THE_COUNTER = ("sink", "dishwasher")
+
+
+def fixture_problems(spec):
+    """Where each drawn fixture sits (#134): inside the exterior walls'
+    stud faces, clear of every partition, and clear of every other fixture
+    except what the counter holds.
+
+    The plan's fixtures are drawn to the finished face, half an inch in from
+    a stud face, so a fixture that touches a wall's band -- or runs into it --
+    is one read or recorded wrongly."""
+    env, con = spec["envelope"], spec["construction"]
+    W, D = env["width"]["ft"], env["depth"]["ft"]
+    t = con["exterior_wall"]["stud_depth"]["ft"]
+    layout = spec["interior_partitions"]["layout"]
+    it = layout["thickness"]["ft"]
+    drawn = {k: v for k, v in spec["fixtures"]["drawn"].items() if isinstance(v, dict)}
+    bad = []
+    for name, f in drawn.items():
+        (x0, x1), (y0, y1) = f["x"], f["y"]
+        if not (x0 < x1 and y0 < y1):
+            bad.append(f"{name}'s extent does not rise: {f}")
+            continue
+        if x0 < t or x1 > W - t or y0 < t or y1 > D - t:
+            bad.append(f"{name} runs into an exterior wall: X {x0}..{x1}, Y {y0}..{y1}")
+        for row in layout["partitions"]:
+            near = row["at_ft"]
+            far = near + it if _sign(row["id"], row["studs_toward"]) > 0 else near - it
+            lo, hi = sorted((near, far))
+            a, b = sorted((row["from_ft"], row["to_ft"]))
+            across, along = ((y0, y1), (x0, x1)) if _axis(row["id"], row["runs_along"]) == "X" \
+                else ((x0, x1), (y0, y1))
+            if across[0] < hi - TOL and across[1] > lo + TOL and along[0] < b - TOL and along[1] > a + TOL:
+                bad.append(f"{name} runs into {row['id']}")
+    names = sorted(drawn)
+    for i, n in enumerate(names):
+        for m in names[i + 1:]:
+            (a0, a1), (b0, b1) = drawn[n]["x"], drawn[n]["y"]
+            (c0, c1), (d0, d1) = drawn[m]["x"], drawn[m]["y"]
+            if not (a0 < c1 - TOL and c0 < a1 - TOL and b0 < d1 - TOL and d0 < b1 - TOL):
+                continue
+            held = {n, m} - {"counter"}
+            if "counter" in (n, m) and held <= set(IN_THE_COUNTER):
+                continue
+            bad.append(f"{n} and {m} overlap")
+    return bad
+
+
 def check(spec):
     o = spec["openings"]
     width = parse_length(spec["envelope"]["width"]["raw"])
@@ -416,6 +466,10 @@ def check(spec):
     if "floor" not in slots.values():
         bad.append("no slot is the floor, which finishes.floor puts on the slab's top face")
     gate(not bad, "materials.face_slots are whole slots 1..n naming library materials, one of them the floor",
+         "; ".join(bad))
+
+    bad = fixture_problems(spec)
+    gate(not bad, "every drawn fixture sits inside the rooms, clear of the walls and of each other",
          "; ".join(bad))
 
     ew = spec["construction"]["exterior_wall"]
