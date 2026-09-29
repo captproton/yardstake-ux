@@ -593,7 +593,9 @@ The mini-split condenser is the first **exterior ground-mounted** object in the
 project, and #161 gave it its own placement rule relative to the slab.
 
 Furniture reuses the barn cabin's arrangements through the `presence` block.
-The bedroom-versus-office swap transfers directly.
+Laurel is a studio, so the bedroom-versus-office swap did not transfer as
+one group: #162 split it into two a buyer can mix, a sleeping area and a
+sitting area, in the one room.
 
 For the configurator (Tier 2): the stucco / fibre-cement swap, moved here
 from P4 so it lands with the siding texture and trim that make it visible; every layout ships in the file and `presence`
@@ -684,7 +686,13 @@ Each line is one pull request.
    - **The placement rule** (`spec.fixtures.condenser.placement_rule`), gated clause by clause on the mesh: on its own pad, the pad on grade and to its declared margins; outside the wall's modelled outer face; where A-1.1 draws it; as tall as drawn and below the roof; blocking no opening. It ships in lod0 and lod1, not lod2.
    - **No sheet names the mini-split's model,** so it is built at its drawn size. #134's text was amended (2026-09-29): published dimensions where the plans name a model, drawn dimensions where they do not.
    - **Review** tightened the placement gate to every face of the pad and the drift test to whole ranges. Probes 212.
-12. [#135](https://github.com/captproton/yardstake-ux/issues/135) **Next.** Furniture and arrangements.
+12. [#135](https://github.com/captproton/yardstake-ux/issues/135) **Done** ([#162](https://github.com/captproton/yardstake-ux/pull/162)). **Furniture and arrangements: the barn cabin's, reused, in two groups.**
+   - **Two groups, one room** (decided 2026-09-29): **Sleeping area** (bed, home office, unfurnished) and **Living** (sofa, unfurnished), both naming the `living` room, so the manifest carries "Furniture shown for scale; not included." The sleeping area stands against the X 0 end wall under W-C2, the sofa under W-C1.
+   - **Reused, not copied.** No sheet draws furniture. The build reads the pieces from the barn cabin's spec and turns and moves each arrangement by an `assumed` `place`; the materials are its five `furn_*`.
+   - **Gated on the mesh:** inside the walls; clear of partitions and drawn fixtures; out of the declared `keep_clear` runs (the walk between D-6 and D-1, the door swings, the kitchen aisle); **the two groups never overlapping**, since a buyer can show both; every arrangement built, controlled and on the floor.
+   - **An option names an `arrangement`,** which `build.option_nodes` resolves to its `Furn_` nodes for the export, the viewable blend and the Blender panel alike. Review made it an exact, declared id: `sleep` had matched the bed and the office at once, and `""` had passed as unfurnished. Probes 221.
+
+**All twelve steps are done.** Laurel is built, exported and on the page. Still open alongside it: [#143](https://github.com/captproton/yardstake-ux/issues/143) (two lint gaps) and [#144](https://github.com/captproton/yardstake-ux/issues/144) (the optional entry canopy).
 
 Steps 1 and 2 are the ones that pay for themselves across Richmond and the six
 Concord sets. Steps 6 and 9 pay for themselves on every model after Laurel.
