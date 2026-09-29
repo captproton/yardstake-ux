@@ -123,6 +123,106 @@ class DuplicateKeys(unittest.TestCase):
         self.assertIn("unhashable key", r.stderr)
 
 
+def _cli(text):
+    """Run the command line on a spec written to a temporary file."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "spec.yaml"
+        path.write_text(text)
+        return subprocess.run([sys.executable, "-m", "adu_kit.spec_lint", str(path)],
+                              cwd=THREE_D, capture_output=True, text=True)
+
+
+INDEX = "sheet_index:\n  source: A-0.0\n  sheets:\n  - {pdf_page: 1, id: A-0.0}\n"
+FLOOR = {"base_color_linear": [0.5, 0.5, 0.5], "assumed": "a grey"}
+
+
+class NumericKeys(unittest.TestCase):
+    """Rule 6 (#143): the walk checks values, so a number used as a key was
+    never checked, and a spec with one passed."""
+
+    def test_a_numeric_key_fails(self):
+        self.assertEqual(spec_lint.lint(spec(envelope={42: "wide"})),
+                         ["envelope.42: the key 42 is a number, and a key is never checked "
+                          "for a citation; name it, or make it a cited value"])
+
+    def test_a_float_key_fails_and_a_boolean_key_is_not_a_number(self):
+        problems = spec_lint.lint(spec(envelope={2.5: "wide", True: "yes"}))
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("the key 2.5 is a number", problems[0])
+
+    def test_face_slots_are_numbered_by_slot(self):
+        """Laurel's materials.face_slots: polygon material indexes, not measurements."""
+        self.assertEqual(spec_lint.lint(spec(materials={"library": {"floor": FLOOR, "trim": FLOOR},
+                                                        "face_slots": {1: "floor", 2: "trim"}})), [])
+
+    def test_face_slots_are_held_to_their_own_rule(self):
+        """The exemption is no hiding place: a slot must be 1..n, no gap,
+        naming a library material, as adu_kit.manifest.face_slots requires."""
+        problems = spec_lint.lint(spec(materials={"library": {"floor": FLOOR},
+                                                  "face_slots": {1: "floor", 42: "floor"}}))
+        self.assertEqual(problems, ["materials.face_slots must be numbered 1..2 with no gap, found [1, 42]"])
+        problems = spec_lint.lint(spec(materials={"library": {"floor": FLOOR}, "face_slots": {1: "carpet"}}))
+        self.assertEqual(problems, ["materials.face_slots slot 1 names 'carpet', which materials.library does not define"])
+
+    def test_the_exemption_is_that_path_only(self):
+        problems = spec_lint.lint(spec(finishes={"face_slots": {1: "floor"}}))
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("finishes.face_slots.1: the key 1 is a number", problems[0])
+
+    def test_a_key_spelt_like_the_path_is_not_the_exemption(self):
+        """Found by review: matched by its printed path, a top-level key
+        named "materials.face_slots" was exempt, and checked by nothing."""
+        problems = spec_lint.lint(spec(**{"materials.face_slots": {42: "wide"}}))
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("materials.face_slots.42: the key 42 is a number", problems[0])
+
+    def test_the_command_line_fails_on_one(self):
+        # The issue's own case: this passed, "1 number(s), every one cited".
+        r = _cli(INDEX + "envelope:\n  42: wide\n")
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("envelope.42: the key 42 is a number", r.stdout)
+
+
+class SelfContaining(unittest.TestCase):
+    """Rule 7 (#143): PyYAML loads an alias inside its own anchor as a
+    container that holds itself, and walking it recursed without end."""
+
+    def _looped(self):
+        a = {"ft": 1.0}
+        a["self"] = a
+        b = [2.0]
+        b.append(b)
+        return spec(a=a, b=b)
+
+    def test_lint_names_it_instead_of_recursing(self):
+        problems = spec_lint.lint(self._looped())
+        for where in ("a.self", "b[1]"):
+            with self.subTest(where=where):
+                self.assertIn(f"{where} is a YAML alias back to a container it sits inside; the walk "
+                              f"stops there, having checked that container once", problems)
+        # and what it holds is still checked, once
+        self.assertIn("a.ft = 1.0 has no source, derived, assumed or published", problems)
+
+    def test_count_numbers_counts_each_once(self):
+        # the index's three pages, a.ft and b[0]: each once, however often looped
+        self.assertEqual(spec_lint.count_numbers(self._looped()), len(SHEETS["sheets"]) + 2)
+
+    def test_a_shared_alias_is_not_a_loop(self):
+        """An anchor used twice, never inside itself, is checked in each place."""
+        shared = {"ft": 3.0}
+        problems = spec_lint.lint(spec(a=shared, b=shared))
+        self.assertEqual(problems, ["a.ft = 3.0 has no source, derived, assumed or published",
+                                    "b.ft = 3.0 has no source, derived, assumed or published"])
+
+    def test_the_command_line_reports_it_not_a_traceback(self):
+        """The file, as a block alias. Today the duplicate-key loader refuses
+        it before the walk; the command line must say so readably either way."""
+        r = _cli(INDEX + "a: &a\n  self: *a\n")
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertRegex(r.stdout + r.stderr, r"recursive|alias back to a container")
+
+
 class SheetsAndLengths(unittest.TestCase):
 
     def test_a_source_must_name_a_listed_sheet(self):
