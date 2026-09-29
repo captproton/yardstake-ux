@@ -347,10 +347,10 @@ overhangs, vaulted ceilings that follow the roof line, and window and door
 openings cut from the schedule.
 
 The optional entry canopy moved out to #144. A-2.0 marks it "OPTIONAL CANOPY
-SEE A-3.4", but A-3.4 has not been harvested, so `spec.yaml` records it under
+SEE A-3.4", but A-3.4 had not been harvested, so `spec.yaml` recorded it under
 `variants.canopy` with a citation and no dimensions — nothing a build that
 carries no dimension literals can use. It is optional on the drawings and the
-exit gate below does not need it.
+exit gate below does not need it. (Built since, by #163.)
 
 Promote from the barn cabin, unchanged where possible: the opening cutter and
 sash construction from the declared window type. These were the subject of
@@ -692,7 +692,13 @@ Each line is one pull request.
    - **Gated on the mesh:** inside the walls; clear of partitions and drawn fixtures; out of the declared `keep_clear` runs (the walk between D-6 and D-1, the door swings, the kitchen aisle); **the two groups never overlapping**, since a buyer can show both; every arrangement built, controlled and on the floor.
    - **An option names an `arrangement`,** which `build.option_nodes` resolves to its `Furn_` nodes for the export, the viewable blend and the Blender panel alike. Review made it an exact, declared id: `sleep` had matched the bed and the office at once, and `""` had passed as unfurnished. Probes 221.
 
-**All twelve steps are done.** Laurel is built, exported and on the page. Still open alongside it: [#143](https://github.com/captproton/yardstake-ux/issues/143) (two lint gaps) and [#144](https://github.com/captproton/yardstake-ux/issues/144) (the optional entry canopy).
+**All twelve steps are done.** Laurel is built, exported and on the page. Still open alongside it: [#143](https://github.com/captproton/yardstake-ux/issues/143) (two lint gaps).
+
+**After the plan:** [#144](https://github.com/captproton/yardstake-ux/issues/144) **Done** ([#163](https://github.com/captproton/yardstake-ux/pull/163)). **The optional entry canopy**, read as vectors off A-3.4's plan and section and A-2.0's front and side (left) elevations (`canopy_ink.py`, measured again in CI by `test_canopy_ink.py`).
+   - **Four drawings, one discrepancy:** they agree on the 6'-6" by 2'-6" frame, its 7'-0" underside and its braces; the elevations draw the frame 8" deep where A-3.4's section details a 2x6. Decided 2026-09-29: the detail governs the member, the elevations its height, recorded in `spec.discrepancies` and held true by a test.
+   - **Switchable:** its own `Canopy` collection (frame, slats, two 1/2" braces) in lod0 and lod1, lod2's contract unchanged; an "Entry canopy" presence group that opens on None, as A-2.0 marks it optional.
+   - **Gated on the mesh:** where A-2.0 draws it at A-3.4's size, outside the front wall, below the roof, clear of every opening. Under siding the ledger bears on door 1's head trim, whose borrowed height tops out 0.6" above the drawn underside (decided: drawn beats assumed); the gate allows that one contact, bounded, and no other.
+   - **Review** made the braces touch the wall plate and the frame exactly, to mesh precision. Probes 229.
 
 Steps 1 and 2 are the ones that pay for themselves across Richmond and the six
 Concord sets. Steps 6 and 9 pay for themselves on every model after Laurel.
