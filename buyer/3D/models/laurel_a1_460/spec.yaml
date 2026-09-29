@@ -287,6 +287,8 @@ construction:
     framing: "2x4, gyp board both sides"
     source: "A-1.0 WALL LEGEND '2X4 INTERIOR WALL: GYP. BOARD BOTH SIDES'"
     stud_depth: {ft: 0.2917, raw: "3 1/2\"", assumed: "the actual depth of a 2x4; not dimensioned on any sheet"}
+    interior_finish: {ft: 0.0417, raw: "1/2\"", material: gypsum_board,
+                      assumed: "A-1.0's legend says GYP. BOARD BOTH SIDES and gives no thickness; the 1/2\" A-3.0 and A-3.2 call for on the exterior walls' inside face. The fixtures' measured backs agree: each sits 0.040-0.041 ft off a stud face"}
   foundation:
     type: slab_on_grade
     slab: {ft: 0.3333, raw: "4\"", reinforcing: "#3 bars @ 18\" OC each way (or 6x6 #10 WWM) over 10 mil vapor barrier and 4\" crushed rock",
@@ -636,7 +638,7 @@ plan_overlay:
 
 # ---------------------------------------------------------------------------
 fixtures:
-  status: "Tier 3 (#134): PR A measures the interior fixtures off A-1.0 (below); PR B builds them; PR C reads and places the mini-split condenser off A-2.0"
+  status: "Tier 3 (#134): PR A measured the interior fixtures off A-1.0 (drawn, below); PR B builds them (heights, water_heater); PR C reads and places the mini-split condenser off A-2.0"
   # WHERE A-1.0 DRAWS EACH FIXTURE, in plan feet: read off the sheet's VECTORS
   # by fixture_ink.py, in the frame plan_ink.py registers on the 19'-2" and
   # 24'-0" strings, and measured again on every CI run by
@@ -665,8 +667,39 @@ fixtures:
     washer_dryer: {x: [11.8332, 14.3350], y: [4.6915, 7.1865], note: "W/D, a 30\" stacked pair: one box on the plan"}
     tub:          {x: [20.9995, 23.5013], y: [0.9556, 5.9591], note: "a 60\" by 30\" tub against the X 24 wall; A-1.0's notes call for a tub or shower surround"}
     toilet:       {x: [18.6713, 20.3324], y: [3.3373, 5.9591], note: "its tank against P_bath_W, the bowl toward the rear wall: 31 1/2\" deep, 20\" at the tank"}
+    toilet_tank:  {x: [18.6713, 20.3324], y: [5.0051, 5.9591], note: "the tank alone, 20\" by 11 1/2\": the toilet's ink behind the bowl, read separately because the tank stands taller"}
     water_heater: {x: [15.1554, 16.9700], y: [6.4595, 8.2941], note: "W/H, a 22\" circle in the pantry: the Rheem named below"}
     counter:      {x: [21.4999, 23.5013], y: [8.8344, 16.1663], note: "not drawn as a box: its front line at X 21.5, from the refrigerator's side to the range's -- 88\" of counter with the sink and dishwasher in it"}
+
+  # PR B BUILDS THEM. Plan position is `drawn`, above, with one change: a
+  # side drawn at a wall's FINISHED face -- within construction's
+  # interior_finish of its stud face -- is built to the stud face, because
+  # the model carries the gyp board as a material and not a thickness, and a
+  # fixture stood 1/2" off a bare stud face shows a gap. Heights are below:
+  # no sheet in the set gives one, so each is a declared standard, except
+  # the water heater, which the plans name by model and its maker publishes.
+  heights:
+    counter_top:    {ft: 3.0,    raw: "36\"",  assumed: "standard kitchen counter height; A-1.0 draws the counter and dimensions no height"}
+    countertop:     {ft: 0.125,  raw: "1 1/2\"", assumed: "a stone or solid-surface top's thickness; the base cabinets stand to counter_top less this"}
+    range:          {ft: 3.0,    raw: "36\"",  assumed: "a freestanding range is made to the counter's height"}
+    refrigerator:   {ft: 5.8333, raw: "70\"",  assumed: "a 30\"-wide refrigerator, which A-1.0 draws, stands about 66\"-70\""}
+    sink_basin:     {ft: 0.6667, raw: "8\"",   assumed: "a kitchen sink basin's depth below the counter top"}
+    sink_rim:       {ft: 0.0104, raw: "1/8\"", assumed: "how far the sink's rim stands proud of the counter top, so its face is not coplanar with the top's"}
+    vanity:         {ft: 2.8333, raw: "34\"",  assumed: "a bath vanity's height to its top; the '36\" VANITY' label is its width"}
+    tub:            {ft: 1.25,   raw: "15\"",  assumed: "an alcove tub's rim height"}
+    toilet_bowl:    {ft: 1.25,   raw: "15\"",  assumed: "a standard toilet's rim height"}
+    toilet_tank:    {ft: 2.5,    raw: "30\"",  assumed: "the top of a standard toilet's tank"}
+    washer_dryer:   {ft: 6.4167, raw: "77\"",  assumed: "a stacked 27\"-wide washer and dryer; A-1.0 draws one 30\" box for the pair"}
+  water_heater:
+    model: "RHEEM PROPH40 T2 RH375-15, as A-1.0's WATER HEATER NOTES name it"
+    height:   {ft: 5.1927, raw: "62 5/16\"",
+               published: "Rheem Professional Prestige ProTerra Hybrid Electric Heat Pump spec sheet, dimension table, PROPH40 row, column A: https://media.rheem.com/blobazrheem/wp-content/uploads/sites/36/2024/07/HP-400-SO-RHEEM-GenV-with-Shut-Off_0718-1.pdf"}
+    diameter: {ft: 1.6875, raw: "20 1/4\"",
+               published: "the same table and row, column B: https://media.rheem.com/blobazrheem/wp-content/uploads/sites/36/2024/07/HP-400-SO-RHEEM-GenV-with-Shut-Off_0718-1.pdf"}
+    placed: >
+      CENTRED ON THE DRAWN CIRCLE, AT THE PUBLISHED SIZE. A-1.0's W/H symbol
+      is 22" across; the unit is 20 1/4". The plan places it and the maker
+      sizes it, which is what #134 asks of named equipment.
   named_equipment:
     water_heater: {model: "RHEEM PROPH 40T2R H37515", kind: "NEEA-rated heat pump water heater", location: pantry,
                    source: "A-1.0 WATER HEATER NOTES 'PER CF1R: NEEA RATED WATER HEATER HEAT PUMP MODEL, RHEEM PROPH 40T2R H37515'; A-1.0 floor plan W/H in PANTRY"}
@@ -1038,6 +1071,26 @@ materials:
       roughness: 0.60
       metallic: 0.0
       assumed: "no sheet names a floor finish and the rendering shows no interior (finishes.floor): a neutral mid-tone, declared rather than sampled"
+    appliance:
+      base_color_linear: [0.550, 0.550, 0.545]
+      roughness: 0.35
+      metallic: 0.8
+      assumed: "no sheet or rendering shows the appliances: brushed stainless, declared, for the range, refrigerator, dishwasher and sink"
+    porcelain:
+      base_color_linear: [0.860, 0.860, 0.845]
+      roughness: 0.25
+      metallic: 0.0
+      assumed: "white vitreous china and enamel, declared: the tub, toilet, washer/dryer and water heater"
+    cabinet:
+      base_color_linear: [0.360, 0.250, 0.160]
+      roughness: 0.55
+      metallic: 0.0
+      assumed: "no sheet names a cabinet finish: a mid-tone wood, declared, for the kitchen base cabinets and the vanity"
+    countertop:
+      base_color_linear: [0.180, 0.180, 0.185]
+      roughness: 0.30
+      metallic: 0.0
+      assumed: "no sheet names a countertop: a dark stone, declared"
     glass:
       base_color_linear: [0.055, 0.062, 0.070]
       roughness: 0.08
@@ -1059,6 +1112,16 @@ materials:
     Leaf_: interior_door
     Glazing_: glass
     Trim_: trim
+    # FIXTURES (#134). Fix_countertop before Fix_counter: first match wins,
+    # and one prefix contains the other.
+    Fix_countertop: countertop
+    Fix_counter: cabinet
+    Fix_vanity: cabinet
+    Fix_range: appliance
+    Fix_refrigerator: appliance
+    Fix_dishwasher: appliance
+    Fix_sink: appliance
+    Fix_: porcelain
   # FACES A BUILD TAGS, by polygon material index (adu_kit.finish.assign's
   # extra_slots). build.py tags the slab's top face 1, the floor, and the
   # siding skin's cut faces round each opening 2, the trim
@@ -1112,7 +1175,7 @@ export:
     # What each level carries. lod2 is the placement developer's massing,
     # built with no openings cut; lod1 is the exterior a buyer sees from the
     # street; lod0 adds the interior.
-    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim; textured"
+    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim, the fixtures; textured"
     lod1: "shell and both finishes' skins, roof, slab, the exterior walls' sashes and leaves, glazing, the siding trim; textured"
     lod2: "shell (the stucco skin only), roof and slab, no openings cut; flat colour"
   budget_kb:

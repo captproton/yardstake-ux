@@ -13,9 +13,9 @@ makes every number say where it came from, and checks what it can:
 0. NO DUPLICATE KEYS. YAML keeps the last of a repeated key and says nothing,
    so an earlier value -- cited or not -- would never be checked.
 1. EVERY NUMBER IS CITED AND FINITE. A number (not a boolean) needs a
-   non-empty `source`, `derived` or `assumed` string in its own mapping or in
-   the mapping directly above it, looking through lists. The document root
-   never counts. NaN and infinity are not measurements.
+   non-empty `source`, `derived`, `assumed` or `published` string in its own
+   mapping or in the mapping directly above it, looking through lists. The
+   document root never counts. NaN and infinity are not measurements.
 2. A SOURCE NAMES A SHEET the spec lists in `sheet_index.sheets[].id`, so
    every source cites a drawing someone can open. The index must be sound:
    each id non-empty and listed once (null allowed, for a sheet with no id),
@@ -32,6 +32,12 @@ makes every number say where it came from, and checks what it can:
    `derived` and `assumed` do not excuse a drawn length. With --pdf, its value
    must be one of the dimensions adu_kit.sheets harvests from that sheet's
    page.
+
+5. A PUBLISHED FIGURE NAMES WHERE IT WAS PUBLISHED. `published` is for a
+   number that comes from outside the plan set -- a manufacturer's spec sheet
+   for equipment the plans name by model (#134) -- and must carry an http(s)
+   URL, so it cites a document someone can open, as `source` cites a sheet.
+   It does not excuse a drawn length (rule 4): those are the plan set's.
 
 WHAT RULE 4 PROVES, AND WHAT IT DOES NOT. It proves the sheet contains that
 length somewhere; it does not prove which dimension it is. `4'-0"` appears
@@ -54,7 +60,8 @@ from typing import Optional
 
 from adu_kit import sheets
 
-CITATIONS = ("source", "derived", "assumed")
+CITATIONS = ("source", "derived", "assumed", "published")
+URL = re.compile(r"https?://\S+")
 FT_TOLERANCE = 0.0005
 
 
@@ -193,7 +200,7 @@ def lint(spec, harvested: Optional[dict] = None, titles: Optional[dict] = None) 
         if not _is_finite(value):
             problems.append(f"{where} = {value} is not a finite number")
         elif not cited(stack):
-            problems.append(f"{where} = {value} has no source, derived or assumed")
+            problems.append(f"{where} = {value} has no source, derived, assumed or published")
 
     def drawn(value, where, stack, is_raw=False):
         label = f"raw {value}" if is_raw else value
@@ -214,6 +221,9 @@ def lint(spec, harvested: Optional[dict] = None, titles: Optional[dict] = None) 
             own = node.get("source")
             if isinstance(own, str) and ids and not _named_sheets(own, ids):
                 problems.append(f"{path}.source names no sheet in sheet_index: {own!r}")
+            pub = node.get("published")
+            if isinstance(pub, str) and pub.strip() and not URL.search(pub):
+                problems.append(f"{path}.published names no URL to open: {pub!r}")
             ft = node.get("ft")
             if "raw" in node and _is_number(ft) and _is_finite(ft):
                 feet = sheets.parse_length(node["raw"]) if isinstance(node["raw"], str) else None

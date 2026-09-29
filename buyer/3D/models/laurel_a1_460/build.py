@@ -45,7 +45,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.append(str(HERE.parents[1]))          # buyer/3D, where adu_kit lives
 from adu_kit.kernel import (  # noqa: E402,F401
     load_spec, box, box_geom, prism_geom, weld, multibox, sash_geom,
-    difference, collection, world_bbox, mark_reveals, ft, uv_project,
+    difference, collection, world_bbox, mark_reveals, ft, uv_project, tube,
 )
 from adu_kit.verify_lib import inside_mesh  # noqa: E402
 from adu_kit.manifest import face_slots  # noqa: E402
@@ -69,6 +69,8 @@ CORNER_TOL = 1e-4       # ft, matching a boolean's output vertex to the cut it c
 INCHES_PER_FOOT = 12    # unit arithmetic, for a spec tolerance given in inches and a report that prints them
 UP = 0.9                # a face whose normal's Z exceeds this faces up: the slab's top
 SPAN_PLACES = 4         # decimal places openings are compared to when grouping a window with its transom; the spec writes feet to 4
+WH_SIDES = 24           # the water heater's cylinder: faces round it, so its flats sit within 1% of the published diameter
+FACE_TOL = 0.01         # ft; a fixture side drawn this close past a finished face is still "drawn to the finished face"
 MIN_RUN = 1e-3          # ft; a baseboard run shorter than this is a sliver where a casing meets a corner, not a run
 
 
@@ -535,6 +537,9 @@ def build(spec, cut_openings=True):
 
     trim = [multibox(f"Trim_{host}", parts, trim_coll)
             for host, parts in trim_parts.items() if parts]
+
+    fixture_coll = collection("Fixtures")
+    fixtures = _build_fixtures(spec, fixture_coll)
     # ONE NODE PER WALL, like the interior trim, so the cutaway can hide the
     # front wall's siding trim with the front wall.
     siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, siding_coll)
@@ -542,9 +547,11 @@ def build(spec, cut_openings=True):
 
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
-               depths=depths, skin_of=skin_of, siding_of=siding_of, trim=trim, siding=siding)
+               depths=depths, skin_of=skin_of, siding_of=siding_of, trim=trim, siding=siding,
+               fixtures=fixtures)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
-                     Openings=openings, Site=site, Trim=trim_coll, Siding=siding_coll)
+                     Openings=openings, Site=site, Trim=trim_coll, Siding=siding_coll,
+                     Fixtures=fixture_coll)
 
 
 def _face_slot(spec, material):
@@ -560,6 +567,78 @@ def _face_slot(spec, material):
 
 def _floor_slot(spec):
     return _face_slot(spec, "floor")
+
+
+def to_stud_faces(spec, bb):
+    """A drawn fixture's plan box with each side that stands at a FINISHED
+    face moved to that wall's STUD face (spec.fixtures).
+
+    A-1.0 draws fixtures against the gyp board, half an inch in from a stud
+    face; this model carries the board as a material, so a fixture built as
+    drawn stands half an inch off a bare stud face with a gap behind it. A
+    side is moved only if it lies within the wall's finish thickness (plus
+    FACE_TOL) on the room side of a face, and the fixture overlaps that face
+    along its run."""
+    con = spec["construction"]
+    ext = con["exterior_wall"]["interior_finish"]["ft"]
+    part = con["interior_wall"]["interior_finish"]["ft"]
+    (x0, x1), (y0, y1) = bb["x"], bb["y"]
+    box_ = {"x": [x0, x1], "y": [y0, y1]}
+    for host, faces in room_faces(spec).items():
+        finish = ext if host.startswith("Wall_") else part
+        for f in faces:
+            across = "y" if f["along"] == "x" else "x"
+            lo, hi = box_[f["along"]]
+            if hi <= f["from"] or lo >= f["to"]:
+                continue                        # not alongside this face
+            side = 0 if f["into"] > 0 else 1    # the side that faces the wall
+            gap = (box_[across][side] - f["at"]) * f["into"]
+            if 0 < gap <= finish + FACE_TOL:
+                box_[across][side] = f["at"]
+    return box_
+
+
+def _build_fixtures(spec, coll):
+    """The interior fixtures (#134): plan from spec.fixtures.drawn taken to
+    the stud faces, heights from spec.fixtures.heights, the water heater at
+    its published size."""
+    fx = spec["fixtures"]
+    h = {k: v["ft"] for k, v in fx["heights"].items()}
+    at = {k: to_stud_faces(spec, v) for k, v in fx["drawn"].items() if isinstance(v, dict)}
+
+    def slab(bb, z0, z1):
+        return (bb["x"][0], bb["x"][1], bb["y"][0], bb["y"][1], z0, z1)
+
+    base = h["counter_top"] - h["countertop"]
+    made = []
+    # The counter: base cabinets either side of the dishwasher, which stands
+    # under the top in its own drawn place; one top over the whole run.
+    cnt, dw = at["counter"], at["dishwasher"]
+    runs = [(cnt["y"][0], dw["y"][0]), (dw["y"][1], cnt["y"][1])]
+    made.append(multibox("Fix_counter", [
+        (cnt["x"][0], cnt["x"][1], a, b, 0.0, base) for a, b in runs if b - a > MIN_RUN], coll))
+    made.append(box("Fix_countertop", *slab(cnt, base, h["counter_top"]), coll))
+    made.append(box("Fix_dishwasher", *slab(dw, 0.0, base), coll))
+    sk = at["sink"]
+    made.append(box("Fix_sink", *slab(sk, h["counter_top"] - h["sink_basin"],
+                                      h["counter_top"] + h["sink_rim"]), coll))
+    made.append(box("Fix_range", *slab(at["range"], 0.0, h["range"]), coll))
+    made.append(box("Fix_refrigerator", *slab(at["refrigerator"], 0.0, h["refrigerator"]), coll))
+    made.append(box("Fix_vanity", *slab(at["vanity"], 0.0, h["vanity"]), coll))
+    made.append(box("Fix_tub", *slab(at["tub"], 0.0, h["tub"]), coll))
+    made.append(box("Fix_washer_dryer", *slab(at["washer_dryer"], 0.0, h["washer_dryer"]), coll))
+    # The toilet: its bowl to the rim over the whole drawn outline short of
+    # the tank, and the tank to its top, both one object.
+    tl, tk = at["toilet"], at["toilet_tank"]
+    bowl = dict(tl, y=[tl["y"][0], tk["y"][0]])
+    made.append(multibox("Fix_toilet", [slab(bowl, 0.0, h["toilet_bowl"]),
+                                        slab(tk, 0.0, h["toilet_tank"])], coll))
+    # The water heater: the drawn circle's centre, the maker's size.
+    wh, whs = at["water_heater"], fx["water_heater"]
+    cx, cy = sum(wh["x"]) / 2, sum(wh["y"]) / 2
+    made.append(tube("Fix_water_heater", [(cx, cy, 0.0), (cx, cy, whs["height"]["ft"])],
+                     whs["diameter"]["ft"] / 2, coll, sides=WH_SIDES))
+    return made
 
 
 def _partition_band(row, it):
@@ -713,6 +792,12 @@ def report(spec, geo, colls):
 
     ok, why = _floor_on_the_slab(spec)
     gate(ok, "the floor finish is the slab's top face, at the finished floor", why)
+
+    ok, why = _fixtures_where_drawn(spec, geo)
+    gate(ok, "every fixture is built where A-1.0 draws it, to the stud face, at its declared height", why)
+
+    ok, why = _water_heater_as_published(spec)
+    gate(ok, "the water heater stands on the drawn circle's centre, at the size Rheem publishes", why)
 
     ok, why = _no_degenerate()
     gate(ok, "no NaN or degenerate geometry", why)
@@ -1316,6 +1401,101 @@ def _floor_on_the_slab(spec):
     if p.normal.z <= UP or abs(z) > MESH_TOL:
         return False, f"the floor slot is on a face at z {z:.4f} facing {tuple(round(c, 2) for c in p.normal)}"
     return True, ""
+
+
+# ---------------------------------------------------------------------------
+# fixtures (#134). What each built object must be, worked out here from
+# spec.fixtures -- drawn plan, declared heights -- and compared with the
+# MESH, never with the boxes _build_fixtures made (rule 29).
+# ---------------------------------------------------------------------------
+def _fixture_targets(spec):
+    """{object: (drawn key, bottom, top)} for every box-built fixture."""
+    h = {k: v["ft"] for k, v in spec["fixtures"]["heights"].items()}
+    base = h["counter_top"] - h["countertop"]
+    return {
+        "Fix_counter": ("counter", 0.0, base),
+        "Fix_countertop": ("counter", base, h["counter_top"]),
+        "Fix_dishwasher": ("dishwasher", 0.0, base),
+        "Fix_sink": ("sink", h["counter_top"] - h["sink_basin"], h["counter_top"] + h["sink_rim"]),
+        "Fix_range": ("range", 0.0, h["range"]),
+        "Fix_refrigerator": ("refrigerator", 0.0, h["refrigerator"]),
+        "Fix_vanity": ("vanity", 0.0, h["vanity"]),
+        "Fix_tub": ("tub", 0.0, h["tub"]),
+        "Fix_washer_dryer": ("washer_dryer", 0.0, h["washer_dryer"]),
+        "Fix_toilet": ("toilet", 0.0, h["toilet_tank"]),
+    }
+
+
+def _fixtures_where_drawn(spec, geo):
+    """Each fixture's mesh against A-1.0 and the declared heights.
+
+    PLAN: every side is where A-1.0 draws it, or on a wall's stud face no
+    further from the drawn side than that wall's finish -- the one move the
+    build is allowed (spec.fixtures). A side moved further, or moved to
+    anything but a stud face, fails.
+    NO GAP: no side stands off a stud face by a finish's thickness or less,
+    which is the gap a fixture built exactly as drawn would leave.
+    HEIGHT: bottom and top as spec.fixtures.heights declares."""
+    con = spec["construction"]
+    finish = max(con["exterior_wall"]["interior_finish"]["ft"],
+                 con["interior_wall"]["interior_finish"]["ft"])
+    faces = [f for fl in room_faces(spec).values() for f in fl]
+    drawn = spec["fixtures"]["drawn"]
+    wrong = []
+    for name, (key, z0, z1) in _fixture_targets(spec).items():
+        ob = bpy.data.objects.get(name)
+        if ob is None:
+            wrong.append(f"{name} was not built")
+            continue
+        lo, hi = world_bbox([ob])
+        for axis, i in (("x", 0), ("y", 1)):
+            for side, got in ((0, lo[i]), (1, hi[i])):
+                want = drawn[key][axis][side]
+                if abs(got - want) <= MESH_TOL:
+                    continue
+                on_a_face = any(abs(got - f["at"]) <= MESH_TOL
+                                and (f["along"] == ("y" if axis == "x" else "x")) for f in faces)
+                if abs(got - want) > finish + FACE_TOL or not on_a_face:
+                    wrong.append(f"{name}'s {axis} {'lo' if side == 0 else 'hi'} is {got:.4f}, "
+                                 f"A-1.0 draws {want:.4f}")
+        for f in faces:
+            across = 0 if f["along"] == "y" else 1
+            along = 1 - across
+            if hi[along] <= f["from"] or lo[along] >= f["to"]:
+                continue
+            side = lo[across] if f["into"] > 0 else hi[across]
+            gap = (side - f["at"]) * f["into"]
+            if MESH_TOL < gap <= finish + FACE_TOL:
+                wrong.append(f"{name} stands {gap * INCHES_PER_FOOT:.2f} in off a stud face at "
+                             f"{f['at']:.4f}: the gap the gyp board's thickness leaves")
+        if abs(lo[2] - z0) > MESH_TOL or abs(hi[2] - z1) > MESH_TOL:
+            wrong.append(f"{name} stands {lo[2]:.4f}..{hi[2]:.4f}, declared {z0:.4f}..{z1:.4f}")
+    return not wrong, "; ".join(wrong)
+
+
+def _water_heater_as_published(spec):
+    """The named equipment (#134): Rheem's published height and diameter,
+    centred where A-1.0 draws its circle. A cylinder of WH_SIDES faces is at
+    least cos(pi / WH_SIDES) of its diameter across its flats."""
+    import math
+    ob = bpy.data.objects.get("Fix_water_heater")
+    if ob is None:
+        return False, "Fix_water_heater was not built"
+    wh, circle = spec["fixtures"]["water_heater"], spec["fixtures"]["drawn"]["water_heater"]
+    d, height = wh["diameter"]["ft"], wh["height"]["ft"]
+    lo, hi = world_bbox([ob])
+    wrong = []
+    for i, axis in ((0, "x"), (1, "y")):
+        centre = sum(circle[axis]) / 2
+        if abs((lo[i] + hi[i]) / 2 - centre) > FACE_TOL:
+            wrong.append(f"its {axis} centre is {(lo[i] + hi[i]) / 2:.4f}, the drawn circle's {centre:.4f}")
+        across = hi[i] - lo[i]
+        if not (d * math.cos(math.pi / WH_SIDES) - MESH_TOL <= across <= d + MESH_TOL):
+            wrong.append(f"it is {across * INCHES_PER_FOOT:.2f} in across {axis}; Rheem publishes "
+                         f"{d * INCHES_PER_FOOT:.2f} in")
+    if abs(lo[2]) > MESH_TOL or abs(hi[2] - height) > MESH_TOL:
+        wrong.append(f"it stands {lo[2]:.4f}..{hi[2]:.4f}; Rheem publishes {height:.4f} ft")
+    return not wrong, "; ".join(wrong)
 
 
 def _no_degenerate():

@@ -35,6 +35,7 @@ import cases_plan  # noqa: E402
 import cases_trim  # noqa: E402
 import cases_footprint  # noqa: E402
 import cases_finish  # noqa: E402
+import cases_interior  # noqa: E402
 import cases_rail  # noqa: E402
 import cases_roof  # noqa: E402
 import cases_views  # noqa: E402
@@ -43,7 +44,7 @@ from suite import find_blender, make_base, run_case  # noqa: E402
 # In the order the checks were built, one round per PR.
 MODULES = (cases_index, cases_page, cases_views, cases_rail, cases_configuration, cases_fixtures,
            cases_commerce, cases_roof, cases_frame, cases_front, cases_blender,
-           cases_export, cases_plan, cases_trim, cases_footprint, cases_finish)
+           cases_export, cases_plan, cases_trim, cases_footprint, cases_finish, cases_interior)
 
 
 def main() -> int:
