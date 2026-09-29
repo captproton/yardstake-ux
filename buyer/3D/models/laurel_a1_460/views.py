@@ -78,7 +78,7 @@ def _here():
 HERE = _here()
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
-from build import load_spec, option_nodes  # noqa: E402
+from build import arrangement_ids, load_spec, option_nodes  # noqa: E402
 
 SPEC = load_spec(HERE / "spec.yaml")
 _DM = SPEC["export"]["display_modes"]
@@ -100,12 +100,14 @@ if _missing:
 # where a group names it, the chosen option shows it. Each group starts on
 # its default -- the stucco finish, the bed, the sofa -- and the panel's
 # rows change it. A furniture option names an ARRANGEMENT, not nodes, and
-# option_nodes resolves it against the scene, as finish.py does the export. The mode last applied is kept, so choosing a finish
-# does not throw the view back to Exterior.
+# option_nodes resolves it against the scene, as finish.py does the export.
+# The mode last applied is kept, so choosing a finish does not throw the
+# view back to Exterior.
 _GROUPS = (SPEC.get("variants") or {}).get("presence") or []
 _CHOSEN = {g["id"]: next((o["id"] for o in g["options"] if o.get("default")),
                          g["options"][0]["id"]) for g in _GROUPS}
 _STATE = {"mode": "full"}
+_ARRANGEMENTS = arrangement_ids(SPEC)
 
 
 def _hidden_by_layouts():
@@ -113,8 +115,9 @@ def _hidden_by_layouts():
     names = [ob.name for ob in bpy.data.objects]
     hidden = set()
     for g in _GROUPS:
-        shown = next(set(option_nodes(o, names)) for o in g["options"] if o["id"] == _CHOSEN[g["id"]])
-        hidden |= {n for o in g["options"] for n in option_nodes(o, names)} - shown
+        shown = next(set(option_nodes(o, names, _ARRANGEMENTS)) for o in g["options"]
+                     if o["id"] == _CHOSEN[g["id"]])
+        hidden |= {n for o in g["options"] for n in option_nodes(o, names, _ARRANGEMENTS)} - shown
     return hidden
 
 

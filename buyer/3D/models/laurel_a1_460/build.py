@@ -700,16 +700,32 @@ def _barn_arrangements():
     return {a["id"]: a for a in barn["fixtures"]["furniture"]["arrangements"]}
 
 
-def option_nodes(option, names):
+def arrangement_ids(spec):
+    """The furniture arrangements spec.fixtures.furniture declares, by id."""
+    furniture = (spec.get("fixtures") or {}).get("furniture") or {}
+    return {a["id"] for a in furniture.get("arrangements") or ()}
+
+
+def option_nodes(option, names, arrangements):
     """The nodes a presence option shows, out of `names`: its `show` list, or,
-    for a furniture option, every Furn_<arrangement>_ node -- the build names
-    them, so the spec never lists them and cannot drift from them. A null
-    arrangement shows nothing (the room unfurnished). finish.py and views.py
-    both read an option through this, so the export and the viewer agree."""
+    for a furniture option, its arrangement's Furn_<arrangement>_<material>
+    nodes -- the build names them, so the spec never lists them and cannot
+    drift from them. Only null shows nothing (the room unfurnished).
+    finish.py and views.py both read an option through this, so the export
+    and the viewer agree.
+
+    AN ARRANGEMENT MUST BE ONE `arrangements` DECLARES, and a node must be
+    its prefix and ONE material word, never a prefix alone. Found by review:
+    `arrangement: sleep` matched the bed's nodes and the office's, and
+    published both; `living` published the sofa; "" passed as null. An
+    undeclared id resolves to nothing, which finish.py names."""
     if "arrangement" not in option:
         return list(option.get("show") or [])
     arr = option["arrangement"]
-    return sorted(n for n in names if n.startswith(f"Furn_{arr}_")) if arr else []
+    if arr is None or arr not in arrangements:
+        return []
+    prefix = f"Furn_{arr}_"
+    return sorted(n for n in names if n.startswith(prefix) and "_" not in n[len(prefix):])
 
 
 def _build_furniture(spec, coll):
@@ -1701,6 +1717,8 @@ def _furniture_placed(spec, geo):
         group = next((g for pfx, g in groups.items() if ob.name.startswith(pfx)), None)
         if group is None:
             wrong.append(f"{ob.name} is controlled by no presence group")
+            # NOT GROUPED: a None among the group ids made sorted() raise
+            # instead of this gate naming the object. Found by review.
         for x0, x1, y0, y1, _, z1 in _mesh_boxes(ob):
             plan = (x0, x1, y0, y1)
             if x0 < t - MESH_TOL or x1 > W - t + MESH_TOL or y0 < t - MESH_TOL or y1 > D - t + MESH_TOL:
@@ -1712,7 +1730,8 @@ def _furniture_placed(spec, geo):
                 for label, r in runs:
                     if _overlap(plan, r):
                         wrong.append(f"{ob.name} stands in {label}")
-            by_group.setdefault(group, []).append((ob.name, plan))
+            if group is not None:
+                by_group.setdefault(group, []).append((ob.name, plan))
     names = sorted(by_group)
     for i, g in enumerate(names):
         for h in names[i + 1:]:

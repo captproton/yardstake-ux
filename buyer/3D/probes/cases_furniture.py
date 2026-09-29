@@ -4,8 +4,9 @@ with it, and ships with its disclosure (#135).
 
 build.py's _furniture_placed gates the barn cabin's arrangements, reused and
 placed in Laurel, on the built mesh; finish.py resolves each presence option's
-`arrangement` to the nodes the export carries. These cases break the BUILD or
-the EXPORT, never the spec (rule 19):
+`arrangement` to the nodes the export carries. The first six break the BUILD
+or the EXPORT (rule 19); the last three break the spec's presence options,
+which finish.py and the gate must read, not obey:
 
   * the sofa moved into the walk between the two doors      must FAIL
   * the bed pushed half a foot into the X 0 wall            must FAIL
@@ -13,9 +14,16 @@ the EXPORT, never the spec (rule 19):
   * the furniture as built                                  must PASS
   * lod0 exported without the Furniture collection          must FAIL
   * the manifest written without its disclosure             must FAIL
+  * an option naming `sleep`, a prefix of two arrangements  must FAIL
+  * an option naming "", which is not null                  must FAIL
+  * the sofa's linen left out of every group's `controls`   must FAIL, readably
 
 The third is why the two groups are checked against each other: a buyer can
 show the bed and the sofa together, so they may not share a floor.
+
+The last three were found by review. `sleep` resolved, as a prefix, to the
+bed and the office at once; "" passed as unfurnished; and an object no group
+controls, beside one a group does, crashed the gate instead of naming it.
 """
 from pathlib import Path
 
@@ -74,6 +82,27 @@ def _no_disclosure(work: Path) -> None:
            "the manifest written without its disclosure")
 
 
+def _arrangement_a_prefix(work: Path) -> None:
+    _patch(work, "spec.yaml",
+           "        - {id: bed, label: Bed, arrangement: sleep_bed, default: true}\n",
+           "        - {id: bed, label: Bed, arrangement: sleep, default: true}\n",
+           "the bed option naming `sleep`")
+
+
+def _arrangement_empty_string(work: Path) -> None:
+    _patch(work, "spec.yaml",
+           "        - {id: sofa, label: Furnished, arrangement: living_sofa, default: true}\n",
+           '        - {id: sofa, label: Furnished, arrangement: "", default: true}\n',
+           "the sofa option naming an empty string")
+
+
+def _linen_uncontrolled(work: Path) -> None:
+    _patch(work, "spec.yaml",
+           "      controls: [Furn_living_]\n",
+           "      controls: [Furn_living_sofa_fabric]\n",
+           "the living group controlling the fabric alone")
+
+
 CASES = [
     Case(G, "laurel: the sofa moved into the walk between the doors",
          _sofa_in_the_walk,
@@ -99,4 +128,16 @@ CASES = [
          _no_disclosure,
          [Run(FINISH, fails=True, blender=True, model=LAUREL)],
          contains="disclosure is required"),
+    Case(G, "laurel: an option naming `sleep`, a prefix of two arrangements",
+         _arrangement_a_prefix,
+         [Run(FINISH, fails=True, blender=True, model=LAUREL)],
+         contains="names arrangement 'sleep', which fixtures.furniture does not declare"),
+    Case(G, "laurel: an option naming an empty string, which is not null",
+         _arrangement_empty_string,
+         [Run(FINISH, fails=True, blender=True, model=LAUREL)],
+         contains="names arrangement '', which fixtures.furniture does not declare"),
+    Case(G, "laurel: the sofa's linen controlled by no group is named, not a crash",
+         _linen_uncontrolled,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         contains="Furn_living_sofa_linen is controlled by no presence group"),
 ]

@@ -27,7 +27,7 @@ import bpy
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.append(str(HERE.parents[1]))          # buyer/3D, where adu_kit lives
-from build import _wall_band, build, load_spec, option_nodes  # noqa: E402
+from build import _wall_band, arrangement_ids, build, load_spec, option_nodes  # noqa: E402
 from adu_kit import manifest as kit_manifest  # noqa: E402
 from adu_kit.export import export_glb, glb_info, patch_base_color_factors  # noqa: E402
 from adu_kit.manifest import face_slots  # noqa: E402
@@ -109,7 +109,7 @@ def level_objects(lod, geo, colls, glazing):
                             if opening_id(o.name) in outside] + glazing
 
 
-def presence_block(groups, nodes):
+def presence_block(groups, nodes, arrangements=frozenset()):
     """`presence`: spec.variants.presence as the page reads it, with each
     group's `controls` checked against the nodes the export carries, and
     problems.
@@ -121,8 +121,9 @@ def presence_block(groups, nodes):
     the page needs only the options.
 
     A furniture option names an `arrangement` instead of a `show` list
-    (#135); build.option_nodes resolves it to the Furn_<arrangement>_ nodes
-    the export carries, and the manifest publishes the resolved list, which
+    (#135), one of `arrangements`, the ids spec.fixtures.furniture declares;
+    build.option_nodes resolves it to the Furn_<arrangement>_ nodes the
+    export carries, and the manifest publishes the resolved list, which
     is all the page reads."""
     # READ, NOT OBEYED (rule 25): a malformed block is a named problem, and
     # nothing partial is published. Found by review: `presence: [1]`, or an
@@ -161,13 +162,20 @@ def presence_block(groups, nodes):
     for g in groups:
         gid = g.get("id")
         opts = g.get("options") or []
-        resolved = [option_nodes(o, nodes) for o in opts]
+        resolved = [option_nodes(o, nodes, arrangements) for o in opts]
         shown = [n for s in resolved for n in s]
-        # AN ARRANGEMENT THAT RESOLVES TO NOTHING is a misspelt or unbuilt one,
-        # and would publish as a silently empty room; only null means empty.
+        # AN ARRANGEMENT THE SPEC DOES NOT DECLARE, or one that resolves to
+        # nothing, is misspelt or unbuilt, and would publish as a silently
+        # empty room -- or, matched as a prefix, as two alternatives at once.
+        # Only null means empty; "" is not null. Found by review.
+        problems += [f"presence {gid}: option {o.get('id')} names arrangement "
+                     f"{o['arrangement']!r}, which fixtures.furniture does not declare"
+                     for o in opts if "arrangement" in o and o["arrangement"] is not None
+                     and o["arrangement"] not in arrangements]
         problems += [f"presence {gid}: option {o.get('id')} names arrangement "
                      f"{o['arrangement']!r}, which no exported node is"
-                     for o, s in zip(opts, resolved) if o.get("arrangement") and not s]
+                     for o, s in zip(opts, resolved)
+                     if o.get("arrangement") in arrangements and not s]
         owned = sorted(n for n in nodes if n.startswith(tuple(g.get("controls") or ())))
         problems += [f"presence {gid}: {n} is shown by no option" for n in owned if n not in shown]
         problems += [f"presence {gid}: {n} is shown by {shown.count(n)} options"
@@ -258,7 +266,7 @@ def write_manifest(spec, out, lod0):
     problems += bad
     variants = spec.get("variants")
     presence, bad = presence_block(variants.get("presence") if isinstance(variants, dict) else None,
-                                   nodes)
+                                   nodes, arrangement_ids(spec))
     problems += bad
     manifest = {
         "model": ident,
@@ -310,7 +318,7 @@ def save_viewable_blend(spec, dest):
         for o in opts:
             if o is chosen:
                 continue
-            for name in option_nodes(o, names):
+            for name in option_nodes(o, names, arrangement_ids(spec)):
                 ob = bpy.data.objects.get(name)
                 if ob is not None:
                     ob.hide_set(True)
