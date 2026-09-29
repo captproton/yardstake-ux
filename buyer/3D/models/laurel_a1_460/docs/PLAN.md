@@ -585,10 +585,12 @@ heater, named on the energy sheet as a Rheem PROPH 40T2R H37515; and a
 mini-split condenser with an exterior pad.
 
 Two of these are new and worth flagging. The **water heater and the mini-split
-are named equipment**, which the barn cabin never had — build them from
-primitives at the published dimensions rather than downloading, per rule 32.
+are equipment**, which the barn cabin never had — build them from primitives
+rather than downloading, per rule 32: at the **published** dimensions where
+the plans name a model (the Rheem), and at the **drawn** size where they do
+not (the mini-split, whose model no sheet names; #134 amended 2026-09-29).
 The mini-split condenser is the first **exterior ground-mounted** object in the
-project and will need its own placement rule relative to the slab.
+project, and #161 gave it its own placement rule relative to the slab.
 
 Furniture reuses the barn cabin's arrangements through the `presence` block.
 The bedroom-versus-office swap transfers directly.
@@ -671,15 +673,18 @@ Each line is one pull request.
    - **Verified in the browser:** opens on stucco; Lap siding shows the courses and trim and goes into the link; a colour holds on either finish; the cutaway and interior-only modes hide the siding with its walls; the overlay stays on the walls. The Blender review panel gained a Finish row.
    - **Review** tightened the gates in six rounds: every opening's reveal, the siding trim's collection, presence read as untrusted input, `room` kept for #135's furniture, `controls` held to the export, and the texture check in CI. Probes 199.
    - **Left open, small:** the page files the finish under its "LAYOUT" heading; a heading of its own would read better.
-11. [#134](https://github.com/captproton/yardstake-ux/issues/134) **In progress, three PRs** (decided 2026-09-28): A measures the interior fixtures, B builds them, C reads and places the mini-split condenser with the ground-mounted placement rule. C does not depend on B.
+11. [#134](https://github.com/captproton/yardstake-ux/issues/134) **Done**, in three PRs (decided 2026-09-28): A measures the interior fixtures, B builds them, C reads and places the mini-split condenser with the ground-mounted placement rule. C does not depend on B.
    - **PR A done ([#159](https://github.com/captproton/yardstake-ux/pull/159)): every interior fixture measured off A-1.0's vectors.** `fixture_ink.py` reads them as `plan_ink.py` read the walls, in the same frame, each from a window that only says where to look: the range (30" x 27 1/2"), sink (30" x 21"), refrigerator (30" x 24"), dishwasher (24" square, drawn dashed under the counter), vanity (36" x 22", matching its label), washer/dryer (30" x 30"), tub (60" x 30"), toilet (20" at the tank, 31 1/2" deep), water heater (22" across) and the counter (88" x 24", derived from its front line and the refrigerator and range). `spec.fixtures.drawn` records them, cited.
    - **Gates:** `test_fixture_ink.py` re-measures A-1.0 on every CI run; `verify_spec` holds every fixture inside the exterior walls, clear of every partition and of every other fixture except what the counter holds, each check shown failing on a broken spec.
    - **Found:** fixtures are drawn to the **finished face**, 1/2" in from the stud face. The model carries gyp board as a material, so PR B takes a fixture's wall side to the stud face. No sheet draws the mini-split's indoor unit, and no plan gives a height: PR B assumes heights, as the barn cabin did.
    - **PR B done ([#160](https://github.com/captproton/yardstake-ux/pull/160)): the interior fixtures, built where A-1.0 draws them.** Eleven `Fix_` objects in lod0 -- counter (cabinets either side of the dishwasher), countertop, dishwasher, sink, range, refrigerator, vanity, tub, toilet, washer/dryer, water heater. A side drawn at a finished face is built to the stud face, so no gap shows; partitions now declare their 1/2" gyp board. Heights are declared standards, `assumed`; the toilet's tank is measured too, so it stands taller than the bowl where A-1.0 draws it.
    - **Named equipment at its published size:** the water heater is Rheem's PROPH40, 62 5/16" tall and 20 1/4" across, from Rheem's spec sheet, centred on A-1.0's 22" symbol. `spec_lint` gained a fourth citation, `published`, for figures from outside the plan set: it must carry a URL and never excuses a drawn length.
    - **Gates:** every fixture's mesh against the drawing (drawn sides, or a stud face within a finish's thickness; no gap; declared heights); the compound fixtures inside as well as out (the counter's dishwasher opening, the toilet's bowl below its tank); the water heater against Rheem's figures. Probes 206.
-   - **PR C next:** the condenser, off A-2.0's rear and side (left) elevations, which draw it as a dashed box at grade, and the placement rule for exterior ground-mounted equipment #134 asks for, gated.
-12. [#135](https://github.com/captproton/yardstake-ux/issues/135) Furniture and arrangements.
+   - **PR C done ([#161](https://github.com/captproton/yardstake-ux/pull/161)): the mini-split condenser and the ground-mounted placement rule.** `condenser_ink.py` reads three drawings as vectors: A-1.1's power plan (registered on A-1.0 through the drawing both share, the offset proved on 114 lines), and A-2.0's side (left) and rear elevations (scale and drawn cladding solved from two wall outlines). A-1.1 and the side elevation put a 20" unit outside the **X 24 end wall**, standing on a 6" pad; the **rear elevation puts it against the rear wall**, which neither of the others shows. Two drawings agree and one does not: `spec.discrepancies` records it and the plan governs, and a CI test holds the discrepancy still true so it is retired when a revised sheet fixes it.
+   - **The placement rule** (`spec.fixtures.condenser.placement_rule`), gated clause by clause on the mesh: on its own pad, the pad on grade and to its declared margins; outside the wall's modelled outer face; where A-1.1 draws it; as tall as drawn and below the roof; blocking no opening. It ships in lod0 and lod1, not lod2.
+   - **No sheet names the mini-split's model,** so it is built at its drawn size. #134's text was amended (2026-09-29): published dimensions where the plans name a model, drawn dimensions where they do not.
+   - **Review** tightened the placement gate to every face of the pad and the drift test to whole ranges. Probes 212.
+12. [#135](https://github.com/captproton/yardstake-ux/issues/135) **Next.** Furniture and arrangements.
 
 Steps 1 and 2 are the ones that pay for themselves across Richmond and the six
 Concord sets. Steps 6 and 9 pay for themselves on every model after Laurel.
