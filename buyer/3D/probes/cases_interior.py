@@ -10,6 +10,8 @@ These cases break the BUILD, never the spec (rule 19), one way each:
   * every fixture built exactly as drawn, not to the studs  must FAIL
   * the water heater built at the plan symbol's 22"         must FAIL
   * the tub left out                                        must FAIL
+  * the counter built solid across the dishwasher's opening must FAIL
+  * the toilet built as one block at the tank's height      must FAIL
   * the fixtures as built                                   must PASS
 
 The second is the gap the stud-face rule exists to close: A-1.0 draws each
@@ -64,6 +66,21 @@ def _no_tub(work: Path) -> None:
            "the tub left out")
 
 
+def _counter_solid(work: Path) -> None:
+    # Found by review: the outer box of a solid counter is the right one's.
+    _patch(work,
+           '    runs = [(cnt["y"][0], dw["y"][0]), (dw["y"][1], cnt["y"][1])]\n',
+           '    runs = [(cnt["y"][0], cnt["y"][1])]\n',
+           "the counter built solid across the dishwasher")
+
+
+def _toilet_one_block(work: Path) -> None:
+    _patch(work,
+           '    made.append(multibox("Fix_toilet", [slab(bowl, 0.0, h["toilet_bowl"]),\n',
+           '    made.append(multibox("Fix_toilet", [slab(bowl, 0.0, h["toilet_tank"]),\n',
+           "the toilet built as one block")
+
+
 CASES = [
     Case(G, "laurel: the range built half a foot along the counter",
          _range_moved,
@@ -81,6 +98,14 @@ CASES = [
          _no_tub,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],
          contains="Fix_tub was not built"),
+    Case(G, "laurel: the counter built solid across the dishwasher's opening",
+         _counter_solid,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         contains="Fix_counter fills the dishwasher's opening"),
+    Case(G, "laurel: the toilet built as one block at the tank's height",
+         _toilet_one_block,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         contains="Fix_toilet's bowl stands above its rim height"),
     Case(G, "laurel: the fixtures as built pass",
          None,
          [Run(BUILD, fails=False, blender=True, model=LAUREL)],

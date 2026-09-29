@@ -30,10 +30,12 @@ every opening in the two schedules cut with a sash or a leaf, Tier 1 trim
 finishes (#133): a stucco skin and a lap-siding skin over the same
 sheathing face, the siding with its exterior trim, both UV-mapped for their
 textures. The page shows one finish at a time (spec.variants.presence).
+And the interior fixtures (#134): the kitchen, bath and laundry, and the
+water heater at its maker's published size, where A-1.0 draws them.
 
-WHAT IT DOES NOT: fixtures (#134), the 1-bedroom option (a configurator
-variant, spec.variants), and the optional entry canopy (#144, whose
-dimensions are not on a harvested sheet).
+WHAT IT DOES NOT: the mini-split condenser (#134, PR C), the 1-bedroom
+option (a configurator variant, spec.variants), and the optional entry
+canopy (#144, whose dimensions are not on a harvested sheet).
 """
 
 import sys
@@ -796,6 +798,9 @@ def report(spec, geo, colls):
     ok, why = _fixtures_where_drawn(spec, geo)
     gate(ok, "every fixture is built where A-1.0 draws it, to the stud face, at its declared height", why)
 
+    ok, why = _fixture_parts(spec)
+    gate(ok, "the counter has its dishwasher opening, and the toilet a bowl lower than its tank", why)
+
     ok, why = _water_heater_as_published(spec)
     gate(ok, "the water heater stands on the drawn circle's centre, at the size Rheem publishes", why)
 
@@ -1470,6 +1475,45 @@ def _fixtures_where_drawn(spec, geo):
                              f"{f['at']:.4f}: the gap the gyp board's thickness leaves")
         if abs(lo[2] - z0) > MESH_TOL or abs(hi[2] - z1) > MESH_TOL:
             wrong.append(f"{name} stands {lo[2]:.4f}..{hi[2]:.4f}, declared {z0:.4f}..{z1:.4f}")
+    return not wrong, "; ".join(wrong)
+
+
+def _fixture_parts(spec):
+    """What an outer box cannot see in the two COMPOUND fixtures. Found by
+    review: a solid counter across the dishwasher's opening, or a toilet
+    built as one block at the tank's height, has the same outer box as the
+    right one and passed _fixtures_where_drawn.
+
+    So the MESH is asked about points worked out from spec.fixtures:
+    - the counter's base cabinets are there either side of the dishwasher,
+      and NOT in the dishwasher's opening;
+    - the toilet's tank is there at the tank's height, and its bowl is NOT
+      there above the bowl's rim."""
+    from mathutils import Vector
+    fx = spec["fixtures"]
+    h = {k: v["ft"] for k, v in fx["heights"].items()}
+    drawn = fx["drawn"]
+    base = h["counter_top"] - h["countertop"]
+    wrong = []
+    counter = bpy.data.objects.get("Fix_counter")
+    toilet = bpy.data.objects.get("Fix_toilet")
+    if counter is None or toilet is None:
+        return False, "Fix_counter or Fix_toilet was not built"
+    cnt, dw = drawn["counter"], drawn["dishwasher"]
+    mid_x = sum(cnt["x"]) / 2
+    for label, y in (("the cabinets before the dishwasher", (cnt["y"][0] + dw["y"][0]) / 2),
+                     ("the cabinets after the dishwasher", (dw["y"][1] + cnt["y"][1]) / 2)):
+        if not inside_mesh(counter, Vector((mid_x, y, base / 2))):
+            wrong.append(f"Fix_counter has no base cabinet in {label}")
+    if inside_mesh(counter, Vector((mid_x, sum(dw["y"]) / 2, base / 2))):
+        wrong.append("Fix_counter fills the dishwasher's opening")
+    tl, tk = drawn["toilet"], drawn["toilet_tank"]
+    tx = sum(tl["x"]) / 2
+    between = (h["toilet_bowl"] + h["toilet_tank"]) / 2      # above the rim, below the tank's top
+    if not inside_mesh(toilet, Vector((tx, sum(tk["y"]) / 2, between))):
+        wrong.append("Fix_toilet has no tank standing above the bowl's rim")
+    if inside_mesh(toilet, Vector((tx, (tl["y"][0] + tk["y"][0]) / 2, between))):
+        wrong.append("Fix_toilet's bowl stands above its rim height")
     return not wrong, "; ".join(wrong)
 
 
