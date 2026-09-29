@@ -100,7 +100,7 @@ def level_objects(lod, geo, colls, glazing):
     if lod == "lod0":
         return (keep + siding + list(colls["Openings"].objects)
                 + list(colls["Partitions"].objects) + list(colls["Trim"].objects)
-                + glazing)
+                + list(colls["Fixtures"].objects) + glazing)
     outside = exterior_ids(geo)
     return keep + siding + [o for o in colls["Openings"].objects
                             if opening_id(o.name) in outside] + glazing

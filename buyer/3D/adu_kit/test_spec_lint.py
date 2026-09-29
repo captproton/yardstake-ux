@@ -37,7 +37,7 @@ class Cited(unittest.TestCase):
 
     def test_an_uncited_number_fails(self):
         problems = spec_lint.lint(spec(envelope={"width": {"ft": 24.0, "raw": "24'-0\""}}))
-        self.assertEqual(problems, ["envelope.width.ft = 24.0 has no source, derived or assumed",
+        self.assertEqual(problems, ["envelope.width.ft = 24.0 has no source, derived, assumed or published",
                                     "envelope.width: raw 24'-0\" is a drawn length with no source naming a sheet"])
 
     def test_derived_and_assumed_cite_numbers(self):
@@ -45,26 +45,41 @@ class Cited(unittest.TestCase):
                                              b={"y": {"ft": 0.4583, "raw": "5 1/2\"",
                                                       "assumed": "2x6 actual depth"}})), [])
 
+    def test_a_published_figure_cites_with_its_url(self):
+        # #134: equipment the plans name by model is built at its maker's
+        # published size, which no sheet in the set carries.
+        self.assertEqual(spec_lint.lint(spec(heater={"height": {"ft": 5.1927, "raw": "62 5/16\"",
+            "published": "Rheem spec sheet, https://media.rheem.com/x.pdf, column A"}})), [])
+
+    def test_a_published_figure_without_a_url_fails(self):
+        problems = spec_lint.lint(spec(heater={"height": {"ft": 5.1927, "published": "the maker's sheet"}}))
+        self.assertEqual(problems, ["heater.height.published names no URL to open: \"the maker's sheet\""])
+
+    def test_published_does_not_excuse_a_drawn_length(self):
+        problems = spec_lint.lint(spec(heater={"height": {"ft": 5.25, "raw": "5'-3\"",
+            "published": "https://media.rheem.com/x.pdf"}}))
+        self.assertIn("heater.height: raw 5'-3\" is a drawn length with no source naming a sheet", problems)
+
     def test_the_mapping_above_cites(self):
         self.assertEqual(spec_lint.lint(spec(schedule={"source": "A-1.0 window schedule",
                                                        "rows": [{"mark": "A", "count": 2}]})), [])
 
     def test_two_mappings_up_does_not_cite(self):
         problems = spec_lint.lint(spec(block={"source": "A-1.0", "inner": {"deeper": {"n": 3}}}))
-        self.assertEqual(problems, ["block.inner.deeper.n = 3 has no source, derived or assumed"])
+        self.assertEqual(problems, ["block.inner.deeper.n = 3 has no source, derived, assumed or published"])
 
     def test_the_root_does_not_cite(self):
         problems = spec_lint.lint({"source": "A-1.0", "sheet_index": SHEETS, "n": 7})
-        self.assertIn("n = 7 has no source, derived or assumed", problems)
+        self.assertIn("n = 7 has no source, derived, assumed or published", problems)
 
     def test_numbers_in_lists_and_not_booleans(self):
         problems = spec_lint.lint(spec(a={"box": [1, 2]}, b={"flag": True}))
-        self.assertEqual(problems, ["a.box[0] = 1 has no source, derived or assumed",
-                                    "a.box[1] = 2 has no source, derived or assumed"])
+        self.assertEqual(problems, ["a.box[0] = 1 has no source, derived, assumed or published",
+                                    "a.box[1] = 2 has no source, derived, assumed or published"])
 
     def test_an_empty_citation_is_not_one(self):
         problems = spec_lint.lint(spec(a={"n": 1, "source": "   "}))
-        self.assertIn("a.n = 1 has no source, derived or assumed", problems)
+        self.assertIn("a.n = 1 has no source, derived, assumed or published", problems)
 
     def test_nan_and_infinity_are_not_measurements(self):
         # Found by review: `ft: .nan` passed the raw/ft check, because every

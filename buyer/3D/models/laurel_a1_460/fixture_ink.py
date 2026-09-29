@@ -62,6 +62,7 @@ FIXTURES = {
     "washer_dryer": ("rect",   11.7,  14.5,  4.55,  7.3,   {}),
     "tub":          ("sides",  20.9,  23.55, 0.5,   6.0,   {"min_len": 2.0}),
     "toilet":       ("ink",    18.0,  20.95, 3.2,   5.96,  {}),
+    "toilet_tank":  ("ink",    18.6,  20.4,  4.95,  5.99,  {}),   # the tank alone: PR B builds it taller than the bowl
     "water_heater": ("circle", 15.0,  17.15, 6.3,   11.15, {}),
 }
 COUNTER_FRONT = (21.3, 21.6, 8.8, 16.2)   # where to look for the counter's front line

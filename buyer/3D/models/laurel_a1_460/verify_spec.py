@@ -121,9 +121,9 @@ def trim_problems(trim, barn_trim):
     return bad
 
 
-# THE COUNTER HOLDS these: the sink is set into it and the dishwasher is
-# under it, so each lies inside the counter's footprint by design.
-IN_THE_COUNTER = ("sink", "dishwasher")
+# WHAT A FIXTURE HOLDS, by design: the sink is set into the counter and the
+# dishwasher is under it; the toilet's footprint includes its own tank.
+CONTAINS = {"counter": ("sink", "dishwasher"), "toilet": ("toilet_tank",)}
 
 
 def fixture_problems(spec):
@@ -164,8 +164,7 @@ def fixture_problems(spec):
             (c0, c1), (d0, d1) = drawn[m]["x"], drawn[m]["y"]
             if not (a0 < c1 - TOL and c0 < a1 - TOL and b0 < d1 - TOL and d0 < b1 - TOL):
                 continue
-            held = {n, m} - {"counter"}
-            if "counter" in (n, m) and held <= set(IN_THE_COUNTER):
+            if m in CONTAINS.get(n, ()) or n in CONTAINS.get(m, ()):
                 continue
             bad.append(f"{n} and {m} overlap")
     return bad
