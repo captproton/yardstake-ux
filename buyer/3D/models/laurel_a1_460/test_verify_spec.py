@@ -155,6 +155,18 @@ class VerifySpec(unittest.TestCase):
         self.assertGateFails(r, "the stucco reveal is the sheathing skin's cut face, "
                                 "at the same thickness")
 
+    def test_a_fixture_moved_into_a_partition(self):
+        # The water heater pushed half a foot toward the front, into P_pantry_N.
+        r = self.broken("    water_heater: {x: [15.1554, 16.9700], y: [6.4595, 8.2941]",
+                        "    water_heater: {x: [15.6554, 17.4700], y: [6.4595, 8.2941]")
+        self.assertGateFails(r, "every drawn fixture sits inside the rooms, clear of the walls and of each other")
+
+    def test_two_fixtures_that_overlap(self):
+        # The refrigerator stretched across the dishwasher's place.
+        r = self.broken("    refrigerator: {x: [21.4999, 23.5013], y: [6.3326, 8.8344]",
+                        "    refrigerator: {x: [21.4999, 23.5013], y: [6.3326, 9.8344]")
+        self.assertGateFails(r, "every drawn fixture sits inside the rooms, clear of the walls and of each other")
+
     def test_an_empty_plan_overlay_does_not_skip_its_gate(self):
         text = SPEC.read_text()
         i = text.index("plan_overlay:")
