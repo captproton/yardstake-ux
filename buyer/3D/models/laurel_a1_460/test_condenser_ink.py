@@ -32,7 +32,13 @@ class CondenserInk(unittest.TestCase):
         cls.m = condenser_ink.measure()
 
     def close(self, got, want):
-        for g, w in zip(got if isinstance(got, list) else [got], want if isinstance(want, list) else [want]):
+        # EQUAL LENGTHS FIRST: zip stops at the shorter list, so a range
+        # recorded with a value missing -- or empty -- compared nothing and
+        # passed. Found by review.
+        got = got if isinstance(got, list) else [got]
+        want = want if isinstance(want, list) else [want]
+        self.assertEqual(len(got), len(want), f"measured {got}, recorded {want}")
+        for g, w in zip(got, want):
             self.assertAlmostEqual(g, w, delta=FIT_FT)
 
     def test_the_plan_reading_is_the_recorded_one(self):
@@ -71,6 +77,8 @@ class CondenserInk(unittest.TestCase):
         """Both 20 inches: the plan across, the elevation along and up."""
         px, py = self.m["plan"]["x"], self.m["plan"]["y"]
         sy = self.m["side"]["y"]
+        for span in (px, py, sy):
+            self.assertEqual(len(span), 2, f"a range must be [lo, hi], found {span}")
         for span in (px[1] - px[0], py[1] - py[0], sy[1] - sy[0],
                      self.m["side"]["top"] - self.m["side"]["base"]):
             self.assertAlmostEqual(span * 12, 20.0, delta=0.1)

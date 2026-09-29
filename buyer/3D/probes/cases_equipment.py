@@ -8,6 +8,7 @@ clause each:
   * the condenser built where the rear elevation draws it   must FAIL
   * the condenser pushed half a foot into the wall          must FAIL
   * the pad built three inches low, so the unit floats      must FAIL
+  * the pad built without its margins                       must FAIL
   * the condenser before window W-D1, above its sill        must FAIL
   * the condenser as built                                  must PASS
 
@@ -57,6 +58,15 @@ def _pad_low(work: Path) -> None:
            "the pad built three inches low")
 
 
+def _pad_without_margins(work: Path) -> None:
+    # Found by review: the unit still sits on it, so only the pad's own
+    # faces, checked against the spec, can object.
+    _patch(work,
+           '            box("Equip_pad", x0, x1 + m, y0 - m, y1 + m, pad["bottom"]["ft"], pad["top"]["ft"], coll)]\n',
+           '            box("Equip_pad", x0, x1, y0, y1, pad["bottom"]["ft"], pad["top"]["ft"], coll)]\n',
+           "the pad built without its margins")
+
+
 def _before_window_d1(work: Path) -> None:
     # Moved along the wall to window W-D1 (Y 10.75..14.25, sill 3.5) and
     # made tall enough to reach past the sill.
@@ -78,6 +88,10 @@ CASES = [
          _pad_low,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],
          contains="the unit stands at 0.0000, its pad's top is -0.2500"),
+    Case(G, "laurel: the pad built without its margins",
+         _pad_without_margins,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         contains="the pad's outer side is at"),
     Case(G, "laurel: the condenser before window W-D1, above its sill",
          _before_window_d1,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],

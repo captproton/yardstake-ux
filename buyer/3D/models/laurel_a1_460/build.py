@@ -1598,6 +1598,19 @@ def _ground_mounted(spec, geo):
         wrong.append(f"the unit stands at {uz0:.4f}, its pad's top is {pz1:.4f}")
     if ux0 < px0 - MESH_TOL or ux1 > px1 + MESH_TOL or uy0 < py0 - MESH_TOL or uy1 > py1 + MESH_TOL:
         wrong.append("the unit overhangs its pad")
+    # EVERY FACE OF THE PAD, from the spec: its top where the side elevation
+    # stands the unit, its wall side at the outer face, and the declared
+    # margin on its three open sides. Found by review: checking only that
+    # the unit sat somewhere on the pad let a thick pad lift the unit, or a
+    # pad without its margins, pass.
+    m = c["pad"]["margin"]["ft"]
+    for label, got, want in (("top", pz1, c["pad"]["top"]["ft"]),
+                             ("wall side", px0, outer),
+                             ("outer side", px1, outer + (plan["x"][1] - plan["x"][0]) + m),
+                             ("rear side", py0, plan["y"][0] - m),
+                             ("front side", py1, plan["y"][1] + m)):
+        if abs(got - want) > MESH_TOL:
+            wrong.append(f"the pad's {label} is at {got:.4f}, the spec puts it at {want:.4f}")
     # 2. outside the building
     if min(ux0, px0) < outer - MESH_TOL:
         wrong.append(f"it reaches X {min(ux0, px0):.4f}, inside the X 24 wall's outer face at {outer:.4f}")
