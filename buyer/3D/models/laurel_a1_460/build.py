@@ -36,6 +36,9 @@ water heater at its maker's published size, where A-1.0 draws them.
 And the first equipment outside it (#134, PR C): the mini-split condenser
 on its pad, placed under spec.fixtures.condenser.placement_rule.
 
+And the furniture (#135): the barn cabin's arrangements, reused, turned and
+placed in the studio as a sleeping area and a sitting area.
+
 WHAT IT DOES NOT: the mini-split's indoor unit, which no sheet draws, the
 1-bedroom option (a configurator variant, spec.variants), and the optional
 entry canopy (#144, whose dimensions are not on a harvested sheet).
@@ -547,6 +550,8 @@ def build(spec, cut_openings=True):
     fixtures = _build_fixtures(spec, fixture_coll)
     equipment_coll = collection("Equipment")      # outside the building: lod0 and lod1
     equipment = _build_condenser(spec, equipment_coll)
+    furniture_coll = collection("Furniture")      # inside, switchable: lod0
+    furniture = _build_furniture(spec, furniture_coll)
     # ONE NODE PER WALL, like the interior trim, so the cutaway can hide the
     # front wall's siding trim with the front wall.
     siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, siding_coll)
@@ -555,10 +560,10 @@ def build(spec, cut_openings=True):
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
                depths=depths, skin_of=skin_of, siding_of=siding_of, trim=trim, siding=siding,
-               fixtures=fixtures, equipment=equipment)
+               fixtures=fixtures, equipment=equipment, furniture=furniture)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
                      Openings=openings, Site=site, Trim=trim_coll, Siding=siding_coll,
-                     Fixtures=fixture_coll, Equipment=equipment_coll)
+                     Fixtures=fixture_coll, Equipment=equipment_coll, Furniture=furniture_coll)
 
 
 def _face_slot(spec, material):
@@ -669,6 +674,82 @@ def _build_condenser(spec, coll):
     return [box("Equip_condenser", x0, x1, y0, y1, z0, z1, coll),
             # the pad's wall side stops at the wall; it is wider on the other three
             box("Equip_pad", x0, x1 + m, y0 - m, y1 + m, pad["bottom"]["ft"], pad["top"]["ft"], coll)]
+
+
+ROTATIONS = {0: (1, 0, 0, 1), 90: (0, -1, 1, 0), 180: (-1, 0, 0, -1), 270: (0, 1, -1, 0)}
+
+
+def place_box(pc, place):
+    """A barn-cabin piece's box, turned about `place.from` by `place.rotate`
+    degrees (counter-clockwise in plan) and moved to `place.to`: (x0, x1, y0,
+    y1, z0, z1) in Laurel's frame. Heights are the piece's own."""
+    a, b, c, d = ROTATIONS[place["rotate"]]
+    (fx, fy), (tx, ty) = place["from"], place["to"]
+    xs, ys = [], []
+    for x in (pc["x0"], pc["x1"]):
+        for y in (pc["y0"], pc["y1"]):
+            dx, dy = x - fx, y - fy
+            xs.append(tx + a * dx + b * dy)
+            ys.append(ty + c * dx + d * dy)
+    return min(xs), max(xs), min(ys), max(ys), pc["z0"], pc["z1"]
+
+
+def _barn_arrangements():
+    """The barn cabin's furniture arrangements, by id: the pieces Laurel reuses."""
+    barn = load_spec(HERE.parent / "barn_cabin_524" / "spec.yaml")
+    return {a["id"]: a for a in barn["fixtures"]["furniture"]["arrangements"]}
+
+
+def arrangement_ids(spec):
+    """The furniture arrangements spec.fixtures.furniture declares, by id."""
+    furniture = (spec.get("fixtures") or {}).get("furniture") or {}
+    return {a["id"] for a in furniture.get("arrangements") or ()}
+
+
+def option_nodes(option, names, arrangements):
+    """The nodes a presence option shows, out of `names`: its `show` list, or,
+    for a furniture option, its arrangement's Furn_<arrangement>_<material>
+    nodes -- the build names them, so the spec never lists them and cannot
+    drift from them. Only null shows nothing (the room unfurnished).
+    finish.py and views.py both read an option through this, so the export
+    and the viewer agree.
+
+    AN ARRANGEMENT MUST BE ONE `arrangements` DECLARES, and a node must be
+    its prefix and ONE material word, never a prefix alone. Found by review:
+    `arrangement: sleep` matched the bed's nodes and the office's, and
+    published both; `living` published the sofa; "" passed as null. An
+    undeclared id resolves to nothing, which finish.py names."""
+    if "arrangement" not in option:
+        return list(option.get("show") or [])
+    arr = option["arrangement"]
+    if arr is None or arr not in arrangements:
+        return []
+    prefix = f"Furn_{arr}_"
+    return sorted(n for n in names if n.startswith(prefix) and "_" not in n[len(prefix):])
+
+
+def _build_furniture(spec, coll):
+    """Every arrangement in spec.fixtures.furniture, as the barn cabin builds
+    its own: one mesh per (arrangement, material), named
+    Furn_<arrangement>_<material>, so an arrangement can be shown or hidden
+    whole and never half of one."""
+    fx = spec["fixtures"]["furniture"]
+    barn = _barn_arrangements()
+    made = []
+    for arr in fx["arrangements"]:
+        src = barn.get(arr["reuse"])
+        if src is None:
+            raise SystemExit(f"{arr['id']} reuses {arr['reuse']!r}, which the barn cabin's "
+                             f"spec does not define (has {sorted(barn)})")
+        if arr["place"]["rotate"] not in ROTATIONS:
+            raise SystemExit(f"{arr['id']}: rotate {arr['place']['rotate']!r} is not one of "
+                             f"{sorted(ROTATIONS)}")
+        by_mat = {}
+        for pc in src["pieces"]:
+            by_mat.setdefault(pc["material"], []).append(place_box(pc, arr["place"]))
+        for mat, boxes in sorted(by_mat.items()):
+            made.append(multibox(f"Furn_{arr['id']}_{mat.removeprefix('furn_')}", boxes, coll))
+    return made
 
 
 def _partition_band(row, it):
@@ -831,6 +912,10 @@ def report(spec, geo, colls):
 
     ok, why = _water_heater_as_published(spec)
     gate(ok, "the water heater stands on the drawn circle's centre, at the size Rheem publishes", why)
+
+    ok, why = _furniture_placed(spec, geo)
+    gate(ok, "the furniture stands in the room: clear of walls, partitions, fixtures, "
+             "walkways and door swings, one group clear of the other", why)
 
     ok, why = _ground_mounted(spec, geo)
     gate(ok, "the condenser keeps the ground-mounted placement rule: on its pad on grade, outside, "
@@ -1572,6 +1657,93 @@ def _water_heater_as_published(spec):
     if abs(lo[2]) > MESH_TOL or abs(hi[2] - height) > MESH_TOL:
         wrong.append(f"it stands {lo[2]:.4f}..{hi[2]:.4f}; Rheem publishes {height:.4f} ft")
     return not wrong, "; ".join(wrong)
+
+
+def _mesh_boxes(ob):
+    """The boxes a multibox mesh was built from, read back off its vertices,
+    VERTS_PER_BOX at a time, in world space."""
+    vs = [ob.matrix_world @ v.co for v in ob.data.vertices]
+    out = []
+    for i in range(0, len(vs), VERTS_PER_BOX):
+        chunk = vs[i:i + VERTS_PER_BOX]
+        out.append((min(v.x for v in chunk), max(v.x for v in chunk),
+                    min(v.y for v in chunk), max(v.y for v in chunk),
+                    min(v.z for v in chunk), max(v.z for v in chunk)))
+    return out
+
+
+def _overlap(a, b, tol=MESH_TOL):
+    """Do two plan boxes (x0, x1, y0, y1) overlap by more than `tol`?"""
+    ax0, ax1, ay0, ay1 = a
+    bx0, bx1, by0, by1 = b
+    return ax0 < bx1 - tol and bx0 < ax1 - tol and ay0 < by1 - tol and by0 < ay1 - tol
+
+
+def _furniture_placed(spec, geo):
+    """Every furniture box, read off the MESH, against what the plan and the
+    spec say it must leave alone. Worked out here from the spec -- walls,
+    partitions, the fixtures' drawn plan, the declared walkways -- never from
+    place_box's arithmetic (rule 29).
+
+    Arrangements of ONE group are alternatives for one floor and may overlap
+    each other, as the barn cabin's bed and office do; two groups may not,
+    because a buyer can show both at once."""
+    fx = spec["fixtures"]["furniture"]
+    W, D, t = geo["W"], geo["D"], geo["t"]
+    layout = spec["interior_partitions"]["layout"]
+    it = layout["thickness"]["ft"]
+    underfoot = fx["underfoot"]["ft"]
+    solids = []                                        # (label, plan box) furniture must not enter
+    for row in layout["partitions"]:
+        lo, hi = _partition_band(row, it)
+        a, b = sorted((row["from_ft"], row["to_ft"]))
+        solids.append((row["id"], (a, b, lo, hi) if row["runs_along"] == "X" else (lo, hi, a, b)))
+    for name, f in spec["fixtures"]["drawn"].items():
+        if isinstance(f, dict):
+            solids.append((f"the {name}", (f["x"][0], f["x"][1], f["y"][0], f["y"][1])))
+    runs = [(r["id"], (r["x0"], r["x1"], r["y0"], r["y1"])) for r in fx["keep_clear"]["runs"]]
+    groups = {}
+    for g in (spec.get("variants") or {}).get("presence") or []:
+        for prefix in g.get("controls") or ():
+            if prefix.startswith("Furn_"):
+                groups[prefix] = g["id"]
+    wrong, by_group = [], {}
+    arrangements = {a["id"] for a in fx["arrangements"]}
+    built = {ob.name for ob in geo["furniture"]}
+    for arr in sorted(arrangements):
+        if not any(n.startswith(f"Furn_{arr}_") for n in built):
+            wrong.append(f"{arr} was not built")
+    for ob in geo["furniture"]:
+        group = next((g for pfx, g in groups.items() if ob.name.startswith(pfx)), None)
+        if group is None:
+            wrong.append(f"{ob.name} is controlled by no presence group")
+            # NOT GROUPED: a None among the group ids made sorted() raise
+            # instead of this gate naming the object. Found by review.
+        for x0, x1, y0, y1, _, z1 in _mesh_boxes(ob):
+            plan = (x0, x1, y0, y1)
+            if x0 < t - MESH_TOL or x1 > W - t + MESH_TOL or y0 < t - MESH_TOL or y1 > D - t + MESH_TOL:
+                wrong.append(f"{ob.name} runs into an exterior wall at X {x0:.3f}..{x1:.3f}, Y {y0:.3f}..{y1:.3f}")
+            for label, s in solids:
+                if _overlap(plan, s):
+                    wrong.append(f"{ob.name} runs into {label}")
+            if z1 > underfoot + MESH_TOL:
+                for label, r in runs:
+                    if _overlap(plan, r):
+                        wrong.append(f"{ob.name} stands in {label}")
+            if group is not None:
+                by_group.setdefault(group, []).append((ob.name, plan))
+    names = sorted(by_group)
+    for i, g in enumerate(names):
+        for h in names[i + 1:]:
+            for n1, b1 in by_group[g]:
+                for n2, b2 in by_group[h]:
+                    if _overlap(b1, b2):
+                        wrong.append(f"{n1} ({g}) and {n2} ({h}) overlap, and both can be shown at once")
+    for arr in sorted(arrangements):
+        obs = [ob for ob in geo["furniture"] if ob.name.startswith(f"Furn_{arr}_")]
+        if obs and abs(min(world_bbox([ob])[0][2] for ob in obs)) > MESH_TOL:
+            wrong.append(f"{arr} does not stand on the floor")
+    return not wrong, "; ".join(sorted(set(wrong)))
 
 
 def _ground_mounted(spec, geo):

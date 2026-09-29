@@ -150,8 +150,68 @@
           "default": false
         }
       ]
+    },
+    {
+      "id": "sleeping_area",
+      "label": "Sleeping area",
+      "room": "living",
+      "property": "visible",
+      "options": [
+        {
+          "id": "bed",
+          "label": "Bed",
+          "show": [
+            "Furn_sleep_bed_linen",
+            "Furn_sleep_bed_metal",
+            "Furn_sleep_bed_wood"
+          ],
+          "default": true
+        },
+        {
+          "id": "office",
+          "label": "Home office",
+          "show": [
+            "Furn_sleep_office_linen",
+            "Furn_sleep_office_metal",
+            "Furn_sleep_office_plant",
+            "Furn_sleep_office_wood"
+          ],
+          "default": false
+        },
+        {
+          "id": "empty",
+          "label": "Unfurnished",
+          "show": [],
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "living_layout",
+      "label": "Living",
+      "room": "living",
+      "property": "visible",
+      "options": [
+        {
+          "id": "sofa",
+          "label": "Furnished",
+          "show": [
+            "Furn_living_sofa_fabric",
+            "Furn_living_sofa_linen"
+          ],
+          "default": true
+        },
+        {
+          "id": "empty",
+          "label": "Unfurnished",
+          "show": [],
+          "default": false
+        }
+      ]
     }
   ],
+  "disclosure": "Furniture shown for scale; not included.",
+  "disclosure_note": "THE MODEL CANNOT ENFORCE THIS. It is carried so the page has no excuse to omit it: a buyer switching the sleeping area to an office is choosing a layout to picture, not ordering a desk.\n",
   "views": [
     {
       "id": "full",

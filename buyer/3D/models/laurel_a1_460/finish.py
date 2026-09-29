@@ -27,7 +27,7 @@ import bpy
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.append(str(HERE.parents[1]))          # buyer/3D, where adu_kit lives
-from build import _wall_band, build, load_spec  # noqa: E402
+from build import _wall_band, arrangement_ids, build, load_spec, option_nodes  # noqa: E402
 from adu_kit import manifest as kit_manifest  # noqa: E402
 from adu_kit.export import export_glb, glb_info, patch_base_color_factors  # noqa: E402
 from adu_kit.manifest import face_slots  # noqa: E402
@@ -102,13 +102,14 @@ def level_objects(lod, geo, colls, glazing):
     if lod == "lod0":
         return (keep + siding + list(colls["Openings"].objects)
                 + list(colls["Partitions"].objects) + list(colls["Trim"].objects)
-                + list(colls["Fixtures"].objects) + glazing)
+                + list(colls["Fixtures"].objects) + list(colls["Furniture"].objects)
+                + glazing)
     outside = exterior_ids(geo)
     return keep + siding + [o for o in colls["Openings"].objects
                             if opening_id(o.name) in outside] + glazing
 
 
-def presence_block(groups, nodes):
+def presence_block(groups, nodes, arrangements=frozenset()):
     """`presence`: spec.variants.presence as the page reads it, with each
     group's `controls` checked against the nodes the export carries, and
     problems.
@@ -117,7 +118,13 @@ def presence_block(groups, nodes):
     group declares the name prefixes it controls; any exported node with one
     of them that no option shows would never appear, and one two options
     show would be half of two finishes at once. `controls` stays in the spec:
-    the page needs only the options."""
+    the page needs only the options.
+
+    A furniture option names an `arrangement` instead of a `show` list
+    (#135), one of `arrangements`, the ids spec.fixtures.furniture declares;
+    build.option_nodes resolves it to the Furn_<arrangement>_ nodes the
+    export carries, and the manifest publishes the resolved list, which
+    is all the page reads."""
     # READ, NOT OBEYED (rule 25): a malformed block is a named problem, and
     # nothing partial is published. Found by review: `presence: [1]`, or an
     # option that is a scalar, raised mid-export instead.
@@ -140,6 +147,12 @@ def presence_block(groups, nodes):
             elif not (isinstance(o.get("show", []), list)
                       and all(isinstance(n, str) for n in o.get("show", []))):
                 shape.append(f"variants.presence[{i}].options[{j}].show must be a list of names")
+            elif "arrangement" in o and "show" in o:
+                shape.append(f"variants.presence[{i}].options[{j}] names both `show` and "
+                             f"`arrangement`; one says what it shows")
+            elif not isinstance(o.get("arrangement"), (str, type(None))):
+                shape.append(f"variants.presence[{i}].options[{j}].arrangement must be an "
+                             f"arrangement id or null")
         if not all(isinstance(p, str) for p in g.get("controls") or []
                    if isinstance(g.get("controls"), list)):
             shape.append(f"variants.presence[{i}].controls must be a list of prefixes")
@@ -149,7 +162,20 @@ def presence_block(groups, nodes):
     for g in groups:
         gid = g.get("id")
         opts = g.get("options") or []
-        shown = [n for o in opts for n in (o.get("show") or [])]
+        resolved = [option_nodes(o, nodes, arrangements) for o in opts]
+        shown = [n for s in resolved for n in s]
+        # AN ARRANGEMENT THE SPEC DOES NOT DECLARE, or one that resolves to
+        # nothing, is misspelt or unbuilt, and would publish as a silently
+        # empty room -- or, matched as a prefix, as two alternatives at once.
+        # Only null means empty; "" is not null. Found by review.
+        problems += [f"presence {gid}: option {o.get('id')} names arrangement "
+                     f"{o['arrangement']!r}, which fixtures.furniture does not declare"
+                     for o in opts if "arrangement" in o and o["arrangement"] is not None
+                     and o["arrangement"] not in arrangements]
+        problems += [f"presence {gid}: option {o.get('id')} names arrangement "
+                     f"{o['arrangement']!r}, which no exported node is"
+                     for o, s in zip(opts, resolved)
+                     if o.get("arrangement") in arrangements and not s]
         owned = sorted(n for n in nodes if n.startswith(tuple(g.get("controls") or ())))
         problems += [f"presence {gid}: {n} is shown by no option" for n in owned if n not in shown]
         problems += [f"presence {gid}: {n} is shown by {shown.count(n)} options"
@@ -178,8 +204,8 @@ def presence_block(groups, nodes):
             block["room"] = g["room"]
         block["property"] = "visible"
         block["options"] = [{"id": o.get("id"), "label": o.get("label"),
-                             "show": list(o.get("show") or []),
-                             "default": bool(o.get("default"))} for o in opts]
+                             "show": s,
+                             "default": bool(o.get("default"))} for o, s in zip(opts, resolved)]
         out.append(block)
     return out, problems
 
@@ -240,7 +266,7 @@ def write_manifest(spec, out, lod0):
     problems += bad
     variants = spec.get("variants")
     presence, bad = presence_block(variants.get("presence") if isinstance(variants, dict) else None,
-                                   nodes)
+                                   nodes, arrangement_ids(spec))
     problems += bad
     manifest = {
         "model": ident,
@@ -251,6 +277,11 @@ def write_manifest(spec, out, lod0):
         "sets": sets,
         "presence": presence,
     }
+    # THE DISCLOSURE (#135): the furniture groups name a `room`, and the
+    # contract then requires it. Copied as written; model_contract judges it.
+    for key in ("disclosure", "disclosure_note"):
+        if isinstance(variants, dict) and key in variants:
+            manifest[key] = variants[key]
     if views is not None:
         manifest["views"] = views
         manifest["views_note"] = kit_manifest.VIEWS_NOTE
@@ -280,13 +311,14 @@ def save_viewable_blend(spec, dest):
     # and views.py both fall back to the first. Found by review: with no
     # default this hid every option, and the blend showed no finish at all.
     # Here the stucco skin shows and the siding with its trim is hidden.
+    names = [ob.name for ob in bpy.data.objects]
     for g in (spec.get("variants") or {}).get("presence") or []:
         opts = g["options"]
         chosen = next((o for o in opts if o.get("default")), opts[0] if opts else None)
         for o in opts:
             if o is chosen:
                 continue
-            for name in o.get("show") or []:
+            for name in option_nodes(o, names, arrangement_ids(spec)):
                 ob = bpy.data.objects.get(name)
                 if ob is not None:
                     ob.hide_set(True)
@@ -369,7 +401,7 @@ def main():
          all(results[k]["size_kb"] <= v for k, v in budget.items())),
         ("lod2 sits on its baseline: origin, axes, units and floor", not base_bad),
         ("the manifest meets the page's contract, the entry sits at its front, "
-         "and every finish node is shown by exactly one option",
+         "and every finish and furniture node is shown by exactly one option",
          vpath is not None),
     ]
     print("-" * 76)
