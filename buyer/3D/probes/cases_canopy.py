@@ -13,10 +13,14 @@ way each, never the spec (rule 19):
   * the frame built into the Openings collection            must FAIL
   * the canopy built three inches lower still, into the
     head trim below the ledger's allowance                  must FAIL
+  * the braces offset a full radius on each axis, floating  must FAIL
   * the canopy as built                                     must PASS
   * lod0 exported without the Canopy collection             must FAIL
 
-The fifth holds the one contact the gate allows -- the ledger bearing on
+The sixth was found by review: offsetting a tilted rod's ends by its
+radius on Y and on Z left it 0.10" off the wall and 0.05" above the frame,
+inside the half-inch tolerance the gate first used. The fifth holds the one
+contact the gate allows -- the ledger bearing on
 door 1's siding head trim, no higher than that band's top -- to its bound.
 """
 from pathlib import Path
@@ -70,6 +74,13 @@ def _into_the_head_trim(work: Path) -> None:
     _patch(work, BUILD, UNDERSIDE, '    z0 = fe["underside"] - 0.3\n', "the canopy into the head trim")
 
 
+def _braces_floating(work: Path) -> None:
+    _patch(work, BUILD,
+           '    braces = [tube(f"Canopy_brace_{i}", [(bx, face + oy, zw + oz), (bx, face + land + oy, z1 + oz)], r, coll)\n',
+           '    braces = [tube(f"Canopy_brace_{i}", [(bx, face + r, zw), (bx, face + land, z1 + r)], r, coll)\n',
+           "the braces offset a full radius on each axis")
+
+
 def _lod0_without_canopy(work: Path) -> None:
     _patch(work, FINISH,
            '              + list(colls["Canopy"].objects))\n', ')\n',
@@ -97,6 +108,10 @@ CASES = [
          _into_the_head_trim,
          [Run(BUILD, fails=True, blender=True, model=LAUREL)],
          contains="runs into the front wall's siding trim"),
+    Case(G, "laurel: the braces offset a full radius on each axis, floating off wall and frame",
+         _braces_floating,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         contains="Canopy_brace_1 stops at Y"),
     Case(G, "laurel: the canopy as built hangs where drawn",
          None,
          [Run(BUILD, fails=False, blender=True, model=LAUREL)],

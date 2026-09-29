@@ -46,6 +46,7 @@ WHAT IT DOES NOT: the mini-split's indoor unit, which no sheet draws, and
 the 1-bedroom option (a configurator variant, spec.variants).
 """
 
+import math
 import sys
 from pathlib import Path
 
@@ -706,9 +707,16 @@ def _build_canopy(spec, coll):
     r = c["brace_rod"]["ft"] / 2
     zw = sum(fe["wall_connection"]) / 2
     land = proj - (se["projection"] - se["brace_lands_from_wall"])
-    # the rod starts one radius off the wall and ends one radius above the
-    # frame, so its end caps touch and never enter either
-    braces = [tube(f"Canopy_brace_{i}", [(bx, face + r, zw), (bx, face + land, z1 + r)], r, coll)
+    # THE ROD'S END RINGS TOUCH THE PLATE'S MIDDLE AND THE LANDING POINT. A
+    # tilted rod's ring reaches r * |dz| past its centre in Y and r * dy in
+    # Z, along (0, -dz, dy) -- the direction tube_geom's ring puts a vertex
+    # on -- so both ends shift by that same vector and the direction does
+    # not change. Found by review: shifting by the full radius on each axis
+    # left the rod 0.10" off the wall and 0.05" above the frame.
+    run, fall = land, z1 - zw
+    length = math.hypot(run, fall)
+    oy, oz = -r * fall / length, r * run / length
+    braces = [tube(f"Canopy_brace_{i}", [(bx, face + oy, zw + oz), (bx, face + land + oy, z1 + oz)], r, coll)
               for i, bx in enumerate(fe["brace_x"], start=1)]
     return [multibox("Canopy_frame", frame, coll), multibox("Canopy_slats", slats, coll)] + braces
 
@@ -1834,13 +1842,19 @@ def _canopy_hung(spec, geo, colls):
     land = c["projection"]["ft"] - (se["projection"] - se["brace_lands_from_wall"])
     for ob, bx in zip(braces, sorted(fe["brace_x"])):
         vs = [ob.matrix_world @ v.co for v in ob.data.vertices]
-        top, low = max(vs, key=lambda v: v.z), min(vs, key=lambda v: v.z)
+        # TOUCHING, not near: the rod's nearest point to the wall is ON the
+        # wall's face, within the plate; its lowest point is ON the frame's
+        # top, where the side elevation lands it. Found by review: a
+        # half-inch tolerance here passed a rod floating off both.
+        wall_pt, low = min(vs, key=lambda v: v.y), min(vs, key=lambda v: v.z)
         if abs(sum(v.x for v in vs) / len(vs) - bx) > tol:
             wrong.append(f"{ob.name} is not at the front elevation's X {bx}")
-        if not fe["wall_connection"][0] - tol <= top.z <= fe["wall_connection"][1] + tol:
-            wrong.append(f"{ob.name} meets the wall at {top.z:.4f}, not its plate at "
+        if abs(wall_pt.y - face) > MESH_TOL:
+            wrong.append(f"{ob.name} stops at Y {wall_pt.y:.4f}, off the wall's face {face:.4f}")
+        if not fe["wall_connection"][0] - MESH_TOL <= wall_pt.z <= fe["wall_connection"][1] + MESH_TOL:
+            wrong.append(f"{ob.name} meets the wall at {wall_pt.z:.4f}, not its plate at "
                          f"{fe['wall_connection'][0]}..{fe['wall_connection'][1]}")
-        if abs(low.z - fz1) > tol or abs(low.y - (face + land)) > tol:
+        if abs(low.z - fz1) > MESH_TOL or abs(low.y - (face + land)) > tol:
             wrong.append(f"{ob.name} lands at Y {low.y:.4f} Z {low.z:.4f}, not on the frame at "
                          f"Y {face + land:.4f} Z {fz1:.4f}")
     # OUTSIDE, BELOW THE ROOF, CLEAR OF THE OPENINGS AND THE SIDING TRIM
