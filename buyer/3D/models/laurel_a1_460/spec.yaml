@@ -1217,6 +1217,17 @@ materials:
       roughness: 0.7
       metallic: 0.0
       assumed: "the barn cabin's furn_plant: the office's monstera"
+    # THE CANOPY'S TWO (#144). A-3.4 names the timber and not a finish.
+    canopy_cedar:
+      base_color_linear: [0.42, 0.22, 0.11]
+      roughness: 0.7
+      metallic: 0.0
+      assumed: "A-3.4 names CEDAR; a natural-stained western red cedar, declared, as no sheet or rendering shows its colour"
+    canopy_brace:
+      base_color_linear: [0.03, 0.03, 0.03]
+      roughness: 0.4
+      metallic: 0.8
+      assumed: "A-3.4's 1/2\" CANOPY BRACE is a steel rod; black, declared"
     equipment:
       base_color_linear: [0.620, 0.625, 0.615]
       roughness: 0.50
@@ -1275,6 +1286,8 @@ materials:
     Fix_: porcelain
     Equip_pad: concrete
     Equip_: equipment
+    Canopy_brace_: canopy_brace
+    Canopy_: canopy_cedar
     # FURNITURE, by full name: an object is Furn_<arrangement>_<material>, and
     # the material is its name's END, which a prefix cannot reach.
     Furn_sleep_bed_linen: furn_linen
@@ -1328,20 +1341,21 @@ export:
       label: "Cutaway"
       desc: "Dollhouse with the front wall and its skin removed, for a sectional look through the entry."
       hide: [ROOF]
-      hide_objects: [Wall_front, Sheathing_front, Siding_front, Trim_Wall_front, Trim_ext_siding_front]
+      hide_objects: [Wall_front, Sheathing_front, Siding_front, Trim_Wall_front, Trim_ext_siding_front,
+                     Canopy_brace_1, Canopy_brace_2, Canopy_frame, Canopy_slats]
     - id: interior_only
       label: "Interior only"
       desc: "Partitions and slab alone, with the openings left in so the doors read."
       hide: [ROOF, WALL, SKIN]
       hide_objects: [Trim_Wall_front, Trim_Wall_rear, Trim_Wall_x0, Trim_Wall_x24,
                      Trim_ext_siding_front, Trim_ext_siding_rear, Trim_ext_siding_x0, Trim_ext_siding_x24,
-                     Equip_condenser, Equip_pad]
+                     Equip_condenser, Equip_pad, Canopy_brace_1, Canopy_brace_2, Canopy_frame, Canopy_slats]
   levels:
     # What each level carries. lod2 is the placement developer's massing,
     # built with no openings cut; lod1 is the exterior a buyer sees from the
     # street; lod0 adds the interior.
-    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim, the fixtures, the condenser on its pad, every furniture arrangement; textured"
-    lod1: "shell and both finishes' skins, roof, slab, the exterior walls' sashes and leaves, glazing, the siding trim, the condenser on its pad; textured"
+    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim, the fixtures, the condenser on its pad, every furniture arrangement, the entry canopy; textured"
+    lod1: "shell and both finishes' skins, roof, slab, the exterior walls' sashes and leaves, glazing, the siding trim, the condenser on its pad, the entry canopy; textured"
     lod2: "shell (the stucco skin only), roof and slab, no openings cut; flat colour"
   budget_kb:
     lod0: 1024
@@ -1466,9 +1480,90 @@ variants:
       options:
         - {id: sofa, label: Furnished, arrangement: living_sofa, default: true}
         - {id: empty, label: Unfurnished, arrangement: null}
+    # THE ENTRY CANOPY (#144). A-2.0 marks it OPTIONAL, so the page opens
+    # without it (decided 2026-09-29) and a buyer adds it. No `room`: it is
+    # part of the house on offer, not furniture shown for scale.
+    - id: entry_canopy
+      label: Entry canopy
+      source: "A-2.0 FRONT ELEVATION 'OPTIONAL CANOPY SEE A-3.4'"
+      controls: [Canopy_]
+      options:
+        - {id: without, label: None, show: [], default: true}
+        - {id: cedar, label: Cedar canopy,
+           show: [Canopy_brace_1, Canopy_brace_2, Canopy_frame, Canopy_slats]}
+  # THE CANOPY ITSELF (#144), read as VECTORS by canopy_ink.py off four
+  # drawings, and measured again on every CI run by test_canopy_ink.py. It
+  # hangs over door 1 and its sidelite from the front wall, under the 5'-0"
+  # roof overhang. Built as the Canopy collection (lod0 and lod1: it is
+  # outside), shown by the entry_canopy group above.
   canopy:
     optional: true
-    source: "A-2.0 FRONT ELEVATION 'OPTIONAL CANOPY SEE A-3.4'; A-3.4 AWNING DETAILS '2X6 CEDAR CANOPY FRAME'"
+    status: "#144: measured below, built as the Canopy collection and gated in build.py"
+    source: "A-2.0 FRONT ELEVATION 'OPTIONAL CANOPY SEE A-3.4'; A-3.4 AWNING DETAILS '2X6 CEDAR CANOPY FRAME', '1X6 CEDAR SLATS', '1/2\" CANOPY BRACE'"
+    # A-3.4's two strings: the frame's outer faces, along the wall and out from it.
+    width: {ft: 6.5, raw: "6'-6\"", source: "A-3.4 AWNING PLAN VIEW, the string along the wall"}
+    projection: {ft: 2.5, raw: "2'-6\"", source: "A-3.4 AWNING PLAN VIEW and AWNING SECTION, the string out from the exterior wall"}
+    depth: {ft: 0.4583, raw: "5 1/2\"", source: "A-3.4 AWNING SECTION '2X6 CEDAR CANOPY FRAME': a 2x6 is 5 1/2\" deep, and a34_section draws it so"}
+    brace_rod: {ft: 0.0417, raw: "1/2\"", source: "A-3.4 AWNING SECTION '1/2\" CANOPY BRACE'"}
+    slat_thickness:
+      ft: 0.0625
+      raw: "3/4\""
+      assumed: "A-3.4's '1X6 CEDAR SLATS': a 1x board is 3/4\" thick. Laid flat, their tops flush with the frame's, as the plan view shows them from above; no sheet dimensions it"
+    a34_plan:
+      width: 6.4967
+      projection: 2.4983
+      member: 0.125
+      bay_joist: 0.125
+      slats: [[0.125, 0.375], [0.4583, 0.7083], [0.7917, 1.04], [1.1233, 1.3733],
+              [1.4567, 1.7067], [1.79, 2.04], [2.1233, 2.3733]]
+      source: >
+        A-3.4 AWNING PLAN VIEW at 1" = 1'-0", read as vectors: the frame's
+        outer faces (6'-6" by 2'-6" to within 0.04", which proves the
+        scale), its 1 1/2" members, the 1 1/2" joist that splits it into two
+        bays, and ONE bay's seven slats, each slat's two faces in feet from
+        the frame's outer face. The other bay is drawn the same.
+    a34_section:
+      depth: 0.4583
+      projection: 2.4983
+      member: 0.125
+      source: "A-3.4 AWNING SECTION at 3\" = 1'-0\", read as vectors: the frame 5 1/2\" deep, 2'-6\" to the wall's face, its outer member 1 1/2\""
+    front_elevation:
+      x: [8.7856, 15.2946]
+      underside: 7.003
+      top: 7.6706
+      brace_x: [8.9157, 15.1644]
+      wall_connection: [9.1727, 9.3396]
+      source: >
+        A-2.0 FRONT ELEVATION, the canopy over door 1 and its sidelite and its
+        two braces' wall plates, registered on the elevation's own wall
+        outline and F.F. line, X 24 on the viewer's left, at the scale and
+        drawn cladding fixtures.condenser.a20_frame solves.
+    side_elevation:
+      projection: 2.5035
+      underside: 7.003
+      top: 7.6706
+      wall_connection: [9.1727, 9.3396]
+      brace_lands_from_wall: 2.3733
+      source: "A-2.0 SIDE (LEFT) ELEVATION, the canopy run out from the front wall's drawn face, its brace's wall plate, and the plate the brace lands on atop the frame"
+    # HOW THE BUILD USES THE READINGS, one reading per dimension:
+    placement: >
+      Along the wall, centred where the FRONT ELEVATION draws it, at A-3.4's
+      width. Out from the wall's MODELLED outer face (face of stud plus
+      sheathing, where the siding trim is fixed), A-3.4's projection. Its
+      underside at the elevations' height; its depth A-3.4's 2x6, not the
+      elevations' 8" (decided 2026-09-29: see discrepancies). Members, bay
+      joist and slats as a34_plan draws them. Each brace a 1/2" rod from its
+      wall plate's middle, at the front elevation's X, down to the top of
+      the frame where the side elevation lands it.
+    # UNDER SIDING, THE LEDGER BEARS ON DOOR 1'S HEAD TRIM (decided
+    # 2026-09-29). That head band -- door 1's 6'-8" plus the borrowed
+    # trim.head_casing_height -- tops out 0.6" above the canopy's drawn
+    # 7'-0" underside. Drawn beats assumed, and A-3.4 shows the canopy fixed
+    # to the wall through a '1X6 WINDSORONE TRIM BOARD', so the ledger sits
+    # over the band; build.py allows that contact and no other.
+    tolerance_in:
+      value: 0.5
+      assumed: "the half inch per feature the elevation overlay (#130) and the plan overlay (#132) hold drawn features to"
 
 # ---------------------------------------------------------------------------
 discrepancies:
@@ -1515,6 +1610,22 @@ discrepancies:
       The two agree on the wall and the size, and differ by 5.3" along it;
       the plan governs a plan position, as A-1.0 governs the fixtures.
     source: "A-1.1 power plan 'A/C'; A-2.0 SIDE (LEFT) ELEVATION and REAR ELEVATION 'MINI-SPLIT CONDENSER'; measured by condenser_ink.py"
+
+  - id: the-elevations-draw-the-canopy-deeper-than-its-2x6
+    impact: >
+      A-2.0's FRONT and SIDE (LEFT) ELEVATIONS both draw the optional
+      canopy's frame 8" deep, from 7'-0" to 7'-8". A-3.4's AWNING SECTION
+      details it as a 2x6 CEDAR CANOPY FRAME and draws it 5 1/2" deep. The
+      section also draws its slats otherwise than the plan view does,
+      standing on edge rather than laid flat.
+    resolution: >
+      THE DETAIL GOVERNS THE MEMBER, THE ELEVATIONS ITS HEIGHT (decided
+      2026-09-29): the frame is built 5 1/2" deep with its underside at the
+      elevations' 7'-0", so it clears door 1's 6'-8" head as drawn. The
+      slats follow the plan view, which shows them from where a buyer sees
+      them. test_canopy_ink.py holds the depth difference still true, so it
+      is retired when a revised sheet agrees with itself.
+    source: "A-2.0 FRONT ELEVATION and SIDE (LEFT) ELEVATION; A-3.4 AWNING SECTION and AWNING PLAN VIEW; measured by canopy_ink.py"
 
   - id: the-half-inch-in-the-interior-strings
     status: resolved

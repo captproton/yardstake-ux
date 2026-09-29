@@ -96,9 +96,11 @@ def level_objects(lod, geo, colls, glazing):
             + list(colls["Site"].objects))
     if lod == "lod2":
         return keep
-    # The siding and the condenser on its pad are OUTSIDE, so a street view
-    # (lod1) carries them as lod0 does; lod2's contract carries neither.
-    siding = list(colls["Siding"].objects) + list(colls["Equipment"].objects)
+    # The siding, the condenser on its pad and the entry canopy are OUTSIDE,
+    # so a street view (lod1) carries them as lod0 does; lod2's contract
+    # carries none of them.
+    siding = (list(colls["Siding"].objects) + list(colls["Equipment"].objects)
+              + list(colls["Canopy"].objects))
     if lod == "lod0":
         return (keep + siding + list(colls["Openings"].objects)
                 + list(colls["Partitions"].objects) + list(colls["Trim"].objects)
@@ -401,7 +403,7 @@ def main():
          all(results[k]["size_kb"] <= v for k, v in budget.items())),
         ("lod2 sits on its baseline: origin, axes, units and floor", not base_bad),
         ("the manifest meets the page's contract, the entry sits at its front, "
-         "and every finish and furniture node is shown by exactly one option",
+         "and every switchable node -- finish, furniture, canopy -- is shown by exactly one option",
          vpath is not None),
     ]
     print("-" * 76)

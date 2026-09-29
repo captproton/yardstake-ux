@@ -208,6 +208,30 @@
           "default": false
         }
       ]
+    },
+    {
+      "id": "entry_canopy",
+      "label": "Entry canopy",
+      "property": "visible",
+      "options": [
+        {
+          "id": "without",
+          "label": "None",
+          "show": [],
+          "default": true
+        },
+        {
+          "id": "cedar",
+          "label": "Cedar canopy",
+          "show": [
+            "Canopy_brace_1",
+            "Canopy_brace_2",
+            "Canopy_frame",
+            "Canopy_slats"
+          ],
+          "default": false
+        }
+      ]
     }
   ],
   "disclosure": "Furniture shown for scale; not included.",
@@ -232,6 +256,10 @@
       "label": "Cutaway",
       "desc": "Dollhouse with the front wall and its skin removed, for a sectional look through the entry.",
       "hide": [
+        "Canopy_brace_1",
+        "Canopy_brace_2",
+        "Canopy_frame",
+        "Canopy_slats",
         "Roof_shed",
         "Sheathing_front",
         "Siding_front",
@@ -245,6 +273,10 @@
       "label": "Interior only",
       "desc": "Partitions and slab alone, with the openings left in so the doors read.",
       "hide": [
+        "Canopy_brace_1",
+        "Canopy_brace_2",
+        "Canopy_frame",
+        "Canopy_slats",
         "Equip_condenser",
         "Equip_pad",
         "Roof_shed",
