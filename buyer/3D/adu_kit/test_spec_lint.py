@@ -169,6 +169,13 @@ class NumericKeys(unittest.TestCase):
         self.assertEqual(len(problems), 1, problems)
         self.assertIn("finishes.face_slots.1: the key 1 is a number", problems[0])
 
+    def test_a_key_spelt_like_the_path_is_not_the_exemption(self):
+        """Found by review: matched by its printed path, a top-level key
+        named "materials.face_slots" was exempt, and checked by nothing."""
+        problems = spec_lint.lint(spec(**{"materials.face_slots": {42: "wide"}}))
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("materials.face_slots.42: the key 42 is a number", problems[0])
+
     def test_the_command_line_fails_on_one(self):
         # The issue's own case: this passed, "1 number(s), every one cited".
         r = _cli(INDEX + "envelope:\n  42: wide\n")
@@ -191,8 +198,8 @@ class SelfContaining(unittest.TestCase):
         problems = spec_lint.lint(self._looped())
         for where in ("a.self", "b[1]"):
             with self.subTest(where=where):
-                self.assertIn(f"{where} contains itself, through a YAML alias inside its own anchor; "
-                              f"nothing in it can be checked", problems)
+                self.assertIn(f"{where} is a YAML alias back to a container it sits inside; the walk "
+                              f"stops there, having checked that container once", problems)
         # and what it holds is still checked, once
         self.assertIn("a.ft = 1.0 has no source, derived, assumed or published", problems)
 
@@ -213,7 +220,7 @@ class SelfContaining(unittest.TestCase):
         r = _cli(INDEX + "a: &a\n  self: *a\n")
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertNotIn("Traceback", r.stderr)
-        self.assertRegex(r.stdout + r.stderr, r"recursive|contains itself")
+        self.assertRegex(r.stdout + r.stderr, r"recursive|alias back to a container")
 
 
 class SheetsAndLengths(unittest.TestCase):

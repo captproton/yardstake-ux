@@ -75,7 +75,6 @@ from adu_kit.manifest import face_slots
 CITATIONS = ("source", "derived", "assumed", "published")
 URL = re.compile(r"https?://\S+")
 FT_TOLERANCE = 0.0005
-NUMBERED_KEYS = "materials.face_slots"     # rule 6's one exception, checked by manifest.face_slots
 
 
 def _is_number(v) -> bool:
@@ -229,12 +228,21 @@ def lint(spec, harvested: Optional[dict] = None, titles: Optional[dict] = None) 
             problems.append(f"{where}: {label} is not a dimension on {', '.join(named)} (pages {pages})")
 
     on_path = set()                            # ids of the containers being walked (rule 7)
+    # RULE 6'S ONE EXCEPTION IS A NODE, NOT A PATH: the mapping at
+    # spec["materials"]["face_slots"], the one manifest.face_slots checks
+    # below. Found by review: matched by its printed path, a top-level key
+    # spelt "materials.face_slots" was exempt too, and checked by nothing.
+    materials = spec.get("materials")
+    numbered = materials.get("face_slots") if isinstance(materials, dict) else None
 
     def walk(node, path, stack):
         if isinstance(node, (dict, list)):
             if id(node) in on_path:
-                problems.append(f"{path or 'the spec'} contains itself, through a YAML alias "
-                                f"inside its own anchor; nothing in it can be checked")
+                # Found by review: the contents WERE checked, on the first
+                # visit; it is the walk that stops here, not the checking.
+                problems.append(f"{path or 'the spec'} is a YAML alias back to a container it "
+                                f"sits inside; the walk stops there, having checked that "
+                                f"container once")
                 return
             on_path.add(id(node))
             try:
@@ -260,7 +268,7 @@ def lint(spec, harvested: Optional[dict] = None, titles: Optional[dict] = None) 
                     problems.append(f"{path}: raw {node['raw']} is {float(feet):.4f} ft, not ft {ft}")
             for key, value in node.items():
                 child = f"{path}.{key}" if path else str(key)
-                if _is_number(key) and path != NUMBERED_KEYS:
+                if _is_number(key) and not (numbered is not None and node is numbered):
                     problems.append(f"{child}: the key {key!r} is a number, and a key is never "
                                     f"checked for a citation; name it, or make it a cited value")
                 if _is_number(value):
