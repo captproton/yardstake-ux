@@ -741,6 +741,74 @@ fixtures:
     tolerance_in:
       value: 0.5
       assumed: "the half inch per feature the elevation overlay (#130) and the plan overlay (#132) hold drawn features to"
+  # FURNITURE (#135). Shown for scale and not included, as the barn cabin's
+  # is. NOTHING HERE IS A PLAN DIMENSION: the sheets draw no furniture, and
+  # the pieces are the barn cabin's own (its spec.fixtures.furniture), REUSED
+  # rather than copied -- the build reads them from that spec, turns each
+  # arrangement and moves it into Laurel's frame by `place`. Only the
+  # placement is Laurel's, and it is `assumed`.
+  #
+  # LAUREL IS A STUDIO (decided 2026-09-29): one room holds a sleeping area and
+  # a sitting area, so the barn cabin's bed-or-office swap and its sofa become
+  # two presence groups a buyer can mix (variants.presence).
+  furniture:
+    status: placed
+    from: "models/barn_cabin_524/spec.yaml, fixtures.furniture.arrangements"
+    placement: >
+      `place` turns an arrangement by `rotate` degrees (counter-clockwise, in
+      plan) about the barn-cabin point `from`, then moves that point to
+      Laurel's `to`. Both arrangements of the sleeping area share one place,
+      because they are alternatives for the same floor, as they are in the
+      barn cabin's bedroom.
+    arrangements:
+      - id: sleep_bed
+        reuse: bedroom_bed
+        place:
+          rotate: 90
+          from: [16.5, 29.52]
+          to: [0.5, 5.0]
+          assumed: >
+            the headboard's back against the X 0 wall's finished face (its stud
+            face at 0.4583 plus the 1/2" gyp board), the bed centred on W-C2,
+            whose 5'-0" sill clears the headboard. The barn-cabin point is the
+            middle of the wall its bed backs onto.
+      - id: sleep_office
+        reuse: bedroom_office
+        place:
+          rotate: 90
+          from: [16.5, 29.52]
+          to: [0.5, 5.0]
+          assumed: "the sleeping area's place: the desk against the same wall, under the same window"
+      - id: living_sofa
+        reuse: living_sofa
+        place:
+          rotate: 90
+          from: [18.0, 15.1]
+          to: [0.5, 14.1667]
+          assumed: >
+            the sofa's back against the X 0 wall's finished face, centred on
+            W-C1 (Y 11.6667..16.6667), whose sill is above it. The barn-cabin
+            point is the middle of the sofa's back.
+    # WHAT FURNITURE MUST LEAVE OPEN, in plan feet. Declared, as the barn
+    # cabin declares its walkways: a gate cannot tell a route from a corner.
+    keep_clear:
+      assumed: >
+        the route between the two entry doors, each door's swing into the
+        room, and the kitchen's working aisle. Widths are the doors' own and a
+        42" aisle; no sheet dimensions circulation.
+      runs:
+        - {id: rear_door_to_front_door, x0: 8.1667, x1: 11.1667, y0: 0.4583, y1: 18.7084,
+           desc: "D-6's width, from the rear wall to the front wall: the way through the room"}
+        - {id: front_door_swing, x0: 10.0, x1: 13.0, y0: 15.7084, y1: 18.7084,
+           desc: "D-1's 3'-0\" leaf, swinging in from the front wall"}
+        - {id: closet_door_swing, x0: 8.9583, x1: 11.2917, y0: 8.2915, y1: 10.6249,
+           desc: "D-3's 2'-4\" leaf, swinging out of the closet into the room"}
+        - {id: kitchen_aisle, x0: 18.0, x1: 21.4999, y0: 8.8344, y1: 18.7084,
+           desc: "42\" in front of the counter, the range and the refrigerator"}
+    underfoot:
+      ft: 0.125
+      raw: "1 1/2\""
+      assumed: "a piece no taller than this is walked ON, not around -- the office's rug -- and does not close a run"
   water_heater:
     model: "RHEEM PROPH40 T2 RH375-15, as A-1.0's WATER HEATER NOTES name it"
     height:   {ft: 5.1927, raw: "62 5/16\"",
@@ -1122,6 +1190,33 @@ materials:
       roughness: 0.60
       metallic: 0.0
       assumed: "no sheet names a floor finish and the rendering shows no interior (finishes.floor): a neutral mid-tone, declared rather than sampled"
+    # The furniture's five, the barn cabin's own values: the pieces are its,
+    # so their colours come with them.
+    furn_fabric:
+      base_color_linear: [0.36, 0.13, 0.09]
+      roughness: 0.85
+      metallic: 0.0
+      assumed: "the barn cabin's furn_fabric, sampled there from its tour video's rust sofa"
+    furn_linen:
+      base_color_linear: [0.72, 0.66, 0.58]
+      roughness: 0.9
+      metallic: 0.0
+      assumed: "the barn cabin's furn_linen: bedding and cushions"
+    furn_wood:
+      base_color_linear: [0.33, 0.21, 0.12]
+      roughness: 0.5
+      metallic: 0.0
+      assumed: "the barn cabin's furn_wood: the bed, desk and chair"
+    furn_metal:
+      base_color_linear: [0.42, 0.31, 0.13]
+      roughness: 0.3
+      metallic: 0.9
+      assumed: "the barn cabin's furn_metal: the brass lamps"
+    furn_plant:
+      base_color_linear: [0.09, 0.19, 0.08]
+      roughness: 0.7
+      metallic: 0.0
+      assumed: "the barn cabin's furn_plant: the office's monstera"
     equipment:
       base_color_linear: [0.620, 0.625, 0.615]
       roughness: 0.50
@@ -1180,6 +1275,17 @@ materials:
     Fix_: porcelain
     Equip_pad: concrete
     Equip_: equipment
+    # FURNITURE, by full name: an object is Furn_<arrangement>_<material>, and
+    # the material is its name's END, which a prefix cannot reach.
+    Furn_sleep_bed_linen: furn_linen
+    Furn_sleep_bed_metal: furn_metal
+    Furn_sleep_bed_wood: furn_wood
+    Furn_sleep_office_linen: furn_linen
+    Furn_sleep_office_metal: furn_metal
+    Furn_sleep_office_plant: furn_plant
+    Furn_sleep_office_wood: furn_wood
+    Furn_living_sofa_fabric: furn_fabric
+    Furn_living_sofa_linen: furn_linen
   # FACES A BUILD TAGS, by polygon material index (adu_kit.finish.assign's
   # extra_slots). build.py tags the slab's top face 1, the floor, and the
   # siding skin's cut faces round each opening 2, the trim
@@ -1234,7 +1340,7 @@ export:
     # What each level carries. lod2 is the placement developer's massing,
     # built with no openings cut; lod1 is the exterior a buyer sees from the
     # street; lod0 adds the interior.
-    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim, the fixtures, the condenser on its pad; textured"
+    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim, the fixtures, the condenser on its pad, every furniture arrangement; textured"
     lod1: "shell and both finishes' skins, roof, slab, the exterior walls' sashes and leaves, glazing, the siding trim, the condenser on its pad; textured"
     lod2: "shell (the stucco skin only), roof and slab, no openings cut; flat colour"
   budget_kb:
@@ -1311,6 +1417,14 @@ variants:
         - {id: dark_bronze, label: Dark bronze, value: [0.036, 0.036, 0.034], default: true}
         - {id: slate_grey, label: Slate grey, value: [0.120, 0.130, 0.140]}
         - {id: galvalume, label: Galvalume, value: [0.450, 0.470, 0.480]}
+  # `disclosure` is COPY, shown verbatim; model_contract caps it at 200
+  # characters. It is required because the furniture groups below name a
+  # `room` (#133's rule): they show what a buyer does not get with the house.
+  disclosure: "Furniture shown for scale; not included."
+  disclosure_note: >
+    THE MODEL CANNOT ENFORCE THIS. It is carried so the page has no excuse to
+    omit it: a buyer switching the sleeping area to an office is choosing a
+    layout to picture, not ordering a desk.
   # THE FINISH CHOICE (#133). A presence group with no `room`: it swaps the
   # building's skin, it does not furnish a room, so it asks for no
   # furniture disclosure (model_contract.disclosure_problems). Every node
@@ -1330,6 +1444,28 @@ variants:
           label: Lap siding
           show: [Siding_front, Siding_rear, Siding_x0, Siding_x24,
                  Trim_ext_siding_front, Trim_ext_siding_rear, Trim_ext_siding_x0, Trim_ext_siding_x24]
+    # THE FURNITURE (#135): two groups in the one studio room, each naming the
+    # `room` that makes the disclosure required. An option names an
+    # ARRANGEMENT (fixtures.furniture); finish.py resolves it to the nodes the
+    # export carries (Furn_<arrangement>_<material>), so the spec cannot drift
+    # from the build.
+    - id: sleeping_area
+      label: Sleeping area
+      room: living
+      source: "A-1.0 draws the studio's living room and no furniture; the arrangements are the barn cabin's, reused"
+      controls: [Furn_sleep_]
+      options:
+        - {id: bed, label: Bed, arrangement: sleep_bed, default: true}
+        - {id: office, label: Home office, arrangement: sleep_office}
+        - {id: empty, label: Unfurnished, arrangement: null}
+    - id: living_layout
+      label: Living
+      room: living
+      source: "A-1.0 draws the studio's living room and no furniture; the sofa is the barn cabin's, reused"
+      controls: [Furn_living_]
+      options:
+        - {id: sofa, label: Furnished, arrangement: living_sofa, default: true}
+        - {id: empty, label: Unfurnished, arrangement: null}
   canopy:
     optional: true
     source: "A-2.0 FRONT ELEVATION 'OPTIONAL CANOPY SEE A-3.4'; A-3.4 AWNING DETAILS '2X6 CEDAR CANOPY FRAME'"

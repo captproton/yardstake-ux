@@ -12,7 +12,7 @@ BUILD or the EXPORT one way each and require the refusal:
   * only the first opening on each wall given its reveal        must FAIL
   * lod0 exported without the siding collection                 must FAIL
   * a presence block that is a list of numbers                  must FAIL, readably
-  * a group given a `room`, with no disclosure in the spec       must FAIL
+  * the finish group given a `room`, with no disclosure         must FAIL
   * `controls` missing the siding trim's prefix                 must FAIL
   * a presence group that furnishes no room, with no disclosure must PASS
   * the finish as built                                         must PASS
@@ -103,11 +103,23 @@ def _presence_is_numbers(work: Path) -> None:
 def _finish_group_given_a_room(work: Path) -> None:
     # Found by review: presence_block dropped `room`, the key that makes the
     # page require the furniture disclosure. Kept now, so a group that names a
-    # room and a spec with no disclosure must fail the export.
+    # room and a spec with no disclosure must fail the export. Since #135
+    # the spec carries one, for the furniture: it is taken out here, and the
+    # furniture groups' own rooms with it, so the finish group's `room` alone
+    # is what requires it.
     _patch(work, "spec.yaml",
            '    - id: exterior_finish\n      label: Exterior finish\n',
            '    - id: exterior_finish\n      label: Exterior finish\n      room: exterior\n',
            "the finish group given a room")
+    _patch(work, "spec.yaml",
+           '  disclosure: "Furniture shown for scale; not included."\n',
+           '',
+           "the spec's disclosure taken out")
+    spec = model_dir(work, LAUREL) / "spec.yaml"
+    text = spec.read_text()
+    if text.count("      room: living\n") != 2:
+        raise AssertionError("the furniture groups' rooms are not in spec.yaml twice. The case is stale.")
+    spec.write_text(text.replace("      room: living\n", ""))
 
 
 def _controls_miss_the_trim(work: Path) -> None:

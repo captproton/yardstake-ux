@@ -78,7 +78,7 @@ def _here():
 HERE = _here()
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
-from build import load_spec  # noqa: E402
+from build import load_spec, option_nodes  # noqa: E402
 
 SPEC = load_spec(HERE / "spec.yaml")
 _DM = SPEC["export"]["display_modes"]
@@ -98,8 +98,9 @@ if _missing:
 # THE LAYOUT CHOICES (spec.variants.presence), composed with the mode as the
 # page composes them: a node shows only if the mode does not hide it AND,
 # where a group names it, the chosen option shows it. Each group starts on
-# its default -- the stucco finish the page opens on -- and the panel's
-# Finish row changes it. The mode last applied is kept, so choosing a finish
+# its default -- the stucco finish, the bed, the sofa -- and the panel's
+# rows change it. A furniture option names an ARRANGEMENT, not nodes, and
+# option_nodes resolves it against the scene, as finish.py does the export. The mode last applied is kept, so choosing a finish
 # does not throw the view back to Exterior.
 _GROUPS = (SPEC.get("variants") or {}).get("presence") or []
 _CHOSEN = {g["id"]: next((o["id"] for o in g["options"] if o.get("default")),
@@ -109,10 +110,11 @@ _STATE = {"mode": "full"}
 
 def _hidden_by_layouts():
     """Every node a group names that its chosen option does not show."""
+    names = [ob.name for ob in bpy.data.objects]
     hidden = set()
     for g in _GROUPS:
-        shown = next(set(o.get("show") or ()) for o in g["options"] if o["id"] == _CHOSEN[g["id"]])
-        hidden |= {n for o in g["options"] for n in o.get("show") or ()} - shown
+        shown = next(set(option_nodes(o, names)) for o in g["options"] if o["id"] == _CHOSEN[g["id"]])
+        hidden |= {n for o in g["options"] for n in option_nodes(o, names)} - shown
     return hidden
 
 
@@ -371,7 +373,8 @@ class LAUREL_PT_views(bpy.types.Panel):
         col.label(text="Show")
         for mid, label, desc in _MODES:
             col.operator("laurel.view", text=label).action = mid
-        # One row per presence group -- the exterior finish -- with the chosen
+        # One row per presence group -- the finish, the sleeping area, the
+        # living area -- with the chosen
         # option pressed, from the spec the page's rail is built from.
         for g in _GROUPS:
             col.separator()
