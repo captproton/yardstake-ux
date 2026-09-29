@@ -690,6 +690,57 @@ fixtures:
     toilet_bowl:    {ft: 1.25,   raw: "15\"",  assumed: "a standard toilet's rim height"}
     toilet_tank:    {ft: 2.5,    raw: "30\"",  assumed: "the top of a standard toilet's tank"}
     washer_dryer:   {ft: 6.4167, raw: "77\"",  assumed: "a stacked 27\"-wide washer and dryer; A-1.0 draws one 30\" box for the pair"}
+  # THE MINI-SPLIT CONDENSER (#134, PR C): the first equipment OUTSIDE the
+  # building, read off three drawings by condenser_ink.py and measured again
+  # on every CI run by test_condenser_ink.py.
+  condenser:
+    status: "PR C: measured below, and built under placement_rule"
+    model: "not named on any sheet (the energy pages carry no mini-split model), so it is built at its drawn size"
+    plan:
+      x: [24.1217, 25.7895]
+      y: [5.7088, 7.3767]
+      source: >
+        A-1.1 power plan, the 'A/C' square at 'PROVIDE POWER FOR MINI-SPLIT
+        CONDENSER PER MANUF. SPECS', 20" square, tight against the X 24 wall's
+        finished face beside the refrigerator. A-1.1's plan is A-1.0's placed
+        at another spot on its page: registered on A-1.0 through the vanity
+        basin both draw, and the offset proved on 114 of A-1.0's long plan
+        lines, then read through A-1.0's frame.
+    side_elevation:
+      y: [5.2673, 6.9362]
+      base: 0.0
+      top: 1.669
+      grade: -0.5007
+      source: >
+        A-2.0 SIDE (LEFT) ELEVATION, the dashed 'MINI-SPLIT CONDENSER' square:
+        20" tall, standing on the F.F. line with the grade line 6" below it --
+        a pad. Registered on the elevation's own wall outline, F.F. and grade;
+        the scale solved from this outline and the rear elevation's against
+        A-1.0's 24'-0" and 19'-2".
+      note: "its Y is 5.3\" nearer the rear than A-1.1's. The plan governs where it stands; the elevation, how tall and on what"
+    rear_elevation:
+      x: [14.627, 16.296]
+      source: "A-2.0 REAR ELEVATION, the dashed 'MINI-SPLIT CONDENSER' square, drawn against the REAR wall"
+      note: "contradicted by A-1.1 and the side elevation, and not built: see discrepancies.the-rear-elevation-puts-the-condenser-on-the-wrong-wall"
+    a20_frame:
+      pt_per_ft: 17.9751
+      cladding_ft: 0.1334
+      derived: "A-2.0's scale and drawn cladding, solved from the rear and side (left) elevations' wall outlines against A-1.0's 24'-0\" and 19'-2\" stud dimensions: two outlines, two unknowns. The scale is A-1.0's 17.9875 within 0.07%"
+    pad:
+      margin: {ft: 0.25, raw: "3\"", assumed: "no sheet draws the pad's plan; a housekeeping pad is usually a few inches wider than its unit on each open side"}
+      top: {ft: 0.0, derived: "side_elevation.base: the unit stands on the F.F. line"}
+      bottom: {ft: -0.5, derived: "levels.grade: the pad sits on grade, 6\" below F.F., as the side elevation draws"}
+    # THE PLACEMENT RULE #134 asks for, for any equipment standing outside on
+    # the ground. build.py gates every clause on the built mesh.
+    placement_rule:
+      - "it stands on its own pad, and the pad on grade: the pad's bottom at levels.grade, its top where the unit stands"
+      - "it is outside the building: nothing of it or its pad inside the wall's modelled outer face"
+      - "it is where the plan draws it: its plan within the tolerance of fixtures.condenser.plan, its wall side taken to the modelled outer face, as a fixture's is to the stud face"
+      - "it is as tall as the elevation draws it, and below the roof's underside where it stands"
+      - "it blocks no opening: nothing of it in front of a door, and nowhere above a window's sill in front of that window"
+    tolerance_in:
+      value: 0.5
+      assumed: "the half inch per feature the elevation overlay (#130) and the plan overlay (#132) hold drawn features to"
   water_heater:
     model: "RHEEM PROPH40 T2 RH375-15, as A-1.0's WATER HEATER NOTES name it"
     height:   {ft: 5.1927, raw: "62 5/16\"",
@@ -703,8 +754,8 @@ fixtures:
   named_equipment:
     water_heater: {model: "RHEEM PROPH 40T2R H37515", kind: "NEEA-rated heat pump water heater", location: pantry,
                    source: "A-1.0 WATER HEATER NOTES 'PER CF1R: NEEA RATED WATER HEATER HEAT PUMP MODEL, RHEEM PROPH 40T2R H37515'; A-1.0 floor plan W/H in PANTRY"}
-    mini_split_condenser: {location: "exterior, on the ground at the rear wall toward the X-max (kitchen and bath) end: right of centre in the rear elevation, near the rear corner in the side (left) elevation",
-                           source: "A-2.0 REAR ELEVATION and SIDE (LEFT) ELEVATION 'MINI-SPLIT CONDENSER'"}
+    mini_split_condenser: {location: "exterior, on a pad outside the X 24 (kitchen and bath) end wall, beside the refrigerator: measured in fixtures.condenser (#134, PR C). This note said 'at the rear wall' from the rear elevation, which the plan and the side elevation both contradict: see discrepancies",
+                           source: "A-1.1 power plan 'A/C' and 'PROVIDE POWER FOR MINI-SPLIT CONDENSER'; A-2.0 SIDE (LEFT) ELEVATION and REAR ELEVATION 'MINI-SPLIT CONDENSER'"}
 
 finishes:
   status: "Tier 1 (#132): the trim (spec.trim) and the floor below. Tier 2 (#133): the stucco and siding textures (spec.texturing) and the finish choice (variants.presence)"
@@ -1071,6 +1122,11 @@ materials:
       roughness: 0.60
       metallic: 0.0
       assumed: "no sheet names a floor finish and the rendering shows no interior (finishes.floor): a neutral mid-tone, declared rather than sampled"
+    equipment:
+      base_color_linear: [0.620, 0.625, 0.615]
+      roughness: 0.50
+      metallic: 0.30
+      assumed: "no sheet or rendering shows the condenser: a light grey painted steel case, declared"
     appliance:
       base_color_linear: [0.550, 0.550, 0.545]
       roughness: 0.35
@@ -1122,6 +1178,8 @@ materials:
     Fix_dishwasher: appliance
     Fix_sink: appliance
     Fix_: porcelain
+    Equip_pad: concrete
+    Equip_: equipment
   # FACES A BUILD TAGS, by polygon material index (adu_kit.finish.assign's
   # extra_slots). build.py tags the slab's top face 1, the floor, and the
   # siding skin's cut faces round each opening 2, the trim
@@ -1170,13 +1228,14 @@ export:
       desc: "Partitions and slab alone, with the openings left in so the doors read."
       hide: [ROOF, WALL, SKIN]
       hide_objects: [Trim_Wall_front, Trim_Wall_rear, Trim_Wall_x0, Trim_Wall_x24,
-                     Trim_ext_siding_front, Trim_ext_siding_rear, Trim_ext_siding_x0, Trim_ext_siding_x24]
+                     Trim_ext_siding_front, Trim_ext_siding_rear, Trim_ext_siding_x0, Trim_ext_siding_x24,
+                     Equip_condenser, Equip_pad]
   levels:
     # What each level carries. lod2 is the placement developer's massing,
     # built with no openings cut; lod1 is the exterior a buyer sees from the
     # street; lod0 adds the interior.
-    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim, the fixtures; textured"
-    lod1: "shell and both finishes' skins, roof, slab, the exterior walls' sashes and leaves, glazing, the siding trim; textured"
+    lod0: "shell and both finishes' skins, roof, slab, every sash and leaf, glazing, partitions, interior trim, the siding trim, the fixtures, the condenser on its pad; textured"
+    lod1: "shell and both finishes' skins, roof, slab, the exterior walls' sashes and leaves, glazing, the siding trim, the condenser on its pad; textured"
     lod2: "shell (the stucco skin only), roof and slab, no openings cut; flat colour"
   budget_kb:
     lod0: 1024
@@ -1303,6 +1362,23 @@ discrepancies:
       front edge closes to 0.02".
     note: "roof.assembly.rafter_depth is unchanged and still cites the section; it is simply not what the build extrudes"
     source: "A-2.0 SIDE (RIGHT) ELEVATION, FRONT ELEVATION and detail 7 ROOF SECTION; S1.0 MODEL A- ROOF FRAMING"
+
+  - id: the-rear-elevation-puts-the-condenser-on-the-wrong-wall
+    impact: >
+      A-2.0's REAR ELEVATION draws the mini-split condenser against the rear
+      wall at X 14.6-16.3. A-1.1's power plan draws it outside the X 24 end
+      wall beside the refrigerator, and A-2.0's own SIDE (LEFT) ELEVATION
+      draws it against that end wall at Y 5.3-6.9. An elevation shows what
+      stands between the viewer and the wall, so each placement would appear
+      in the other elevation beyond a wall's edge; neither does. Two drawings
+      agree and one does not.
+    resolution: >
+      THE PLAN AND THE SIDE ELEVATION GOVERN, two independent readings of the
+      same location against one: the condenser is built outside the X 24
+      wall where A-1.1 draws it, at the height the side elevation draws it.
+      The two agree on the wall and the size, and differ by 5.3" along it;
+      the plan governs a plan position, as A-1.0 governs the fixtures.
+    source: "A-1.1 power plan 'A/C'; A-2.0 SIDE (LEFT) ELEVATION and REAR ELEVATION 'MINI-SPLIT CONDENSER'; measured by condenser_ink.py"
 
   - id: the-half-inch-in-the-interior-strings
     status: resolved

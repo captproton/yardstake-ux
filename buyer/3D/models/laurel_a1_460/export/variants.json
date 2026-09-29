@@ -185,6 +185,8 @@
       "label": "Interior only",
       "desc": "Partitions and slab alone, with the openings left in so the doors read.",
       "hide": [
+        "Equip_condenser",
+        "Equip_pad",
         "Roof_shed",
         "Sheathing_front",
         "Sheathing_rear",
