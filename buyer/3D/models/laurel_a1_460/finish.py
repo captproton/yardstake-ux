@@ -96,7 +96,9 @@ def level_objects(lod, geo, colls, glazing):
             + list(colls["Site"].objects))
     if lod == "lod2":
         return keep
-    siding = list(colls["Siding"].objects)
+    # The siding and the condenser on its pad are OUTSIDE, so a street view
+    # (lod1) carries them as lod0 does; lod2's contract carries neither.
+    siding = list(colls["Siding"].objects) + list(colls["Equipment"].objects)
     if lod == "lod0":
         return (keep + siding + list(colls["Openings"].objects)
                 + list(colls["Partitions"].objects) + list(colls["Trim"].objects)

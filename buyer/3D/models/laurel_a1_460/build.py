@@ -33,9 +33,12 @@ textures. The page shows one finish at a time (spec.variants.presence).
 And the interior fixtures (#134): the kitchen, bath and laundry, and the
 water heater at its maker's published size, where A-1.0 draws them.
 
-WHAT IT DOES NOT: the mini-split condenser (#134, PR C), the 1-bedroom
-option (a configurator variant, spec.variants), and the optional entry
-canopy (#144, whose dimensions are not on a harvested sheet).
+And the first equipment outside it (#134, PR C): the mini-split condenser
+on its pad, placed under spec.fixtures.condenser.placement_rule.
+
+WHAT IT DOES NOT: the mini-split's indoor unit, which no sheet draws, the
+1-bedroom option (a configurator variant, spec.variants), and the optional
+entry canopy (#144, whose dimensions are not on a harvested sheet).
 """
 
 import sys
@@ -542,6 +545,8 @@ def build(spec, cut_openings=True):
 
     fixture_coll = collection("Fixtures")
     fixtures = _build_fixtures(spec, fixture_coll)
+    equipment_coll = collection("Equipment")      # outside the building: lod0 and lod1
+    equipment = _build_condenser(spec, equipment_coll)
     # ONE NODE PER WALL, like the interior trim, so the cutaway can hide the
     # front wall's siding trim with the front wall.
     siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, siding_coll)
@@ -550,10 +555,10 @@ def build(spec, cut_openings=True):
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
                depths=depths, skin_of=skin_of, siding_of=siding_of, trim=trim, siding=siding,
-               fixtures=fixtures)
+               fixtures=fixtures, equipment=equipment)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
                      Openings=openings, Site=site, Trim=trim_coll, Siding=siding_coll,
-                     Fixtures=fixture_coll)
+                     Fixtures=fixture_coll, Equipment=equipment_coll)
 
 
 def _face_slot(spec, material):
@@ -641,6 +646,29 @@ def _build_fixtures(spec, coll):
     made.append(tube("Fix_water_heater", [(cx, cy, 0.0), (cx, cy, whs["height"]["ft"])],
                      whs["diameter"]["ft"] / 2, coll, sides=WH_SIDES))
     return made
+
+
+def condenser_box(spec):
+    """(x0, x1, y0, y1, z0, z1) the condenser stands in: A-1.1's plan, its
+    wall side taken from the drawn FINISHED face to the model's outer face
+    (the cladding is a material here, as the gyp board is inside), at the
+    height the side elevation draws, on its pad."""
+    c = spec["fixtures"]["condenser"]
+    W = spec["envelope"]["width"]["ft"]
+    outer = W + spec["construction"]["exterior_wall"]["sheathing"]["ft"]
+    (x0, x1), (y0, y1) = c["plan"]["x"], c["plan"]["y"]
+    se = c["side_elevation"]
+    return outer, outer + (x1 - x0), y0, y1, c["pad"]["top"]["ft"], c["pad"]["top"]["ft"] + se["top"] - se["base"]
+
+
+def _build_condenser(spec, coll):
+    """The condenser and its pad (spec.fixtures.condenser)."""
+    c = spec["fixtures"]["condenser"]
+    x0, x1, y0, y1, z0, z1 = condenser_box(spec)
+    m, pad = c["pad"]["margin"]["ft"], c["pad"]
+    return [box("Equip_condenser", x0, x1, y0, y1, z0, z1, coll),
+            # the pad's wall side stops at the wall; it is wider on the other three
+            box("Equip_pad", x0, x1 + m, y0 - m, y1 + m, pad["bottom"]["ft"], pad["top"]["ft"], coll)]
 
 
 def _partition_band(row, it):
@@ -803,6 +831,10 @@ def report(spec, geo, colls):
 
     ok, why = _water_heater_as_published(spec)
     gate(ok, "the water heater stands on the drawn circle's centre, at the size Rheem publishes", why)
+
+    ok, why = _ground_mounted(spec, geo)
+    gate(ok, "the condenser keeps the ground-mounted placement rule: on its pad on grade, outside, "
+             "where A-1.1 draws it, below the roof, blocking no opening", why)
 
     ok, why = _no_degenerate()
     gate(ok, "no NaN or degenerate geometry", why)
@@ -1539,6 +1571,70 @@ def _water_heater_as_published(spec):
                          f"{d * INCHES_PER_FOOT:.2f} in")
     if abs(lo[2]) > MESH_TOL or abs(hi[2] - height) > MESH_TOL:
         wrong.append(f"it stands {lo[2]:.4f}..{hi[2]:.4f}; Rheem publishes {height:.4f} ft")
+    return not wrong, "; ".join(wrong)
+
+
+def _ground_mounted(spec, geo):
+    """spec.fixtures.condenser.placement_rule, clause by clause, on the MESH.
+    Each expectation is worked out here from the spec -- A-1.1's plan, the
+    side elevation, the pad, grade, the openings -- never read back from
+    what _build_condenser made."""
+    c = spec["fixtures"]["condenser"]
+    tol = c["tolerance_in"]["value"] / INCHES_PER_FOOT
+    W = spec["envelope"]["width"]["ft"]
+    outer = W + spec["construction"]["exterior_wall"]["sheathing"]["ft"]
+    grade = spec["levels"]["grade"]["ft"]
+    se, plan = c["side_elevation"], c["plan"]
+    unit, pad = bpy.data.objects.get("Equip_condenser"), bpy.data.objects.get("Equip_pad")
+    if unit is None or pad is None:
+        return False, "the condenser or its pad was not built"
+    (ux0, uy0, uz0), (ux1, uy1, uz1) = world_bbox([unit])
+    (px0, py0, pz0), (px1, py1, pz1) = world_bbox([pad])
+    wrong = []
+    # 1. on its own pad, and the pad on grade
+    if abs(pz0 - grade) > MESH_TOL:
+        wrong.append(f"the pad's bottom is at {pz0:.4f}, grade is {grade}")
+    if abs(uz0 - pz1) > MESH_TOL:
+        wrong.append(f"the unit stands at {uz0:.4f}, its pad's top is {pz1:.4f}")
+    if ux0 < px0 - MESH_TOL or ux1 > px1 + MESH_TOL or uy0 < py0 - MESH_TOL or uy1 > py1 + MESH_TOL:
+        wrong.append("the unit overhangs its pad")
+    # EVERY FACE OF THE PAD, from the spec: its top where the side elevation
+    # stands the unit, its wall side at the outer face, and the declared
+    # margin on its three open sides. Found by review: checking only that
+    # the unit sat somewhere on the pad let a thick pad lift the unit, or a
+    # pad without its margins, pass.
+    m = c["pad"]["margin"]["ft"]
+    for label, got, want in (("top", pz1, c["pad"]["top"]["ft"]),
+                             ("wall side", px0, outer),
+                             ("outer side", px1, outer + (plan["x"][1] - plan["x"][0]) + m),
+                             ("rear side", py0, plan["y"][0] - m),
+                             ("front side", py1, plan["y"][1] + m)):
+        if abs(got - want) > MESH_TOL:
+            wrong.append(f"the pad's {label} is at {got:.4f}, the spec puts it at {want:.4f}")
+    # 2. outside the building
+    if min(ux0, px0) < outer - MESH_TOL:
+        wrong.append(f"it reaches X {min(ux0, px0):.4f}, inside the X 24 wall's outer face at {outer:.4f}")
+    # 3. where A-1.1 draws it, its wall side at the outer face
+    if abs(ux0 - outer) > MESH_TOL:
+        wrong.append(f"its wall side is at X {ux0:.4f}, not the outer face {outer:.4f}")
+    if abs((ux1 - ux0) - (plan["x"][1] - plan["x"][0])) > tol:
+        wrong.append(f"it is {ux1 - ux0:.4f} deep, A-1.1 draws {plan['x'][1] - plan['x'][0]:.4f}")
+    if abs(uy0 - plan["y"][0]) > tol or abs(uy1 - plan["y"][1]) > tol:
+        wrong.append(f"it stands at Y {uy0:.4f}..{uy1:.4f}, A-1.1 draws {plan['y'][0]}..{plan['y'][1]}")
+    # 4. as tall as drawn, below the roof
+    if abs((uz1 - uz0) - (se["top"] - se["base"])) > tol:
+        wrong.append(f"it is {uz1 - uz0:.4f} tall, the side elevation draws {se['top'] - se['base']:.4f}")
+    if uz1 > geo["shed"].under(uy0) + MESH_TOL:
+        wrong.append(f"its top {uz1:.4f} is above the roof's underside {geo['shed'].under(uy0):.4f}")
+    # 5. blocking no opening in the wall behind it
+    wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
+    for row in spec["openings"]["end_wall_x24"]["openings"]:
+        if row["y1"] <= uy0 or row["y0"] >= uy1:
+            continue
+        if not row["id"].startswith("W-"):
+            wrong.append(f"it stands in front of door {row['id']}")
+        elif uz1 > wt[row["type"]]["sill"]["ft"] + MESH_TOL:
+            wrong.append(f"it rises above {row['id']}'s sill in front of it")
     return not wrong, "; ".join(wrong)
 
 
