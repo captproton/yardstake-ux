@@ -156,9 +156,23 @@ class VerifySpec(unittest.TestCase):
                                 "at the same thickness")
 
     def test_a_fixture_moved_into_a_partition(self):
-        # The water heater pushed half a foot toward the front, into P_pantry_N.
+        # The water heater pushed half a foot along X, toward the X 24 wall,
+        # into P_pantry_N.
         r = self.broken("    water_heater: {x: [15.1554, 16.9700], y: [6.4595, 8.2941]",
                         "    water_heater: {x: [15.6554, 17.4700], y: [6.4595, 8.2941]")
+        self.assertGateFails(r, "every drawn fixture sits inside the rooms, clear of the walls and of each other")
+
+    def test_a_fixture_whose_extent_runs_backwards(self):
+        # Found by review: no test broke the "rising extent" check.
+        r = self.broken("    vanity:       {x: [15.0021, 17.9974], y: [4.1245, 5.9591]",
+                        "    vanity:       {x: [17.9974, 15.0021], y: [4.1245, 5.9591]")
+        self.assertGateFails(r, "every drawn fixture sits inside the rooms, clear of the walls and of each other")
+
+    def test_a_fixture_through_an_exterior_wall(self):
+        # Found by review: no test broke the exterior-wall check. The tub
+        # pushed past the X 24 wall's stud face at 23.5417.
+        r = self.broken("    tub:          {x: [20.9995, 23.5013], y: [0.9556, 5.9591]",
+                        "    tub:          {x: [21.0995, 23.6013], y: [0.9556, 5.9591]")
         self.assertGateFails(r, "every drawn fixture sits inside the rooms, clear of the walls and of each other")
 
     def test_two_fixtures_that_overlap(self):
