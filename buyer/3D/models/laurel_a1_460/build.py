@@ -39,11 +39,14 @@ on its pad, placed under spec.fixtures.condenser.placement_rule.
 And the furniture (#135): the barn cabin's arrangements, reused, turned and
 placed in the studio as a sleeping area and a sitting area.
 
-WHAT IT DOES NOT: the mini-split's indoor unit, which no sheet draws, the
-1-bedroom option (a configurator variant, spec.variants), and the optional
-entry canopy (#144, whose dimensions are not on a harvested sheet).
+And the optional entry canopy (#144): A-3.4's cedar frame, slats and braces,
+hung where A-2.0 draws it, as a collection of its own a buyer can switch.
+
+WHAT IT DOES NOT: the mini-split's indoor unit, which no sheet draws, and
+the 1-bedroom option (a configurator variant, spec.variants).
 """
 
+import math
 import sys
 from pathlib import Path
 
@@ -552,6 +555,8 @@ def build(spec, cut_openings=True):
     equipment = _build_condenser(spec, equipment_coll)
     furniture_coll = collection("Furniture")      # inside, switchable: lod0
     furniture = _build_furniture(spec, furniture_coll)
+    canopy_coll = collection("Canopy")            # outside, switchable: lod0 and lod1
+    canopy = _build_canopy(spec, canopy_coll)
     # ONE NODE PER WALL, like the interior trim, so the cutaway can hide the
     # front wall's siding trim with the front wall.
     siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, siding_coll)
@@ -560,10 +565,11 @@ def build(spec, cut_openings=True):
     geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
                depths=depths, skin_of=skin_of, siding_of=siding_of, trim=trim, siding=siding,
-               fixtures=fixtures, equipment=equipment, furniture=furniture)
+               fixtures=fixtures, equipment=equipment, furniture=furniture, canopy=canopy)
     return geo, dict(Shell=shell, Partitions=partitions, Roof=roof_coll,
                      Openings=openings, Site=site, Trim=trim_coll, Siding=siding_coll,
-                     Fixtures=fixture_coll, Equipment=equipment_coll, Furniture=furniture_coll)
+                     Fixtures=fixture_coll, Equipment=equipment_coll, Furniture=furniture_coll,
+                     Canopy=canopy_coll)
 
 
 def _face_slot(spec, material):
@@ -674,6 +680,45 @@ def _build_condenser(spec, coll):
     return [box("Equip_condenser", x0, x1, y0, y1, z0, z1, coll),
             # the pad's wall side stops at the wall; it is wider on the other three
             box("Equip_pad", x0, x1 + m, y0 - m, y1 + m, pad["bottom"]["ft"], pad["top"]["ft"], coll)]
+
+
+def _build_canopy(spec, coll):
+    """The optional entry canopy (spec.variants.canopy), as its `placement`
+    says: the frame, the slats and the two braces, each its own node so the
+    page can show or hide the canopy whole."""
+    c = spec["variants"]["canopy"]
+    fe, se, pl = c["front_elevation"], c["side_elevation"], c["a34_plan"]
+    face, _ = outer_face(spec, "Wall_front")
+    w, proj, depth = c["width"]["ft"], c["projection"]["ft"], c["depth"]["ft"]
+    m, j = pl["member"], pl["bay_joist"]
+    cx = sum(fe["x"]) / 2
+    x0, x1, y0, y1 = cx - w / 2, cx + w / 2, face, face + proj
+    z0 = fe["underside"]
+    z1 = z0 + depth
+    frame = [(x0, x1, y0, y0 + m, z0, z1),                      # the ledger, at the wall
+             (x0, x1, y1 - m, y1, z0, z1),                      # the header, at the outer edge
+             (x0, x0 + m, y0 + m, y1 - m, z0, z1),              # the end joists
+             (x1 - m, x1, y0 + m, y1 - m, z0, z1),
+             (cx - j / 2, cx + j / 2, y0 + m, y1 - m, z0, z1)]  # the bay joist
+    st = c["slat_thickness"]["ft"]
+    bays = ((x0 + m, cx - j / 2), (cx + j / 2, x1 - m))
+    # a slat's faces are measured from the frame's OUTER face, toward the wall
+    slats = [(b0, b1, y1 - s1, y1 - s0, z1 - st, z1) for b0, b1 in bays for s0, s1 in pl["slats"]]
+    r = c["brace_rod"]["ft"] / 2
+    zw = sum(fe["wall_connection"]) / 2
+    land = proj - (se["projection"] - se["brace_lands_from_wall"])
+    # THE ROD'S END RINGS TOUCH THE PLATE'S MIDDLE AND THE LANDING POINT. A
+    # tilted rod's ring reaches r * |dz| past its centre in Y and r * dy in
+    # Z, along (0, -dz, dy) -- the direction tube_geom's ring puts a vertex
+    # on -- so both ends shift by that same vector and the direction does
+    # not change. Found by review: shifting by the full radius on each axis
+    # left the rod 0.10" off the wall and 0.05" above the frame.
+    run, fall = land, z1 - zw
+    length = math.hypot(run, fall)
+    oy, oz = -r * fall / length, r * run / length
+    braces = [tube(f"Canopy_brace_{i}", [(bx, face + oy, zw + oz), (bx, face + land + oy, z1 + oz)], r, coll)
+              for i, bx in enumerate(fe["brace_x"], start=1)]
+    return [multibox("Canopy_frame", frame, coll), multibox("Canopy_slats", slats, coll)] + braces
 
 
 ROTATIONS = {0: (1, 0, 0, 1), 90: (0, -1, 1, 0), 180: (-1, 0, 0, -1), 270: (0, 1, -1, 0)}
@@ -916,6 +961,10 @@ def report(spec, geo, colls):
     ok, why = _furniture_placed(spec, geo)
     gate(ok, "the furniture stands in the room: clear of walls, partitions, fixtures, "
              "walkways and door swings, one group clear of the other", why)
+
+    ok, why = _canopy_hung(spec, geo, colls)
+    gate(ok, "the entry canopy hangs where A-2.0 draws it at A-3.4's size, in its own collection: "
+             "outside the front wall, below the roof, clear of every opening and the siding trim", why)
 
     ok, why = _ground_mounted(spec, geo)
     gate(ok, "the condenser keeps the ground-mounted placement rule: on its pad on grade, outside, "
@@ -1743,6 +1792,111 @@ def _furniture_placed(spec, geo):
         obs = [ob for ob in geo["furniture"] if ob.name.startswith(f"Furn_{arr}_")]
         if obs and abs(min(world_bbox([ob])[0][2] for ob in obs)) > MESH_TOL:
             wrong.append(f"{arr} does not stand on the floor")
+    return not wrong, "; ".join(sorted(set(wrong)))
+
+
+def _canopy_hung(spec, geo, colls):
+    """spec.variants.canopy's `placement`, on the MESH: each expectation is
+    worked out here from the spec's readings and A-3.4's strings, never
+    read back from _build_canopy's arithmetic (rule 29)."""
+    c = spec["variants"]["canopy"]
+    fe, se, pl = c["front_elevation"], c["side_elevation"], c["a34_plan"]
+    tol = c["tolerance_in"]["value"] / INCHES_PER_FOOT
+    face, _ = outer_face(spec, "Wall_front")
+    wrong = []
+    # ITS OWN COLLECTION, AND NOTHING ELSE IN IT: hiding the collection hides
+    # the canopy whole and touches nothing of the building.
+    coll = colls["Canopy"]
+    named = {o.name for o in bpy.data.objects if o.name.startswith("Canopy_")}
+    held = {o.name for o in coll.objects}
+    wrong += [f"{n} is not in the Canopy collection" for n in sorted(named - held)]
+    wrong += [f"{n} is in the Canopy collection and is not the canopy" for n in sorted(held - named)]
+    frame, slats = bpy.data.objects.get("Canopy_frame"), bpy.data.objects.get("Canopy_slats")
+    braces = sorted((o for o in coll.objects if o.name.startswith("Canopy_brace_")), key=lambda o: o.name)
+    if frame is None or slats is None or len(braces) != len(fe["brace_x"]):
+        return False, "; ".join(wrong + ["the frame, the slats or a brace was not built"])
+    (fx0, fy0, fz0), (fx1, fy1, fz1) = world_bbox([frame])
+    # WHERE A-2.0 DRAWS IT: centred on the front elevation's reading
+    if abs((fx0 + fx1) / 2 - sum(fe["x"]) / 2) > tol:
+        wrong.append(f"it is centred at X {(fx0 + fx1) / 2:.4f}, the front elevation draws {sum(fe['x']) / 2:.4f}")
+    if abs(fz0 - fe["underside"]) > MESH_TOL:
+        wrong.append(f"its underside is at {fz0:.4f}, the elevations draw {fe['underside']}")
+    # AT A-3.4'S SIZE, from the wall's modelled outer face
+    for label, got, want in (("width", fx1 - fx0, c["width"]["ft"]),
+                             ("projection", fy1 - face, c["projection"]["ft"]),
+                             ("depth", fz1 - fz0, c["depth"]["ft"])):
+        if abs(got - want) > MESH_TOL:
+            wrong.append(f"its {label} is {got:.4f}, A-3.4 gives {want}")
+    if abs(fy0 - face) > MESH_TOL:
+        wrong.append(f"its wall side is at Y {fy0:.4f}, not the front wall's outer face {face:.4f}")
+    boxes = _mesh_boxes(slats)
+    if len(boxes) != 2 * len(pl["slats"]):
+        wrong.append(f"{len(boxes)} slats, where A-3.4 draws {len(pl['slats'])} in each of two bays")
+    for sx0, sx1, sy0, sy1, _, sz1 in boxes:
+        if abs(sz1 - fz1) > MESH_TOL or sx0 < fx0 - MESH_TOL or sx1 > fx1 + MESH_TOL \
+                or sy0 < fy0 - MESH_TOL or sy1 > fy1 + MESH_TOL:
+            wrong.append(f"a slat at X {sx0:.3f}..{sx1:.3f} is not flush in the frame's top")
+            break
+    # EACH BRACE from its wall plate, where the front elevation draws it, to
+    # the frame's top, where the side elevation lands it
+    land = c["projection"]["ft"] - (se["projection"] - se["brace_lands_from_wall"])
+    for ob, bx in zip(braces, sorted(fe["brace_x"])):
+        vs = [ob.matrix_world @ v.co for v in ob.data.vertices]
+        # TOUCHING, not near: the rod's nearest point to the wall is ON the
+        # wall's face, within the plate; its lowest point is ON the frame's
+        # top, where the side elevation lands it. Found by review: a
+        # half-inch tolerance here passed a rod floating off both.
+        wall_pt, low = min(vs, key=lambda v: v.y), min(vs, key=lambda v: v.z)
+        if abs(sum(v.x for v in vs) / len(vs) - bx) > tol:
+            wrong.append(f"{ob.name} is not at the front elevation's X {bx}")
+        if abs(wall_pt.y - face) > MESH_TOL:
+            wrong.append(f"{ob.name} stops at Y {wall_pt.y:.4f}, off the wall's face {face:.4f}")
+        if not fe["wall_connection"][0] - MESH_TOL <= wall_pt.z <= fe["wall_connection"][1] + MESH_TOL:
+            wrong.append(f"{ob.name} meets the wall at {wall_pt.z:.4f}, not its plate at "
+                         f"{fe['wall_connection'][0]}..{fe['wall_connection'][1]}")
+        if abs(low.z - fz1) > MESH_TOL or abs(low.y - (face + land)) > tol:
+            wrong.append(f"{ob.name} lands at Y {low.y:.4f} Z {low.z:.4f}, not on the frame at "
+                         f"Y {face + land:.4f} Z {fz1:.4f}")
+    # OUTSIDE, BELOW THE ROOF, CLEAR OF THE OPENINGS AND THE SIDING TRIM
+    parts = [(frame.name, b) for b in _mesh_boxes(frame)] + [(slats.name, b) for b in boxes] + \
+            [(o.name, tuple(v for pair in zip(*world_bbox([o])) for v in pair)) for o in braces]
+    under = geo["shed"].under(face)
+    wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
+    dt = {d["mark"]: d for d in spec["openings"]["door_types"]["types"]}
+    holes = []
+    for row in spec["openings"]["front_wall"]["openings"]:
+        if row["id"].startswith("W-"):
+            typ = wt[row["type"]]
+            holes.append((row["id"], row["x0"], row["x1"], typ["sill"]["ft"], typ["sill"]["ft"] + typ["height"]["ft"]))
+        else:
+            holes.append((row["id"], row["x0"], row["x1"], 0.0, dt[row["type"]]["height"]["ft"]))
+    trim = bpy.data.objects.get("Trim_ext_siding_front")
+    trim_boxes = _mesh_boxes(trim) if trim is not None else []
+    # THE LEDGER BEARS ON DOOR 1'S HEAD TRIM, and nothing else touches trim
+    # (decided 2026-09-29). Under siding, the head band over door 1 -- its
+    # 6'-8" head plus the borrowed trim.head_casing_height -- rises past the
+    # canopy's drawn 7'-0" underside; A-3.4 fixes the canopy through a trim
+    # board, and drawn beats assumed, so the ledger may sit over that band's
+    # top -- its underside never below the drawn 7'-0", and the band never
+    # higher than door 1's head plus its borrowed height.
+    d1 = next(r for r in spec["openings"]["front_wall"]["openings"] if r["id"] == "D-1")
+    band_top = dt[d1["type"]]["height"]["ft"] + spec["trim"]["head_casing_height"]["ft"]
+    m = pl["member"]
+    for name, (x0, x1, y0, y1, z0, z1) in parts:
+        if y0 < face - MESH_TOL:
+            wrong.append(f"{name} reaches Y {y0:.4f}, inside the front wall's outer face {face:.4f}")
+        if z1 > under + MESH_TOL:
+            wrong.append(f"{name} rises to {z1:.4f}, above the roof's underside {under:.4f}")
+        for hid, h0, h1, hz0, hz1 in holes:
+            if _overlap((x0, x1, z0, z1), (h0, h1, hz0, hz1)):
+                wrong.append(f"{name} is in front of {hid}")
+        ledger = name == frame.name and abs(y0 - face) < MESH_TOL and abs(y1 - y0 - m) < MESH_TOL
+        for tx0, tx1, ty0, ty1, tz0, tz1 in trim_boxes:
+            if _overlap((x0, x1, y0, y1), (tx0, tx1, ty0, ty1)) and z0 < tz1 - MESH_TOL and tz0 < z1 - MESH_TOL:
+                if ledger and abs(tz1 - band_top) < MESH_TOL and z0 >= fe["underside"] - MESH_TOL:
+                    continue
+                wrong.append(f"{name} runs into the front wall's siding trim at Z {tz0:.4f}..{tz1:.4f}")
+                break
     return not wrong, "; ".join(sorted(set(wrong)))
 
 

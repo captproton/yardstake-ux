@@ -38,6 +38,7 @@ import cases_finish  # noqa: E402
 import cases_interior  # noqa: E402
 import cases_equipment  # noqa: E402
 import cases_furniture  # noqa: E402
+import cases_canopy  # noqa: E402
 import cases_rail  # noqa: E402
 import cases_roof  # noqa: E402
 import cases_views  # noqa: E402
@@ -47,7 +48,7 @@ from suite import find_blender, make_base, run_case  # noqa: E402
 MODULES = (cases_index, cases_page, cases_views, cases_rail, cases_configuration, cases_fixtures,
            cases_commerce, cases_roof, cases_frame, cases_front, cases_blender,
            cases_export, cases_plan, cases_trim, cases_footprint, cases_finish, cases_interior, cases_equipment,
-           cases_furniture)
+           cases_furniture, cases_canopy)
 
 
 def main() -> int:
