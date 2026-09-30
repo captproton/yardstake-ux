@@ -13,6 +13,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import new_model
 
@@ -69,6 +70,17 @@ class Scaffold(unittest.TestCase):
             code = spec_lint.main([str(self.models / "test_a1_460/spec.yaml")])
         self.assertEqual(code, 0)
 
+    def test_a_name_with_quotes_still_makes_a_valid_spec(self):
+        if __import__("importlib.util").util.find_spec("yaml") is None:
+            self.skipTest("PyYAML is not installed for this interpreter")
+        import yaml
+        name = 'A "Plus": #1\nsecond line'
+        code, _, err = run(LAUREL, "--id", "test_a1_460", "--name", name, "--issue", "170",
+                           "--models-dir", self.models)
+        self.assertEqual(code, 0, err)
+        spec = yaml.safe_load((self.models / "test_a1_460/spec.yaml").read_text())
+        self.assertEqual(spec["meta"]["display_name"], name)
+
     def test_never_overwrites(self):
         self.assertEqual(self.go()[0], 0)
         (self.models / "test_a1_460/spec.yaml").write_text("mine")
@@ -98,6 +110,24 @@ class Scaffold(unittest.TestCase):
         code, _, err = self.go(pdf=self.models / "nope.pdf")
         self.assertEqual(code, 1)
         self.assertIn("no such file", err)
+
+    def _scan(self):
+        """intake() as it answers for a scanned set, so the refusal is tested
+        in every checkout and in CI, not only where the barn cabin's PDF is."""
+        info = {"pdf": LAUREL, "pages": 20, "chars": 7, "raster": True,
+                "sheets": [(1, None)], "candidates": [], "words": {}}
+        return mock.patch.object(new_model, "intake", return_value=info)
+
+    def test_a_scan_stops_the_scaffold_without_the_file(self):
+        with self._scan():
+            code, out, err = self.go()
+            self.assertEqual(code, 1)
+            self.assertIn("No usable text layer", out)
+            self.assertIn("--allow-raster", err)
+            self.assertEqual(list(self.models.iterdir()), [], "a refused scan wrote files")
+            code, _, err = self.go(extra=("--allow-raster",))
+            self.assertEqual(code, 0, err)
+            self.assertFalse((self.models / "test_a1_460/docs/candidates.yaml").exists())
 
     @unittest.skipUnless(BARN.is_file(), "the barn cabin's scanned PDF is not in this checkout")
     def test_a_scan_stops_the_scaffold(self):

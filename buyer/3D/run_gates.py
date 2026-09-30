@@ -18,6 +18,7 @@ needs no edit. Each gate is
     {"name": "...", "tier": "fast" | "blender" | "probes",
      "cmd":  ["{python}", "-m", "unittest", ...]        (fast, probes)
      "script": "build.py", "blend": "x.blend" | null    (blender)
+     "args": ["--out", "{tmp}"]                        (blender; {tmp} is a fresh temp dir)
      "requires": ["yaml", "bin:pdftotext"]              (optional)}
 
 A Blender gate runs in its model's directory (the scripts open files by
@@ -51,6 +52,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -91,6 +93,8 @@ def load_gates(only_model=None):
         except (OSError, ValueError, KeyError, AssertionError) as e:
             raise SystemExit(f"{f}: not a gate list ({e}); expected {{\"gates\": [...]}}")
         for g in gates:
+            if not isinstance(g, dict):
+                raise SystemExit(f"{f}: a gate must be an object, found {g!r}")
             for key in ("name", "tier"):
                 if key not in g:
                     raise SystemExit(f"{f}: a gate has no {key!r}: {g}")
@@ -120,25 +124,33 @@ def missing_requirement(gate, blender):
     return None
 
 
-def command(gate, blender):
+def command(gate, blender, tmp=None):
     if gate["tier"] == "blender":
         cmd = [blender, "--background"]
         if gate.get("blend"):
             cmd.append(gate["blend"])
         # --python-exit-code must come before --python (#151)
-        return cmd + ["--python-exit-code", "1", "--python", gate["script"]]
+        cmd += ["--python-exit-code", "1", "--python", gate["script"]]
+        if gate.get("args"):
+            cmd += ["--"] + [a.replace("{tmp}", tmp or "") for a in gate["args"]]
+        return cmd
     return [c.replace("{python}", sys.executable).replace("{blender}", blender or "blender")
             for c in gate["cmd"]]
 
 
 def run(owner, cwd, gate, blender, log_dir, timeout):
     """-> (status, note, seconds). status: pass | fail | skip."""
+    with tempfile.TemporaryDirectory(prefix="run_gates_") as tmp:
+        return _run(owner, cwd, gate, blender, log_dir, timeout, tmp)
+
+
+def _run(owner, cwd, gate, blender, log_dir, timeout, tmp):
     if gate.get("missing"):
         return "fail", "the model has a spec.yaml and no gates.json", 0.0
     why = missing_requirement(gate, blender)
     if why:
         return "skip", why, 0.0
-    cmd = command(gate, blender)
+    cmd = command(gate, blender, tmp)
     if gate["tier"] != "blender":
         cwd = ROOT
     # adu_kit.kernel.load_spec shells out to `python3` from inside Blender; put
@@ -190,6 +202,10 @@ def main(argv=None):
     tiers = tuple(args.tier or DEFAULT_TIERS)
     gates = [(o, c, g) for o, c, g in load_gates(args.model)
              if g["tier"] in tiers and (not args.match or args.match in g["name"])]
+    # A TYPOED FILTER MUST NOT READ AS GREEN: "0 passed of 0" exits 0 otherwise.
+    if not gates:
+        raise SystemExit(f"no gates match (model {args.model!r}, tiers {tiers}, "
+                         f"-k {args.match!r}); nothing was run")
     if args.model and not any(o == args.model for o, _, _ in gates):
         raise SystemExit(f"no gates for model {args.model!r} in tiers {tiers}")
     if args.list:

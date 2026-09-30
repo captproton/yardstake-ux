@@ -38,8 +38,9 @@
       "name": "kit tests (sheets, spec_lint, manifest, publish)",
       "tier": "fast",
       "requires": [
-        "yaml",
-        "bin:pdftotext"
+        "bin:pdfinfo",
+        "bin:pdftotext",
+        "yaml"
       ],
       "cmd": [
         "{python}",
@@ -55,14 +56,25 @@
       "name": "new_model.py intake and scaffold tests",
       "tier": "fast",
       "requires": [
-        "yaml",
-        "bin:pdftotext"
+        "bin:pdfinfo",
+        "bin:pdftotext",
+        "yaml"
       ],
       "cmd": [
         "{python}",
         "-m",
         "unittest",
         "test_new_model"
+      ]
+    },
+    {
+      "name": "run_gates.py tests",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "-m",
+        "unittest",
+        "test_run_gates"
       ]
     },
     {
@@ -78,7 +90,8 @@
       "name": "probe suite",
       "tier": "probes",
       "requires": [
-        "yaml"
+        "yaml",
+        "blender"
       ],
       "cmd": [
         "{python}",

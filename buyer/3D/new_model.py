@@ -41,6 +41,7 @@ builder that is not one model's (docs/KIT-AUDIT.md says what would be).
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import shutil
 import subprocess
@@ -121,7 +122,7 @@ def report(info: dict, model_id: str) -> str:
     return "\n".join(lines)
 
 
-SPEC = '''# {name} -- dimensional spec (started by new_model.py; nothing in it is measured yet)
+SPEC = '''# {title} -- dimensional spec (started by new_model.py; nothing in it is measured yet)
 # Source plan set: {pdf_name}
 #
 # EVERY NUMBER IS CITED. `source` names a sheet listed in sheet_index and where on
@@ -133,7 +134,7 @@ SPEC = '''# {name} -- dimensional spec (started by new_model.py; nothing in it i
 
 meta:
   model_id: {model_id}
-  display_name: "{name}"
+  display_name: {name}
   source_pdf_pages: {{count: {pages}, derived: "pdfinfo reports {pages} pages"}}
 
 sheet_index:
@@ -216,7 +217,10 @@ def scaffold(pdf: Path, model_id: str, name: str, issue: int, models_dir: Path,
                      for pg, sid in info["sheets"] if sid) \
         or "  []   # no sheet id could be read; fill in by hand"
     (target / "spec.yaml").write_text(SPEC.format(
-        name=name, pdf_name=pdf.name, model_id=model_id, pages=info["pages"], sheet_rows=rows,
+        # A NAME IS FREE TEXT: as the YAML value it is JSON-quoted (a valid YAML
+        # scalar, so `A "Plus"` cannot break the file); in a comment, one line.
+        name=json.dumps(name), title=" ".join(name.split()),
+        pdf_name=" ".join(pdf.name.split()), model_id=model_id, pages=info["pages"], sheet_rows=rows,
         index_sheet=next((sid for _, sid in info["sheets"] if sid), "the title sheet")))
     (target / "docs" / "INTAKE.md").write_text(text)
     if info["candidates"]:

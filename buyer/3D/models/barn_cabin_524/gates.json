@@ -1,6 +1,17 @@
 {
   "gates": [
     {
+      "name": "verify_fixtures.py (spec only, no Blender)",
+      "tier": "fast",
+      "requires": [
+        "yaml"
+      ],
+      "cmd": [
+        "{python}",
+        "models/barn_cabin_524/verify_fixtures.py"
+      ]
+    },
+    {
       "name": "build_adu.py",
       "tier": "blender",
       "script": "build_adu.py",
@@ -56,6 +67,19 @@
       "tier": "blender",
       "script": "verify_frame.py",
       "blend": null
+    },
+    {
+      "name": "finish_adu.py (writes the textured scene the next gate needs; export staged to a temp dir)",
+      "tier": "blender",
+      "script": "finish_adu.py",
+      "blend": null,
+      "args": [
+        "--out",
+        "{tmp}"
+      ],
+      "requires": [
+        "yaml"
+      ]
     },
     {
       "name": "verify_front_elevation.py",
