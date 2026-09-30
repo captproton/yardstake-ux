@@ -66,6 +66,19 @@
       "requires": [
         "yaml"
       ]
+    },
+    {
+      "name": "finish.py (export and manifest gates; export staged to a temp dir)",
+      "tier": "blender",
+      "script": "finish.py",
+      "blend": null,
+      "args": [
+        "--out",
+        "{tmp}"
+      ],
+      "requires": [
+        "yaml"
+      ]
     }
   ]
 }

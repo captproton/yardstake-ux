@@ -72,6 +72,35 @@ def find_blender():
     return None
 
 
+def _strings(f, g, key, nonempty=False):
+    v = g[key]
+    if not (isinstance(v, list) and all(isinstance(x, str) and x for x in v)
+            and (v or not nonempty)):
+        raise SystemExit(f"{f}: gate {g['name']!r}: {key!r} must be "
+                         f"{'a non-empty ' if nonempty else 'a '}list of non-empty strings, "
+                         f"found {v!r}")
+
+
+def _shape(f, g):
+    """The fields a gate is run from, checked as untrusted disk input, so a
+    malformed manifest is a readable error here and never a traceback later."""
+    if not (isinstance(g["name"], str) and g["name"]):
+        raise SystemExit(f"{f}: a gate's 'name' must be a non-empty string, found {g['name']!r}")
+    if g["tier"] == "blender":
+        if not (isinstance(g["script"], str) and g["script"]):
+            raise SystemExit(f"{f}: gate {g['name']!r}: 'script' must be a non-empty string")
+        if g.get("blend") is not None and not (isinstance(g["blend"], str) and g["blend"]):
+            raise SystemExit(f"{f}: gate {g['name']!r}: 'blend' must be a file name or null")
+    else:
+        _strings(f, g, "cmd", nonempty=True)
+    for key in ("args", "requires"):
+        if key in g:
+            _strings(f, g, key)
+    if "timeout" in g and not (isinstance(g["timeout"], int) and not isinstance(g["timeout"], bool)
+                               and g["timeout"] > 0):
+        raise SystemExit(f"{f}: gate {g['name']!r}: 'timeout' must be a positive integer")
+
+
 def load_gates(only_model=None):
     """[(owner, cwd, gate)] from gates.json files, in a stable order."""
     files = [("shared", ROOT, ROOT / "gates.json")]
@@ -82,7 +111,11 @@ def load_gates(only_model=None):
         if only_model and owner not in (only_model, "shared"):
             continue
         if not f.is_file():
-            if owner != "shared" and (cwd / "spec.yaml").is_file():
+            if owner == "shared":
+                # The repository-wide checks are not optional: a deleted or
+                # renamed list must not turn every one of them into silence.
+                raise SystemExit(f"{f} is missing; the shared gate list is required")
+            if (cwd / "spec.yaml").is_file():
                 out.append((owner, cwd, {"name": "(no gates.json)", "tier": "fast",
                                          "missing": True}))
             continue
@@ -104,6 +137,7 @@ def load_gates(only_model=None):
                 raise SystemExit(f"{f}: blender gate {g['name']!r} has no 'script'")
             if g["tier"] != "blender" and "cmd" not in g:
                 raise SystemExit(f"{f}: gate {g['name']!r} has no 'cmd'")
+            _shape(f, g)
             out.append((owner, cwd, g))
     return out
 
@@ -169,7 +203,8 @@ def _run(owner, cwd, gate, blender, log_dir, timeout, tmp):
         (log_dir / f"{owner}__{re.sub(r'[^A-Za-z0-9_.-]+', '_', gate['name'])}.log").write_text(out)
     note = ""
     if gate["tier"] == "blender":
-        n_pass, n_fail = len(PASS_RE.findall(r.stdout)), len(FAIL_RE.findall(r.stdout))
+        # BOTH STREAMS: a script may report a failure on stderr and exit 0.
+        n_pass, n_fail = len(PASS_RE.findall(out)), len(FAIL_RE.findall(out))
         note = f"PASS {n_pass} FAIL {n_fail}"
         if r.returncode:
             return "fail", f"exit {r.returncode}; {note}", dt

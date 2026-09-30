@@ -10,6 +10,7 @@ case skips, and says so, when the file is absent. Laurel's is committed.
 import contextlib
 import io
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -56,8 +57,14 @@ class Scaffold(unittest.TestCase):
         self.go()
         spec = (self.models / "test_a1_460/spec.yaml").read_text()
         body = [ln for ln in spec.splitlines() if ln.strip() and not ln.startswith("#")]
-        self.assertFalse([ln for ln in body if "'" in ln.replace('"', "'") and "ft" in ln],
-                         "a scaffolded spec must not carry a measured length")
+        # A dimension in this project's specs is a mapping with an `ft` key (and
+        # its `raw` string, with a foot mark). Neither may appear, on any line or
+        # nested under any key, and the scaffold may carry only these top-level blocks.
+        for ln in body:
+            self.assertNotRegex(ln, r"\b(ft|raw)\s*:", f"a measured length: {ln!r}")
+            self.assertNotRegex(ln, r"\d\s*'", f"a foot mark: {ln!r}")
+        top = {ln.split(":")[0] for ln in body if re.match(r"^[A-Za-z_]+\s*:", ln)}
+        self.assertEqual(top, {"meta", "sheet_index"})
         self.assertIn("A-1.0", spec)              # the sheet index is the one thing it carries
 
     def test_the_scaffolded_spec_passes_the_lint_it_will_be_held_to(self):

@@ -99,5 +99,43 @@ class Runner(unittest.TestCase):
         self.assertIn("no PASS line", out)
 
 
+    def test_a_missing_shared_list_fails(self):
+        # no gates.json at the root: every repository-wide check would vanish
+        code, out, err = run("--tier", "fast")
+        self.assertNotEqual(code, 0)
+        self.assertIn("shared gate list is required", err)
+        self.assertNotIn("0 passed", out)
+
+    def test_malformed_gate_fields_are_readable_errors(self):
+        for bad in ({"name": "b", "tier": "fast", "cmd": []},
+                    {"name": "b", "tier": "fast", "cmd": "python"},
+                    {"name": "b", "tier": "fast", "cmd": [1]},
+                    {"name": "b", "tier": "fast", "cmd": ["{python}"], "requires": "yaml"},
+                    {"name": "b", "tier": "blender", "script": ""},
+                    {"name": "b", "tier": "blender", "script": "x.py", "args": [None]},
+                    {"name": "b", "tier": "fast", "cmd": ["{python}"], "timeout": 0},
+                    {"name": "", "tier": "fast", "cmd": ["{python}"]}):
+            with self.subTest(bad=bad):
+                self.shared([bad])
+                code, _, err = run("--tier", "fast", "--tier", "blender")
+                self.assertNotEqual(code, 0)
+                self.assertIn("gate", err)
+                self.assertNotIn("Traceback", err)
+
+    def test_a_blender_gate_that_fails_on_stderr_and_exits_zero_fails(self):
+        fake = self.root / "fakeblender"
+        fake.write_text("#!/bin/sh\necho '[PASS] one'\necho '[FAIL] two' 1>&2\nexit 0\n")
+        fake.chmod(0o755)
+        d = self.root / "models" / "m_one"
+        d.mkdir()
+        (d / "gates.json").write_text(json.dumps({"gates": [
+            {"name": "b", "tier": "blender", "script": "x.py", "blend": None}]}))
+        self.shared([])
+        with mock.patch.object(run_gates, "find_blender", return_value=str(fake)):
+            code, out, _ = run("--tier", "blender")
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL 1", out)
+
+
 if __name__ == "__main__":
     unittest.main()
