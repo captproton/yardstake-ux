@@ -1,0 +1,89 @@
+{
+  "gates": [
+    {
+      "name": "index matches a fresh scan",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "build_index.py",
+        "--check"
+      ]
+    },
+    {
+      "name": "index gates",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "verify_index.py"
+      ]
+    },
+    {
+      "name": "page gates",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "verify_prototype.py"
+      ]
+    },
+    {
+      "name": "fixtures match their generator",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "prototype/fixtures/make_fixtures.py",
+        "--check"
+      ]
+    },
+    {
+      "name": "kit tests (sheets, spec_lint, manifest, publish)",
+      "tier": "fast",
+      "requires": [
+        "yaml",
+        "bin:pdftotext"
+      ],
+      "cmd": [
+        "{python}",
+        "-m",
+        "unittest",
+        "adu_kit.test_sheets",
+        "adu_kit.test_spec_lint",
+        "adu_kit.test_manifest",
+        "adu_kit.test_publish"
+      ]
+    },
+    {
+      "name": "new_model.py intake and scaffold tests",
+      "tier": "fast",
+      "requires": [
+        "yaml",
+        "bin:pdftotext"
+      ],
+      "cmd": [
+        "{python}",
+        "-m",
+        "unittest",
+        "test_new_model"
+      ]
+    },
+    {
+      "name": "probe harness self-check",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "probes/run_probes.py",
+        "--self-check"
+      ]
+    },
+    {
+      "name": "probe suite",
+      "tier": "probes",
+      "requires": [
+        "yaml"
+      ],
+      "cmd": [
+        "{python}",
+        "probes/run_probes.py"
+      ]
+    }
+  ]
+}

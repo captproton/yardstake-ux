@@ -1,0 +1,71 @@
+{
+  "gates": [
+    {
+      "name": "spec lint (every number cited, drawn lengths on their sheets)",
+      "tier": "fast",
+      "requires": [
+        "yaml",
+        "bin:pdftotext"
+      ],
+      "cmd": [
+        "{python}",
+        "-m",
+        "adu_kit.spec_lint",
+        "models/laurel_a1_460/spec.yaml",
+        "--pdf",
+        "example plans/sacramento_adus/adu-plan-full-set-a1-laurel.pdf"
+      ]
+    },
+    {
+      "name": "spec geometry (verify_spec.py)",
+      "tier": "fast",
+      "requires": [
+        "yaml"
+      ],
+      "cmd": [
+        "{python}",
+        "models/laurel_a1_460/verify_spec.py"
+      ]
+    },
+    {
+      "name": "spec geometry tests + ink readers",
+      "tier": "fast",
+      "requires": [
+        "yaml",
+        "bin:pdftotext"
+      ],
+      "cmd": [
+        "{python}",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "models/laurel_a1_460",
+        "-p",
+        "test_*.py"
+      ]
+    },
+    {
+      "name": "textures match their generator",
+      "tier": "fast",
+      "requires": [
+        "numpy",
+        "PIL"
+      ],
+      "cmd": [
+        "{python}",
+        "models/laurel_a1_460/make_textures.py",
+        "--check"
+      ]
+    },
+    {
+      "name": "build.py (massing, openings, trim, fixtures, furniture, canopy)",
+      "tier": "blender",
+      "script": "build.py",
+      "blend": null,
+      "requires": [
+        "yaml"
+      ]
+    }
+  ]
+}

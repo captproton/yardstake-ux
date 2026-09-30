@@ -1,0 +1,67 @@
+{
+  "gates": [
+    {
+      "name": "build_adu.py",
+      "tier": "blender",
+      "script": "build_adu.py",
+      "blend": null,
+      "requires": [
+        "yaml"
+      ]
+    },
+    {
+      "name": "verify_tier1.py",
+      "tier": "blender",
+      "script": "verify_tier1.py",
+      "blend": "barn_cabin_524.blend"
+    },
+    {
+      "name": "verify_tier2.py",
+      "tier": "blender",
+      "script": "verify_tier2.py",
+      "blend": "barn_cabin_524.blend"
+    },
+    {
+      "name": "verify_openings.py",
+      "tier": "blender",
+      "script": "verify_openings.py",
+      "blend": "barn_cabin_524.blend"
+    },
+    {
+      "name": "verify_geometry.py",
+      "tier": "blender",
+      "script": "verify_geometry.py",
+      "blend": "barn_cabin_524.blend"
+    },
+    {
+      "name": "verify_mounted.py",
+      "tier": "blender",
+      "script": "verify_mounted.py",
+      "blend": "barn_cabin_524.blend"
+    },
+    {
+      "name": "verify_furniture.py",
+      "tier": "blender",
+      "script": "verify_furniture.py",
+      "blend": "barn_cabin_524.blend"
+    },
+    {
+      "name": "verify_views.py",
+      "tier": "blender",
+      "script": "verify_views.py",
+      "blend": "barn_cabin_524.blend"
+    },
+    {
+      "name": "verify_frame.py",
+      "tier": "blender",
+      "script": "verify_frame.py",
+      "blend": null
+    },
+    {
+      "name": "verify_front_elevation.py",
+      "tier": "blender",
+      "script": "verify_front_elevation.py",
+      "blend": "barn_cabin_524_textured.blend"
+    }
+  ]
+}
