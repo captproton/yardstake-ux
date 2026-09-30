@@ -206,8 +206,9 @@ def _run(owner, cwd, gate, blender, log_dir, timeout, tmp):
                            timeout=gate.get("timeout", timeout), env=env)
     except subprocess.TimeoutExpired:
         return "fail", "timed out", time.time() - t0
-    except OSError as e:
-        # the command could not be started at all (not executable, bad cwd...)
+    except (OSError, ValueError) as e:
+        # the command could not be started at all: not executable, bad cwd (OSError),
+        # or an argument subprocess refuses, such as an embedded NUL (ValueError)
         return "fail", f"could not launch {cmd[0]!r}: {e}", time.time() - t0
     dt = time.time() - t0
     out = r.stdout + r.stderr

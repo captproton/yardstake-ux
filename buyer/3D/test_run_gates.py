@@ -119,6 +119,13 @@ class Runner(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("could not launch", out)
 
+    def test_an_argument_subprocess_refuses_is_a_readable_failure(self):
+        self.shared([{"name": "nul", "tier": "fast", "cmd": ["{python}", "-c", "a\0b"]}])
+        code, out, err = run("--tier", "fast")
+        self.assertEqual(code, 1)
+        self.assertIn("could not launch", out)
+        self.assertNotIn("Traceback", err)
+
     def test_a_wrong_top_level_shape_is_a_readable_error(self):
         for text in ("[]", "null", '"x"', "3", '{"gates": null}', '{"other": []}', "{not json"):
             with self.subTest(text=text):
