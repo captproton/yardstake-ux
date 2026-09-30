@@ -126,6 +126,25 @@ class Runner(unittest.TestCase):
         self.assertIn("could not launch", out)
         self.assertNotIn("Traceback", err)
 
+    def test_a_field_the_tier_does_not_read_is_refused(self):
+        for bad in ({"name": "b", "tier": "fast", "cmd": ["{python}"], "args": ["--check"]},
+                    {"name": "b", "tier": "fast", "cmd": ["{python}"], "script": "x.py"},
+                    {"name": "b", "tier": "probes", "cmd": ["{python}"], "blend": "x.blend"},
+                    {"name": "b", "tier": "blender", "script": "x.py", "cmd": ["{python}"]}):
+            with self.subTest(bad=bad):
+                self.shared([bad])
+                code, _, err = run("--tier", "fast", "--tier", "blender", "--tier", "probes")
+                self.assertNotEqual(code, 0)
+                self.assertIn("not used by this tier", err)
+
+    def test_a_dotted_requirement_with_a_missing_parent_is_a_skip(self):
+        self.shared([self.ok(requires=["no_such_parent_pkg.plugin", "x..y"])])
+        code, out, err = run("--tier", "fast")
+        self.assertEqual(code, 1)
+        self.assertIn("SKIP", out)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(run("--tier", "fast", "--allow-skip")[0], 0)
+
     def test_a_wrong_top_level_shape_is_a_readable_error(self):
         for text in ("[]", "null", '"x"', "3", '{"gates": null}', '{"other": []}', "{not json"):
             with self.subTest(text=text):

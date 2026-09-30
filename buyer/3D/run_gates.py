@@ -65,6 +65,8 @@ TIERS = ("fast", "blender", "probes")
 DEFAULT_TIERS = ("fast", "blender")          # probes take 7-30 minutes
 MAC_BLENDER = "/Applications/Blender.app/Contents/MacOS/Blender"
 GATE_KEYS = {"name", "tier", "cmd", "script", "blend", "args", "requires", "timeout"}
+BLENDER_ONLY = {"script", "blend", "args"}       # read only by a blender gate
+PYTHON_ONLY = {"cmd"}                            # read only by fast and probes gates
 PASS_RE =re.compile(r"\[PASS\]|\bPASS\b")
 FAIL_RE = re.compile(r"\[FAIL\]|\bFAIL\b")
 
@@ -102,6 +104,12 @@ def _shape(f, g):
             raise SystemExit(f"{f}: gate {g['name']!r}: 'blend' must be a file name or null")
     else:
         _strings(f, g, "cmd", nonempty=True)
+    # A field the tier does not read is refused, not ignored: `args` on a fast gate
+    # would otherwise validate and then run a different command than the manifest says.
+    foreign = set(g) & (BLENDER_ONLY if g["tier"] != "blender" else PYTHON_ONLY)
+    if foreign:
+        raise SystemExit(f"{f}: gate {g['name']!r} (tier {g['tier']!r}): "
+                         f"{sorted(foreign)} is not used by this tier")
     for key in ("args", "requires"):
         if key in g:
             _strings(f, g, key)
@@ -162,8 +170,15 @@ def missing_requirement(gate, blender):
         elif r.startswith("bin:"):
             if not shutil.which(r[4:]):
                 return f"`{r[4:]}` is not on PATH"
-        elif importlib.util.find_spec(r) is None:
-            return f"{sys.executable} cannot import {r}"
+        else:
+            try:
+                found = importlib.util.find_spec(r) is not None
+            except (ImportError, ValueError):
+                # `pkg.sub` with `pkg` absent raises ModuleNotFoundError; a
+                # malformed name raises ValueError. Either way it is unavailable.
+                found = False
+            if not found:
+                return f"{sys.executable} cannot import {r}"
     return None
 
 

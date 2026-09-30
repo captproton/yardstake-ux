@@ -125,6 +125,15 @@ class Scaffold(unittest.TestCase):
                 "sheets": [(1, None)], "candidates": [], "words": {}}
         return mock.patch.object(new_model, "intake", return_value=info)
 
+    def test_a_text_layer_set_with_no_candidates_still_gets_its_candidates_file(self):
+        info = {"pdf": LAUREL, "pages": 20, "chars": 50000, "raster": False,
+                "sheets": [(1, "A-0.0")], "candidates": [], "words": {}}
+        with mock.patch.object(new_model, "intake", return_value=info):
+            code, _, err = self.go()
+        self.assertEqual(code, 0, err)
+        self.assertTrue((self.models / "test_a1_460/docs/candidates.yaml").is_file(),
+                        "INTAKE.md links this file, so it must exist")
+
     def test_a_scan_stops_the_scaffold_without_the_file(self):
         with self._scan():
             code, out, err = self.go()

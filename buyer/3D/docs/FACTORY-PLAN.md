@@ -52,8 +52,12 @@ Both run from anywhere; both are tested and on the fast gate list.
 | [`run_gates.py`](../run_gates.py) | `python3 run_gates.py [--model ID] [--tier fast\|blender\|probes]` | Reads `gates.json` (shared) and `models/<id>/gates.json`. Fast is about 25 s and needs no Blender; Blender is about 15 s; probes take 7–30 min and are opt-in. A skipped gate fails the run unless `--allow-skip`. A Blender gate that exits 0 but prints no PASS line fails. |
 | [`new_model.py`](../new_model.py) | `python3 new_model.py PLANS.pdf --id ID --name NAME --issue N` | Intake report first (text layer, sheets, candidate count, class-hint words), then `models/<id>/` with a spec skeleton (sheet index only, no dimension), `docs/INTAKE.md`, `docs/candidates.yaml`, a tiered `docs/PLAN.md`, `gates.json`, `EXPORT_PENDING`. Refuses a scanned PDF without `--allow-raster`; never overwrites. |
 
-A scaffolded model passes `spec_lint` and every index gate on day one
-(tested), so a new model starts green and stays green.
+A scaffolded model from a plan set whose sheet ids can be read passes
+`spec_lint` and every index gate on day one (tested), so it starts green and
+stays green. **Not every set starts green.** A scanned set (`--allow-raster`),
+and a text-layer set whose sheet ids cannot be read (Concord Plans 3 and 4 name
+0 of 55), scaffold an empty `sheet_index.sheets`, which `spec_lint` rejects by
+design. Those models start red until a person fills in the index.
 
 CI still runs its own list of steps. Replacing them with
 `python3 run_gates.py --tier fast` would put one list in one place; it changes
