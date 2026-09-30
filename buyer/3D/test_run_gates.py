@@ -106,6 +106,19 @@ class Runner(unittest.TestCase):
         self.assertIn("shared gate list is required", err)
         self.assertNotIn("0 passed", out)
 
+    def test_there_is_no_way_to_excuse_a_missing_pass_line(self):
+        self.shared([{"name": "b", "tier": "blender", "script": "x.py", "no_pass_lines": True}])
+        code, _, err = run("--tier", "blender")
+        self.assertNotEqual(code, 0)
+        self.assertIn("unknown key", err)
+        self.assertIn("no_pass_lines", err)
+
+    def test_a_command_that_cannot_launch_is_a_readable_failure(self):
+        self.shared([{"name": "nolaunch", "tier": "fast", "cmd": ["/no/such/program"]}])
+        code, out, _ = run("--tier", "fast")
+        self.assertEqual(code, 1)
+        self.assertIn("could not launch", out)
+
     def test_a_wrong_top_level_shape_is_a_readable_error(self):
         for text in ("[]", "null", '"x"', "3", '{"gates": null}', '{"other": []}', "{not json"):
             with self.subTest(text=text):

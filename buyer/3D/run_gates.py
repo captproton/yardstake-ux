@@ -64,7 +64,8 @@ MODELS = ROOT / "models"
 TIERS = ("fast", "blender", "probes")
 DEFAULT_TIERS = ("fast", "blender")          # probes take 7-30 minutes
 MAC_BLENDER = "/Applications/Blender.app/Contents/MacOS/Blender"
-PASS_RE = re.compile(r"\[PASS\]|\bPASS\b")
+GATE_KEYS = {"name", "tier", "cmd", "script", "blend", "args", "requires", "timeout"}
+PASS_RE =re.compile(r"\[PASS\]|\bPASS\b")
 FAIL_RE = re.compile(r"\[FAIL\]|\bFAIL\b")
 
 
@@ -87,6 +88,11 @@ def _strings(f, g, key, nonempty=False):
 def _shape(f, g):
     """The fields a gate is run from, checked as untrusted disk input, so a
     malformed manifest is a readable error here and never a traceback later."""
+    unknown = set(g) - GATE_KEYS
+    if unknown:
+        # An unrecognised key is a typo or an escape hatch; neither is honoured.
+        raise SystemExit(f"{f}: gate {g.get('name')!r}: unknown key(s) {sorted(unknown)}; "
+                         f"the keys are {sorted(GATE_KEYS)}")
     if not (isinstance(g["name"], str) and g["name"]):
         raise SystemExit(f"{f}: a gate's 'name' must be a non-empty string, found {g['name']!r}")
     if g["tier"] == "blender":
@@ -196,10 +202,13 @@ def _run(owner, cwd, gate, blender, log_dir, timeout, tmp):
                PATH=str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""))
     t0 = time.time()
     try:
-        r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
+        r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, errors="replace",
                            timeout=gate.get("timeout", timeout), env=env)
     except subprocess.TimeoutExpired:
         return "fail", "timed out", time.time() - t0
+    except OSError as e:
+        # the command could not be started at all (not executable, bad cwd...)
+        return "fail", f"could not launch {cmd[0]!r}: {e}", time.time() - t0
     dt = time.time() - t0
     out = r.stdout + r.stderr
     if log_dir:
@@ -215,7 +224,7 @@ def _run(owner, cwd, gate, blender, log_dir, timeout, tmp):
             return "fail", f"a traceback, and exit 0; {note}", dt
         if n_fail:
             return "fail", note, dt
-        if not n_pass and not gate.get("no_pass_lines"):
+        if not n_pass:                       # unconditional: there is no way to opt out
             return "fail", "exit 0 but printed no PASS line: it may not have run", dt
         return "pass", note, dt
     if r.returncode:
