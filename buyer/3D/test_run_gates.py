@@ -106,6 +106,14 @@ class Runner(unittest.TestCase):
         self.assertIn("shared gate list is required", err)
         self.assertNotIn("0 passed", out)
 
+    def test_a_wrong_top_level_shape_is_a_readable_error(self):
+        for text in ("[]", "null", '"x"', "3", '{"gates": null}', '{"other": []}', "{not json"):
+            with self.subTest(text=text):
+                (self.root / "gates.json").write_text(text)
+                code, _, err = run("--tier", "fast")
+                self.assertNotEqual(code, 0)
+                self.assertIn("not a gate list", err)
+
     def test_malformed_gate_fields_are_readable_errors(self):
         for bad in ({"name": "b", "tier": "fast", "cmd": []},
                     {"name": "b", "tier": "fast", "cmd": "python"},

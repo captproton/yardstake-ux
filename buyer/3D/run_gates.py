@@ -3,7 +3,10 @@
 run_gates.py -- run every gate a model has, by one command, and say what ran.
 
     python3 run_gates.py                    fast + blender tiers, every model
-    python3 run_gates.py --tier fast        no Blender; seconds, what CI runs
+    python3 run_gates.py --tier fast        no Blender; seconds. A subset of CI, not
+                                            CI: the workflow keeps its own step list
+                                            and runs the full probe suite, which here
+                                            is the opt-in `probes` tier
     python3 run_gates.py --model laurel_a1_460 --tier blender
     python3 run_gates.py --tier probes      the break-one-thing suite (slow)
     python3 run_gates.py --list             what would run, and run nothing
@@ -123,7 +126,7 @@ def load_gates(only_model=None):
             doc = json.loads(f.read_text())
             gates = doc["gates"]
             assert isinstance(gates, list)
-        except (OSError, ValueError, KeyError, AssertionError) as e:
+        except (OSError, ValueError, KeyError, TypeError, AssertionError) as e:
             raise SystemExit(f"{f}: not a gate list ({e}); expected {{\"gates\": [...]}}")
         for g in gates:
             if not isinstance(g, dict):

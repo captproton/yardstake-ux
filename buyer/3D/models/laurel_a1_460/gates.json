@@ -32,7 +32,8 @@
       "tier": "fast",
       "requires": [
         "yaml",
-        "bin:pdftotext"
+        "bin:pdftotext",
+        "bin:pdftocairo"
       ],
       "cmd": [
         "{python}",
@@ -49,6 +50,7 @@
       "name": "textures match their generator",
       "tier": "fast",
       "requires": [
+        "yaml",
         "numpy",
         "PIL"
       ],

@@ -135,6 +135,11 @@ class Scaffold(unittest.TestCase):
             code, _, err = self.go(extra=("--allow-raster",))
             self.assertEqual(code, 0, err)
             self.assertFalse((self.models / "test_a1_460/docs/candidates.yaml").exists())
+            # no sheet id was read, so `sheets` is empty: the spec must still parse
+            if __import__("importlib.util").util.find_spec("yaml"):
+                import yaml
+                spec = yaml.safe_load((self.models / "test_a1_460/spec.yaml").read_text())
+                self.assertEqual(spec["sheet_index"]["sheets"], [])
 
     @unittest.skipUnless(BARN.is_file(), "the barn cabin's scanned PDF is not in this checkout")
     def test_a_scan_stops_the_scaffold(self):

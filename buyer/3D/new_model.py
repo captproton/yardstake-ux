@@ -215,7 +215,7 @@ def scaffold(pdf: Path, model_id: str, name: str, issue: int, models_dir: Path,
     (target / "docs").mkdir(parents=True)
     rows = "\n".join(f'  - {{pdf_page: {pg}, id: {sid}, title: "(fill in)"}}'
                      for pg, sid in info["sheets"] if sid) \
-        or "  []   # no sheet id could be read; fill in by hand"
+        or "    []   # no sheet id could be read; fill in by hand"      # indented under `sheets:`
     (target / "spec.yaml").write_text(SPEC.format(
         # A NAME IS FREE TEXT: as the YAML value it is JSON-quoted (a valid YAML
         # scalar, so `A "Plus"` cannot break the file); in a comment, one line.
