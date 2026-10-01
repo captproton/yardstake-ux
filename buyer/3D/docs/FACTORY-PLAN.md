@@ -9,8 +9,11 @@ it worked.
 ([#165](https://github.com/captproton/yardstake-ux/pull/165), `aaa4672`):
 `run_gates.py`, `new_model.py`, 29 tests, and the audit. Phase 0 (the Willow
 preflight) is done, in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md), merged in
-[#166](https://github.com/captproton/yardstake-ux/pull/166). Everything from
-Phase 1 on is still a plan. The sequence's steps are filed as issues
+[#166](https://github.com/captproton/yardstake-ux/pull/166). Phase 1 (the roof
+as a list of planes, ceiling split from roof) is done, in
+[#176](https://github.com/captproton/yardstake-ux/pull/176) (`8fa36a6`): Laurel's
+export byte-identical, 27 of 27 gates, 229 of 229 probes. Everything from Phase 2
+on is still a plan. The sequence's steps are filed as issues
 [#167](https://github.com/captproton/yardstake-ux/issues/167) to
 [#174](https://github.com/captproton/yardstake-ux/issues/174).
 
@@ -296,7 +299,8 @@ One line per pull request. Mark each **Done** with its number.
    storey on a rectangle, **stop and re-pick the model before step 1**, because
    steps 1 to 3 are shaped by it. The findings are
    written into the spec at step 4; the decision is taken now.
-1. [#167](https://github.com/captproton/yardstake-ux/issues/167) **Roof interface** (Phase 1): a list of planes, and ceiling split from
+1. [#167](https://github.com/captproton/yardstake-ux/issues/167) **Done**
+   ([#176](https://github.com/captproton/yardstake-ux/pull/176)). **Roof interface** (Phase 1): a list of planes, and ceiling split from
    roof. Laurel byte-identical.
 2. [#168](https://github.com/captproton/yardstake-ux/issues/168) **`adu_kit/ink.py`** (Phase 2). Four readers byte-identical.
 3. [#169](https://github.com/captproton/yardstake-ux/issues/169) **The gates move into `adu_kit/`** (Phase 3). Laurel's gate output
