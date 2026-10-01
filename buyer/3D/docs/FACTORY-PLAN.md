@@ -8,18 +8,19 @@ it worked.
 **Status (2026-10-01).** The tooling is built and merged
 ([#165](https://github.com/captproton/yardstake-ux/pull/165), `aaa4672`):
 `run_gates.py`, `new_model.py`, 29 tests, and the audit. Phase 0 (the Willow
-preflight) is done, in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md). Everything
-from Phase 1 on is still a plan. Issue numbers are left blank until issues are
-filed; the sequence names them `#TBD`.
+preflight) is done, in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md), merged in
+[#166](https://github.com/captproton/yardstake-ux/pull/166). Everything from
+Phase 1 on is still a plan. The sequence's steps are filed as issues
+[#167](https://github.com/captproton/yardstake-ux/issues/167) to
+[#174](https://github.com/captproton/yardstake-ux/issues/174).
 
 **Open after #165:**
-- **The new tests are not in CI.** `.github/workflows/buyer-3d-checks.yml` keeps
-  its own step list and does not run `test_run_gates` or `test_new_model`, so a
-  regression in either tool can merge unseen. Adding them is two steps (the
-  workflow already installs poppler and PyYAML); it was left to the maintainer
-  because it changes the workflow.
-- **No issues are filed yet.** Step 0 (the Willow preflight) is done; its
-  findings are in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md).
+- **The new tests are not in CI**
+  ([#175](https://github.com/captproton/yardstake-ux/issues/175)).
+  `.github/workflows/buyer-3d-checks.yml` keeps its own step list and does not
+  run `test_run_gates` or `test_new_model`, so a regression in either tool can
+  merge unseen. Adding them is two steps (the workflow already installs poppler
+  and PyYAML); it was left to the maintainer because it changes the workflow.
 
 **What #165 taught about tooling work.** Nine review rounds, nearly all on how
 `run_gates.py` and `new_model.py` treat malformed input: a manifest that is a
@@ -295,17 +296,17 @@ One line per pull request. Mark each **Done** with its number.
    storey on a rectangle, **stop and re-pick the model before step 1**, because
    steps 1 to 3 are shaped by it. The findings are
    written into the spec at step 4; the decision is taken now.
-1. `#TBD` **Roof interface** (Phase 1): a list of planes, and ceiling split from
+1. [#167](https://github.com/captproton/yardstake-ux/issues/167) **Roof interface** (Phase 1): a list of planes, and ceiling split from
    roof. Laurel byte-identical.
-2. `#TBD` **`adu_kit/ink.py`** (Phase 2). Four readers byte-identical.
-3. `#TBD` **The gates move into `adu_kit/`** (Phase 3). Laurel's gate output
+2. [#168](https://github.com/captproton/yardstake-ux/issues/168) **`adu_kit/ink.py`** (Phase 2). Four readers byte-identical.
+3. [#169](https://github.com/captproton/yardstake-ux/issues/169) **The gates move into `adu_kit/`** (Phase 3). Laurel's gate output
    unchanged; probes still fail where they should.
-4. `#TBD` **Willow spec** (A1): records step 0's findings with citations,
+4. [#171](https://github.com/captproton/yardstake-ux/issues/171) **Willow spec** (A1): records step 0's findings with citations,
    scaffolded by `new_model.py`.
-5. `#TBD` **Willow build**, with the gable class (A2).
-6. `#TBD` **Willow overlay** (A3).
-7. `#TBD` **Willow export** (A4): Willow is on the page.
-8. `#TBD` **Timing and lessons** appended here (Phase 5); then Concord's plan.
+5. [#172](https://github.com/captproton/yardstake-ux/issues/172) **Willow build**, with the gable class (A2).
+6. [#173](https://github.com/captproton/yardstake-ux/issues/173) **Willow overlay** (A3).
+7. [#170](https://github.com/captproton/yardstake-ux/issues/170) **Willow export** (A4): Willow is on the page.
+8. [#174](https://github.com/captproton/yardstake-ux/issues/174) **Timing and lessons** appended here (Phase 5); then Concord's plan.
 
 Step 0 comes first. Steps 1 and 2 are independent and may run in parallel. Step 3 waits for step 1
 (the roof interface decides which gates move). Step 4 can start while 1 to 3
