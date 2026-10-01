@@ -68,7 +68,7 @@ from adu_kit.specread import AXES, DIRECTIONS, axis as _axis, sign as _sign  # n
 # documented in adu_kit/gates.py.
 from adu_kit.gates import (  # noqa: E402
     MESH_TOL, VERTS_PER_BOX, VOL_TOL,
-    every_partition_built, every_row_built, footprint, frame_not_mirrored,
+    every_partition_built, every_row_built, footprint,
     no_degenerate, openings_on_the_wall_their_block_names, sash_members,
     trim_inside_its_walls)
 
@@ -877,7 +877,7 @@ def report(spec, geo, colls):
     gate(ok, "the built partitions and interior doors sit where A-1.0 draws them", why)
 
     # the frame is not mirrored — checked on GEOMETRY, not on the spec
-    ok, why = frame_not_mirrored(spec, geo)
+    ok, why = _frame_not_mirrored(spec, geo)
     gate(ok, "not mirrored: D and E open on the X 24 wall, the C windows on X 0", why)
 
     # every schedule row produced a cut opening with a sash
@@ -949,6 +949,46 @@ def report(spec, geo, colls):
         print(f"{len(SKIPPED)} gate(s) SKIPPED, not passed: " + "; ".join(SKIPPED))
         print("This model is not complete. Re-run without --no-openings to judge them.")
     return not FAILED and not SKIPPED
+
+
+# LAUREL'S, NOT THE KIT'S (#177 review): this gate hardcodes Laurel's window marks
+# (D and E at the X 24 end, C at X 0). It moved to adu_kit/gates.py in the first
+# cut of #169 and came back, because a model with other marks would get a silent
+# PASS from it. A shared anti-mirroring gate needs its expectations supplied by
+# the model, which is a design for the Willow build to settle, not a move.
+def _frame_not_mirrored(spec, geo):
+    """D and E sit at the X 24 end; the C windows at X 0.
+
+    A-2.0's SIDE (LEFT) ELEVATION draws D and E, and the building's left side
+    seen from the front is +X when the front faces +Y and Z is up. That is the
+    fact the first draft of this spec had backwards, so it is written here
+    rather than read from the spec.
+
+    IT MEASURES THE WALL, NOT ITS NAME. The first version compared
+    `o["wall"]` against the string "Wall_x24" -- which is a label this same
+    file assigned a few hundred lines earlier, so the gate could only ever
+    agree with itself. Review asked what would happen if the two end walls
+    were built in each other's places: the answer, reproduced before this was
+    changed, is that the model came out mirrored and the anti-mirroring gate
+    reported PASS. A gate derived from the build's own expression cannot
+    disagree with the build (rule 29), so this one asks the geometry where
+    the wall actually is.
+    """
+    W = geo["W"]
+    wrong = []
+    for o in geo["built"]:
+        ty = str(o["row"].get("type"))
+        if ty not in ("C", "D", "E"):
+            continue
+        lo, hi = world_bbox([geo["walls"][o["wall"]]])
+        end_wall = (hi[0] - lo[0]) < W / 2          # thin in X: an end wall
+        at_x_max = (lo[0] + hi[0]) / 2 > W / 2
+        where = f"x {lo[0]:.3f}..{hi[0]:.3f}"
+        if ty in ("D", "E") and not (end_wall and at_x_max):
+            wrong.append(f"{o['id']} ({ty}) is on a wall at {where}, not the X {W:g} end")
+        if ty == "C" and end_wall and at_x_max:
+            wrong.append(f"{o['id']} (C) is on the end wall at {where}, the X {W:g} end")
+    return not wrong, "; ".join(wrong)
 
 
 def _roof_covers_its_overhangs(spec, geo):

@@ -54,7 +54,14 @@ skin_of, siding_of, siding, trim, ceiling. Their spec reads are `interior_partit
 Names such as "Wall_front" and the opening blocks "front_wall", "end_wall_x0" are
 the one-storey-rectangle class's; a different class would name its own.
 
-BEYOND `geo`: THE BLENDER SCENE AND ITS NAMES. Five of the eight gates also read the
+NOT HERE ON PURPOSE: `frame_not_mirrored`. It is the anti-mirroring gate, and it
+hardcodes Laurel's window marks (D and E at the X 24 end, C at X 0). Moved here in the
+first cut, it would give a model with other marks a silent PASS, because its loop skips
+every opening it has no mark for. It is back in Laurel's build.py (#177 review). A
+shared version needs the model to supply its expectations and must FAIL when it has
+none to check; that is a design for the Willow build to settle, not a move.
+
+BEYOND `geo`: THE BLENDER SCENE AND ITS NAMES. Five of the seven gates also read the
 global scene (`bpy.data.objects`), so a model can match the `geo` shapes above and
 still be incompatible. What they need, read off the code:
 
@@ -101,41 +108,6 @@ MESH_TOL = 1e-5         # ft, reading a length back off a mesh: Blender stores v
 SASH_FRAME_MEMBERS = 4  # jambs, sill and head: the four every frame has, whatever its type
 VERTS_PER_BOX = 8       # how a welded member count is read back off a mesh
 CORNER_TOL = 1e-4       # ft, matching a boolean's output vertex to the cut it came from
-
-
-def frame_not_mirrored(spec, geo):
-    """D and E sit at the X 24 end; the C windows at X 0.
-
-    A-2.0's SIDE (LEFT) ELEVATION draws D and E, and the building's left side
-    seen from the front is +X when the front faces +Y and Z is up. That is the
-    fact the first draft of this spec had backwards, so it is written here
-    rather than read from the spec.
-
-    IT MEASURES THE WALL, NOT ITS NAME. The first version compared
-    `o["wall"]` against the string "Wall_x24" -- which is a label this same
-    file assigned a few hundred lines earlier, so the gate could only ever
-    agree with itself. Review asked what would happen if the two end walls
-    were built in each other's places: the answer, reproduced before this was
-    changed, is that the model came out mirrored and the anti-mirroring gate
-    reported PASS. A gate derived from the build's own expression cannot
-    disagree with the build (rule 29), so this one asks the geometry where
-    the wall actually is.
-    """
-    W = geo["W"]
-    wrong = []
-    for o in geo["built"]:
-        ty = str(o["row"].get("type"))
-        if ty not in ("C", "D", "E"):
-            continue
-        lo, hi = world_bbox([geo["walls"][o["wall"]]])
-        end_wall = (hi[0] - lo[0]) < W / 2          # thin in X: an end wall
-        at_x_max = (lo[0] + hi[0]) / 2 > W / 2
-        where = f"x {lo[0]:.3f}..{hi[0]:.3f}"
-        if ty in ("D", "E") and not (end_wall and at_x_max):
-            wrong.append(f"{o['id']} ({ty}) is on a wall at {where}, not the X {W:g} end")
-        if ty == "C" and end_wall and at_x_max:
-            wrong.append(f"{o['id']} (C) is on the end wall at {where}, the X {W:g} end")
-    return not wrong, "; ".join(wrong)
 
 
 def footprint(spec, geo):
@@ -211,7 +183,7 @@ def openings_on_the_wall_their_block_names(geo):
     """Each exterior opening sits on the wall its spec block is named for.
 
     Review asked what happens if a build routes the C windows to a front or
-    rear wall: `_frame_not_mirrored` only rejects C at the +X end, so an
+    rear wall: Laurel's `_frame_not_mirrored` only rejects C at the +X end, so an
     end-wall window moved to the rear passed. Reproduced by routing
     `end_wall_x0` at `Wall_rear` -- the gate said PASS.
 
@@ -228,9 +200,17 @@ def openings_on_the_wall_their_block_names(geo):
              "end_wall_x0": (0, "min", W), "end_wall_x24": (0, "max", W)}
     wrong = []
     for o in geo["built"]:
-        side = sides.get(o.get("block"))
+        block = o.get("block")
+        if block is None:
+            continue                       # an interior door names a partition, and no block
+        side = sides.get(block)
         if side is None:
-            continue                       # an interior door names a partition
+            # A BLOCK THAT IS PRESENT BUT NOT ONE WE KNOW is not an interior door: skipping it
+            # would let a misspelled or unsupported exterior block pass unchecked, a gate
+            # with nothing to look at reporting PASS (review of #177).
+            wrong.append(f"{o['id']} is listed under {block!r}, which is not one of "
+                         f"{sorted(sides)}; it cannot be checked, so it is not passed")
+            continue
         axis, end, span = side
         lo, hi = world_bbox([geo["walls"][o["wall"]]])
         thin = (hi[axis] - lo[axis]) < span / 2
