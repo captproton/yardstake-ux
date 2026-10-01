@@ -5,9 +5,26 @@ Written 2026-09-29, after Laurel's twelve steps. It follows
 have. This document says what to build next, in what order, and how we will know
 it worked.
 
-**Status: a plan, not a record.** Nothing below the "Tooling that exists"
-section is built. Issue numbers are left blank until issues are filed; the
-sequence names them `#TBD`.
+**Status (2026-10-01).** The tooling is built and merged
+([#165](https://github.com/captproton/yardstake-ux/pull/165), `aaa4672`):
+`run_gates.py`, `new_model.py`, 29 tests, and the audit. Everything from
+Phase 0 on is still a plan. Issue numbers are left blank until issues are
+filed; the sequence names them `#TBD`.
+
+**Open after #165:**
+- **The new tests are not in CI.** `.github/workflows/buyer-3d-checks.yml` keeps
+  its own step list and does not run `test_run_gates` or `test_new_model`, so a
+  regression in either tool can merge unseen. Adding them is two steps (the
+  workflow already installs poppler and PyYAML); it was left to the maintainer
+  because it changes the workflow.
+- **Step 0 (the Willow preflight) has not been done,** and no issues are filed.
+
+**What #165 taught about tooling work.** Nine review rounds, nearly all on how
+`run_gates.py` and `new_model.py` treat malformed input: a manifest that is a
+list, a command with a NUL, a field the tier ignores, an empty selection. Each
+fix was small. The next tool that reads a manifest from disk should start from
+that list, with a test per malformed shape written before the code, not found
+one round at a time.
 
 ## The goal
 
@@ -43,7 +60,7 @@ From the [audit](KIT-AUDIT.md) and Laurel's plan:
 7. **Environment friction cost time**: a lost scratchpad runner, and a
    `python3` that resolved to Apple's 3.9 without PyYAML.
 
-## Tooling that exists (this change)
+## Tooling that exists (merged in #165)
 
 Both run from anywhere; both are tested and on the fast gate list.
 
@@ -221,6 +238,10 @@ first real throughput test.
 ## Sequence
 
 One line per pull request. Mark each **Done** with its number.
+
+**Done:** the tooling and the audit
+([#165](https://github.com/captproton/yardstake-ux/pull/165)): `run_gates.py`,
+`new_model.py`, `KIT-AUDIT.md`, this plan.
 
 0. **Preflight, before any PR (Phase 0; a read, not a change).** Read Willow's
    A-2.0 and A-0.0 and confirm: one storey, a rectangle, the roof form and
