@@ -4,7 +4,11 @@ adu_kit/gates.py -- build gates that read a model's built scene and its spec (#1
 Runs in Blender (it reads meshes); the plumbing it reports through is
 adu_kit/gatelog.py, which does not.
 
-MOVED UNCHANGED FROM LAUREL'S build.py, batch 1 of two. These are the gates that
+MOVED FROM LAUREL'S build.py, batch 1 of two, copied by script and not retyped, with
+ONE deliberate change: `openings_on_the_wall_their_block_names` now FAILS an opening
+whose `block` is present but unknown, where the original skipped it as if it were an
+interior door (found by review of #177, so a gate could pass having checked nothing).
+Everything else is the original's text. These are the gates that
 need no builder helper and no Laurel-only content: they depend on `(spec, geo)`, a few
 tolerances, `world_bbox`, AND the Blender scene and its object names (the section
 "BEYOND geo" below, which an earlier draft of this docstring left out). Each returns
@@ -61,9 +65,12 @@ every opening it has no mark for. It is back in Laurel's build.py (#177 review).
 shared version needs the model to supply its expectations and must FAIL when it has
 none to check; that is a design for the Willow build to settle, not a move.
 
-BEYOND `geo`: THE BLENDER SCENE AND ITS NAMES. Five of the seven gates also read the
-global scene (`bpy.data.objects`), so a model can match the `geo` shapes above and
-still be incompatible. What they need, read off the code:
+BEYOND `geo`: THE BLENDER SCENE AND ITS NAMES. Four of the seven gates read the global
+scene (`bpy.data.objects`): every_partition_built, every_row_built, sash_members and
+no_degenerate. A fifth, trim_inside_its_walls, does not touch the scene but depends on
+the NAMES of the objects it is handed in `geo["trim"]` and `geo["siding"]`. So a model
+can match the `geo` shapes above and still be incompatible. What they need, read off
+the code:
 
   every_partition_built   an object in the scene named by each partition's spec id
                           (`bpy.data.objects.get(row["id"])`), not looked up in `geo`.
