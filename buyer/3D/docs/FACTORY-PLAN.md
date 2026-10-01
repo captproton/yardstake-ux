@@ -17,7 +17,8 @@ filed; the sequence names them `#TBD`.
   regression in either tool can merge unseen. Adding them is two steps (the
   workflow already installs poppler and PyYAML); it was left to the maintainer
   because it changes the workflow.
-- **Step 0 (the Willow preflight) has not been done,** and no issues are filed.
+- **No issues are filed yet.** Step 0 (the Willow preflight) is done; its
+  findings are in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md).
 
 **What #165 taught about tooling work.** Nine review rounds, nearly all on how
 `run_gates.py` and `new_model.py` treat malformed input: a manifest that is a
@@ -87,7 +88,7 @@ Intake run on every set with `new_model.py --intake-only`, 2026-09-29.
 | Set | Plans | Pages | Text layer | Candidates | Sheets named | Roof words |
 |---|---|---|---|---|---|---|
 | Sacramento | Laurel (built) | 20 | yes | 67 on A-1.0 alone | not measured | one shed plane (settled in its spec) |
-| Sacramento | **Willow A2** | 20 | yes | 208 | 15 of 20 | GABLE 11, HIP 3 |
+| Sacramento | **Willow A2** | 20 | yes | 208 | 15 of 20 | GABLE 11, HIP 3 (read on the sheets: a main gable and a porch gable; no hip roof found) |
 | Concord | Plans 1, 2, 5, 6 | 46–47 | yes | 727–856 | 19 of 46–47 | GABLE ~30, HIP 14, SHED 3 |
 | Concord | Plans 3, 4 | 55 | yes | 973–1,086 | 0 of 55 | same |
 | Richmond | RAD_1 bungalow, 1-bed | 19 | yes | 207 | 0 of 19 | GABLE 4, HIP 3 |
@@ -100,15 +101,22 @@ slope fragment, unconfirmed.
 
 ## Why Willow is model three
 
-It is the controlled experiment: it changes **one variable** from Laurel.
+It is the controlled experiment: it changes **one variable** from Laurel, the
+roof, and the preflight ([`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md)) found
+that variable is bigger than first assumed.
 
 - Same designer's sheet system, same sheet ids (A-0.0 … A-3.4, T24), same
-  slab-on-grade foundation, stucco and siding options. Laurel's sheet-reading
-  scripts, trim and finish decisions should carry over nearly unchanged.
+  slab-on-grade foundation, same 24'-0" by 19'-2" footprint, stucco and siding
+  options. Laurel's sheet-reading scripts, trim and finish decisions should
+  carry over nearly unchanged.
 - Different roof: "stick framed and truss roof with composite shingles"
-  (A-0.0), against Laurel's one shed plane.
-- Its cover sheet also lists a second area beside the main one (the 122 sf
-  noted in Laurel's plan), so the option split will recur.
+  (A-0.0). The preflight read **two roofs**, not one: a main gable at 5:12 on
+  trusses, and a small porch gable at 3:12 on posts and a beam, against Laurel's
+  one shed plane. Its walls stop at T.P. 8'-0" under a flat ceiling, where
+  Laurel's run to a vaulted roof.
+- A 1-bedroom plan option is drawn on A-1.0, as in Laurel's, so the option
+  split recurs. (The 122 sf on the cover sheet is the **covered porch**, outside
+  the 460 sf; an earlier version of this plan read it as a second plan area.)
 
 If Willow is slow, the cause is the roof or the process, not a new sheet
 system. That is the point of choosing it.
@@ -146,12 +154,26 @@ option (plan) to build, as Laurel's `option_selection` did. **Decision rule:**
 if Willow is not one storey on a rectangle, stop and re-pick from the table
 above before Phase 1.
 
+**Done 2026-10-01, in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md): Willow passes**
+(one storey on a 24'-0" by 19'-2" rectangle). The findings are a read, not a
+spec; each number is re-read and cited at step 4. Its heel height, the porch
+roof's junction with the main roof, which overhang is where, and the frame are
+still open.
+
 ### Phase 1: the roof becomes a class (kit change, own PR)
 
 Laurel's roof-specific code is 97 lines: `Shed` and the `_roof_*` gates.
-Give them an interface (the underside height at a point, the profile of the
-roof solid, the gates that follow from the form) and make `Shed` one
-implementation.
+Give them an interface and make `Shed` one implementation.
+
+**The interface is a list of roof planes, each with its extent, not one
+surface.** The preflight is why. Laurel's `Shed` answers "underside height at
+this Y", which is one plane. Willow is a main gable and a porch gable that
+meet, so a function of position cannot say which roof covers a point. Design for
+a list of planes (with slope, extent and overhangs), with Laurel as a list of
+one, and have the interface answer: the underside at a point, the solid's
+profile, and the gates that follow from the form. Also separate **ceiling from
+roof**: Willow's partitions and walls stop at the T.P. 8'-0" ceiling, where
+Laurel's run to the roof.
 
 - **Proof:** Laurel's export is byte-identical before and after, as the kernel
   and finish extractions were (the plan's rule: "move only what knows no
@@ -179,6 +201,12 @@ them again with every model, and they drift. Move the roof-agnostic gates
 (`_every_row_built`, `_openings_on_the_wall_their_block_names`, the trim,
 fixture, furniture, canopy and condenser gates, `report`) behind a small `geo`
 contract; leave the `_roof_*` gates with the roof class.
+
+**Caution from the preflight:** "knows no roof" is not the same as "holds for any
+ceiling". Gates that assume a partition reaches the roof (Laurel's vaulted
+ceilings) will not hold for Willow's flat ceiling at T.P. 8'-0". When moving a
+gate, check whether it reads the roof or the ceiling, and move it behind the
+ceiling/roof split that Phase 1 introduces.
 
 - **Proof:** Laurel's gate output is unchanged: the same 25 PASS lines in the
   same order from `build.py`, and the probe suite still catches what it caught
@@ -243,12 +271,15 @@ One line per pull request. Mark each **Done** with its number.
 ([#165](https://github.com/captproton/yardstake-ux/pull/165)): `run_gates.py`,
 `new_model.py`, `KIT-AUDIT.md`, this plan.
 
-0. **Preflight, before any PR (Phase 0; a read, not a change).** Read Willow's
-   A-2.0 and A-0.0 and confirm: one storey, a rectangle, the roof form and
-   pitch. If it is not one storey on a rectangle, **stop and re-pick the model
-   before step 1**, because steps 1 to 3 are shaped by it. The findings are
+0. **Done 2026-10-01: preflight, before any PR (Phase 0; a read, not a change).**
+   Findings in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md): Willow passes, with a
+   two-roof finding that shapes step 1. The check was: read A-2.0 and A-0.0 and
+   confirm one storey, a rectangle, the roof form and pitch, and if not one
+   storey on a rectangle, **stop and re-pick the model before step 1**, because
+   steps 1 to 3 are shaped by it. The findings are
    written into the spec at step 4; the decision is taken now.
-1. `#TBD` **Roof interface** (Phase 1). Laurel byte-identical.
+1. `#TBD` **Roof interface** (Phase 1): a list of planes, and ceiling split from
+   roof. Laurel byte-identical.
 2. `#TBD` **`adu_kit/ink.py`** (Phase 2). Four readers byte-identical.
 3. `#TBD` **The gates move into `adu_kit/`** (Phase 3). Laurel's gate output
    unchanged; probes still fail where they should.
