@@ -1556,8 +1556,8 @@ def _trim_inside_its_walls(spec, geo):
                 wrong.append(f"{ob.name} reaches ({x:.3f}, {y:.3f}, {z:.3f}), outside the rooms")
                 break
             if ceiling.covers_y(y) and z > ceiling.under_y(y) + MESH_TOL:
-                wrong.append(f"{ob.name} reaches z {z:.3f} at y {y:.3f}, above the roof "
-                             f"underside at {ceiling.under_y(y):.3f}")
+                wrong.append(f"{ob.name} reaches z {z:.3f} at y {y:.3f}, above the ceiling "
+                             f"at {ceiling.under_y(y):.3f}")
                 break
     return not wrong, "; ".join(wrong)
 

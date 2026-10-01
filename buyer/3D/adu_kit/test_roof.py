@@ -115,6 +115,39 @@ class TwoPlanes(unittest.TestCase):
             roof.yz_solids(0.1)
         self.assertEqual(roof.under(5.0, 5.0), self.gable().planes[0].under(5.0, 5.0))
 
+    def test_flat_planes_at_different_heights_side_by_side_in_x_refuse_under_y(self):
+        """Review of #176: both planes are X-flat, so "does not slope in X" passes, yet
+        one height is wrong for half the span. under() knows the truth; under_y()
+        must refuse rather than return the lower one."""
+        left = Plane(z0=8.0, dz_dx=0.0, dz_dy=0.0, x=(0.0, 10.0), y=(0.0, 10.0))
+        right = Plane(z0=10.0, dz_dx=0.0, dz_dy=0.0, x=(10.0, 20.0), y=(0.0, 10.0))
+        roof = Roof([left, right])
+        self.assertTrue(roof.x_independent)
+        self.assertEqual(roof.under(5.0, 5.0), 8.0)
+        self.assertEqual(roof.under(15.0, 5.0), 10.0)
+        with self.assertRaises(RoofError) as cm:
+            roof.under_y(5.0)
+        self.assertIn("not one height across X", str(cm.exception))
+
+    def test_a_gap_in_x_refuses_under_y(self):
+        a = Plane(z0=8.0, dz_dx=0.0, dz_dy=0.0, x=(0.0, 10.0), y=(0.0, 10.0))
+        b = Plane(z0=8.0, dz_dx=0.0, dz_dy=0.0, x=(12.0, 20.0), y=(0.0, 10.0))
+        with self.assertRaises(RoofError) as cm:
+            Roof([a, b]).under_y(5.0)
+        self.assertIn("gap in X", str(cm.exception))
+
+    def test_side_by_side_planes_at_one_height_are_a_valid_profile(self):
+        """Not over-refused: pieces of X at the SAME height are one YZ profile."""
+        a = Plane(z0=8.0, dz_dx=0.0, dz_dy=0.0, x=(0.0, 10.0), y=(0.0, 10.0))
+        b = Plane(z0=8.0, dz_dx=0.0, dz_dy=0.0, x=(10.0, 20.0), y=(0.0, 10.0))
+        self.assertEqual(Roof([a, b]).under_y(5.0), 8.0)
+
+    def test_the_planes_of_a_roof_may_differ_across_y(self):
+        """A gable's two planes are different heights at different Y, which is fine:
+        the guard is about X, not Y."""
+        g = self.gable()
+        self.assertGreater(g.under_y(9.0), g.under_y(1.0))
+
     def test_a_point_no_plane_covers_is_an_error(self):
         with self.assertRaises(RoofError):
             self.gable().under(30.0, 5.0)

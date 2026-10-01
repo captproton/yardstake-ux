@@ -132,15 +132,34 @@ class Roof:
 
         Refuses a roof that does, instead of returning an answer that is true for one
         X only. That refusal is the guard: a builder that draws every wall as a YZ
-        prism cannot silently accept Willow's porch gable.
+        prism cannot silently accept Willow's porch gable. It also refuses a roof
+        whose planes are flat in X but at different heights (or leave a gap) across
+        the span at this Y, because one height would then be wrong for part of it.
         """
         if not self.x_independent:
             raise RoofError("under_y() asked of a roof with a plane that slopes in X; "
                             "this builder draws YZ profiles and cannot represent it")
-        zs = [p.under_y(y) for p in self.planes if p.covers_y(y)]
-        if not zs:
+        covering = [p for p in self.planes if p.covers_y(y)]
+        if not covering:
             raise RoofError(f"no plane of this roof covers y {y}")
-        return min(zs)
+        # A YZ profile is one height for the whole span in X, so the roof must
+        # GIVE one height there. Slicing at Y, the planes that cover it are pieces
+        # of X; take the lowest where they overlap, and require the result to be
+        # the same height in every piece, with no gap between them. Two flat planes
+        # of different heights side by side in X pass "does not slope in X" and
+        # would otherwise return a height true for only one of them (review of #176).
+        edges = sorted({e for p in covering for e in p.x})
+        heights = []
+        for a, b in zip(edges, edges[1:]):
+            here = [p.under_y(y) for p in covering if p.x[0] <= a and p.x[1] >= b]
+            if not here:
+                raise RoofError(f"the roof has a gap in X between {a} and {b} at y {y}; "
+                                "a YZ profile cannot represent it")
+            heights.append(min(here))
+        if any(h != heights[0] for h in heights):
+            raise RoofError(f"the roof is not one height across X at y {y} "
+                            f"({sorted(set(heights))}); a YZ profile cannot represent it")
+        return heights[0]
 
     def yz_solids(self, thickness: float) -> list:
         """[(profile, x0, x1), ...]: one thickened YZ prism per plane."""
