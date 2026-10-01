@@ -107,8 +107,10 @@ with one run of 2x12 rafters in a drawing file named "SHED ROOF". See
 `the-roof-is-one-shed-not-two-planes`.
 
 **There is an option split, as there was for the barn cabin.** A-1.0 carries a
-"1 bedroom floor plan option", and the Willow A2 cover sheet lists a second
-area of 122 sf beside the 460. Decide and record the chosen option in
+"1 bedroom floor plan option". (An earlier version of this sentence also cited
+a second area of 122 sf on the Willow A2 cover sheet. That figure is Willow's
+**covered porch**, outside the 460 sf, and is not a plan option; corrected
+2026-10-01, see `buyer/3D/docs/WILLOW-PREFLIGHT.md`.) Decide and record the chosen option in
 `spec.yaml` under `option_selection` with the same reasoning format used for
 the barn cabin's Option B, and note that the unchosen option is a candidate for
 the variants manifest later, not a second model. **Decided (2026-09-14): the

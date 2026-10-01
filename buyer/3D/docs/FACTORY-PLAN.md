@@ -152,17 +152,22 @@ exists. The sheet-reading move is independent of both. So: roof (Phase 1), ink
 
 ### Phase 0: settle the roof before any code
 
-Read Willow's A-2.0 and cite, in a draft spec section: roof form, pitch,
-plate heights, overhangs, ridge height, and the storey count. Decide the
-option (plan) to build, as Laurel's `option_selection` did. **Decision rule:**
-if Willow is not one storey on a rectangle, stop and re-pick from the table
-above before Phase 1.
+Read Willow's A-2.0 and A-0.0 and apply the decision rule. **Phase 0's outputs
+are the read and the verdict:** the roof forms, the plate and top-of-roof
+heights, and the storey count, with where each came from. **Decision rule:** if
+Willow is not one storey on a rectangle, stop and re-pick from the table above
+before Phase 1.
+
+**Deferred to A1 (the spec), on purpose:** citing each number into `spec.yaml`,
+choosing the plan option (as Laurel's `option_selection` did; the 1-bedroom
+option is drawn on A-1.0), and settling the overhangs, the heel height, the
+porch roof's junction, the frame and the ceiling form. None of them changes
+whether Willow is the right model or what Phase 1 must support, so they do not
+hold up Phase 1.
 
 **Done 2026-10-01, in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md): Willow passes**
 (one storey on a 24'-0" by 19'-2" rectangle). The findings are a read, not a
-spec; each number is re-read and cited at step 4. Its heel height, the porch
-roof's junction with the main roof, which overhang is where, and the frame are
-still open.
+spec.
 
 ### Phase 1: the roof becomes a class (kit change, own PR)
 

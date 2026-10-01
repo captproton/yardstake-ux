@@ -107,7 +107,8 @@ profile or a section, before any partition is built to it.
 
 - **"A second area of 122 sf"** (Laurel's `PLAN.md`, and `FACTORY-PLAN.md`, which
   repeated it) is wrong: 122 sf is Willow's **covered porch**, not a second plan
-  option. The option split is the 1-bedroom plan on A-1.0.
+  option. The option split is the 1-bedroom plan on A-1.0. Both documents are
+  corrected in the same PR as this one (Laurel's at "There is an option split").
 - **`FACTORY-PLAN.md` listed Willow's roof words as "GABLE 11, HIP 3".** On the
   sheets I read, the roof is a gable main roof plus a gable porch roof, and I did not
   find a hip roof on any elevation or on the roof plan. Where the three HIP hits
