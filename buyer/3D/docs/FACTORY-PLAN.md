@@ -7,8 +7,9 @@ it worked.
 
 **Status (2026-10-01).** The tooling is built and merged
 ([#165](https://github.com/captproton/yardstake-ux/pull/165), `aaa4672`):
-`run_gates.py`, `new_model.py`, 29 tests, and the audit. Everything from
-Phase 0 on is still a plan. Issue numbers are left blank until issues are
+`run_gates.py`, `new_model.py`, 29 tests, and the audit. Phase 0 (the Willow
+preflight) is done, in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md). Everything
+from Phase 1 on is still a plan. Issue numbers are left blank until issues are
 filed; the sequence names them `#TBD`.
 
 **Open after #165:**
@@ -112,8 +113,9 @@ that variable is bigger than first assumed.
 - Different roof: "stick framed and truss roof with composite shingles"
   (A-0.0). The preflight read **two roofs**, not one: a main gable at 5:12 on
   trusses, and a small porch gable at 3:12 on posts and a beam, against Laurel's
-  one shed plane. Its walls stop at T.P. 8'-0" under a flat ceiling, where
-  Laurel's run to a vaulted roof.
+  one shed plane. Its walls stop at T.P. 8'-0", and its ceiling is probably
+  flat at the plate (an attic sits above; not confirmed), where Laurel's run to a
+  vaulted roof.
 - A 1-bedroom plan option is drawn on A-1.0, as in Laurel's, so the option
   split recurs. (The 122 sf on the cover sheet is the **covered porch**, outside
   the 460 sf; an earlier version of this plan read it as a second plan area.)
@@ -121,10 +123,12 @@ that variable is bigger than first assumed.
 If Willow is slow, the cause is the roof or the process, not a new sheet
 system. That is the point of choosing it.
 
-**Not confirmed, and step 1 of Willow's own plan:** its storeys, area, roof
-form and pitch, and whether it is a rectangle. If Willow turns out not to be a
-one-storey rectangle, this choice is revisited before any code (see the
-decision rule below).
+**Confirmed by the preflight:** one storey, 460 sf, a 24'-0" by 19'-2"
+rectangle, and the roof forms (main gable and porch gable). **Still open, and
+settled at step 4 (the spec):** the heel height, where the porch roof meets the
+main roof, which overhang is where, the frame, and **the ceiling form** (flat
+at the plate is likely, but no ceiling plan or section was found; see the
+preflight). The decision rule below was applied and Willow passed it.
 
 **Concord is the larger prize and the wrong first step.** Four of its six
 plans look like siblings (46–47 pages each), which is what a factory wants.
@@ -172,8 +176,12 @@ meet, so a function of position cannot say which roof covers a point. Design for
 a list of planes (with slope, extent and overhangs), with Laurel as a list of
 one, and have the interface answer: the underside at a point, the solid's
 profile, and the gates that follow from the form. Also separate **ceiling from
-roof**: Willow's partitions and walls stop at the T.P. 8'-0" ceiling, where
-Laurel's run to the roof.
+roof**, as a general requirement: Laurel's partitions run to the roof (vaulted
+ceilings), and a truss roof over an attic would stop them at a ceiling below it.
+Whether Willow's does is **not settled**: the preflight found evidence for a flat
+ceiling at the plate (an attic sits above, per A-2.0's attic-access note) but no
+ceiling plan, section or truss profile. Do not design Phase 1 around Willow's
+partition termination until step 4 confirms the ceiling form.
 
 - **Proof:** Laurel's export is byte-identical before and after, as the kernel
   and finish extractions were (the plan's rule: "move only what knows no
@@ -204,7 +212,8 @@ contract; leave the `_roof_*` gates with the roof class.
 
 **Caution from the preflight:** "knows no roof" is not the same as "holds for any
 ceiling". Gates that assume a partition reaches the roof (Laurel's vaulted
-ceilings) will not hold for Willow's flat ceiling at T.P. 8'-0". When moving a
+ceilings) may not hold for a model with a ceiling below its roof, which Willow's
+probably is (unconfirmed). When moving a
 gate, check whether it reads the roof or the ceiling, and move it behind the
 ceiling/roof split that Phase 1 introduces.
 

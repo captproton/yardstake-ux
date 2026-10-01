@@ -35,13 +35,32 @@ the sheet, to be re-read at step 4):
 1. **Main roof: a gable at 5"/1'-0" (5:12).** Ridge along the 24' direction:
    the roof plan's ridge vent is **24'-3" long** (text). The front elevation is the
    eave side (a plain shingled band); the two side elevations show the gable ends.
-   Trusses, so the ceiling is flat at the plate (attic access is a 22x30 hatch).
+   Pre-built trusses. **The ceiling form is not established:** see "The ceiling"
+   below.
 2. **Porch roof: a small gable at 3"/1'-0" (3:12)**, stick framed, over the covered
    porch at the front, held on 6x6 posts and a 6x10 beam with a king-post truss
    drawn on the front elevation. The roof plan marks a **5'-0" overhang** at one
    edge, which I take to be the porch side; confirm that it is the front.
 3. **Overhangs** read as 1'-0" and 1'-6" on the other sides (text); which is which
    needs the roof plan read carefully.
+
+## The ceiling: likely flat at the plate, not confirmed
+
+**Evidence for a ceiling below the roof**, with an attic above it (all text):
+- A-2.0's attic-access note measures head height "from the top of the ceiling
+  framing members to the underside of the roof framing", so ceiling framing sits
+  below the roof framing with a space between.
+- A-1.0 draws a "MIN. 22X30 ATTIC ACCESS" hatch in the plan.
+- A-2.0's roof ventilation is computed for an enclosed, vented attic over the
+  whole 460 sf (460 / 150 = 3.06 sf), and the truss notes (S sheets) mention
+  ceiling joists and blocking at ceiling levels.
+
+**What it does not show:** a reflected ceiling plan, a building section, or a truss
+profile. Pre-built trusses do not by themselves imply a flat ceiling (scissor
+trusses give vaulted ones), and the elevations' plate data does not fix the interior
+ceiling plane. So a ceiling at T.P. 8'-0" is **likely**, but a vaulted or partly
+vaulted ceiling is not ruled out. **Settle it at step 4** from the truss
+profile or a section, before any partition is built to it.
 
 ## What this means for the plan
 
@@ -52,11 +71,13 @@ the sheet, to be re-read at step 4):
   planes with their extents**, with Laurel as a list of one. This is the change to
   make now, before Phase 1, because the plan said "do not freeze it before the
   gable class" and this is the evidence for why.
-- **Walls differ.** Laurel's walls run to the roof underside (vaulted ceilings
-  follow the roof). Willow's walls stop at **T.P. 8'-0"**, with a **flat ceiling**,
-  and the gable ends need triangular infill above the plate. Partitions go to the
-  ceiling, not the roof. So "roof-agnostic" gates that assume partitions reach the
-  roof are *not* roof-agnostic; Phase 3 must separate "ceiling" from "roof".
+- **Walls probably differ.** Laurel's walls run to the roof underside (vaulted
+  ceilings follow the roof). Willow's exterior walls stop at **T.P. 8'-0"** (text),
+  and the gable ends need infill above the plate. Whether its partitions stop at a
+  **flat ceiling** or run higher is **not established** (see "The ceiling"). Keep
+  the general point: gates that assume partitions reach the roof are not
+  roof-agnostic, so Phase 1 and Phase 3 separate "ceiling" from "roof". Do not
+  design for Willow's termination until step 4 confirms it.
 - **The porch is new.** Laurel has a 5'-0" front overhang, not posts, a beam and a
   second roof. Posts and the beam are a new kind of part. The 122 sf is the
   porch, and it is **outside the 460 sf**.
@@ -68,6 +89,8 @@ the sheet, to be re-read at step 4):
 
 ## Open, to settle at step 4
 
+- **The ceiling form** (flat at the plate, or vaulted, or partly): from the truss
+  profile or a section. Drives where partitions stop.
 - **Heel height.** From T.P. 8'-0" to top of roof 12'-10 3/4" is 58.75". A 5:12
   gable over half of 19'-2" (9'-7") rises about 47.9". About 10.9" is unexplained,
   presumably the truss heel and roofing thickness. Read it off a section or the truss
