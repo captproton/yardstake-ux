@@ -75,7 +75,7 @@ Intake run on every set with `new_model.py --intake-only`, 2026-09-29.
 | Concord | Plans 3, 4 | 55 | yes | 973–1,086 | 0 of 55 | same |
 | Richmond | RAD_1 bungalow, 1-bed | 19 | yes | 207 | 0 of 19 | GABLE 4, HIP 3 |
 | Los Angeles | Standard plans A, B, C | 9 each | thin | 160 (A) | 0 of 9 | GABLE 4 |
-| That ADU Guy | Barn cabin (built) | scan | **no** | none | by eye | has loft, dormers |
+| That ADU Guy | Barn cabin (built) | 7 | **no** (a scan) | none | by eye | has loft, dormers |
 
 **"Roof words" are hints.** A word on a sheet is not a roof; the spec's
 citations decide the roof. Willow's A-2.0 text also shows a `3" / 12"`-style
