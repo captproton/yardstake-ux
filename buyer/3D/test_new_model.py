@@ -143,7 +143,10 @@ class Scaffold(unittest.TestCase):
             self.assertEqual(list(self.models.iterdir()), [], "a refused scan wrote files")
             code, _, err = self.go(extra=("--allow-raster",))
             self.assertEqual(code, 0, err)
-            self.assertFalse((self.models / "test_a1_460/docs/candidates.yaml").exists())
+            # the scaffold points at this file, so a scan gets the valid empty one
+            cand = self.models / "test_a1_460/docs/candidates.yaml"
+            self.assertTrue(cand.is_file())
+            self.assertNotIn("- raw:", cand.read_text())
             # no sheet id was read, so `sheets` is empty: the spec must still parse
             if __import__("importlib.util").util.find_spec("yaml"):
                 import yaml
@@ -159,7 +162,7 @@ class Scaffold(unittest.TestCase):
         self.assertEqual(list(self.models.iterdir()), [], "a refused scan wrote files")
         code, _, err = self.go(pdf=BARN, extra=("--allow-raster",))
         self.assertEqual(code, 0, err)
-        self.assertFalse((self.models / "test_a1_460/docs/candidates.yaml").exists())
+        self.assertTrue((self.models / "test_a1_460/docs/candidates.yaml").is_file())
 
 
 if __name__ == "__main__":

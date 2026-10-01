@@ -145,6 +145,21 @@ class Runner(unittest.TestCase):
         self.assertNotIn("Traceback", err)
         self.assertEqual(run("--tier", "fast", "--allow-skip")[0], 0)
 
+    def test_validation_survives_python_dash_O(self):
+        """`python -O` strips `assert`; the gate-list check must not be one."""
+        import subprocess
+        import sys
+        (self.root / "gates.json").write_text('{"gates": null}')
+        code = ("import run_gates, sys; from pathlib import Path; "
+                f"run_gates.ROOT = Path({str(self.root)!r}); "
+                f"run_gates.MODELS = Path({str(self.root / 'models')!r}); "
+                "sys.exit(run_gates.main(['--tier', 'fast']))")
+        r = subprocess.run([sys.executable, "-O", "-c", code], capture_output=True, text=True,
+                           cwd=Path(run_gates.__file__).resolve().parent)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("not a gate list", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+
     def test_a_wrong_top_level_shape_is_a_readable_error(self):
         for text in ("[]", "null", '"x"', "3", '{"gates": null}', '{"other": []}', "{not json"):
             with self.subTest(text=text):

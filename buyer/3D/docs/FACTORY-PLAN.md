@@ -113,6 +113,14 @@ The order matters: change the kit first, prove nothing moved, then build the
 model on it. Otherwise Willow becomes a fork of Laurel rather than a test of
 the kit.
 
+**The order is by dependency, and differs from the audit's list.**
+[`KIT-AUDIT.md`](KIT-AUDIT.md) lists the extractions smallest-first (ink,
+gates, roof). This plan puts the roof first because the roof interface is what
+decides which of Laurel's gates are roof-specific (97 lines) and which know no
+roof (the rest of the 889), so the gates cannot be split cleanly before it
+exists. The sheet-reading move is independent of both. So: roof (Phase 1), ink
+(Phase 2, may run in parallel), gates (Phase 3, after Phase 1), then Willow.
+
 ### Phase 0: settle the roof before any code
 
 Read Willow's A-2.0 and cite, in a draft spec section: roof form, pitch,
@@ -132,7 +140,7 @@ implementation.
   and finish extractions were (the plan's rule: "move only what knows no
   building").
 - **Not before it is needed:** only Willow's gable class is added, and only in
-  Phase 3. No speculative hip class.
+  Phase 4. No speculative hip class.
 
 ### Phase 2: the sheet-reading primitives move to `adu_kit/ink.py` (kit change, own PR)
 
@@ -146,7 +154,25 @@ implementation.
 - **First diff the four readers line by line.** The audit read function lists
   only.
 
-### Phase 3: Willow, Tier A only
+### Phase 3: the gates move into the kit (kit change, own PR, after Phase 1)
+
+Gates are 889 of the 1,762 lines in Laurel's `build.py`, and most take
+`(spec, geo)` and know no roof. If Willow copies them, the factory pays for
+them again with every model, and they drift. Move the roof-agnostic gates
+(`_every_row_built`, `_openings_on_the_wall_their_block_names`, the trim,
+fixture, furniture, canopy and condenser gates, `report`) behind a small `geo`
+contract; leave the `_roof_*` gates with the roof class.
+
+- **Proof:** Laurel's gate output is unchanged: the same 25 PASS lines in the
+  same order from `build.py`, and the probe suite still catches what it caught
+  (its cases break one thing each, so a moved gate that stopped looking shows
+  as a probe that no longer fails).
+- **First measure the `geo` contract.** What the gates read from `geo` is the
+  contract; list it before moving anything, and do not widen it for Willow's
+  sake.
+- **Not a precondition for Willow's spec (A1),** only for its build (A2).
+
+### Phase 4: Willow, Tier A only
 
 Scaffold with `new_model.py` and take Laurel's tier list: A ships, B
 upgrades.
@@ -164,7 +190,7 @@ timing is in. Inherited decisions, applied as defaults and overridden in the
 spec, not in code: trim values `assumed` from the barn cabin, exterior finish as
 a presence group, furniture reused, `assumed` always with a reason.
 
-### Phase 4: measure, then Concord
+### Phase 5: measure, then Concord
 
 Record time per phase. Then answer three questions in this document before
 starting Concord:
@@ -198,15 +224,18 @@ One line per pull request. Mark each **Done** with its number.
 
 1. `#TBD` **Roof interface** (Phase 1). Laurel byte-identical.
 2. `#TBD` **`adu_kit/ink.py`** (Phase 2). Four readers byte-identical.
-3. `#TBD` **Willow spec** (A1), including Phase 0's roof decision, scaffolded by
+3. `#TBD` **The gates move into `adu_kit/`** (Phase 3). Laurel's gate output
+   unchanged; probes still fail where they should.
+4. `#TBD` **Willow spec** (A1), including Phase 0's roof decision, scaffolded by
    `new_model.py`.
-4. `#TBD` **Willow build**, with the gable class (A2).
-5. `#TBD` **Willow overlay** (A3).
-6. `#TBD` **Willow export** (A4): Willow is on the page.
-7. `#TBD` **Timing and lessons** appended here (Phase 4); then Concord's plan.
+5. `#TBD` **Willow build**, with the gable class (A2).
+6. `#TBD` **Willow overlay** (A3).
+7. `#TBD` **Willow export** (A4): Willow is on the page.
+8. `#TBD` **Timing and lessons** appended here (Phase 5); then Concord's plan.
 
-Steps 1 and 2 are independent and may run in parallel. Step 3 can start while
-they are in review, but its build waits for step 1.
+Steps 1 and 2 are independent and may run in parallel. Step 3 waits for step 1
+(the roof interface decides which gates move). Step 4 can start while 1 to 3
+are in review, but step 5, the build, waits for steps 1 and 3.
 
 ## Risks
 

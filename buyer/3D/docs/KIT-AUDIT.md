@@ -61,7 +61,14 @@ barn cabin's is a scan and cost 2,927 spec lines read by eye. Willow, the
 other Sacramento set, has a text layer too (208 candidates). `new_model.py`
 now says which case a plan set is before any work starts.
 
-## What follows, in order
+## What follows
+
+This list is ordered smallest and safest first. **[FACTORY-PLAN.md](FACTORY-PLAN.md)
+orders the same work by dependency and is the order to follow:** roof class
+(item 4), then `ink.py` (item 2, independent, may run in parallel), then the
+gates (item 3), because the roof interface decides which gates are
+roof-specific and so cannot be split before it exists. Nothing here was dropped:
+the plan schedules every item below that it says to do.
 
 1. **`run_gates.py` and `new_model.py`** (done; the sequel is
    [FACTORY-PLAN.md](FACTORY-PLAN.md)): one command for

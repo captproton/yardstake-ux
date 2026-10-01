@@ -223,9 +223,10 @@ def scaffold(pdf: Path, model_id: str, name: str, issue: int, models_dir: Path,
         pdf_name=" ".join(pdf.name.split()), model_id=model_id, pages=info["pages"], sheet_rows=rows,
         index_sheet=next((sid for _, sid in info["sheets"] if sid), "the title sheet")))
     (target / "docs" / "INTAKE.md").write_text(text)
-    if not info["raster"]:      # harvesting ran, so the file exists even when it found nothing
-        sheets.write_candidates(sheets.to_yaml(info["candidates"], pdf.name),
-                                target / "docs" / "candidates.yaml")
+    # ALWAYS WRITTEN: spec.yaml, PLAN.md and INTAKE.md all point at this file, so
+    # a scan (where harvesting found nothing to read) gets the valid empty document.
+    sheets.write_candidates(sheets.to_yaml(info["candidates"], pdf.name),
+                            target / "docs" / "candidates.yaml")
     (target / "docs" / "PLAN.md").write_text(PLAN.format(
         model_id=model_id, pdf_name=pdf.name, pages=info["pages"]))
     (target / "gates.json").write_text(GATES.format(model_id=model_id))

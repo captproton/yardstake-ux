@@ -139,8 +139,11 @@ def load_gates(only_model=None):
         try:
             doc = json.loads(f.read_text())
             gates = doc["gates"]
-            assert isinstance(gates, list)
-        except (OSError, ValueError, KeyError, TypeError, AssertionError) as e:
+            # an explicit check, not `assert`: `python -O` strips asserts, and this
+            # is the validation of untrusted disk input
+            if not isinstance(gates, list):
+                raise ValueError(f"'gates' is {type(gates).__name__}, not a list")
+        except (OSError, ValueError, KeyError, TypeError) as e:
             raise SystemExit(f"{f}: not a gate list ({e}); expected {{\"gates\": [...]}}")
         for g in gates:
             if not isinstance(g, dict):
