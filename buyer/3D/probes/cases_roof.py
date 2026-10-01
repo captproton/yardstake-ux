@@ -12,8 +12,9 @@ committed, so the suite re-proves them whenever anyone touches the roof.
 WHY THEY ARE WORTH KEEPING, specifically. Both gates existed in a form that
 could not fail:
 
-  * "the roof plane meets T.P. 1 and T.P. 2" asked the `Shed` helper, which is
-    the expression the roof is laid out from. `shed.under(0)` is
+  * "the roof plane meets T.P. 1 and T.P. 2" asked the `Shed` helper (now the
+    `roof_planes` plane list, #167), which is the expression the roof is laid out
+    from. `under_y(0)` is
     `top_of_plate_rear` read straight back, so half of it compared a spec
     value to itself. A roof lifted a foot off the walls passed it.
   * nothing at all watched the roof's THICKNESS, and #129 built it from the
@@ -40,17 +41,17 @@ def _patch(work: Path, old: str, new: str, what: str) -> None:
 
 
 def _roof_lifted_off_the_plates(work: Path) -> None:
-    """Float the roof a foot above the walls, leaving the Shed helper correct.
+    """Float the roof a foot above the walls, leaving the roof plane correct.
 
-    Anything that asks the helper still gets the right answer, so this is the
-    perturbation that tells a gate measuring the MESH from one measuring the
-    expression the mesh was drawn from."""
+    Anything that asks the plane (`roof_planes`, formerly the `Shed` helper) still
+    gets the right answer, so this is the perturbation that tells a gate
+    measuring the MESH from one measuring the expression the mesh was drawn
+    from. The lift is applied to the profile AFTER the plane produced it."""
     _patch(work,
-           "    profile = [(y0, shed.under(y0)), (y1, shed.under(y1)),\n"
-           "               (y1, shed.under(y1) + asm), (y0, shed.under(y0) + asm)]",
+           "    (profile, x0, x1), = roof_planes.yz_solids(asm)   # one plane, so one prism",
+           "    (profile, x0, x1), = roof_planes.yz_solids(asm)   # one plane, so one prism\n"
            "    _lift = 1.0\n"
-           "    profile = [(y0, shed.under(y0) + _lift), (y1, shed.under(y1) + _lift),\n"
-           "               (y1, shed.under(y1) + asm + _lift), (y0, shed.under(y0) + asm + _lift)]",
+           "    profile = [(y, z + _lift) for y, z in profile]",
            "roof lifted off the plates")
 
 

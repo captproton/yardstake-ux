@@ -60,6 +60,7 @@ from adu_kit.kernel import (  # noqa: E402,F401
 )
 from adu_kit.verify_lib import inside_mesh  # noqa: E402
 from adu_kit.manifest import face_slots  # noqa: E402
+from adu_kit.roof import Plane, Roof, ceiling_for  # noqa: E402
 
 FAILED = []
 SKIPPED = []
@@ -135,26 +136,28 @@ def _sign(who, value):
 # ---------------------------------------------------------------------------
 # the roof plane
 # ---------------------------------------------------------------------------
-class Shed:
-    """The one roof plane, as a function of Y.
+def shed_roof(spec):
+    """Laurel's roof: a list of ONE plane (adu_kit.roof, #167).
 
     A-2.0 marks the slope 1" / 1'-0", and it also dimensions T.P. 1 and T.P. 2.
     Those disagree: 19 1/2" over 19'-2" is 1.017" per foot. The PLATE HEIGHTS
     WIN, because they are what the elevations dimension and what #130 gates,
     and because a slope read off a marked ratio would put the front plate
     3/8" below the height four elevations draw.
+
+    The plane runs out over all four overhangs, so asking it for a point on the
+    roof's own edge is allowed and asking it for one past the edge is an error.
+    This was the `Shed` class, a function of Y alone; the expression is the
+    same, so every height is the same float.
     """
-
-    def __init__(self, spec):
-        lv, env = spec["levels"], spec["envelope"]
-        self.rear = lv["top_of_plate_rear"]["ft"]
-        self.front = lv["top_of_plate_front"]["ft"]
-        self.depth = env["depth"]["ft"]
-        self.slope = (self.front - self.rear) / self.depth
-
-    def under(self, y):
-        """Underside of the roof at this Y — the plane through both plates."""
-        return self.rear + self.slope * y
+    lv, env, ov = spec["levels"], spec["envelope"], spec["roof"]["overhangs"]
+    rear = lv["top_of_plate_rear"]["ft"]
+    front = lv["top_of_plate_front"]["ft"]
+    depth, width = env["depth"]["ft"], env["width"]["ft"]
+    slope = (front - rear) / depth
+    return Roof([Plane(z0=rear, dz_dx=0.0, dz_dy=slope,
+                       x=(-ov["ends"]["ft"], width + ov["ends"]["ft"]),
+                       y=(-ov["rear"]["ft"], depth + ov["front"]["ft"]))])
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +176,12 @@ def build(spec, cut_openings=True):
     sheath = con["exterior_wall"]["sheathing"]["ft"]
     grade = lv["grade"]["ft"]
     slab_t = con["foundation"]["slab"]["ft"]
-    shed = Shed(spec)
+    # THE ROOF AND THE CEILING ARE TWO THINGS (#167). Walls and partitions run to
+    # the CEILING; the roof solid and the roof gates ask the ROOF. Here the ceiling
+    # follows the roof (spec.roof.ceiling, A-1.0), so both give the same height,
+    # and a model whose ceiling is separate changes this line, not every wall.
+    roof_planes = shed_roof(spec)
+    ceiling = ceiling_for(rf["ceiling"]["follows"], roof_planes)
 
     shell = collection("Shell")
     partitions = collection("Partitions")
@@ -200,10 +208,10 @@ def build(spec, cut_openings=True):
     # no separate ceiling plane to keep in step. The end walls rake, so they
     # are prisms in YZ; the front and rear walls are level, so they are boxes.
     walls = {}
-    walls["Wall_rear"] = box("Wall_rear", 0.0, W, 0.0, t, 0.0, shed.under(0.0), shell)
-    walls["Wall_front"] = box("Wall_front", 0.0, W, D - t, D, 0.0, shed.under(D), shell)
+    walls["Wall_rear"] = box("Wall_rear", 0.0, W, 0.0, t, 0.0, ceiling.under_y(0.0), shell)
+    walls["Wall_front"] = box("Wall_front", 0.0, W, D - t, D, 0.0, ceiling.under_y(D), shell)
     for name, x0, x1 in (("Wall_x0", 0.0, t), ("Wall_x24", W - t, W)):
-        profile = [(0.0, 0.0), (D, 0.0), (D, shed.under(D)), (0.0, shed.under(0.0))]
+        profile = [(0.0, 0.0), (D, 0.0), (D, ceiling.under_y(D)), (0.0, ceiling.under_y(0.0))]
         v, f = prism_geom(profile, x0, x1, plane="yz")
         walls[name] = weld(name, [(v, f)], shell)
 
@@ -220,10 +228,10 @@ def build(spec, cut_openings=True):
     skin_of, siding_of = {}, {}
     if sheath:
         faces = {
-            "Wall_rear":  box_geom(-sheath, W + sheath, -sheath, 0.0, 0.0, shed.under(0.0)),
-            "Wall_front": box_geom(-sheath, W + sheath, D, D + sheath, 0.0, shed.under(D)),
+            "Wall_rear":  box_geom(-sheath, W + sheath, -sheath, 0.0, 0.0, ceiling.under_y(0.0)),
+            "Wall_front": box_geom(-sheath, W + sheath, D, D + sheath, 0.0, ceiling.under_y(D)),
         }
-        rake = [(0.0, 0.0), (D, 0.0), (D, shed.under(D)), (0.0, shed.under(0.0))]
+        rake = [(0.0, 0.0), (D, 0.0), (D, ceiling.under_y(D)), (0.0, ceiling.under_y(0.0))]
         faces["Wall_x0"] = prism_geom(rake, -sheath, 0.0, plane="yz")
         faces["Wall_x24"] = prism_geom(rake, W, W + sheath, plane="yz")
         for wall, geom in faces.items():
@@ -242,15 +250,15 @@ def build(spec, cut_openings=True):
         # EVERY PARTITION IS A YZ PRISM, both orientations, because the roof
         # rises with Y and so does the head of any wall with any extent in Y
         # -- INCLUDING its own thickness. A wall running along X was built as
-        # a box capped at shed.under(lo), which left a triangular gap to the
+        # a box capped at ceiling.under_y(lo), which left a triangular gap to the
         # roof on its +Y face: small (0.30" here) but a real hole, and a
         # contradiction of layout.height's "to: roof_underside". Found by
         # review; measured on the built model before it was fixed.
         if _axis(row["id"], row["runs_along"]) == "X":
-            profile = [(lo, 0.0), (hi, 0.0), (hi, shed.under(hi)), (lo, shed.under(lo))]
+            profile = [(lo, 0.0), (hi, 0.0), (hi, ceiling.under_y(hi)), (lo, ceiling.under_y(lo))]
             extrude = (a, b)                       # along X
         else:
-            profile = [(a, 0.0), (b, 0.0), (b, shed.under(b)), (a, shed.under(a))]
+            profile = [(a, 0.0), (b, 0.0), (b, ceiling.under_y(b)), (a, ceiling.under_y(a))]
             extrude = (lo, hi)                     # across X, at one Y band
         v, f = prism_geom(profile, extrude[0], extrude[1], plane="yz")
         walls[row["id"]] = weld(row["id"], [(v, f)], partitions)
@@ -260,11 +268,7 @@ def build(spec, cut_openings=True):
     # the overhangs. Drawn as a YZ prism so the slope is the geometry rather
     # than a stack of steps, and extruded past both ends by the end overhang.
     asm = rf["assembly"]["modelled_thickness"]["ft"]
-    ov = rf["overhangs"]
-    y0, y1 = -ov["rear"]["ft"], D + ov["front"]["ft"]
-    x0, x1 = -ov["ends"]["ft"], W + ov["ends"]["ft"]
-    profile = [(y0, shed.under(y0)), (y1, shed.under(y1)),
-               (y1, shed.under(y1) + asm), (y0, shed.under(y0) + asm)]
+    (profile, x0, x1), = roof_planes.yz_solids(asm)   # one plane, so one prism
     v, f = prism_geom(profile, x0, x1, plane="yz")
     roof = weld("Roof_shed", [(v, f)], roof_coll)
 
@@ -562,7 +566,8 @@ def build(spec, cut_openings=True):
     siding = [multibox(host.replace("Wall_", "Trim_ext_siding_"), parts, siding_coll)
               for host, parts in siding_parts.items()]
 
-    geo = dict(W=W, D=D, t=t, it=it, shed=shed, walls=walls, roof=roof,
+    geo = dict(W=W, D=D, t=t, it=it, roof_planes=roof_planes, ceiling=ceiling,
+               walls=walls, roof=roof,
                built=built, sashes=sashes, volumes=volumes, cut=cut_openings,
                depths=depths, skin_of=skin_of, siding_of=siding_of, trim=trim, siding=siding,
                fixtures=fixtures, equipment=equipment, furniture=furniture, canopy=canopy)
@@ -874,7 +879,7 @@ def _volume(ob):
 # ---------------------------------------------------------------------------
 def report(spec, geo, colls):
     env, lv, rf = spec["envelope"], spec["levels"], spec["roof"]
-    W, D, shed = geo["W"], geo["D"], geo["shed"]
+    W, D, roof_planes = geo["W"], geo["D"], geo["roof_planes"]
     print("=" * RULE)
     print('Laurel A1 460sf — massing and openings (#129)')
     print("=" * RULE)
@@ -897,7 +902,7 @@ def report(spec, geo, colls):
     gate(ok, f'the built roof underside meets T.P. 1 ({ft(lv["top_of_plate_rear"]["ft"])}) '
              f'and T.P. 2 ({ft(lv["top_of_plate_front"]["ft"])})', why)
 
-    gate(shed.under(D) > shed.under(0.0),
+    gate(roof_planes.under_y(D) > roof_planes.under_y(0.0),
          "the roof rises toward the front (+Y), as the side elevations draw it")
 
     ok, why = _roof_top_at_the_front_edge(spec, geo)
@@ -1079,7 +1084,7 @@ def _roof_meets_the_plates(spec, geo):
     """The BUILT roof's underside passes through T.P. 1 and T.P. 2.
 
     The gate this replaces asked the Shed helper, which is the same expression
-    the roof was laid out from -- rule 29 -- and `shed.under(0)` is literally
+    the roof was laid out from -- rule 29 -- and `roof_planes.under_y(0)` is literally
     `top_of_plate_rear` read back, so half of it compared a spec value to
     itself. It caught a wrong slope and nothing else: lifting the built roof a
     foot off the walls, a gap visible right round the building, left all nine
@@ -1537,8 +1542,10 @@ def _siding_skins(spec, geo):
 
 def _trim_inside_its_walls(spec, geo):
     """Interior trim stays between the exterior walls' inside faces, and no
-    trim, inside or out, rises above the roof underside where it stands."""
-    W, D, t, shed = geo["W"], geo["D"], geo["t"], geo["shed"]
+    trim, inside or out, rises above the walls' head where it stands. The head is
+    the CEILING's (#167): here the ceiling follows the roof, so it is the roof
+    underside, and a model with a flat ceiling gets that ceiling's height."""
+    W, D, t, ceiling = geo["W"], geo["D"], geo["t"], geo["ceiling"]
     wrong = []
     for ob in geo["trim"] + geo["siding"]:
         inside = not ob.name.startswith("Trim_ext_siding_")
@@ -1548,9 +1555,9 @@ def _trim_inside_its_walls(spec, geo):
                                and t - MESH_TOL <= y <= D - t + MESH_TOL and z >= -MESH_TOL):
                 wrong.append(f"{ob.name} reaches ({x:.3f}, {y:.3f}, {z:.3f}), outside the rooms")
                 break
-            if z > shed.under(y) + MESH_TOL:
+            if ceiling.covers_y(y) and z > ceiling.under_y(y) + MESH_TOL:
                 wrong.append(f"{ob.name} reaches z {z:.3f} at y {y:.3f}, above the roof "
-                             f"underside at {shed.under(y):.3f}")
+                             f"underside at {ceiling.under_y(y):.3f}")
                 break
     return not wrong, "; ".join(wrong)
 
@@ -1860,7 +1867,9 @@ def _canopy_hung(spec, geo, colls):
     # OUTSIDE, BELOW THE ROOF, CLEAR OF THE OPENINGS AND THE SIDING TRIM
     parts = [(frame.name, b) for b in _mesh_boxes(frame)] + [(slats.name, b) for b in boxes] + \
             [(o.name, tuple(v for pair in zip(*world_bbox([o])) for v in pair)) for o in braces]
-    under = geo["shed"].under(face)
+    # no roof at this Y means no limit above the canopy, not an extrapolated one
+    under = (geo["roof_planes"].under_y(face) if geo["roof_planes"].covers_y(face)
+             else float("inf"))
     wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
     dt = {d["mark"]: d for d in spec["openings"]["door_types"]["types"]}
     holes = []
@@ -1950,8 +1959,13 @@ def _ground_mounted(spec, geo):
     # 4. as tall as drawn, below the roof
     if abs((uz1 - uz0) - (se["top"] - se["base"])) > tol:
         wrong.append(f"it is {uz1 - uz0:.4f} tall, the side elevation draws {se['top'] - se['base']:.4f}")
-    if uz1 > geo["shed"].under(uy0) + MESH_TOL:
-        wrong.append(f"its top {uz1:.4f} is above the roof's underside {geo['shed'].under(uy0):.4f}")
+    # No roof overhead (a unit placed beyond the rear overhang) means nothing to be
+    # above; the position checks above report that mistake. The old Shed extrapolated
+    # a surface there, and #167's plane refuses to, so the question is asked only
+    # where there is a roof.
+    roof_planes = geo["roof_planes"]
+    if roof_planes.covers_y(uy0) and uz1 > roof_planes.under_y(uy0) + MESH_TOL:
+        wrong.append(f"its top {uz1:.4f} is above the roof's underside {roof_planes.under_y(uy0):.4f}")
     # 5. blocking no opening in the wall behind it
     wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
     for row in spec["openings"]["end_wall_x24"]["openings"]:

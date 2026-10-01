@@ -161,7 +161,7 @@ class BuildLiterals(unittest.TestCase):
     # ── the gate catches what it exists for ──────────────────────────────
 
     def test_a_pasted_dimension_is_caught(self):
-        hurt = self.src.replace('shed.under(0.0)', '9.625', 1)
+        hurt = self.src.replace('ceiling.under_y(0.0)', '9.625', 1)
         tree = ast.parse(hurt)
         bad = self.offenders(tree, module_constants(tree))
         self.assertTrue(any(v == 9.625 for _, v in bad),
