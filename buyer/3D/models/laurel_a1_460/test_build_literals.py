@@ -206,7 +206,7 @@ class BuildLiterals(unittest.TestCase):
         with no comment saying what it is for. The two together mean smuggling
         a dimension in takes a deliberate, reviewable sentence claiming it is
         bookkeeping."""
-        hurt = self.src.replace("FAILED = []", "FAILED = []\nWIDTH = 24.0", 1)
+        hurt = self.src.replace("LEN_TOL = ", "WIDTH = 24.0\nLEN_TOL = ", 1)
         hurt = hurt.replace('env["width"]["ft"]', 'WIDTH', 1)
         tree = ast.parse(hurt)
         names = [n for n, _v, _l in module_constants(tree)]

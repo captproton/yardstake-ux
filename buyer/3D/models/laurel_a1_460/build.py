@@ -61,76 +61,37 @@ from adu_kit.kernel import (  # noqa: E402,F401
 from adu_kit.verify_lib import inside_mesh  # noqa: E402
 from adu_kit.manifest import face_slots  # noqa: E402
 from adu_kit.roof import Plane, Roof, ceiling_for  # noqa: E402
+from adu_kit.gatelog import GateLog  # noqa: E402
+from adu_kit.specread import AXES, DIRECTIONS, axis as _axis, sign as _sign  # noqa: E402,F401
+# THE SHARED GATES (#169, batch 1). Each takes (spec, geo) and returns (ok, why);
+# report() below decides the order and the labels. What they read from `geo` is
+# documented in adu_kit/gates.py.
+from adu_kit.gates import (  # noqa: E402
+    MESH_TOL, VERTS_PER_BOX, VOL_TOL,
+    every_partition_built, every_row_built, footprint, frame_not_mirrored,
+    no_degenerate, openings_on_the_wall_their_block_names, sash_members,
+    trim_inside_its_walls)
 
-FAILED = []
-SKIPPED = []
+# The pass/fail bookkeeping is the kit's (adu_kit/gatelog.py); these names stay
+# because main() and the probes read them, and they are the log's own lists.
+LOG = GateLog()
+FAILED, SKIPPED = LOG.failed, LOG.skipped
+gate, skip = LOG.gate, LOG.skip
 
 # BOOKKEEPING, NOT DIMENSIONS. Every one of these is about meshes, arithmetic
 # or printing; none is a length off a sheet. They are named and gathered here
 # so test_build_literals.py can hold the rest of the file to zero -- the
 # done-when PLAN.md sets for #129 is "no dimension literal appears in
 # build.py", and a gate is worth more than a promise.
-VOL_TOL = 1e-4          # cu ft; a boolean that removes nothing is off by whole feet
 LEN_TOL = 1e-6          # ft, for comparing two lengths the spec already agrees on
-MESH_TOL = 1e-5         # ft, reading a length back off a mesh: Blender stores vertices as float32, so a value laid down as 8.0 comes back as 7.9999998
 CUT_MARGIN = 1.0        # ft a cutter stands proud of the wall, so no face is coplanar
 RULE = 76               # characters across, for the printed report
-SASH_FRAME_MEMBERS = 4  # jambs, sill and head: the four every frame has, whatever its type
-VERTS_PER_BOX = 8       # how a welded member count is read back off a mesh
-CORNER_TOL = 1e-4       # ft, matching a boolean's output vertex to the cut it came from
 INCHES_PER_FOOT = 12    # unit arithmetic, for a spec tolerance given in inches and a report that prints them
 UP = 0.9                # a face whose normal's Z exceeds this faces up: the slab's top
 SPAN_PLACES = 4         # decimal places openings are compared to when grouping a window with its transom; the spec writes feet to 4
 WH_SIDES = 24           # the water heater's cylinder: faces round it, so its flats sit within 1% of the published diameter
 FACE_TOL = 0.01         # ft; a fixture side drawn this close past a finished face is still "drawn to the finished face"
 MIN_RUN = 1e-3          # ft; a baseboard run shorter than this is a sliver where a casing meets a corner, not a run
-
-
-def gate(ok, label, detail=""):
-    print(f"  [{'PASS' if ok else 'FAIL'}] {label}" + (f" -- {detail}" if detail and not ok else ""))
-    if not ok:
-        FAILED.append(label)
-
-
-def skip(label, why):
-    """A gate that CANNOT be judged on this run, said out loud.
-
-    `--no-openings` builds an uncut model on purpose, and the opening gate
-    read its evidence from the volumes recorded while cutting. With no cuts
-    that mapping is empty, every loop over it runs zero times, and the gate
-    printed PASS on a model with no openings in it at all. A gate with
-    nothing to look at has not passed; it has not run.
-    """
-    print(f"  [SKIP] {label} -- {why}")
-    SKIPPED.append(label)
-
-
-# ---------------------------------------------------------------------------
-# reading the spec, which is untrusted input like any other file (rule 25)
-# ---------------------------------------------------------------------------
-# A SPEC IS READ, NOT OBEYED. Both of these used to be `startswith("+")` and
-# `== "X"` with an else, so `studs_toward: north` built the wall on the
-# negative side and `runs_along: Z` rotated it, both in silence and both
-# producing a model that the envelope and door gates would go on to bless.
-# Review asked what a malformed value does; the answer was "something", and
-# the answer has to be "a readable failure".
-AXES = ("X", "Y")
-DIRECTIONS = {"+X": +1, "-X": -1, "+Y": +1, "-Y": -1}
-
-
-def _axis(who, value):
-    if value not in AXES:
-        raise SystemExit(f"{who}: runs_along is {value!r}, which is not one of "
-                         f"{list(AXES)}. A partition runs along an axis of the frame.")
-    return value
-
-
-def _sign(who, value):
-    if value not in DIRECTIONS:
-        raise SystemExit(f"{who}: studs_toward is {value!r}, which is not one of "
-                         f"{sorted(DIRECTIONS)}. It says which way the studs run "
-                         "from the cited face.")
-    return DIRECTIONS[value]
 
 
 # ---------------------------------------------------------------------------
@@ -892,7 +853,7 @@ def report(spec, geo, colls):
 
     print("\nGATES")
 
-    ok, why = _footprint(spec, geo)
+    ok, why = footprint(spec, geo)
     gate(ok, f'the shell is {ft(W)} x {ft(D)} to face of stud', why)
 
     ok, why = _roof_covers_its_overhangs(spec, geo)
@@ -909,28 +870,28 @@ def report(spec, geo, colls):
     gate(ok, f'the roof top at the front edge is A-2.0\'s '
              f'{ft(lv["roof_top_at_front_edge"]["ft"])}', why)
 
-    ok, why = _every_partition_built(spec, geo)
+    ok, why = every_partition_built(spec, geo)
     gate(ok, "every partition in the spec was built, where the spec puts it", why)
 
     ok, why = _where_a10_draws_them(spec)
     gate(ok, "the built partitions and interior doors sit where A-1.0 draws them", why)
 
     # the frame is not mirrored — checked on GEOMETRY, not on the spec
-    ok, why = _frame_not_mirrored(spec, geo)
+    ok, why = frame_not_mirrored(spec, geo)
     gate(ok, "not mirrored: D and E open on the X 24 wall, the C windows on X 0", why)
 
     # every schedule row produced a cut opening with a sash
     label = "every schedule row produced a cut opening with a sash or a leaf"
     if geo["cut"]:
-        ok, why = _every_row_built(spec, geo)
+        ok, why = every_row_built(spec, geo)
         gate(ok, label, why)
     else:
         skip(label, "--no-openings: nothing was cut, so there is no volume to measure")
 
-    ok, why = _openings_on_the_wall_their_block_names(geo)
+    ok, why = openings_on_the_wall_their_block_names(geo)
     gate(ok, "every exterior opening is on the wall its spec block names", why)
 
-    ok, why = _sash_members(spec, geo)
+    ok, why = sash_members(spec, geo)
     gate(ok, "every sash carries the members its declared operation implies", why)
 
     ok, why = _door_one_has_its_sidelite(spec, geo)
@@ -948,7 +909,7 @@ def report(spec, geo, colls):
     ok, why = _siding_skins(spec, geo)
     gate(ok, "each wall's siding skin is its stucco skin's solid, with trim reveals and UVs", why)
 
-    ok, why = _trim_inside_its_walls(spec, geo)
+    ok, why = trim_inside_its_walls(spec, geo)
     gate(ok, "no trim runs outside the rooms or above the roof underside", why)
 
     ok, why = _floor_on_the_slab(spec)
@@ -975,7 +936,7 @@ def report(spec, geo, colls):
     gate(ok, "the condenser keeps the ground-mounted placement rule: on its pad on grade, outside, "
              "where A-1.1 draws it, below the roof, blocking no opening", why)
 
-    ok, why = _no_degenerate()
+    ok, why = no_degenerate()
     gate(ok, "no NaN or degenerate geometry", why)
 
     print("=" * RULE)
@@ -988,77 +949,6 @@ def report(spec, geo, colls):
         print(f"{len(SKIPPED)} gate(s) SKIPPED, not passed: " + "; ".join(SKIPPED))
         print("This model is not complete. Re-run without --no-openings to judge them.")
     return not FAILED and not SKIPPED
-
-
-def _frame_not_mirrored(spec, geo):
-    """D and E sit at the X 24 end; the C windows at X 0.
-
-    A-2.0's SIDE (LEFT) ELEVATION draws D and E, and the building's left side
-    seen from the front is +X when the front faces +Y and Z is up. That is the
-    fact the first draft of this spec had backwards, so it is written here
-    rather than read from the spec.
-
-    IT MEASURES THE WALL, NOT ITS NAME. The first version compared
-    `o["wall"]` against the string "Wall_x24" -- which is a label this same
-    file assigned a few hundred lines earlier, so the gate could only ever
-    agree with itself. Review asked what would happen if the two end walls
-    were built in each other's places: the answer, reproduced before this was
-    changed, is that the model came out mirrored and the anti-mirroring gate
-    reported PASS. A gate derived from the build's own expression cannot
-    disagree with the build (rule 29), so this one asks the geometry where
-    the wall actually is.
-    """
-    W = geo["W"]
-    wrong = []
-    for o in geo["built"]:
-        ty = str(o["row"].get("type"))
-        if ty not in ("C", "D", "E"):
-            continue
-        lo, hi = world_bbox([geo["walls"][o["wall"]]])
-        end_wall = (hi[0] - lo[0]) < W / 2          # thin in X: an end wall
-        at_x_max = (lo[0] + hi[0]) / 2 > W / 2
-        where = f"x {lo[0]:.3f}..{hi[0]:.3f}"
-        if ty in ("D", "E") and not (end_wall and at_x_max):
-            wrong.append(f"{o['id']} ({ty}) is on a wall at {where}, not the X {W:g} end")
-        if ty == "C" and end_wall and at_x_max:
-            wrong.append(f"{o['id']} (C) is on the end wall at {where}, the X {W:g} end")
-    return not wrong, "; ".join(wrong)
-
-
-def _footprint(spec, geo):
-    """The shell measures what the envelope says, to face of stud.
-
-    THERE WAS NO SUCH GATE. The barn cabin's first one is its footprint, and
-    Laurel had nothing equivalent: building the rear wall a foot short left
-    the building the wrong size with all nine gates green, because the only
-    span being checked was the ROOF's -- and the roof is laid out from W
-    directly, so it does not move when the shell does. Found reviewing my own
-    work after the third Copilot pass.
-
-    EACH WALL IS MEASURED, NOT THE UNION. The first version took one bounding
-    box over all four and compared its span, which is blind to exactly the
-    defect it was written for: a rear wall built a foot short still leaves the
-    other three reaching X 0 and X 24, so the union never moves. Caught by the
-    perturbation that was meant to prove the gate -- the gate failed to fail.
-    """
-    W, D = geo["W"], geo["D"]
-    t = geo["t"]
-    want = {"Wall_rear":  ((0.0, W), (0.0, t)),
-            "Wall_front": ((0.0, W), (D - t, D)),
-            "Wall_x0":    ((0.0, t), (0.0, D)),
-            "Wall_x24":   ((W - t, W), (0.0, D))}
-    wrong = []
-    for name, (xs, ys) in want.items():
-        ob = geo["walls"].get(name)
-        if ob is None:
-            wrong.append(f"{name} was never built")
-            continue
-        lo, hi = world_bbox([ob])
-        for axis, (want_lo, want_hi) in ((0, xs), (1, ys)):
-            if abs(lo[axis] - want_lo) > MESH_TOL or abs(hi[axis] - want_hi) > MESH_TOL:
-                wrong.append(f'{name} {"XY"[axis]} measures {lo[axis]:.4f}..{hi[axis]:.4f}, '
-                             f'the envelope puts it at {want_lo:.4f}..{want_hi:.4f}')
-    return not wrong, "; ".join(wrong)
 
 
 def _roof_covers_its_overhangs(spec, geo):
@@ -1142,169 +1032,6 @@ def _roof_top_at_the_front_edge(spec, geo):
         return False, (f"the built roof tops out at {got:.4f} ft at Y {y_front:.4f}, "
                        f"{(got - want) * INCHES_PER_FOOT:+.2f} in from the sheet's {want:.4f}")
     return True, ""
-
-
-def _every_partition_built(spec, geo):
-    """Each partition the spec declares exists, and sits where it says.
-
-    Dropping P_bath_W -- the wall between the bath and the kitchen -- left all
-    nine gates green, because the volume and corner checks only reach walls
-    that carry an opening and that one carries none. Reproduced. So the
-    partitions are counted, and each one's measured extents are compared with
-    the faces the spec gives it, which also catches one built in the wrong
-    place rather than merely missing.
-    """
-    layout = spec["interior_partitions"]["layout"]
-    thick = layout["thickness"]["ft"]
-    wrong = []
-    for row in layout["partitions"]:
-        ob = bpy.data.objects.get(row["id"])
-        if ob is None:
-            wrong.append(f"{row['id']} was never built")
-            continue
-        near = row["at_ft"]
-        far = near + thick if _sign(row["id"], row["studs_toward"]) > 0 else near - thick
-        across = sorted((near, far))
-        along = sorted((row["from_ft"], row["to_ft"]))
-        lo, hi = world_bbox([ob])
-        # a wall running along X is thin in Y, and the other way round
-        ai, ci = (0, 1) if _axis(row["id"], row["runs_along"]) == "X" else (1, 0)
-        for axis, (want_lo, want_hi), what in ((ci, across, "thickness"),
-                                               (ai, along, "run")):
-            if abs(lo[axis] - want_lo) > MESH_TOL or abs(hi[axis] - want_hi) > MESH_TOL:
-                wrong.append(f"{row['id']} {what} measures {lo[axis]:.4f}..{hi[axis]:.4f}, "
-                             f"the spec puts it at {want_lo:.4f}..{want_hi:.4f}")
-    return not wrong, "; ".join(wrong)
-
-
-def _openings_on_the_wall_their_block_names(geo):
-    """Each exterior opening sits on the wall its spec block is named for.
-
-    Review asked what happens if a build routes the C windows to a front or
-    rear wall: `_frame_not_mirrored` only rejects C at the +X end, so an
-    end-wall window moved to the rear passed. Reproduced by routing
-    `end_wall_x0` at `Wall_rear` -- the gate said PASS.
-
-    The literal fix suggested, requiring every C to be on the X 0 end wall,
-    WOULD FAIL THIS BUILDING: W-C3 is a C window and A-1.0 draws it on the
-    rear wall, in the `rear_wall` block. C is a size and an operation, not a
-    location. So the rule is per opening rather than per type -- each one has
-    to be on a wall whose geometry matches the block that lists it, which
-    catches the reported case and every other misrouting with it.
-    """
-    W, D = geo["W"], geo["D"]
-    # block -> (axis the wall is thin on, which end of that axis, its length)
-    sides = {"front_wall": (1, "max", D), "rear_wall": (1, "min", D),
-             "end_wall_x0": (0, "min", W), "end_wall_x24": (0, "max", W)}
-    wrong = []
-    for o in geo["built"]:
-        side = sides.get(o.get("block"))
-        if side is None:
-            continue                       # an interior door names a partition
-        axis, end, span = side
-        lo, hi = world_bbox([geo["walls"][o["wall"]]])
-        thin = (hi[axis] - lo[axis]) < span / 2
-        at_max = (lo[axis] + hi[axis]) / 2 > span / 2
-        if not thin or at_max != (end == "max"):
-            name = "XY"[axis]
-            wrong.append(f"{o['id']} is listed under {o['block']} but sits on "
-                         f"{o['wall']}, {name} {lo[axis]:.3f}..{hi[axis]:.3f}")
-    return not wrong, "; ".join(wrong)
-
-
-def _every_row_built(spec, geo):
-    """The exit gate PLAN.md sets for #129.
-
-    Every row of both schedules is either built with a sash or a leaf, or is
-    the 1-bedroom option this model does not build. A window TYPE counts by
-    its drawn instances, not by the schedule's count column: the schedule
-    counts one B and the plan draws two (spec.discrepancies)."""
-    names = {o.name for o in bpy.data.objects}
-    missing = []
-    for o in geo["built"]:
-        kind = "Sash" if o["id"].startswith("W-") else "Leaf"
-        if f"{kind}_{o['id']}" not in names:
-            missing.append(f"{o['id']} has no {kind.lower()}")
-    # WHAT EACH WALL SHOULD HAVE LOST, DERIVED HERE FROM THE OPENING ROWS.
-    # Never from the cutter calls: see the note beside `volumes` in build().
-    want = {}
-    for o in geo["built"]:
-        area = (o["a1"] - o["a0"]) * (o["z1"] - o["z0"])
-        hosts = [(o["wall"], geo["depths"].get(o["wall"]))]
-        for skin in (geo["skin_of"].get(o["wall"]), geo["siding_of"].get(o["wall"])):
-            if skin:
-                hosts.append((skin, geo["depths"].get(skin)))
-        for wall, depth in hosts:
-            if depth is None:
-                missing.append(f"{o['id']} was never cut into {wall}")
-                continue
-            want[wall] = want.get(wall, 0.0) + area * depth
-    for wall, (before, after) in geo["volumes"].items():
-        got = before - after
-        expected = want.get(wall, 0.0)
-        if abs(got - expected) > VOL_TOL:
-            missing.append(f"{wall} lost {got:.4f} cu ft, its openings are {expected:.4f}")
-
-    # AND EACH HOLE IS WHERE ITS ROW SAYS. Volume alone is a total: a cutter
-    # shifted along a wall removes the same amount from the same wall and the
-    # sum never moves. So every opening's four corners must exist as vertices
-    # in the wall that carries it, which is the barn cabin's CORNERS test.
-    for o in geo["built"]:
-        ob = bpy.data.objects.get(o["wall"])
-        if ob is None:
-            continue
-        axis = 0 if o["along"] == "x" else 1
-        seen = [(v.co[axis], v.co[2]) for v in ob.data.vertices]
-        for a in (o["a0"], o["a1"]):
-            for z in (o["z0"], o["z1"]):
-                if not any(abs(sa - a) <= CORNER_TOL and abs(sz - z) <= CORNER_TOL
-                           for sa, sz in seen):
-                    missing.append(f"{o['id']}: {o['wall']} has no corner at "
-                                   f"({a:.4f}, {z:.4f})")
-    marks_built = {str(o["row"].get("type")) for o in geo["built"]}
-    for d in spec["openings"]["door_types"]["types"]:
-        if d.get("option"):
-            continue
-        if str(d["mark"]) not in marks_built:
-            missing.append(f"door schedule row {d['mark']} was never built")
-    for w in spec["openings"]["window_types"]["types"]:
-        if w["mark"] not in marks_built:
-            missing.append(f"window schedule row {w['mark']} was never built")
-    return not missing, "; ".join(missing)
-
-
-def _sash_members(spec, geo):
-    """A SASH IS NOT A PLATE, and this is what tells them apart.
-
-    The first version of this build filled every opening with one rectangle
-    centred in the wall. It satisfied "every schedule row produced a cut
-    opening with a sash" perfectly, because the gate only asked whether an
-    object existed -- which is the same defect the barn cabin carried for
-    eleven PRs while its spec typed every window.
-
-    So count the members, and count the ones the OPERATION implies: four for
-    the frame, one mullion between each pair of units, and a meeting rail in
-    each unit for a type that has one. Window E is the only slider, so it is
-    the only one that should carry five.
-    """
-    wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
-    ops = spec["windows"]["operations"]
-    bad = []
-    for o in geo["built"]:
-        if not o["id"].startswith("W-"):
-            continue
-        op = ops[wt[o["row"]["type"]]["operation"]]
-        want = (SASH_FRAME_MEMBERS + (op["units"] - 1)
-                + (op["units"] if op["meeting_rail"] else 0))
-        ob = bpy.data.objects.get(f"Sash_{o['id']}")
-        if ob is None:
-            bad.append(f"{o['id']} has no sash at all")
-            continue
-        got = len(ob.data.vertices) // VERTS_PER_BOX
-        if got != want:
-            bad.append(f"{o['id']} ({wt[o['row']['type']]['operation']}) has "
-                       f"{got} member(s), its operation implies {want}")
-    return not bad, "; ".join(bad)
 
 
 def _door_one_has_its_sidelite(spec, geo):
@@ -1537,28 +1264,6 @@ def _siding_skins(spec, geo):
         for ob in (siding, stucco):
             if not ob.data.uv_layers:
                 wrong.append(f"{ob.name} carries no UVs for its texture")
-    return not wrong, "; ".join(wrong)
-
-
-def _trim_inside_its_walls(spec, geo):
-    """Interior trim stays between the exterior walls' inside faces, and no
-    trim, inside or out, rises above the walls' head where it stands. The head is
-    the CEILING's (#167): here the ceiling follows the roof, so it is the roof
-    underside, and a model with a flat ceiling gets that ceiling's height."""
-    W, D, t, ceiling = geo["W"], geo["D"], geo["t"], geo["ceiling"]
-    wrong = []
-    for ob in geo["trim"] + geo["siding"]:
-        inside = not ob.name.startswith("Trim_ext_siding_")
-        for v in ob.data.vertices:
-            x, y, z = ob.matrix_world @ v.co
-            if inside and not (t - MESH_TOL <= x <= W - t + MESH_TOL
-                               and t - MESH_TOL <= y <= D - t + MESH_TOL and z >= -MESH_TOL):
-                wrong.append(f"{ob.name} reaches ({x:.3f}, {y:.3f}, {z:.3f}), outside the rooms")
-                break
-            if ceiling.covers_y(y) and z > ceiling.under_y(y) + MESH_TOL:
-                wrong.append(f"{ob.name} reaches z {z:.3f} at y {y:.3f}, above the ceiling "
-                             f"at {ceiling.under_y(y):.3f}")
-                break
     return not wrong, "; ".join(wrong)
 
 
@@ -1976,21 +1681,6 @@ def _ground_mounted(spec, geo):
         elif uz1 > wt[row["type"]]["sill"]["ft"] + MESH_TOL:
             wrong.append(f"it rises above {row['id']}'s sill in front of it")
     return not wrong, "; ".join(wrong)
-
-
-def _no_degenerate():
-    import math
-    bad = []
-    for ob in bpy.data.objects:
-        if ob.type != "MESH":
-            continue
-        for v in ob.data.vertices:
-            if any(math.isnan(c) or math.isinf(c) for c in v.co):
-                bad.append(ob.name)
-                break
-        if not ob.data.polygons:
-            bad.append(f"{ob.name} (no faces)")
-    return not bad, ", ".join(sorted(set(bad)))
 
 
 def main():
