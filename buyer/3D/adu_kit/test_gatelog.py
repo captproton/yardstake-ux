@@ -64,12 +64,14 @@ class SpecRead(unittest.TestCase):
             self.assertEqual(sign("P1", d), v)
 
     def test_unknown_words_are_a_readable_failure_naming_who_and_what(self):
-        for bad in ("Z", "x", "", None, 0):
+        # YAML can put a list or a mapping where a word belongs; those are unhashable,
+        # and `in` on the DIRECTIONS dict used to raise TypeError for them (#177).
+        for bad in ("Z", "x", "", None, 0, [], {}, ["X"], {"X": 1}, ("X",), 1.5, True):
             with self.subTest(bad=bad):
                 with self.assertRaises(SystemExit) as cm:
                     axis("P_block_W", bad)
                 self.assertIn("P_block_W: runs_along is", str(cm.exception))
-        for bad in ("north", "+Z", "", None, 1):
+        for bad in ("north", "+Z", "", None, 1, [], {}, ["+X"], {"+X": 1}, ("+X",), 1.5, True):
             with self.subTest(bad=bad):
                 with self.assertRaises(SystemExit) as cm:
                     sign("P_block_W", bad)

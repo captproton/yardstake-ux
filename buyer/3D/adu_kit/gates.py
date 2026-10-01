@@ -13,15 +13,37 @@ THE `geo` CONTRACT. This module is where a model's build and the shared gates me
 so what the gates read from `geo` is written down here, measured from the code
 with an AST walk (not guessed):
 
-  W, D, t        the building's width, depth and wall thickness, in feet
-  walls          {name: Blender object} for the shell and the partitions
-  built          {block: [...]} what the opening builder made, per wall block
-  depths         {wall: depth} the thickness each wall's cutters pass through
-  volumes        {...} the volumes recorded while cutting, per opening
-  skin_of        {wall: skin name} the sheathing skin of each wall
-  siding_of      {wall: siding skin name}
-  trim, siding   the trim and siding objects, as lists
-  ceiling        an adu_kit.roof ceiling (the walls' head), NOT the roof
+  W, D, t        floats, in feet: the building's width, depth and wall thickness.
+
+  walls          dict {name: Blender mesh object}. It holds EVERY solid the opening
+                 builder cuts, not only the shell: the four shell walls under the
+                 exact names "Wall_rear", "Wall_front", "Wall_x0" and "Wall_x24"
+                 (footprint() looks for these four by name), each interior partition
+                 under its spec id, and each wall's skins ("Sheathing_*", "Siding_*").
+
+  built          a FLAT LIST of opening records, one dict per opening, with the keys
+                 the gates read:
+                   id        the opening's id, e.g. "W-A1" or "D-1"
+                   wall      the key in `walls` it is cut from
+                   a0, a1    its span along that wall, in feet
+                   z0, z1    its height range, in feet
+                   along     "x" or "y", the axis the span runs along
+                   row       the spec row it was built from (it carries "type")
+                   block     the spec block an EXTERIOR opening came from, e.g.
+                             "front_wall". Optional: a door cut in a partition has
+                             none, and the gate that reads it skips those.
+
+  depths         dict {wall or skin name: thickness}: how deep that solid's cutters
+                 pass through it.
+  volumes        dict {wall name: (volume_before_cutting, volume_after_cutting)}, one
+                 pair per WALL (not per opening), recorded around the boolean.
+  skin_of        dict {wall name: its sheathing skin's name in `walls`}.
+  siding_of      dict {wall name: its siding skin's name in `walls`}.
+  trim           a LIST of Blender objects: the interior trim, one per host wall,
+                 named "Trim_<host>".
+  siding         a LIST of Blender objects: the exterior siding trim, named
+                 "Trim_ext_siding_<wall>". (Not the siding skins, which are in `walls`.)
+  ceiling        an adu_kit.roof ceiling object (the walls' head), NOT the roof.
   furniture      (read by a gate that moves in the second batch)
 
 The gates of THIS batch read exactly: W, D, t, walls, built, depths, volumes,
@@ -30,6 +52,11 @@ skin_of, siding_of, siding, trim, ceiling. Their spec reads are `interior_partit
 `geo` with those keys, holding what they say, gets the gates.
 Names such as "Wall_front" and the opening blocks "front_wall", "end_wall_x0" are
 the one-storey-rectangle class's; a different class would name its own.
+
+THESE SHAPES WERE READ OFF LAUREL'S BUILD (build.py's `built.append(...)`,
+`volumes[wall] = ...`, `walls[name] = ...`), because the first draft of this block
+described `built` and `volumes` wrongly and a reviewer caught it. They are one model's
+shapes. Willow is the second, and its build is the test of whether they generalize.
 
 The second batch (trim, fixtures, furniture, canopy, condenser) needs builder
 helpers (`room_faces`, `_pt`, `_stacks`...) that move with it, so it is not here.
