@@ -81,11 +81,14 @@ profile or a section, before any partition is built to it.
 - **The porch is new.** Laurel has a 5'-0" front overhang, not posts, a beam and a
   second roof. Posts and the beam are a new kind of part. The 122 sf is the
   porch, and it is **outside the 460 sf**.
-- **Everything else is Laurel's:** same footprint, same sheet system and ids, same
-  finishes, same openings kind, same option split. The sheet-reading scripts and
-  the trim/finish decisions should carry over, which is why Willow still tests the
-  kit with one real variable (and two roof forms is a bigger variable than the plan
-  assumed).
+- **What matches Laurel, as verified here:** the footprint (24'-0" by 19'-2"), the
+  sheet system and ids, the stucco-or-lap-siding choice (A-0.0), and the
+  1-bedroom option drawn on A-1.0. **Not verified, and open for step 4:** the door
+  and window schedules and the openings they describe, the interior layout, and
+  anything about trim and fixtures. The sheet-reading scripts and finish decisions
+  should carry over where the sheets match, which is why Willow still tests the kit
+  with a small number of variables (though two roof forms is a bigger variable than
+  the plan assumed).
 
 ## Open, to settle at step 4
 

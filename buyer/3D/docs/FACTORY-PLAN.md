@@ -102,14 +102,17 @@ slope fragment, unconfirmed.
 
 ## Why Willow is model three
 
-It is the controlled experiment: it changes **one variable** from Laurel, the
-roof, and the preflight ([`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md)) found
-that variable is bigger than first assumed.
+It is the closest thing we have to a controlled experiment: the verified
+differences from Laurel are mainly the roof and the porch (the door and window
+schedules and the interior layout are not yet compared; that is step 4). The
+preflight ([`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md)) found
+the roof is a bigger difference than first assumed.
 
 - Same designer's sheet system, same sheet ids (A-0.0 … A-3.4, T24), same
   slab-on-grade foundation, same 24'-0" by 19'-2" footprint, stucco and siding
   options. Laurel's sheet-reading scripts, trim and finish decisions should
-  carry over nearly unchanged.
+  carry over where the sheets match; that is checked sheet by sheet at step 4,
+  not assumed.
 - Different roof: "stick framed and truss roof with composite shingles"
   (A-0.0). The preflight read **two roofs**, not one: a main gable at 5:12 on
   trusses, and a small porch gable at 3:12 on posts and a beam, against Laurel's
