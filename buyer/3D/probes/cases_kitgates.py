@@ -19,6 +19,7 @@ cases stayed green. Expecting the FAIL line is what makes each of these bite.
   * the interior trim lifted above the ceiling             trim_inside_its_walls
   * a vertex that is not a number                          no_degenerate
   * an opening recorded under a block no gate knows        openings_on_the_wall_their_block_names
+  * front openings recorded on a same-way interior wall    openings_on_the_wall_their_block_names
 
 Each is the lesion the gate's own docstring says it was written to catch.
 """
@@ -107,6 +108,21 @@ def _a_block_the_gate_does_not_know(work: Path) -> None:
            "an exterior opening under an unknown block")
 
 
+def _front_openings_on_an_interior_partition(work: Path) -> None:
+    """Hand the gates every front-wall opening as if it had been cut into P_block_W.
+
+    P_block_W runs along X at Y 11.46, in the FRONT half of a 19.17 ft deep building, so
+    it is thin in Y with its middle in the front half: exactly what the original
+    half-building test accepted as "the front wall". Only the records the gates read are
+    changed (the cuts are made as before), so nothing else about the build moves."""
+    _patch(work,
+           "               built=built, sashes=sashes, volumes=volumes, cut=cut_openings,",
+           '               built=[dict(o, wall="P_block_W") if o.get("block") == "front_wall" else o\n'
+           "                      for o in built],\n"
+           "               sashes=sashes, volumes=volumes, cut=cut_openings,",
+           "front openings recorded on an interior partition")
+
+
 def _fails(label: str) -> dict:
     return dict(contains=f"[FAIL] {label}")
 
@@ -134,5 +150,10 @@ CASES = [
     Case(G, "laurel: an exterior opening recorded under a block no gate knows "
             "(openings_on_the_wall_their_block_names)",
          _a_block_the_gate_does_not_know, [Run(BUILD, fails=True, blender=True, model=LAUREL)],
+         **_fails("every exterior opening is on the wall its spec block names")),
+    Case(G, "laurel: front-wall openings recorded on an interior partition in the same half "
+            "(openings_on_the_wall_their_block_names, exact band)",
+         _front_openings_on_an_interior_partition,
+         [Run(BUILD, fails=True, blender=True, model=LAUREL)],
          **_fails("every exterior opening is on the wall its spec block names")),
 ]

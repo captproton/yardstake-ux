@@ -5,10 +5,12 @@ Runs in Blender (it reads meshes); the plumbing it reports through is
 adu_kit/gatelog.py, which does not.
 
 MOVED FROM LAUREL'S build.py, batch 1 of two, copied by script and not retyped, with
-ONE deliberate change: `openings_on_the_wall_their_block_names` now FAILS an opening
-whose `block` is present but unknown, where the original skipped it as if it were an
-interior door (found by review of #177, so a gate could pass having checked nothing).
-Everything else is the original's text. These are the gates that
+TWO deliberate changes, both to `openings_on_the_wall_their_block_names` and both found
+by review of #177: it now FAILS an opening whose `block` is present but unknown (the
+original skipped it as if it were an interior door), and it compares the wall with the
+EXACT exterior band (the original accepted any same-oriented wall in the right half,
+so an opening cut into an interior partition passed). Everything else is the
+original's text. These are the gates that
 need no builder helper and no Laurel-only content: they depend on `(spec, geo)`, a few
 tolerances, `world_bbox`, AND the Blender scene and its object names (the section
 "BEYOND geo" below, which an earlier draft of this docstring left out). Each returns
@@ -200,6 +202,11 @@ def openings_on_the_wall_their_block_names(geo):
     location. So the rule is per opening rather than per type -- each one has
     to be on a wall whose geometry matches the block that lists it, which
     catches the reported case and every other misrouting with it.
+
+    "MATCHES" MEANS THE EXACT EXTERIOR BAND (changed from the original, #177). The
+    original asked only that the wall be thin on the right axis and in the right
+    half of the building, which an interior partition running the same way passes.
+    Now the wall's measured extent on that axis must be 0..t or span-t..span.
     """
     W, D = geo["W"], geo["D"]
     # block -> (axis the wall is thin on, which end of that axis, its length)
@@ -220,12 +227,18 @@ def openings_on_the_wall_their_block_names(geo):
             continue
         axis, end, span = side
         lo, hi = world_bbox([geo["walls"][o["wall"]]])
-        thin = (hi[axis] - lo[axis]) < span / 2
-        at_max = (lo[axis] + hi[axis]) / 2 > span / 2
-        if not thin or at_max != (end == "max"):
+        # THE EXACT EXTERIOR BAND, not "thin, and in the right half". The half-building test
+        # passed an opening recorded on an interior partition that runs the same way as the
+        # exterior wall and sits in the same half (an X-running partition in the front half
+        # is thin in Y with its middle in the front half), so an opening cut into the wrong
+        # wall read as "on the front wall" (review of #177). An exterior wall occupies
+        # 0..t at the min end and span-t..span at the max end, and nothing else does.
+        want_lo, want_hi = (0.0, geo["t"]) if end == "min" else (span - geo["t"], span)
+        if abs(lo[axis] - want_lo) > MESH_TOL or abs(hi[axis] - want_hi) > MESH_TOL:
             name = "XY"[axis]
             wrong.append(f"{o['id']} is listed under {o['block']} but sits on "
-                         f"{o['wall']}, {name} {lo[axis]:.3f}..{hi[axis]:.3f}")
+                         f"{o['wall']}, {name} {lo[axis]:.3f}..{hi[axis]:.3f}, "
+                         f"not the exterior band {want_lo:.3f}..{want_hi:.3f}")
     return not wrong, "; ".join(wrong)
 
 
