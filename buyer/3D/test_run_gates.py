@@ -80,9 +80,15 @@ class Runner(unittest.TestCase):
         d = self.root / "models" / "m_one"
         d.mkdir()
         (d / "spec.yaml").write_text("meta: {}\n")
-        code, out, _ = run("--tier", "fast")
-        self.assertEqual(code, 1)
-        self.assertIn("no gates.json", out)
+        # a configuration error under EVERY filter: a `--tier blender` run or a -k
+        # must not be able to filter it out and exit 0
+        for argv in (("--tier", "fast"), ("--tier", "blender"), ("--tier", "fast", "-k", "zzz"),
+                     ("--tier", "probes", "--list")):
+            with self.subTest(argv=argv):
+                code, out, err = run(*argv)
+                self.assertNotEqual(code, 0)
+                self.assertIn("no gates.json", err)
+                self.assertNotIn("0 passed", out)
 
     def test_blender_gate_that_prints_no_pass_line_fails(self):
         fake = self.root / "fakeblender"

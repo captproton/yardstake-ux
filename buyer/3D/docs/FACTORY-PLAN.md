@@ -222,18 +222,23 @@ first real throughput test.
 
 One line per pull request. Mark each **Done** with its number.
 
+0. **Preflight, before any PR (Phase 0; a read, not a change).** Read Willow's
+   A-2.0 and A-0.0 and confirm: one storey, a rectangle, the roof form and
+   pitch. If it is not one storey on a rectangle, **stop and re-pick the model
+   before step 1**, because steps 1 to 3 are shaped by it. The findings are
+   written into the spec at step 4; the decision is taken now.
 1. `#TBD` **Roof interface** (Phase 1). Laurel byte-identical.
 2. `#TBD` **`adu_kit/ink.py`** (Phase 2). Four readers byte-identical.
 3. `#TBD` **The gates move into `adu_kit/`** (Phase 3). Laurel's gate output
    unchanged; probes still fail where they should.
-4. `#TBD` **Willow spec** (A1), including Phase 0's roof decision, scaffolded by
-   `new_model.py`.
+4. `#TBD` **Willow spec** (A1): records step 0's findings with citations,
+   scaffolded by `new_model.py`.
 5. `#TBD` **Willow build**, with the gable class (A2).
 6. `#TBD` **Willow overlay** (A3).
 7. `#TBD` **Willow export** (A4): Willow is on the page.
 8. `#TBD` **Timing and lessons** appended here (Phase 5); then Concord's plan.
 
-Steps 1 and 2 are independent and may run in parallel. Step 3 waits for step 1
+Step 0 comes first. Steps 1 and 2 are independent and may run in parallel. Step 3 waits for step 1
 (the roof interface decides which gates move). Step 4 can start while 1 to 3
 are in review, but step 5, the build, waits for steps 1 and 3.
 
@@ -242,7 +247,7 @@ are in review, but step 5, the build, waits for steps 1 and 3.
 - **Willow is not the shape we think.** Mitigated by Phase 0's decision rule.
 - **A roof interface designed around one shape.** With only Laurel's shed as
   the existing user, the interface could fit one form. The gable class in step
-  4 is the check; expect to revise the interface then, and do not freeze it
+  5 is the check; expect to revise the interface then, and do not freeze it
   before.
 - **"Faster" measured on one model is noisy.** It is one data point, and Willow
   shares Laurel's sheet system. Concord is the test that generalises.

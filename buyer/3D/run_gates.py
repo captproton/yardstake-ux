@@ -133,8 +133,10 @@ def load_gates(only_model=None):
                 # renamed list must not turn every one of them into silence.
                 raise SystemExit(f"{f} is missing; the shared gate list is required")
             if (cwd / "spec.yaml").is_file():
-                out.append((owner, cwd, {"name": "(no gates.json)", "tier": "fast",
-                                         "missing": True}))
+                # A configuration error, not a tiered gate: as a "fast" gate a
+                # `--tier blender` run (or -k) would filter it out and exit 0.
+                raise SystemExit(f"{cwd.name}: has a spec.yaml and no gates.json "
+                                 f"({f} is missing); every model declares its gates")
             continue
         try:
             doc = json.loads(f.read_text())
@@ -206,8 +208,6 @@ def run(owner, cwd, gate, blender, log_dir, timeout):
 
 
 def _run(owner, cwd, gate, blender, log_dir, timeout, tmp):
-    if gate.get("missing"):
-        return "fail", "the model has a spec.yaml and no gates.json", 0.0
     why = missing_requirement(gate, blender)
     if why:
         return "skip", why, 0.0

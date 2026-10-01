@@ -125,6 +125,25 @@ class Scaffold(unittest.TestCase):
                 "sheets": [(1, None)], "candidates": [], "words": {}}
         return mock.patch.object(new_model, "intake", return_value=info)
 
+    def test_the_index_citation_is_true_of_the_plan_set(self):
+        # a set whose first readable page is NOT an index must not cite one
+        info = {"sheets": [(1, "A-0.0"), (2, "A-1.0")], "index_sheet": None}
+        src = new_model._index_source(info)
+        self.assertNotIn("A-0.0 SHEET INDEX", src)
+        self.assertIn("A-0.0", src)                    # still names a sheet, as spec_lint requires
+        self.assertIn("no page was found to carry a sheet index", src)
+        self.assertIn("A-1.0 SHEET INDEX", new_model._index_source(
+            {"sheets": [(1, "A-0.0"), (2, "A-1.0")], "index_sheet": "A-1.0"}))
+        self.assertIn("fill in by hand", new_model._index_source({"sheets": [(1, None)]}))
+
+    def test_an_index_page_is_found_by_its_words(self):
+        info = new_model.intake(LAUREL)
+        self.assertIsNotNone(info["index_sheet"], "Laurel's A-0.0 carries a SHEET INDEX")
+        code, _, err = self.go()
+        self.assertEqual(code, 0, err)
+        spec = (self.models / "test_a1_460/spec.yaml").read_text()
+        self.assertIn(f"{info['index_sheet']} SHEET INDEX", spec)
+
     def test_a_text_layer_set_with_no_candidates_still_gets_its_candidates_file(self):
         info = {"pdf": LAUREL, "pages": 20, "chars": 50000, "raster": False,
                 "sheets": [(1, "A-0.0")], "candidates": [], "words": {}}

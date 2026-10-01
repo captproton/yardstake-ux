@@ -84,10 +84,15 @@ def intake(pdf: Path) -> dict:
            for i, p in enumerate(parsed)]
     cands = sheets.harvest(pdf) if chars >= MIN_CHARS_PER_PAGE * pages else []
     upper = text.upper()
+    # THE PAGE THAT CARRIES A SHEET INDEX is found by its words, not assumed to be
+    # the first readable id: a cover or a detail sheet can come first. pdftotext
+    # separates pages with a form feed, in the order `ids` lists them.
+    index_sheet = next((sid for (_, sid), page in zip(ids, upper.split("\f"))
+                        if sid and "SHEET INDEX" in page), None)
     words = {w: len(re.findall(r"\b" + re.escape(w) + r"\b", upper)) for w in CLASS_WORDS}
     return {"pdf": pdf, "pages": pages, "chars": chars,
             "raster": chars < MIN_CHARS_PER_PAGE * pages,
-            "sheets": ids, "candidates": cands,
+            "sheets": ids, "candidates": cands, "index_sheet": index_sheet,
             "words": {w: n for w, n in words.items() if n}}
 
 
@@ -138,7 +143,7 @@ meta:
   source_pdf_pages: {{count: {pages}, derived: "pdfinfo reports {pages} pages"}}
 
 sheet_index:
-  source: "{index_sheet} SHEET INDEX for ids and titles; each page's title block for its id"
+  source: "{index_source}"
   sheets:
 {sheet_rows}
 '''
@@ -196,6 +201,19 @@ One line per pull request; mark each Done with its number.
 '''
 
 
+def _index_source(info: dict) -> str:
+    """The `sheet_index.source` citation, true of THIS plan set. spec_lint requires
+    it to name a sheet in the index; "SHEET INDEX" is claimed only for a page whose
+    text says so, never for whichever sheet id happened to be read first."""
+    first = next((sid for _, sid in info["sheets"] if sid), None)
+    if info.get("index_sheet"):
+        return f"{info['index_sheet']} SHEET INDEX for ids and titles; each page's title block for its id"
+    if first:
+        return (f"each page's title block, in PDF order, starting with {first}; "
+                "no page was found to carry a sheet index")
+    return "no sheet id could be read; fill in by hand"
+
+
 def scaffold(pdf: Path, model_id: str, name: str, issue: int, models_dir: Path,
              allow_raster: bool, intake_only: bool) -> int:
     if not ID_RE.match(model_id):
@@ -221,7 +239,7 @@ def scaffold(pdf: Path, model_id: str, name: str, issue: int, models_dir: Path,
         # scalar, so `A "Plus"` cannot break the file); in a comment, one line.
         name=json.dumps(name), title=" ".join(name.split()),
         pdf_name=" ".join(pdf.name.split()), model_id=model_id, pages=info["pages"], sheet_rows=rows,
-        index_sheet=next((sid for _, sid in info["sheets"] if sid), "the title sheet")))
+        index_source=_index_source(info)))
     (target / "docs" / "INTAKE.md").write_text(text)
     # ALWAYS WRITTEN: spec.yaml, PLAN.md and INTAKE.md all point at this file, so
     # a scan (where harvesting found nothing to read) gets the valid empty document.
