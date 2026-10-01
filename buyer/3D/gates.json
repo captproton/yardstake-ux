@@ -53,6 +53,16 @@
       ]
     },
     {
+      "name": "roof module tests (adu_kit/test_roof.py)",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "-m",
+        "unittest",
+        "adu_kit.test_roof"
+      ]
+    },
+    {
       "name": "new_model.py intake and scaffold tests",
       "tier": "fast",
       "requires": [
