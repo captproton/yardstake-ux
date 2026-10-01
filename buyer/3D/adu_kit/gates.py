@@ -5,9 +5,10 @@ Runs in Blender (it reads meshes); the plumbing it reports through is
 adu_kit/gatelog.py, which does not.
 
 MOVED UNCHANGED FROM LAUREL'S build.py, batch 1 of two. These are the gates that
-depend on nothing but `(spec, geo)`, a few tolerances, and `world_bbox`: no builder
-helper, no Laurel-only content. Each returns `(ok, why)`, and the model's own
-report() decides the order and the label, as it did.
+need no builder helper and no Laurel-only content: they depend on `(spec, geo)`, a few
+tolerances, `world_bbox`, AND the Blender scene and its object names (the section
+"BEYOND geo" below, which an earlier draft of this docstring left out). Each returns
+`(ok, why)`, and the model's own report() decides the order and the label, as it did.
 
 THE `geo` CONTRACT. This module is where a model's build and the shared gates meet,
 so what the gates read from `geo` is written down here, measured from the code
@@ -52,6 +53,29 @@ skin_of, siding_of, siding, trim, ceiling. Their spec reads are `interior_partit
 `geo` with those keys, holding what they say, gets the gates.
 Names such as "Wall_front" and the opening blocks "front_wall", "end_wall_x0" are
 the one-storey-rectangle class's; a different class would name its own.
+
+BEYOND `geo`: THE BLENDER SCENE AND ITS NAMES. Five of the eight gates also read the
+global scene (`bpy.data.objects`), so a model can match the `geo` shapes above and
+still be incompatible. What they need, read off the code:
+
+  every_partition_built   an object in the scene named by each partition's spec id
+                          (`bpy.data.objects.get(row["id"])`), not looked up in `geo`.
+  every_row_built         for each opening in `built`: an object named "Sash_<id>" if
+                          the id starts with "W-" (a window), else "Leaf_<id>" (a door);
+                          and the wall object, found by name in the scene, to read the
+                          opening's four corners from its vertices.
+  sash_members            for each "W-" opening, an object named "Sash_<id>".
+  trim_inside_its_walls   tells interior from exterior trim by the NAME prefix
+                          "Trim_ext_siding_".
+  no_degenerate           scans EVERY mesh in the scene for NaN or infinite vertices;
+                          it takes no arguments and reads no `geo` at all.
+
+So the contract also includes: opening ids start "W-" for windows; every opening has a
+"Sash_"/"Leaf_" object; partitions are scene objects named by their spec ids; and the
+scene holds only this model (no_degenerate sees all of it). These are the one-storey
+class's conventions, as with the wall names above, and they are NOT routed through
+`geo`. Routing them through `geo` would change the gates, so this move documents them
+instead; Willow's build either follows the names or that is the moment to route them.
 
 THESE SHAPES WERE READ OFF LAUREL'S BUILD (build.py's `built.append(...)`,
 `volumes[wall] = ...`, `walls[name] = ...`), because the first draft of this block
