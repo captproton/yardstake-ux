@@ -243,6 +243,15 @@ def check(spec):
     # ── the partitions ────────────────────────────────────────────────────
     layout = spec["interior_partitions"]["layout"]
     thick = float(layout["thickness"]["ft"])
+    # IDS ARE OBJECT NAMES in the build (a partition by its id, `Leaf_<id>` for a door), so a repeated id
+    # is two things with one name. Without this the second silently overwrote the first below and every
+    # check after it saw only one wall.
+    seen, repeated = set(), []
+    for row in layout["partitions"]:
+        if row["id"] in seen:
+            repeated.append(row["id"])
+        seen.add(row["id"])
+    gate(not repeated, "every partition id is used once", ", ".join(repeated))
     part = {}
     for row in layout["partitions"]:
         near = float(row["at_ft"])
@@ -320,6 +329,9 @@ def check(spec):
                 over.append(f"{one} and {other} share {ox:.4f} by {oy:.4f}")
     gate(not over, "no partition runs through another (a junction is at most one thickness)", ", ".join(over))
 
+    door_ids = [d["id"] for d in layout["door_openings"]]
+    clashes = sorted({i for i in door_ids if door_ids.count(i) > 1} | {i for i in door_ids if i in by_id})
+    gate(not clashes, "every interior door id is used once, and none is an exterior opening's id", ", ".join(clashes))
     bad = []
     for d in layout["door_openings"]:
         host = part.get(d["in"])
@@ -338,6 +350,18 @@ def check(spec):
         elif not (min(host["a"], host["b"]) - TOL <= a < b <= max(host["a"], host["b"]) + TOL):
             bad.append(f"{d['id']} at {a:.4f}..{b:.4f} is outside {d['in']}")
     gate(not bad, "every interior door is its schedule width, inside the wall it names", "; ".join(bad))
+
+    # two doors cut into one wall must not share a span
+    crowded = []
+    by_host = {}
+    for d in layout["door_openings"]:
+        by_host.setdefault(d["in"], []).append(d)
+    for host_id, ds in by_host.items():
+        ds = sorted(ds, key=lambda d: float(d["a_ft"]))
+        for first, second in zip(ds, ds[1:]):
+            if float(second["a_ft"]) < float(first["b_ft"]) - TOL:
+                crowded.append(f"{first['id']} and {second['id']} overlap in {host_id}")
+    gate(not crowded, "no two interior doors in one wall overlap", "; ".join(crowded))
 
     placed = {str(r["type"]) for r in by_id.values() if str(r["type"]) in doors}
     placed |= {str(d["type"]) for d in layout["door_openings"]}

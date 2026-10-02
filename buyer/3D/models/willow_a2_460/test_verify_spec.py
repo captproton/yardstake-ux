@@ -393,6 +393,31 @@ class VerifySpec(unittest.TestCase):
             s["roof"]["porch"]["posts"]["setback_second_reading"]["ft"] = 5.0
         self.assertGateFails(self.broken(change), "A-1.0's two readings of the post line's setback agree")
 
+    def test_a_partition_id_used_twice(self):
+        def change(s):
+            parts = s["interior_partitions"]["layout"]["partitions"]
+            parts.append(copy.deepcopy(parts[0]))
+        self.assertGateFails(self.broken(change), "every partition id is used once")
+
+    def test_an_interior_door_id_used_twice(self):
+        def change(s):
+            doors = s["interior_partitions"]["layout"]["door_openings"]
+            doors.append(copy.deepcopy(doors[0]))
+        self.assertGateFails(self.broken(change), "every interior door id is used once")
+
+    def test_an_interior_door_with_an_exterior_openings_id(self):
+        def change(s):
+            s["interior_partitions"]["layout"]["door_openings"][0]["id"] = "D-1"
+        self.assertGateFails(self.broken(change), "every interior door id is used once")
+
+    def test_two_interior_doors_sharing_a_span(self):
+        def change(s):
+            doors = s["interior_partitions"]["layout"]["door_openings"]
+            second = copy.deepcopy(doors[0])
+            second["id"] = "D-2b"
+            doors.append(second)
+        self.assertGateFails(self.broken(change), "no two interior doors in one wall overlap")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]
