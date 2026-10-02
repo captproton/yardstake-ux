@@ -249,9 +249,46 @@ roof:
       source: A-2.0 ROOF PLAN, 1'-0" (OVERHANG) at both 24'-0" ends; the FRONT ELEVATION draws the porch roof the same width as the main roof
     supports: 6X10 PT beam on 6X6 PT posts, 6X6 PT king post in the gable
     supports_source: A-2.0 FRONT ELEVATION labels; A-1.0 floor plan draws four posts at the porch's front edge
-    posts_in_plan:
+    posts:
       count: 4
-      source: A-1.0 floor plan, four square post marks at the porch's outer edge (WOOD POSTS BELOW on the roof plan)
+      source: A-1.0 floor plan, four square post marks at the porch's edge; A-2.0 ROOF PLAN, WOOD POSTS BELOW at the same four
+      size: 6X6 PT
+      size_source: A-2.0 FRONT ELEVATION labels '6X6 PT POST' and '6X6 PT POSTS'
+      spacing:
+        strings:
+        - 8'-4 1/4"
+        - 7'-3 1/2"
+        - 8'-4 1/4"
+        source: A-2.0 ROOF PLAN, the three strings beside the WOOD POSTS BELOW marks, from the grid A end
+        check:
+          ft: 24.0
+          derived: '8''-4 1/4" + 7''-3 1/2" + 8''-4 1/4" = 24''-0", the front wall: a post at each end of it and two between'
+      x:
+        ft:
+        - 24.0
+        - 15.6458
+        - 8.3542
+        - 0.0
+        derived: 'from grid A (X 24), minus each spacing in turn: 24 - 8''-4 1/4" = 15.6458, less 7''-3 1/2" = 8.3542, less 8''-4 1/4" = 0'
+      setback_from_front_wall:
+        ft: 4.375
+        raw: 4'-4 1/2"
+        source: A-1.0 floor plan, the string from the front wall to the post line, beside the covered porch
+      setback_note: to the posts' centre line, from the wall's outside face; A-1.0 draws the post marks at that line
+      beam:
+        size: 6X10 PT
+        runs_along: X
+        source: A-2.0 FRONT ELEVATION label '6X10 PT BEAM'
+        top:
+          ft: 8.0
+          derived: the porch roof's eave line is the plate line, T.P. 8'-0" (A-2.0 FRONT ELEVATION draws the beam under it)
+          assumed: no sheet dimensions the beam's height; it is read from where the elevation draws it against T.P.
+      king_post:
+        size: 6X6 PT
+        at_x:
+          ft: 12.0
+          derived: the middle of the 24'-0" front wall; the elevation draws it on the porch gable's ridge
+        source: A-2.0 FRONT ELEVATION label '6X6 PT KING POST'
     spans: the full 24'-0" front wall plus the 1'-0" side eaves, 26'-0"
     junction_depth:
       ft: 5.6333
@@ -700,9 +737,7 @@ interior_partitions:
   - pantry (with the water heater)
   - closet
   - laundry (W/D)
-  - bath (tub
-  - toilet
-  - 36\" vanity)
+  - bath (tub, toilet, 36" vanity)
   - living
   rooms_source: A-1.0 floor plan room tags
   dimension_strings:
@@ -927,8 +962,9 @@ discrepancies:
 - id: the-porch-junction-is-derived-not-dimensioned
   impact: Where the porch roof meets the main roof is drawn but not dimensioned. The valley meeting point is about 5.1 ft in from the front wall on the
     roof plan.
-  resolution: DERIVED from the two slopes and the plate height (about 5.6 ft); the 0.5 ft gap is the sheet's own drafting tolerance and the unexplained
-    10.8" of heel. The build holds the built junction to the roof plan's ink, not to this number.
+  resolution: NOT RECONCILED HERE, ON PURPOSE. The only machine-readable value is the derivation (roof.porch.junction_depth, 5.6333 ft); the roof plan's
+    ink reads about 5.1 ft, and the 0.5 ft between them is within what the unexplained 10.8" of heel and the sheet's drafting tolerance could account for.
+    The Willow build (#172) and its overlay (#173) decide which governs, with the roof built and measured; neither number is dimensioned on a sheet.
   source: A-2.0 ROOF PLAN and FRONT ELEVATION
 variants:
   floor_plan_options:
@@ -942,5 +978,4 @@ deferred_to_tier_b:
 - trim
 - finishes and textures
 - materials
-- the porch as a built structure (posts, beam, king post)
 - export and variants other than the option split

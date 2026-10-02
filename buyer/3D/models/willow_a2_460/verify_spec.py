@@ -202,6 +202,11 @@ def check(spec):
             wrong.append(f"{raw} ({what}) computes to {got:.4f}, not {want:.4f}")
     gate(not wrong, "the partition faces follow from the interior strings", "; ".join(wrong))
 
+    rooms = spec["interior_partitions"]["rooms"]
+    gate(all(isinstance(r, str) and r.count("(") == r.count(")") and r.strip() for r in rooms),
+         "every room name is one whole tag (a list split at its commas leaves an unbalanced parenthesis)",
+         "; ".join(map(repr, rooms)))
+
     x_in = (stud, float(width) - stud)
     y_in = (stud, float(depth) - stud)
     outside = []
@@ -285,6 +290,27 @@ def check(spec):
     gate(0 < junction < half,
          "the porch ridge meets the main roof's front slope (not above its ridge, not in front of the wall)",
          f"{junction:.4f} ft")
+    # the porch's structure (#172 builds the posts and beam from these, with no literals)
+    posts = porch["posts"]
+    strings = [float(parse_length(x)) for x in posts["spacing"]["strings"]]
+    gate(close(sum(strings), width),
+         "the porch posts' spacing strings sum to the front wall's width", f"{sum(strings):.4f} vs {float(width)}")
+    px = [float(v) for v in posts["x"]["ft"]]
+    want = [float(width)]
+    for seg in strings:
+        want.append(want[-1] - seg)
+    gate(posts["count"] == len(px) == len(strings) + 1 and all(close(a, b, 0.0001) for a, b in zip(px, want)),
+         "the porch posts' positions follow from their spacing, from grid A, and their count matches",
+         f"count {posts['count']}, positions {px}, from the strings {[round(w, 4) for w in want]}")
+    setback = float(posts["setback_from_front_wall"]["ft"])
+    gate(0 < setback < float(porch["projects"]["ft"]),
+         "the porch posts stand inside the porch roof's edge (setback is less than the 5'-0\" the roof projects)",
+         f"setback {setback:.4f}, roof projects {float(porch['projects']['ft'])}")
+    gate(close(posts["king_post"]["at_x"]["ft"], float(width) / 2),
+         "the king post is at the middle of the front wall (the porch ridge)",
+         f"{posts['king_post']['at_x']['ft']} vs {float(width) / 2}")
+    gate(close(posts["beam"]["top"]["ft"], plate),
+         "the porch beam's top is at the plate line, T.P.", f"{posts['beam']['top']['ft']} vs {plate}")
     gate(close(spec["areas_declared"]["studio_sf"]["value"], float(width) * float(depth), 0.01),
          "the envelope's area is the declared 460 sf",
          f"{float(width) * float(depth):.4f} vs {spec['areas_declared']['studio_sf']['value']}")
@@ -315,7 +341,7 @@ def main(argv):
         gate(not dups, "no duplicate keys", "; ".join(f"line {ln}: {k!r}" for ln, k in dups))
         try:
             check(spec)
-        except (KeyError, TypeError, ValueError, IndexError, AttributeError, SystemExit) as e:
+        except (KeyError, TypeError, ValueError, IndexError, AttributeError, ArithmeticError, SystemExit) as e:
             gate(False, "the spec has the blocks these gates read", f"{type(e).__name__}: {e}")
     print("-" * 76)
     if FAILED:

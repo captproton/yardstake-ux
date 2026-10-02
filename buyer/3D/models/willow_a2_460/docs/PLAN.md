@@ -12,7 +12,9 @@ without the page noticing. Laurel took 12 steps; it was on the page at step 7.
 
 1. **Spec.** Cite every number; settle the roof form, the option and the frame
    in `spec.yaml` (`docs/candidates.yaml` is the raw material). Gate: `spec_lint`.
-2. **Build.** Slab, walls, partitions, roof, every opening cut. Gate: a
+2. **Build.** Slab, walls, partitions, the main gable and the porch gable, **the
+   porch posts and beam** (positions are in `spec.yaml` roof.porch.posts), every
+   opening cut. Gate: a
    `build` gate per claim, and no dimension literal in the script.
 3. **Overlay.** Hold the model to the elevations' ink, by named features.
 4. **Export.** Materials (one finish), three levels of detail, manifest, index
@@ -22,7 +24,7 @@ without the page noticing. Laurel took 12 steps; it was on the page at step 7.
 
 5. Interior overlay against the floor plan's ink. 6. Trim. 7. Finish choices
 (stucco/siding) and textures. 8. Fixtures and equipment. 9. Furniture.
-10. Optional structures (canopy, porch).
+10. Optional structures (canopy; porch detail beyond its posts, beam and king post, which are Tier A).
 
 ## Decisions this model inherits
 

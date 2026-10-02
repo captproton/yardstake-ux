@@ -193,6 +193,85 @@ class VerifySpec(unittest.TestCase):
             s["areas_declared"]["studio_sf"]["value"] = 480
         self.assertGateFails(self.broken(change), "the envelope's area is the declared 460 sf")
 
+    def test_door_one_the_wrong_width(self):
+        def change(s):
+            door = next(d for d in s["openings"]["door_types"]["types"] if d["mark"] == "1")
+            door["width"]["ft"] = 3.5
+        self.assertGateFails(self.broken(change), "door 1 is its schedule width")
+
+    def test_a_typo_in_the_rear_string(self):
+        def change(s):
+            s["openings"]["rear_wall"]["string"][0] = "9'-5\""
+        self.assertGateFails(self.broken(change), "the rear wall's string sums to the width")
+
+    def test_a_typo_in_the_x0_string(self):
+        def change(s):
+            s["openings"]["end_wall_x0"]["string"][0] = "2'-7\""
+        self.assertGateFails(self.broken(change), "the X 0 wall's string sums to the depth")
+
+    def test_a_typo_in_the_x0_halves(self):
+        def change(s):
+            s["openings"]["end_wall_x0"]["halves"]["first"] = "9'-10 1/2\""
+        self.assertGateFails(self.broken(change), "the X 0 wall's two halves sum to the depth")
+
+    def test_a_partition_running_through_another(self):
+        def change(s):
+            partition(s, "P_laundry_W")["at_ft"] = 11.3
+        self.assertGateFails(self.broken(change), "no partition runs through another")
+
+    def test_the_main_ridge_off_centre(self):
+        def change(s):
+            s["roof"]["main"]["ridge_at_y"]["ft"] = 8.0
+        self.assertGateFails(self.broken(change), "the main ridge is at mid-depth")
+
+    def test_a_porch_ridge_above_the_main_ridge(self):
+        def change(s):
+            s["roof"]["porch"]["slope"]["rise_in"] = 12
+        self.assertGateFails(self.broken(change), "the porch ridge meets the main roof's front slope")
+
+    def test_porch_post_spacing_that_does_not_sum(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["spacing"]["strings"][1] = "7'-4\""
+        self.assertGateFails(self.broken(change), "the porch posts' spacing strings sum")
+
+    def test_a_porch_post_moved(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["x"]["ft"][1] = 15.0
+        self.assertGateFails(self.broken(change), "the porch posts' positions follow from their spacing")
+
+    def test_a_missing_porch_post(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["count"] = 3
+        self.assertGateFails(self.broken(change), "the porch posts' positions follow from their spacing")
+
+    def test_porch_posts_outside_the_roof(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["setback_from_front_wall"]["ft"] = 6.0
+        self.assertGateFails(self.broken(change), "the porch posts stand inside the porch roof's edge")
+
+    def test_the_king_post_off_the_middle(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["king_post"]["at_x"]["ft"] = 10.0
+        self.assertGateFails(self.broken(change), "the king post is at the middle")
+
+    def test_the_porch_beam_off_the_plate(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["beam"]["top"]["ft"] = 7.0
+        self.assertGateFails(self.broken(change), "the porch beam's top is at the plate line")
+
+    def test_a_room_list_split_at_its_commas(self):
+        def change(s):
+            s["interior_partitions"]["rooms"] = ["kitchen", "bath (tub", "toilet", "36\" vanity)"]
+        self.assertGateFails(self.broken(change), "every room name is one whole tag")
+
+    def test_a_zero_run_is_a_readable_failure_not_a_traceback(self):
+        def change(s):
+            s["roof"]["main"]["slope"]["run_in"] = 0
+        r = self.broken(change)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("ZeroDivisionError", r.stdout)
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]
