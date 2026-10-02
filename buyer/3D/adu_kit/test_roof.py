@@ -5,7 +5,7 @@ test_roof.py -- adu_kit/roof.py, with no Blender (#167).
 """
 import unittest
 
-from adu_kit.roof import (Flat, FollowsRoof, Plane, Roof, RoofError, ceiling_for)
+from adu_kit.roof import (Flat, FollowsRoof, Plane, Roof, RoofError, ceiling_for, ceiling_from_spec)
 
 # Laurel's numbers (A-2.0): T.P. 1 at the rear, T.P. 2 at the front, a 19'-2" depth,
 # 1'-6" rear and end overhangs, a 5'-0" front overhang, a 24'-0" width.
@@ -193,6 +193,44 @@ class Ceilings(unittest.TestCase):
             with self.subTest(bad=bad):
                 with self.assertRaises(RoofError):
                     ceiling_for(bad, roof)
+
+class CeilingFromSpec(unittest.TestCase):
+    """`roof.ceiling` as a whole block, for a model whose ceiling is flat (#172)."""
+
+    def test_a_flat_block_gives_a_flat_ceiling_at_its_height(self):
+        c = ceiling_from_spec({"form": "flat", "at": {"ft": 8.0}})
+        self.assertIsInstance(c, Flat)
+        self.assertEqual(c.under_y(0.0), 8.0)
+        self.assertEqual(c.under(3.0, 17.0), 8.0)
+
+    def test_a_follows_block_still_goes_through_ceiling_for(self):
+        c = ceiling_from_spec({"follows": "roof"}, laurel())
+        self.assertIsInstance(c, FollowsRoof)
+        self.assertEqual(c.under_y(0.0), laurel().under_y(0.0))
+
+    def test_follows_with_no_roof_is_an_error(self):
+        with self.assertRaises(RoofError):
+            ceiling_from_spec({"follows": "roof"})
+
+    def test_both_or_neither_is_an_error(self):
+        for bad in ({"follows": "roof", "form": "flat", "at": {"ft": 8.0}}, {}, {"settled": False}):
+            with self.subTest(bad=bad), self.assertRaises(RoofError):
+                ceiling_from_spec(bad, laurel())
+
+    def test_a_form_it_does_not_know_is_an_error(self):
+        for form in ("vaulted", "scissor", None, ["flat"]):
+            with self.subTest(form=form), self.assertRaises(RoofError):
+                ceiling_from_spec({"form": form, "at": {"ft": 8.0}})
+
+    def test_a_flat_ceiling_needs_a_numeric_height(self):
+        for at in (None, {}, {"ft": None}, {"ft": "8"}, {"ft": True}, {"ft": float("nan")}, 8.0, [8.0]):
+            with self.subTest(at=at), self.assertRaises(RoofError):
+                ceiling_from_spec({"form": "flat", "at": at})
+
+    def test_a_non_mapping_block_is_an_error(self):
+        for bad in (None, "flat", 8.0, ["flat"]):
+            with self.subTest(bad=bad), self.assertRaises(RoofError):
+                ceiling_from_spec(bad)
 
 
 if __name__ == "__main__":

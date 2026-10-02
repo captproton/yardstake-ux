@@ -483,6 +483,24 @@ class VerifySpec(unittest.TestCase):
             del s["roof"]["porch"]["ridge_runs_along"]
         self.assertGateFails(self.broken(change), "the roof is two gables")
 
+    def test_an_elevation_fact_that_disagrees_with_the_openings(self):
+        def change(s):
+            s["frame"]["drawn_on"]["walls"]["C"] = "end_wall_x0"
+        self.assertGateFails(self.broken(change), "every opening is on the wall the elevations draw its mark on")
+
+    def test_a_window_drawn_on_the_wrong_wall_of_the_openings(self):
+        def change(s):
+            o = s["openings"]
+            e = next(r for r in o["rear_wall"]["openings"] if r["id"] == "W-E1")
+            o["rear_wall"]["openings"].remove(e)
+            o["front_wall"]["openings"].append(e)
+        self.assertGateFails(self.broken(change), "every opening is on the wall the elevations draw its mark on")
+
+    def test_a_mark_the_elevations_do_not_draw(self):
+        def change(s):
+            del s["frame"]["drawn_on"]["walls"]["F"]
+        self.assertGateFails(self.broken(change), "every opening is on the wall the elevations draw its mark on")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]

@@ -135,6 +135,19 @@ frame:
   - FRONT ELEVATION draws window B (the narrow tall sidelite) on the viewer's left of door 1; facing the front wall from outside, the viewer's left is toward
     X-max, which is the grid A side where A-1.0 draws it.
   source: A-2.0 SIDE (LEFT), SIDE (RIGHT), FRONT and REAR ELEVATIONS; A-1.0 floor plan. The plan is laid out as Laurel's A-1.0 is, so the frame is Laurel's.
+  drawn_on:
+    source: 'A-2.0 FRONT, REAR, SIDE (LEFT) and SIDE (RIGHT) ELEVATIONS: each draws the windows and doors on its wall'
+    walls:
+      A: front_wall
+      B: front_wall
+      C: end_wall_x24
+      D: end_wall_x0
+      E: rear_wall
+      F: end_wall_x24
+      door_1: front_wall
+      door_6: rear_wall
+    note: which wall each mark is DRAWN on, from the elevations, independently of the plan's strings that position the openings; verify_spec.py holds the
+      openings to it and the build holds the built meshes to it
 envelope:
   width:
     ft: 24.0
@@ -636,6 +649,10 @@ openings:
       height:
         ft: 6.6667
         raw: 6'-8"
+    leaf_thickness:
+      ft: 0.1146
+      raw: 1 3/8"
+      assumed: the usual leaf; no sheet dimensions one (Laurel's assumption, carried)
   front_wall:
     wall: Y 19.1667; the string runs from grid A (X 24) to grid B (X 0)
     string:
@@ -987,7 +1004,32 @@ interior_partitions:
       derived: each opening runs from the slab to its schedule height in openings.door_types; A-1.0 gives no head height, and a door sits on the floor
 windows:
   source: 'A-1.0 Window Schedule, Operation column; A-1.0 WINDOW INFORMATION ''FRAME: VINYL'''
-  status: 'Tier B detail (frame and sash members) is not specified here: the Tier A build cuts the openings and the finish step adds the members.'
+  status: The sash members are a MODELLING choice (no sheet dimensions them). Each value below is carried from Laurel's or the barn cabin's spec, where
+    it is declared assumed, and is assumed here for the same reason; the elevation overlay (#173) is where a wrong one shows.
+  frame_to_glass:
+    ft: 0.1667
+    raw: 2"
+    assumed: 'the visible sash member of a vinyl window (A-1.0 ''FRAME: VINYL''), head, jambs and sill alike; A-3.0 and A-3.2 draw the window in section
+      without dimensioning the frame, and the schedule gives the rough opening only'
+  mullion:
+    ft: 0.1458
+    raw: 1 3/4"
+    assumed: the meeting stile where two units meet (A, E and the slider F); nothing on a sheet dimensions it
+  proud_of_glass:
+    ft: 0.0208
+    raw: 1/4"
+    assumed: how far each member stands off the glazing plane, on both faces, so the sash reads from inside as well as out; a modelling depth, not a measurement
+  meeting_rail:
+    ratio: 0.5
+    thickness:
+      ft: 0.1042
+      raw: 1 1/4"
+      assumed: 'the barn cabin''s measured rail, borrowed: no sheet dimensions Willow''s'
+    assumed: mid-height, as the barn cabin's single-hung windows measure (three heights, 50.0 to 50.3 percent); Willow's elevations draw the same two-over-two
+      panes
+  glazing_plane:
+    at: the centre of the wall's stud depth
+    assumed: no sheet gives a setback, and the schedules dimension the rough opening only; centred is the one choice that needs no number nobody drew
   operations:
     single_hung:
       units: 1

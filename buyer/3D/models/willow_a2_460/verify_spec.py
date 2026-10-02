@@ -88,6 +88,15 @@ def check(spec):
         "end_wall_x24": {"W-C1", "W-F1"},
         "end_wall_x0": {f"W-D{i}" for i in range(1, 7)},
     }
+    drawn = spec["frame"]["drawn_on"]["walls"]
+    elev = []
+    for wall in expected_walls:
+        for r in o[wall]["openings"]:
+            kind = str(r["type"])
+            mark = f"door_{kind}" if kind in {str(d["mark"]) for d in o["door_types"]["types"]} else kind
+            if drawn.get(mark) != wall:
+                elev.append(f"{r['id']} is in {wall}, the elevations draw {mark} on {drawn.get(mark)!r}")
+    gate(not elev, "every opening is on the wall the elevations draw its mark on (frame.drawn_on)", "; ".join(elev))
     wrong_walls = []
     for wall, want_ids in expected_walls.items():
         have = {r["id"] for r in o[wall]["openings"]}
