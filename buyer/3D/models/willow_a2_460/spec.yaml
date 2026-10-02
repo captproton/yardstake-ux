@@ -412,7 +412,7 @@ openings:
     - mark: A
       source: A-1.0 Window Schedule
       count_scheduled: 2
-      operation: single_hung
+      operation: single_hung_double
       operation_raw: SINGLE HUNG (DOUBLE)
       width:
         ft: 4.0
@@ -468,7 +468,7 @@ openings:
     - mark: E
       source: A-1.0 Window Schedule
       count_scheduled: 1
-      operation: single_hung
+      operation: single_hung_double
       operation_raw: SINGLE HUNG (DOUBLE)
       width:
         ft: 5.0
@@ -603,8 +603,15 @@ openings:
       type: B
       x0: 13.0
       x1: 14.5833
-      derived: 20.4167 - 4'-0" - 1'-10" pier = 14.5833, less the 1'-7" opening the string gives it (the schedule's 1'-6" window plus its frame)
-      note: the string's 1'-7" is the rough opening; the schedule says 1'-6" wide. Built at the schedule width, centred in the 1'-7".
+      derived: 'ROUGH OPENING, the wall cutter''s span: 20.4167 - 4''-0" - 1''-10" pier = 14.5833, less the 1''-7" the string gives it'
+      unit_x0: 13.0417
+      unit_x1: 14.5417
+      unit_derived: 'THE WINDOW UNIT, the sash''s span: the schedule''s 1''-6" centred in the 1''-7" rough opening, 1/24 ft (half an inch) in from each
+        side'
+      unit_assumed: centred. No sheet dimensions where the 1'-6" window sits inside its 1'-7" opening; centred is the one choice that needs no number nobody
+        drew.
+      note: x0/x1 are the rough opening (what the wall is cut to); unit_x0/unit_x1 are the window (what the sash is built to). Every other window's two
+        spans are the same.
     - id: D-1
       type: '1'
       x0: 10.0
@@ -923,9 +930,14 @@ windows:
   status: 'Tier B detail (frame and sash members) is not specified here: the Tier A build cuts the openings and the finish step adds the members.'
   operations:
     single_hung:
+      units: 1
+      meeting_rail: true
+      source: 'A-1.0 Window Schedule, mark C is SINGLE HUNG: one unit of two stacked sashes, divided by a meeting rail'
+    single_hung_double:
       units: 2
       meeting_rail: true
-      source: 'A-1.0 Window Schedule, marks A, C and E are SINGLE HUNG (A and E ''DOUBLE''): two stacked sashes'
+      source: 'A-1.0 Window Schedule, marks A and E are SINGLE HUNG (DOUBLE): two single-hung units side by side, each with its own meeting rail (A-2.0''s
+        elevations draw them as two columns of two panes)'
     fixed:
       units: 1
       meeting_rail: false
@@ -943,8 +955,9 @@ discrepancies:
   source: A-2.0 ROOF PLAN NOTES; A-1.0 floor plan; structural notes page 12 note 14
 - id: the-window-b-string-is-a-rough-opening
   impact: A-1.0's front-wall string gives 1'-7" for window B; the window schedule gives B a width of 1'-6".
-  resolution: THE SCHEDULE'S 1'-6" is the window, the string's 1'-7" the rough opening (the same 1" frame the other windows' strings do not show). The opening
-    is built 1'-6" wide, centred in 1'-7".
+  resolution: 'THE SCHEDULE''S 1''-6" is the window, the string''s 1''-7" the rough opening (the same 1" frame the other windows'' strings do not show).
+    The spec carries BOTH spans on W-B1: x0/x1 is the 1''-7" rough opening the wall is cut to, and unit_x0/unit_x1 is the 1''-6" window, centred in it (an
+    assumption: no sheet places it).'
   source: A-1.0 floor plan front-wall string; A-1.0 Window Schedule mark B
 - id: the-porch-junction-is-derived-not-dimensioned
   impact: Where the porch roof meets the main roof is drawn but not dimensioned. The valley meeting point is about 5.1 ft in from the front wall on the

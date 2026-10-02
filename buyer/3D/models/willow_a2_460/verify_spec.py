@@ -98,6 +98,53 @@ def check(spec):
          "window B is on the X 24 side of door 1, where the plan draws it (grid A's side)",
          f"B {b1['x0']}..{b1['x1']}, door {d1['x0']}..{d1['x1']}")
 
+    # every exterior opening is its schedule width: a width typed twice (in a string and in the
+    # schedule) cannot drift apart unseen. Window B is the one exception, by design: its span is
+    # the rough opening, and its unit span (the window the sash is built to) is checked instead.
+    off = []
+    for wall, lo, hi in (("front_wall", "x0", "x1"), ("rear_wall", "x0", "x1"),
+                         ("end_wall_x0", "y0", "y1"), ("end_wall_x24", "y0", "y1")):
+        for row in o[wall]["openings"]:
+            kind = str(row["type"])
+            if kind in doors:
+                want = float(doors[kind]["width"]["ft"])
+            else:
+                want = float(wins[kind]["width"]["ft"])
+            got = row[hi] - row[lo]
+            if kind == "B":
+                if not (want - TOL <= got <= want + 1 / 12 + TOL):
+                    off.append(f"{row['id']} rough opening {got:.4f} is not the schedule's {want:.4f} plus at most an inch")
+                u0, u1 = row.get("unit_x0"), row.get("unit_x1")
+                if u0 is None or u1 is None:
+                    off.append(f"{row['id']} has no unit span (unit_x0/unit_x1)")
+                else:
+                    if not close(u1 - u0, want):
+                        off.append(f"{row['id']} unit is {u1 - u0:.4f} wide, schedule says {want:.4f}")
+                    if not (row[lo] - TOL <= u0 and u1 <= row[hi] + TOL):
+                        off.append(f"{row['id']} unit {u0}..{u1} is outside its rough opening {row[lo]}..{row[hi]}")
+                    if not close(u0 - row[lo], row[hi] - u1):
+                        off.append(f"{row['id']} unit is not centred in its rough opening")
+            elif not close(got, want):
+                off.append(f"{row['id']} is {got:.4f} wide, schedule says {want:.4f}")
+    gate(not off, "every exterior opening is its schedule width (window B's rough opening and its centred unit span, checked separately)",
+         "; ".join(off))
+
+    # a window type's operation has the units its schedule text says: "(DOUBLE)" is two units side
+    # by side, so a plain SINGLE HUNG window must not get two (units counts sashes side by side)
+    ops = spec["windows"]["operations"]
+    bad_ops = []
+    for w in o["window_types"]["types"]:
+        op = ops.get(w["operation"])
+        if op is None:
+            bad_ops.append(f"window {w['mark']}: operation {w['operation']!r} is not in windows.operations")
+            continue
+        raw = w["operation_raw"].upper()
+        want_units = 2 if "DOUBLE" in raw or raw == "SLIDER" else 1
+        if op["units"] != want_units:
+            bad_ops.append(f"window {w['mark']} ({w['operation_raw']}): operation {w['operation']} has units {op['units']}, expected {want_units}")
+    gate(not bad_ops, "every window's operation has the number of side-by-side units its schedule text says",
+         "; ".join(bad_ops))
+
     # ── the rear wall: its string runs from grid A to grid B ──────────────
     rear = [parse_length(s) for s in o["rear_wall"]["string"]]
     gate(sum(rear) == width, "the rear wall's string sums to the width", f"{sum(rear)} vs {width}")

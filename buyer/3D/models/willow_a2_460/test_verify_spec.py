@@ -289,6 +289,58 @@ class VerifySpec(unittest.TestCase):
             row["at_ft"] += 0.25
         self.assertGateFails(self.broken(change), "the bath wall's far face is the rear string's first segment")
 
+    def test_window_a_the_wrong_width(self):
+        def change(s):
+            opening(s, "W-A1")["x0"] -= 0.5
+        self.assertGateFails(self.broken(change), "every exterior opening is its schedule width")
+
+    def test_window_d_the_wrong_width(self):
+        def change(s):
+            opening(s, "W-D1")["y0"] -= 0.5
+        self.assertGateFails(self.broken(change), "every exterior opening is its schedule width")
+
+    def test_window_e_the_wrong_width(self):
+        def change(s):
+            opening(s, "W-E1")["x0"] -= 0.5
+        self.assertGateFails(self.broken(change), "every exterior opening is its schedule width")
+
+    def test_door_six_the_wrong_width(self):
+        def change(s):
+            opening(s, "D-6")["x1"] += 0.5
+        self.assertGateFails(self.broken(change), "every exterior opening is its schedule width")
+
+    def test_window_b_with_no_unit_span(self):
+        def change(s):
+            del opening(s, "W-B1")["unit_x0"]
+        self.assertGateFails(self.broken(change), "every exterior opening is its schedule width")
+
+    def test_window_b_unit_off_centre(self):
+        def change(s):
+            b = opening(s, "W-B1")
+            b["unit_x0"] -= 0.04
+            b["unit_x1"] -= 0.04
+        self.assertGateFails(self.broken(change), "every exterior opening is its schedule width")
+
+    def test_window_b_unit_the_wrong_width(self):
+        def change(s):
+            opening(s, "W-B1")["unit_x1"] += 0.04
+        self.assertGateFails(self.broken(change), "every exterior opening is its schedule width")
+
+    def test_a_plain_single_hung_window_given_two_units(self):
+        def change(s):
+            s["windows"]["operations"]["single_hung"]["units"] = 2
+        self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_double_window_given_one_unit(self):
+        def change(s):
+            s["windows"]["operations"]["single_hung_double"]["units"] = 1
+        self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_window_naming_an_operation_that_is_not_defined(self):
+        def change(s):
+            s["openings"]["window_types"]["types"][2]["operation"] = "awning"
+        self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]
