@@ -1,12 +1,14 @@
-# Willow -- dimensional spec (started by new_model.py; nothing in it is measured yet)
+# Willow -- dimensional spec (A1, drafted 2026-10-02; PR #179, issue #171)
 # Source plan set: adu-plan-full-set-a2-willow.pdf
 #
 # EVERY NUMBER IS CITED. `source` names a sheet listed in sheet_index and where on
 # it; `derived` shows the arithmetic; `assumed` says why no sheet says it.
-# adu_kit/spec_lint.py fails any number without one. Candidates are in
-# docs/candidates.yaml: check each on its sheet, then copy what you accept here.
-# Read models/laurel_a1_460/spec.yaml for the shape; its keys are what
-# adu_kit and the page read.
+# adu_kit/spec_lint.py fails any number without one, and verify_spec.py checks what
+# the numbers mean together. What is CARRIED or ASSUMED rather than read from
+# Willow's own sheets is marked `assumed` or described in the block's `status`; the
+# interior layout is carried from Laurel (see interior_partitions).
+# Read models/laurel_a1_460/spec.yaml for the shape; its keys are what adu_kit and
+# the page read.
 
 meta:
   model_id: willow_a2_460
@@ -82,21 +84,21 @@ sheet_index:
     id: A-3.4
     title: Fire details
   - pdf_page: 12
-    id: null
+    id: SN1
     title: Structural notes
-    note: portrait; no id read from its title block
+    note: portrait; its id is printed on the sheet but the harvester reads none from the title block
   - pdf_page: 13
-    id: null
-    title: Roof framing plan (S1.0 is printed on it)
-    note: portrait; no id read from its title block
+    id: S1.0
+    title: Foundation, shearwall and roof framing plans
+    note: portrait; as above
   - pdf_page: 14
-    id: null
+    id: SD1
     title: Structural details
-    note: portrait; no id read from its title block
+    note: portrait; as above
   - pdf_page: 15
-    id: null
+    id: SD2
     title: Structural details
-    note: portrait; no id read from its title block
+    note: portrait; as above
   - pdf_page: 16
     id: null
     title: Structural details
@@ -356,8 +358,9 @@ construction:
     sheathing:
       ft: 0.0313
       raw: 3/8"
-      source: S1.0 shearwall schedule (the roof framing sheet's notes); A-3.0 and A-3.2 say 'SHEATHING PER STRUCTURAL'
-      note: 'carried from Laurel''s reading: the build models one wall type. Not re-read on Willow''s structural sheets: settle at the build.'
+      source: S1.0 SHEARWALL SCHEDULE, '3/8" APA RATED ONE FACE' (read on Willow's own S1.0, 2026-10-02); A-3.0 and A-3.2 say 'SHEATHING PER STRUCTURAL'
+      note: The schedule governs shear walls; the wall sections say only 'per structural'. The build models one wall type, so the schedule's thickness is
+        applied to every exterior wall (Laurel's reading, here checked against Willow's sheet).
     cladding_modelled:
       ft: 0.0
       assumed: 'ZERO, ON PURPOSE. Neither A-3.0 (stucco) nor A-3.2 (lap siding) dimensions its cladding, and the two are not the same thickness in any real
@@ -396,13 +399,10 @@ construction:
     type: slab_on_grade
     source: 'A-0.0 project data ''FOUNDATION: SLAB''; scope of work ''SLAB ON GRADE FOUNDATION'''
     slab:
-      status: not read
-      note: the foundation plan's slab thickness is on a structural sheet this spec has not read; Willow's slab is built at Laurel's 4" until it is (assumed
-        below)
       thickness:
         ft: 0.3333
         raw: 4"
-        assumed: Laurel's slab, same designer's sheet system; Willow's structural sheets were not read for this
+        source: 'S1.0 FOUNDATION AND SHEARWALL PLAN, ''4" CONC. SLAB ON GRADE W/ #3 BARS'' (read on Willow''s own S1.0, 2026-10-02)'
 openings:
   window_types:
     source: A-1.0 Window Schedule
