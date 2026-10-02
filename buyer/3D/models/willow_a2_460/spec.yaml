@@ -424,25 +424,23 @@ construction:
         applied to every exterior wall (Laurel's reading, here checked against Willow's sheet).
     cladding_modelled:
       ft: 0.0
-      assumed: 'ZERO, ON PURPOSE. Neither A-3.0 (stucco) nor A-3.2 (lap siding) dimensions its cladding, and the two are not the same thickness in any real
-        assembly: three-coat cement plaster over self-furring lath runs about 7/8", fiber cement lap siding about 5/16" over its sheathing. Modelling each
-        at its own thickness would move the outer faces of the building when the finish changed, and variants .exterior_finish records that change as a
-        FINISH SWAP, not a geometry change -- the page swaps a baseColorFactor in the manifest (#131, #133), not a mesh. So the build stops the geometry
-        at the sheathing face and carries the cladding as a material only. The error is at most seven eighths of an inch on a 24-foot building, below what
-        the page can show at the distance a homeowner views it, and the overall dimensions this model publishes stay the ones A-1.0 draws.
-
-        '
-      revisit: '#131 and #133, if the configurator ever needs the two finishes to differ in section'
+      assumed: 'ZERO, ON PURPOSE (Laurel''s decision, adopted here). Neither A-3.0 (stucco) nor A-3.2 (lap siding) dimensions its cladding, and the two
+        are not the same thickness in any real assembly: three-coat cement plaster over self-furring lath runs about 7/8", fiber cement lap siding about
+        5/16" over its sheathing. Modelling each at its own thickness would move the outer faces when the finish changed; a finish is a swap of material,
+        not a change of geometry. So the build stops the geometry at the sheathing face and carries the cladding as a material only. The error is at most
+        seven eighths of an inch on a 24-foot building, and the overall dimensions stay the ones A-1.0 draws. Willow''s finishes (stucco or lap siding)
+        are Tier B.'
+      revisit: Tier B, if the page ever needs the two finishes to differ in section
     outer_face:
       derived: 'face of stud + construction.exterior_wall.sheathing. The envelope dimensions are to face of stud (A-1.0 U.N.O.), so the modelled exterior
         surface sits 3/8" outboard of X 0, X 24, Y 0 and Y 19.1667.
 
         '
-      note: '#130''s elevation overlay compares this face against A-2.0'
+      note: the Willow elevation overlay (#173) compares this face against A-2.0
     casing_reveal:
       ft: 0.0313
       raw: 3/8"
-      source: A-3.0 details 3 and 4, 0'-0 3/8" at the metal casing bead
+      source: A-3.0, 0'-0 3/8" at the metal casing bead (the stucco wall section and the window head details)
   interior_wall:
     framing: 2x4, gyp board both sides
     source: 'A-1.0 WALL LEGEND ''2X4 INTERIOR WALL: GYP. BOARD BOTH SIDES'''
@@ -454,8 +452,7 @@ construction:
       ft: 0.0417
       raw: 1/2"
       material: gypsum_board
-      assumed: 'A-1.0''s legend says GYP. BOARD BOTH SIDES and gives no thickness; the 1/2" A-3.0 and A-3.2 call for on the exterior walls'' inside face.
-        The fixtures'' measured backs agree: each sits 0.040-0.041 ft off a stud face'
+      assumed: A-1.0's legend says GYP. BOARD BOTH SIDES and gives no thickness; the 1/2" A-3.0 and A-3.2 call for on the exterior walls' inside face
   foundation:
     type: slab_on_grade
     source: 'A-0.0 project data ''FOUNDATION: SLAB''; scope of work ''SLAB ON GRADE FOUNDATION'''
@@ -810,6 +807,7 @@ interior_partitions:
   - laundry (W/D)
   - bath (tub, toilet, 36" vanity)
   - living
+  - sleeping
   rooms_source: A-1.0 floor plan room tags
   dimension_strings:
     source: A-1.0 floor plan, interior dimension strings (the same eight strings Laurel's A-1.0 draws; each is on Willow's A-1.0 too)
@@ -852,7 +850,7 @@ interior_partitions:
     datum: 'the frame above: X 0 and Y 0 are the outside faces of stud at the living-room end and the rear wall'
     thickness:
       ft: 0.2917
-      derived: construction.interior_wall.stud_depth, 3 1/2" -- gyp board is a finish (#132) and is not modelled here
+      derived: construction.interior_wall.stud_depth, 3 1/2" -- gyp board is a finish and is not modelled here
     height:
       to: ceiling
       assumed: Partitions stop at the ceiling, which is assumed FLAT AT T.P. 8'-0" (roof.ceiling, unsettled). Laurel's ran to the roof because its ceilings
