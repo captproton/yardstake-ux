@@ -325,7 +325,10 @@ One line per pull request. Mark each **Done** with its number.
    ([#177](https://github.com/captproton/yardstake-ux/pull/177)); **batch 2 planned**
    in [`GATES-BATCH-2.md`](GATES-BATCH-2.md), recommended for Willow's Tier B.
 4. [#171](https://github.com/captproton/yardstake-ux/issues/171) **Willow spec** (A1): records step 0's findings with citations,
-   scaffolded by `new_model.py`.
+   scaffolded by `new_model.py`. **Drafted 2026-10-02**: lint, `verify_spec.py` and its
+   tests pass; findings in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md) ("Settled in
+   the spec"). The ceiling stays an assumption: the plan set leaves the truss profile
+   to the manufacturer.
 5. [#172](https://github.com/captproton/yardstake-ux/issues/172) **Willow build**, with the gable class (A2).
 6. [#173](https://github.com/captproton/yardstake-ux/issues/173) **Willow overlay** (A3).
 7. [#170](https://github.com/captproton/yardstake-ux/issues/170) **Willow export** (A4): Willow is on the page.
