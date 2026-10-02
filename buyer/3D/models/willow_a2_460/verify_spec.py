@@ -372,6 +372,16 @@ def check(spec):
 
     # ── the roof's arithmetic ─────────────────────────────────────────────
     roof, lv = spec["roof"], spec["levels"]
+    # THE ROOF'S SHAPE IS WHAT THE BUILD READS FIRST. Every roof gate below is arithmetic on slopes and
+    # heights, so changing `form` or a ridge direction (a decision the A1 spec makes from A-2.0) would
+    # leave them green while the builder received a different roof. Two gables, the main ridge along
+    # the 24'-0" front wall (X) and the porch ridge running front to back (Y): perpendicular, as the
+    # roof plan's two valleys require.
+    shape = (roof.get("form"), roof["main"].get("form"), roof["main"].get("ridge_runs_along"),
+             roof["porch"].get("form"), roof["porch"].get("ridge_runs_along"))
+    gate(shape == ("two_gables", "gable", "X", "gable", "Y"),
+         "the roof is two gables: the main ridge along X, the porch ridge along Y",
+         f"form {shape[0]!r}, main {shape[1]!r} along {shape[2]!r}, porch {shape[3]!r} along {shape[4]!r}")
     plate = float(lv["top_of_plate"]["ft"])
     top = float(lv["top_of_roof"]["ft"])
     half = float(depth) / 2
