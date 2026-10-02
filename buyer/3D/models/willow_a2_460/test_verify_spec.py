@@ -272,6 +272,23 @@ class VerifySpec(unittest.TestCase):
         self.assertNotIn("Traceback", r.stderr)
         self.assertIn("ZeroDivisionError", r.stdout)
 
+    def test_studs_toward_parallel_to_the_wall(self):
+        def change(s):
+            row = partition(s, "P_bath_W")      # runs along X
+            row["studs_toward"] = "+X"
+        self.assertGateFails(self.broken(change), "every partition's studs run across it")
+
+    def test_a_y_running_wall_with_y_studs(self):
+        def change(s):
+            partition(s, "P_pantry_N")["studs_toward"] = "-Y"      # runs along Y
+        self.assertGateFails(self.broken(change), "every partition's studs run across it")
+
+    def test_the_bath_wall_off_the_rear_strings_first_segment(self):
+        def change(s):
+            row = partition(s, "P_bath_S")
+            row["at_ft"] += 0.25
+        self.assertGateFails(self.broken(change), "the bath wall's far face is the rear string's first segment")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]

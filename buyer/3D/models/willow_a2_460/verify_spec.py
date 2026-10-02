@@ -179,6 +179,19 @@ def check(spec):
         part[row["id"]] = dict(row, near=near, far=far, lo=min(near, far), hi=max(near, far),
                                a=float(row["from_ft"]), b=float(row["to_ft"]))
 
+    # a wall's studs run ACROSS it: an X-running wall takes +Y or -Y, a Y-running wall +X or -X.
+    # _sign reduces the direction to a sign, so without this `runs_along: X` with
+    # `studs_toward: +X` passed every gate below while describing no wall.
+    parallel = [pid for pid, r in part.items() if r["studs_toward"][1] == r["runs_along"]]
+    gate(not parallel, "every partition's studs run across it (an X-running wall takes +Y or -Y, a Y-running wall +X or -X)",
+         ", ".join(f"{pid} runs along {part[pid]['runs_along']} with studs_toward {part[pid]['studs_toward']}" for pid in parallel))
+    # the one partition position Willow's own rear-wall string fixes: the bath wall's far face is where the
+    # string's first segment ends (24'-0" less 9'-4")
+    rear_first = float(parse_length(o["rear_wall"]["string"][0]))
+    gate(close(part["P_bath_S"]["far"], float(width) - rear_first),
+         "the bath wall's far face is the rear string's first segment from grid A (Willow's own 9'-4\")",
+         f"far face {part['P_bath_S']['far']:.4f} vs {float(width) - rear_first:.4f}")
+
     strings = {r["raw"]: r["runs_along"] for r in spec["interior_partitions"]["dimension_strings"]["strings"]}
     stud = float(spec["construction"]["exterior_wall"]["stud_depth"]["ft"])
     reads = [

@@ -797,11 +797,9 @@ interior_partitions:
       studs_toward: +Y
       from_ft: 14.9583
       to_ft: 23.5417
-      derived: 'envelope.front_to_grid_2 and grid_2_to_rear put grid 2 at Y 6.0, which is 6''-0" from the rear wall''s outside face of stud. A-1.0 dimensions
-        to face of stud, so Y 6.0 is this wall''s bath-side face and its 3 1/2" studs run to Y 6.2917. It spans from the X 24 wall''s interior face (24
-        - 5 1/2" = 23.5417) to P_bath_S at X 14.9583.
-
-        '
+      derived: envelope.front_to_grid_2 and grid_2_to_rear put grid 2 at Y 6.0, which is 6'-0" from the rear wall's outside face of stud. A-1.0 dimensions
+        to face of stud, so Y 6.0 is this wall's bath-side face and its 3 1/2" studs run to Y 6.2917. It spans from the X 24 wall's interior face (24 -
+        5 1/2" = 23.5417) to P_bath_S at X 14.9583.
       separates:
       - bath
       - kitchen
@@ -811,11 +809,10 @@ interior_partitions:
       studs_toward: -X
       from_ft: 0.4583
       to_ft: 11.4583
-      derived: 'openings.rear_wall.string_start: the rear wall''s string totals 14''-11 1/2" and ends at grid B, so it starts at X 14.9583, at the bath''s
-        partition. Laurel left which face open; the scale check settles it as the bath-and-pantry side, with the studs running down to X 14.6667. It spans
-        from the rear wall''s interior face (0.4583) to P_block_W at Y 11.4583, and carries door 5.
-
-        '
+      derived: 'Willow''s rear-wall string (openings.rear_wall.string) starts with 9''-4" from grid A to the bath''s partition: 24 - 9''-4" = 14.6667 is
+        this wall''s far face, and its 3 1/2" studs put the near face at 14.6667 + 0.2917 = 14.9583. The choice of face is carried from Laurel''s layout;
+        verify_spec.py holds the far face to Willow''s 9''-4". It spans from the rear wall''s interior face (0.4583) to P_block_W at Y 11.4583, and carries
+        door 5.'
       separates:
       - bath
       - pantry
@@ -829,9 +826,7 @@ interior_partitions:
       to_ft: 17.4583
       derived: 'the 5''-2" string, whose ticks run from P_bath_W''s kitchen face: 6.2917 + 5.1667 = 11.4583, this wall''s living-room face; its studs run
         to Y 11.1667. The 7''-3" string lands here too, from P_laundry_E. It spans the whole block depth, from P_block_S at X 11.2917 to P_pantry_N at X
-        17.4583. Laurel had it at 11.4167, half an inch toward the rear.
-
-        '
+        17.4583.'
       separates:
       - living
       - closet
@@ -844,9 +839,7 @@ interior_partitions:
       to_ft: 14.6667
       derived: 'the 3''-2" string, from P_laundry_E''s face: 4.2083 + 3.1667 = 7.375 is this wall''s laundry face, and its studs run to 7.6667, the closet
         face. That leaves the closet exactly 3''-6" (11.1667 - 7.6667): the closet is no string on the sheet, and now it is a check rather than the arithmetic
-        that placed this wall.
-
-        '
+        that placed this wall.'
       separates:
       - closet
       - laundry
@@ -857,10 +850,8 @@ interior_partitions:
       from_ft: 11.2917
       to_ft: 14.6667
       derived: 'three strings end on this face, and agree: 11.4583 - 7''-3" = 4.2083, the rear wall''s inside face 0.4583 + 3''-9" = 4.2083, and 7.375 -
-        3''-2" = 4.2083. The studs run to Y 4.5. Laurel read the first two strings as ending at 4.1667, half an inch short. A-1.0 draws this as two jamb
-        returns rather than a full wall, because the laundry opens through it. It is modelled as a wall so door 4 is a cut opening in it.
-
-        '
+        3''-2" = 4.2083. The studs run to Y 4.5. A-1.0 draws this as two jamb returns rather than a full wall, because the laundry opens through it. It
+        is modelled as a wall so door 4 is a cut opening in it.'
       separates:
       - laundry
       - bath_approach
@@ -870,10 +861,8 @@ interior_partitions:
       studs_toward: -X
       from_ft: 4.2083
       to_ft: 11.4583
-      derived: 'the 6''-2" string is the pantry and closet together, X 17.4583 to 11.2917, so 11.2917 is this wall''s living-room face and 11.5833 the closet
-        and laundry side. It spans the block''s width and carries door 3.
-
-        '
+      derived: the 6'-2" string is the pantry and closet together, X 17.4583 to 11.2917, so 11.2917 is this wall's living-room face and 11.5833 the closet
+        and laundry side. It spans the block's width and carries door 3.
       separates:
       - living
       - closet
@@ -885,9 +874,7 @@ interior_partitions:
       from_ft: 6.2917
       to_ft: 11.4583
       derived: 'the 6''-6 1/2" string runs from the X 24 wall''s outside face of stud to X 17.4583, and the 2''-6" string runs from there back to P_bath_S
-        at X 14.9583: the pantry block, outside to outside. So 17.4583 is this wall''s kitchen face and 17.1667 its pantry face. It carries door 2.
-
-        '
+        at X 14.9583: the pantry block, outside to outside. So 17.4583 is this wall''s kitchen face and 17.1667 its pantry face. It carries door 2.'
       separates:
       - kitchen
       - pantry
