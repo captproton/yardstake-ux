@@ -821,10 +821,8 @@ interior_partitions:
       to: ceiling
       assumed: Partitions stop at the ceiling, which is assumed FLAT AT T.P. 8'-0" (roof.ceiling, unsettled). Laurel's ran to the roof because its ceilings
         follow the roof; Willow's A-1.0 does not say so, and a gable roof over a plate-height wall has no room for a partition to reach it.
-      what_would_settle_it: 'A building section through the bath, closet or laundry, or a reflected ceiling plan showing a flat ceiling there. A-1.1 is
-        the electrical and reflected plan and was not read for this.
-
-        '
+      what_would_settle_it: the truss manufacturer's profile or a building section through the bath, closet or laundry. Neither is in the plan set; A-1.1
+        is a power plan with ceiling fixtures and no ceiling geometry (see roof.ceiling), so it cannot settle it.
     partitions:
     - id: P_bath_W
       runs_along: X

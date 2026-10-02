@@ -444,6 +444,11 @@ def check(spec):
          and close(c["at"]["ft"], plate),
          "the ceiling is declared an assumption, not a fact, and sits at the plate",
          "settled must be false, `assumed` must say why, `at` must equal T.P.")
+    # THE FORM IS WHAT THE BUILD READS. A different `form` with the same `at` would hand the builder another
+    # ceiling and leave every gate above green; the partitions' own head must agree with it.
+    gate(c.get("form") == "flat" and spec["interior_partitions"]["layout"]["height"].get("to") == "ceiling",
+         "the ceiling form is flat at the plate and the partitions stop at it",
+         f"roof.ceiling.form {c.get('form')!r}, partitions' height.to {spec['interior_partitions']['layout']['height'].get('to')!r}")
 
 
 def main(argv):

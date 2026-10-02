@@ -188,6 +188,16 @@ class VerifySpec(unittest.TestCase):
             s["roof"]["ceiling"]["settled"] = True
         self.assertGateFails(self.broken(change), "the ceiling is declared an assumption")
 
+    def test_a_ceiling_form_that_is_not_flat(self):
+        def change(s):
+            s["roof"]["ceiling"]["form"] = "follows_roof"
+        self.assertGateFails(self.broken(change), "the ceiling form is flat at the plate and the partitions stop at it")
+
+    def test_partitions_that_do_not_stop_at_the_ceiling(self):
+        def change(s):
+            s["interior_partitions"]["layout"]["height"]["to"] = "roof_underside"
+        self.assertGateFails(self.broken(change), "the ceiling form is flat at the plate and the partitions stop at it")
+
     def test_a_ceiling_with_no_reason(self):
         def change(s):
             s["roof"]["ceiling"]["assumed"] = ""
