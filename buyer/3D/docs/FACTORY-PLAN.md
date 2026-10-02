@@ -12,8 +12,13 @@ preflight) is done, in [`WILLOW-PREFLIGHT.md`](WILLOW-PREFLIGHT.md), merged in
 [#166](https://github.com/captproton/yardstake-ux/pull/166). Phase 1 (the roof
 as a list of planes, ceiling split from roof) is done, in
 [#176](https://github.com/captproton/yardstake-ux/pull/176) (`8fa36a6`): Laurel's
-export byte-identical, 27 of 27 gates, 229 of 229 probes. Everything from Phase 2
-on is still a plan. The sequence's steps are filed as issues
+export byte-identical, 27 of 27 gates, 229 of 229 probes. Phase 3's first batch
+(seven self-contained gates, plus the gate log and spec readers, in `adu_kit/`) is
+done, in [#177](https://github.com/captproton/yardstake-ux/pull/177) (`177e16c`):
+export byte-identical, 28 of 28 gates, 237 of 237 probes. Its second batch is
+planned in [`GATES-BATCH-2.md`](GATES-BATCH-2.md), with the recommendation to
+defer it until Willow's Tier B. Phase 2 and Phases 4 on are still plans. The
+sequence's steps are filed as issues
 [#167](https://github.com/captproton/yardstake-ux/issues/167) to
 [#174](https://github.com/captproton/yardstake-ux/issues/174).
 
@@ -215,6 +220,15 @@ partition termination until step 4 confirms the ceiling form.
 
 ### Phase 3: the gates move into the kit (kit change, own PR, after Phase 1)
 
+**Status (2026-10-02).** Batch 1 is done ([#177](https://github.com/captproton/yardstake-ux/pull/177)):
+seven gates, each with a probe that goes BAD when it is replaced by an unconditional
+PASS. It took five review rounds, and every finding was a defect in an *original*
+gate, so batch 2 is planned around reading and mutation-testing each gate before it
+moves: see [`GATES-BATCH-2.md`](GATES-BATCH-2.md). Two corrections to this section's
+original list, from that evidence: the **canopy and condenser gates stay with
+Laurel** (they carry Laurel-only content, and a gate moves when a second model needs
+it), and **batch 2 is Willow's Tier B**, not a precondition for its build.
+
 Gates are 889 of the 1,762 lines in Laurel's `build.py`, and most take
 `(spec, geo)` and know no roof. If Willow copies them, the factory pays for
 them again with every model, and they drift. Move the roof-agnostic gates
@@ -236,7 +250,9 @@ ceiling/roof split that Phase 1 introduces.
 - **First measure the `geo` contract.** What the gates read from `geo` is the
   contract; list it before moving anything, and do not widen it for Willow's
   sake.
-- **Not a precondition for Willow's spec (A1),** only for its build (A2).
+- **Not a precondition for Willow's spec (A1),** only for its build (A2), and only
+  **batch 1** is: the gates in batch 2 are about trim, fixtures, furniture and the
+  plan overlay, which are Tier B.
 
 ### Phase 4: Willow, Tier A only
 
@@ -304,7 +320,9 @@ One line per pull request. Mark each **Done** with its number.
    roof. Laurel byte-identical.
 2. [#168](https://github.com/captproton/yardstake-ux/issues/168) **`adu_kit/ink.py`** (Phase 2). Four readers byte-identical.
 3. [#169](https://github.com/captproton/yardstake-ux/issues/169) **The gates move into `adu_kit/`** (Phase 3). Laurel's gate output
-   unchanged; probes still fail where they should.
+   unchanged; probes still fail where they should. **Batch 1 done**
+   ([#177](https://github.com/captproton/yardstake-ux/pull/177)); **batch 2 planned**
+   in [`GATES-BATCH-2.md`](GATES-BATCH-2.md), recommended for Willow's Tier B.
 4. [#171](https://github.com/captproton/yardstake-ux/issues/171) **Willow spec** (A1): records step 0's findings with citations,
    scaffolded by `new_model.py`.
 5. [#172](https://github.com/captproton/yardstake-ux/issues/172) **Willow build**, with the gable class (A2).
