@@ -233,8 +233,9 @@ Gates are 889 of the 1,762 lines in Laurel's `build.py`, and most take
 `(spec, geo)` and know no roof. If Willow copies them, the factory pays for
 them again with every model, and they drift. Move the roof-agnostic gates
 (`_every_row_built`, `_openings_on_the_wall_their_block_names`, the trim,
-fixture, furniture, canopy and condenser gates, `report`) behind a small `geo`
-contract; leave the `_roof_*` gates with the roof class.
+fixture and furniture gates, `report`) behind a small `geo` contract; leave the
+`_roof_*` gates with the roof class, and the canopy, condenser, water-heater and
+door 1 gates with Laurel (see the status above).
 
 **Caution from the preflight:** "knows no roof" is not the same as "holds for any
 ceiling". Gates that assume a partition reaches the roof (Laurel's vaulted

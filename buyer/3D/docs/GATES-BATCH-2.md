@@ -51,7 +51,7 @@ PASS and the full probe suite run once. **CAUGHT** means at least one probe went
 after `build.py`'s `main()` call and crashed every build; it was discarded, and the
 script now defines the stub before the original.)
 
-| Gate | Lines | Needs (beyond `spec`/`geo`) | Laurel-only content | Mutation | Decision |
+| Gate | Lines | Builder-side helpers it calls (scene objects: next table) | Laurel-only content | Mutation | Decision |
 |---|---|---|---|---|---|
 | `_every_opening_cased` | 17 | `_cased`, `_stacks`, `room_faces` | none | CAUGHT (1) | move, **2b** |
 | `_baseboard_runs` | 28 | `_pt`, `_stacks`, `room_faces` | none | CAUGHT (1) | move, **2b** |
@@ -59,6 +59,7 @@ script now defines the stub before the original.)
 | `_siding_skins` | 46 | `_face_slot`, `_volume` | none | CAUGHT (4) | move, **2b** |
 | `_floor_on_the_slab` | 17 | `_floor_slot`, `UP` | none | CAUGHT (1) | move, **2b** |
 | `_fixtures_where_drawn` | 45 | `_fixture_targets`, `room_faces` | messages name "A-1.0" | CAUGHT (3) | move, **2c** |
+| `_fixture_parts` | 38 | `inside_mesh` (already in `adu_kit/verify_lib.py`) | `Fix_counter`, `Fix_toilet`; Laurel's two compound fixtures | CAUGHT (2) | move, **2c** (read it first: its fixtures are Laurel's) |
 | `_furniture_placed` | 65 | `_mesh_boxes`, `_overlap`, `_partition_band` | `Furn_` object names | CAUGHT (4) | move, **2c** |
 | `_where_a10_draws_them` | 44 | none | messages name "A-1.0" | CAUGHT (2) | move, **2c** |
 | `_water_heater_as_published` | 23 | none | Rheem PROPH40, `Fix_water_heater` | CAUGHT (1) | **stay** |
@@ -69,6 +70,29 @@ script now defines the stub before the original.)
 | `_roof_top_at_the_front_edge` | 24 | none | one shed plane | CAUGHT (1) | stay with the roof |
 | `_roof_covers_its_overhangs` | 17 | none | one shed plane | **SURVIVED** | stay with the roof; needs a probe |
 | `_roof_meets_the_plates` | 36 | none | one shed plane | **SURVIVED** | stay with the roof; needs a probe |
+
+**Scene contract.** The column above lists helper *functions* only. Every gate also
+reads objects out of the Blender scene by name, and a moved gate inherits those names, so
+they are part of its contract (read from the code, 2026-10-02):
+
+| Gate | Scene objects it reads by name |
+|---|---|
+| `_every_opening_cased`, `_baseboard_runs` | `Trim_<host>` for each host |
+| `_siding_trim` | `Trim_ext_siding_<wall>`, `Wall_<wall>` |
+| `_siding_skins` | `Wall_front`, `Wall_rear`, each `geo["siding_of"]` skin and its stucco twin |
+| `_floor_on_the_slab` | `Slab` |
+| `_fixtures_where_drawn` | the ten `Fix_*` names in `_fixture_targets` |
+| `_furniture_placed` | `Furn_<arrangement>_*` |
+| `_where_a10_draws_them` | each partition by its spec `id`, and `Leaf_<door id>`; calls `world_bbox` and `_axis` |
+| `_water_heater_as_published` | `Fix_water_heater` |
+| `_fixture_parts` | `Fix_counter`, `Fix_toilet` (calls `inside_mesh`, already in `adu_kit/verify_lib.py`) |
+| `_canopy_hung` | `Canopy_frame`, `Canopy_slats`, `Canopy_brace_*`, `Trim_ext_siding_front`, `Wall_front` |
+| `_ground_mounted` | `Equip_condenser`, `Equip_pad` |
+| `_door_one_has_its_sidelite` | `Leaf_<id>`, `Sash_<id>_sidelite` |
+
+The names in the first seven rows are the builder's naming scheme, not Laurel's alone,
+and belong in the moved module's contract (as batch 1's did). The rest stay with the
+building that names them.
 
 **Why "stay" for the Laurel-only gates.** The lesson of the frame gate is that a gate
 which knows a building should not move until a second model needs it. Whether Willow has
@@ -88,7 +112,7 @@ gate that could silently stop checking. They get probes in **2.0**.
 
 ## The helpers
 
-The 8 gates to move call 12 helpers. Six are used only by gates and move with them. Six
+The 9 gates to move call 12 helpers. Six are used only by gates and move with them. Six
 are **also used by the builder**, so they need a shared home that both import.
 
 | Helper | Lines | Used by | Needs | Goes to |
@@ -132,7 +156,7 @@ Follow the method above for each. The `Trim_ext_siding_` prefix is a convention 
 in the module's contract, as batch 1's did.
 
 **2c, fixtures, furniture and the plan overlay.** Move `_fixtures_where_drawn`,
-`_furniture_placed`, `_where_a10_draws_them` with `_fixture_targets`, `_mesh_boxes`,
+`_fixture_parts`, `_furniture_placed`, `_where_a10_draws_them` with `_fixture_targets`, `_mesh_boxes`,
 `_overlap`. Their messages name "A-1.0", Laurel's floor-plan sheet: decide, per message,
 whether to take the sheet name from the spec or leave it, and record the choice.
 
