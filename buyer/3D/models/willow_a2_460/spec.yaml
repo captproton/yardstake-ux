@@ -274,6 +274,22 @@ roof:
       source: A-1.0 floor plan, four square post marks at the porch's edge; A-2.0 ROOF PLAN, WOOD POSTS BELOW at the same four
       size: 6X6 PT
       size_source: A-2.0 FRONT ELEVATION labels '6X6 PT POST' and '6X6 PT POSTS'
+      section:
+        width:
+          ft: 0.4583
+          raw: 5 1/2"
+          assumed: 'the dressed (actual) size of a 6x6: the sheet gives the nominal label only, and lumber is modelled at its actual size'
+        depth:
+          ft: 0.4583
+          raw: 5 1/2"
+          assumed: 'as the width: a square section'
+      z0:
+        ft: -0.5
+        derived: 'the posts'' feet: A-2.0''s FRONT ELEVATION draws them down to the GRADE line, -0''-6" (levels.grade), below the finished floor'
+        source: A-2.0 FRONT ELEVATION, the post members run to the GRADE -0'-6" line
+      z1:
+        ft: 7.2292
+        derived: 'the beam''s underside: beam top 8.0 less its dressed depth 9 1/4" (0.7708) = 7.2292. The post carries the beam, so it stops there.'
       spacing:
         strings:
         - 8'-4 1/4"
@@ -305,6 +321,23 @@ roof:
         size: 6X10 PT
         runs_along: X
         source: A-2.0 FRONT ELEVATION label '6X10 PT BEAM'
+        section:
+          width:
+            ft: 0.4583
+            raw: 5 1/2"
+            assumed: 'the dressed (actual) width of a 6x10: the sheet gives the nominal label only'
+          depth:
+            ft: 0.7708
+            raw: 9 1/4"
+            assumed: the dressed (actual) depth of a 6x10
+        x0:
+          ft: 0.0
+          derived: the first post's centre line (posts.x), grid B end
+          assumed: the beam runs post to post; the elevation draws the porch roof's eaves, not the beam, beyond the end posts
+        x1:
+          ft: 24.0
+          derived: the last post's centre line (posts.x), grid A end
+          assumed: as x0
         top:
           ft: 8.0
           derived: the porch roof's eave line is the plate line, T.P. 8'-0" (A-2.0 FRONT ELEVATION draws the beam under it)
@@ -720,7 +753,10 @@ openings:
       first: 9'-9 1/2"
       second: 9'-4 1/2"
       source: A-1.0 floor plan, bottom dimension strings
-      gap_between_triples: 1'-10 1/2"
+      grid_2_to_rear_triple: 1'-10 1/2"
+      gap_between_triples:
+        ft: 4.1667
+        derived: 2'-3 1/2" (front triple to grid 2) + 1'-10 1/2" (grid 2 to rear triple) = 4'-2", the clear wall between W-D3 and W-D4
     source: A-1.0 floor plan, the bottom dimension strings; A-2.0 SIDE (RIGHT) ELEVATION draws the six D windows as two triples
     openings:
     - id: W-D1

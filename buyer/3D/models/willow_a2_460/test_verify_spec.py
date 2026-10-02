@@ -428,6 +428,31 @@ class VerifySpec(unittest.TestCase):
             doors.append(second)
         self.assertGateFails(self.broken(change), "no two interior doors in one wall overlap")
 
+    def test_a_post_section_that_is_the_nominal_size(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["section"]["width"]["ft"] = 0.5
+        self.assertGateFails(self.broken(change), "the posts' and beam's sections are the dressed sizes")
+
+    def test_a_beam_section_that_is_the_nominal_size(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["beam"]["section"]["depth"]["ft"] = 10 / 12
+        self.assertGateFails(self.broken(change), "the posts' and beam's sections are the dressed sizes")
+
+    def test_posts_that_stop_short_of_the_beam(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["z1"]["ft"] = 7.0
+        self.assertGateFails(self.broken(change), "the posts run from grade to the beam's underside")
+
+    def test_posts_that_start_above_grade(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["z0"]["ft"] = 0.0
+        self.assertGateFails(self.broken(change), "the posts run from grade to the beam's underside")
+
+    def test_a_beam_that_does_not_reach_the_last_post(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["beam"]["x1"]["ft"] = 20.0
+        self.assertGateFails(self.broken(change), "the beam runs from the first post to the last")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]

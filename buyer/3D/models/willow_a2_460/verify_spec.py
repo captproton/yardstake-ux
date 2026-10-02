@@ -418,6 +418,26 @@ def check(spec):
     gate(0 < setback < float(porch["projects"]["ft"]),
          "the porch posts stand inside the porch roof's edge (setback is less than the 5'-0\" the roof projects)",
          f"setback {setback:.4f}, roof projects {float(porch['projects']['ft'])}")
+    # the posts and beam as geometry a build can read with no literals: a section (the dressed size of
+    # the nominal label), the feet at grade, the heads at the beam's underside, and the beam's ends
+    dressed = {"6X6 PT": (5.5 / 12, 5.5 / 12), "6X10 PT": (5.5 / 12, 9.25 / 12)}
+    beam = posts["beam"]
+    sect_bad = []
+    for who, nominal, sec in (("posts", posts["size"], posts["section"]), ("beam", beam["size"], beam["section"])):
+        want = dressed.get(nominal)
+        if want is None:
+            sect_bad.append(f"{who}: no dressed size known for {nominal!r}")
+        elif not (close(sec["width"]["ft"], want[0], 0.0005) and close(sec["depth"]["ft"], want[1], 0.0005)):
+            sect_bad.append(f"{who} section {sec['width']['ft']} x {sec['depth']['ft']} is not the dressed {nominal} ({want[0]:.4f} x {want[1]:.4f})")
+    gate(not sect_bad, "the posts' and beam's sections are the dressed sizes of their nominal labels", "; ".join(sect_bad))
+    underside = float(beam["top"]["ft"]) - float(beam["section"]["depth"]["ft"])
+    gate(close(posts["z1"]["ft"], underside, 0.0005) and float(posts["z0"]["ft"]) < float(posts["z1"]["ft"])
+         and close(posts["z0"]["ft"], lv["grade"]["ft"]),
+         "the posts run from grade to the beam's underside",
+         f"z0 {posts['z0']['ft']} (grade {lv['grade']['ft']}), z1 {posts['z1']['ft']} vs underside {underside:.4f}")
+    gate(close(beam["x0"]["ft"], min(px)) and close(beam["x1"]["ft"], max(px)),
+         "the beam runs from the first post to the last",
+         f"beam {beam['x0']['ft']}..{beam['x1']['ft']}, posts {min(px)}..{max(px)}")
     fp = porch["footprint"]
     gate(close(fp["width"]["ft"], width),
          "the porch footprint is the front wall's width", f"{fp['width']['ft']} vs {float(width)}")
