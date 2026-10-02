@@ -117,3 +117,13 @@ jobs:
       - name: Laurel textures match their generator (make_textures.py --check)
         if: ${{ !cancelled() }}
         run: python models/laurel_a1_460/make_textures.py --check
+
+      # Every model's fast gates and the kit's own tests, by the runner that
+      # lists them (#175). A model adds a gates.json and this step picks it up
+      # with no edit here. It repeats some steps above on purpose: those stay
+      # as the readable record of what CI checks, and this one is what a new
+      # model or a new kit test joins for free. A gate whose requirement is
+      # missing here is a SKIP, and a skip fails the run.
+      - name: Fast gates, every model (run_gates.py --tier fast)
+        if: ${{ !cancelled() }}
+        run: python run_gates.py --tier fast
