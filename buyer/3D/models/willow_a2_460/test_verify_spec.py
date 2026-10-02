@@ -1,0 +1,212 @@
+"""
+models/willow_a2_460/test_verify_spec.py -- verify_spec.py's gates catch what they
+exist for (#171).
+
+    python3 -m unittest discover -s models/willow_a2_460 -v      (from buyer/3D)
+
+Plain Python; needs PyYAML. Each test breaks a COPY of Willow's spec in one way and
+requires the gate written for that mistake to fail, with no traceback. The real spec
+is shown passing every gate. A gate switched off in verify_spec.py fails its test
+here, so a gate that passes the real spec because it checks nothing is found.
+
+The spec is edited as data (load, change, dump), not as text, because the spec is a
+generated block-style file with no stable one-line anchors.
+"""
+import copy
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+import yaml
+
+HERE = Path(__file__).resolve().parent
+VERIFY = HERE / "verify_spec.py"
+SPEC = HERE / "spec.yaml"
+
+
+def run(text):
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "spec.yaml"
+        path.write_text(text)
+        return subprocess.run([sys.executable, str(VERIFY), str(path)], capture_output=True, text=True, timeout=120)
+
+
+def opening(spec, oid):
+    for wall in ("front_wall", "rear_wall", "end_wall_x0", "end_wall_x24"):
+        for row in spec["openings"][wall]["openings"]:
+            if row["id"] == oid:
+                return row
+    raise KeyError(oid)
+
+
+def partition(spec, pid):
+    return next(p for p in spec["interior_partitions"]["layout"]["partitions"] if p["id"] == pid)
+
+
+class VerifySpec(unittest.TestCase):
+
+    def broken(self, change):
+        spec = copy.deepcopy(yaml.safe_load(SPEC.read_text()))
+        change(spec)
+        return run(yaml.safe_dump(spec, sort_keys=False, width=150))
+
+    def assertGateFails(self, r, label):
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+        failed = [line for line in r.stdout.splitlines() if line.startswith("  [FAIL] ")]
+        self.assertTrue(any(line[len("  [FAIL] "):].startswith(label) for line in failed),
+                        f"expected [FAIL] {label!r}, got:\n{r.stdout}")
+
+    def test_the_real_spec_passes(self):
+        r = run(SPEC.read_text())
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("all gates pass", r.stdout)
+        self.assertNotIn("[FAIL]", r.stdout)
+
+    def test_the_front_wall_mirrored(self):
+        def change(s):
+            row = opening(s, "W-A1")
+            row["x0"], row["x1"] = 3.5833, 7.5833
+        self.assertGateFails(self.broken(change), "front openings follow from the string")
+
+    def test_a_typo_in_the_front_string(self):
+        def change(s):
+            s["openings"]["front_wall"]["string"][1] = "4'-1\""
+        self.assertGateFails(self.broken(change), "the front wall's string sums to the width")
+
+    def test_window_b_off_the_door_on_the_wrong_side(self):
+        def change(s):
+            b, d = opening(s, "W-B1"), opening(s, "D-1")
+            b["x0"], b["x1"], d["x0"], d["x1"] = d["x0"], d["x0"] + 1.5833, b["x0"] + 1.5833 - 3.0, b["x0"] + 1.5833
+        self.assertGateFails(self.broken(change), "window B is on the X 24 side of door 1")
+
+    def test_window_b_wider_than_its_rough_opening_allows(self):
+        def change(s):
+            b = opening(s, "W-B1")
+            b["x1"] = b["x0"] + 1.5 + 0.25
+        self.assertGateFails(self.broken(change), "window B's rough opening")
+
+    def test_c_moved_to_the_x0_wall(self):
+        def change(s):
+            opening(s, "W-C1")["type"] = "D"
+        self.assertGateFails(self.broken(change), "not mirrored: C and F")
+
+    def test_the_rear_openings_mirrored(self):
+        def change(s):
+            for oid, (a, b) in (("D-6", (12.8333, 15.8333)), ("W-E1", (17.4167, 22.4167))):
+                opening(s, oid)["x0"], opening(s, oid)["x1"] = a, b
+        r = self.broken(change)
+        self.assertGateFails(r, "rear openings follow from the string")
+        self.assertGateFails(r, "not mirrored: the rear wall's door 6 and window E")
+
+    def test_a_d_window_slid_along_the_wall(self):
+        def change(s):
+            row = opening(s, "W-D3")
+            row["y0"] += 0.5
+            row["y1"] += 0.5
+        self.assertGateFails(self.broken(change), "end-wall openings follow from their strings")
+
+    def test_a_seventh_d_window_is_a_count_mismatch(self):
+        def change(s):
+            s["openings"]["end_wall_x0"]["openings"].append(
+                {"id": "W-D7", "type": "D", "y0": 0.1, "y1": 0.2, "derived": "test"})
+        self.assertGateFails(self.broken(change), "the drawn window counts match")
+
+    def test_overlapping_windows(self):
+        def change(s):
+            # the windows are 3" apart, so a slide of 0.4 ft runs D2 into D1
+            opening(s, "W-D2")["y0"] = opening(s, "W-D2")["y0"] + 0.4
+            opening(s, "W-D2")["y1"] = opening(s, "W-D2")["y1"] + 0.4
+        self.assertGateFails(self.broken(change), "no two openings on a wall overlap")
+
+    def test_an_opening_leaving_its_wall(self):
+        def change(s):
+            opening(s, "W-A1")["x1"] = 25.0
+        self.assertGateFails(self.broken(change), "every opening sits inside its wall")
+
+    def test_a_partition_face_moved(self):
+        def change(s):
+            partition(s, "P_pantry_N")["at_ft"] += 0.25
+        self.assertGateFails(self.broken(change), "the partition faces follow from the interior strings")
+
+    def test_a_partition_leaving_the_envelope(self):
+        def change(s):
+            partition(s, "P_bath_W")["to_ft"] = 24.5
+        self.assertGateFails(self.broken(change), "every partition lies inside the envelope")
+
+    def test_an_interior_door_of_the_wrong_width(self):
+        def change(s):
+            row = s["interior_partitions"]["layout"]["door_openings"][0]
+            row["b_ft"] += 0.5
+        self.assertGateFails(self.broken(change), "every interior door is its schedule width")
+
+    def test_a_door_not_placed(self):
+        def change(s):
+            s["interior_partitions"]["layout"]["door_openings"] = [
+                d for d in s["interior_partitions"]["layout"]["door_openings"] if d["id"] != "D-4"]
+        self.assertGateFails(self.broken(change), "every row of the door schedule is built or recorded")
+
+    def test_malformed_studs_toward_is_a_readable_failure(self):
+        def change(s):
+            partition(s, "P_bath_W")["studs_toward"] = "north"
+        r = self.broken(change)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("studs_toward", r.stdout)
+
+    def test_a_wrong_slope(self):
+        def change(s):
+            s["roof"]["main"]["slope"]["rise_in"] = 6
+        self.assertGateFails(self.broken(change), "the heel's unexplained height")
+
+    def test_a_wrong_top_of_roof(self):
+        def change(s):
+            s["levels"]["top_of_roof"]["ft"] = 14.5
+        r = self.broken(change)
+        self.assertGateFails(r, "the heel's unexplained height")
+        self.assertGateFails(r, "the unexplained heel is a plausible")
+
+    def test_a_wrong_porch_junction(self):
+        def change(s):
+            s["roof"]["porch"]["junction_depth"]["ft"] = 6.5
+        self.assertGateFails(self.broken(change), "the porch roof meets the main roof")
+
+    def test_porch_eaves_not_the_rakes(self):
+        def change(s):
+            s["roof"]["porch"]["side_eaves"]["ft"] = 1.5
+        self.assertGateFails(self.broken(change), "the porch roof's side eaves are the main roof's rakes")
+
+    def test_a_ceiling_claimed_as_settled(self):
+        def change(s):
+            s["roof"]["ceiling"]["settled"] = True
+        self.assertGateFails(self.broken(change), "the ceiling is declared an assumption")
+
+    def test_a_ceiling_with_no_reason(self):
+        def change(s):
+            s["roof"]["ceiling"]["assumed"] = ""
+        self.assertGateFails(self.broken(change), "the ceiling is declared an assumption")
+
+    def test_a_wrong_area(self):
+        def change(s):
+            s["areas_declared"]["studio_sf"]["value"] = 480
+        self.assertGateFails(self.broken(change), "the envelope's area is the declared 460 sf")
+
+    def test_a_missing_block_names_itself(self):
+        def change(s):
+            del s["openings"]["end_wall_x0"]
+        r = self.broken(change)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("the spec has the blocks these gates read", r.stdout)
+
+    def test_duplicate_keys_are_named(self):
+        text = SPEC.read_text() + "\nlevels:\n  datum: finished_floor\n"
+        r = run(text)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("[FAIL] no duplicate keys", r.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()

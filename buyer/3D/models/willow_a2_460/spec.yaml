@@ -1,0 +1,946 @@
+# Willow -- dimensional spec (started by new_model.py; nothing in it is measured yet)
+# Source plan set: adu-plan-full-set-a2-willow.pdf
+#
+# EVERY NUMBER IS CITED. `source` names a sheet listed in sheet_index and where on
+# it; `derived` shows the arithmetic; `assumed` says why no sheet says it.
+# adu_kit/spec_lint.py fails any number without one. Candidates are in
+# docs/candidates.yaml: check each on its sheet, then copy what you accept here.
+# Read models/laurel_a1_460/spec.yaml for the shape; its keys are what
+# adu_kit and the page read.
+
+meta:
+  model_id: willow_a2_460
+  option: studio
+  display_name: Willow
+  index:
+    area_key: studio_sf
+    storeys:
+      count: 1
+      loft: false
+      raw: single storey, no loft
+      source: 'A-2.0 front, rear and side elevations: one floor, F.F. to T.P. only; A-1.0 draws one floor'
+    note: 'Sacramento County Permit Ready ADU, Model A2 "Willow": the studio plan, 460 sf, a truss gable roof and a stick-framed gable roof over a covered
+      porch on the front wall. The exterior is stucco or fibre-cement lap siding, chosen on the page.'
+    front:
+      glb: -z
+      entry: Leaf_D-1
+      source: A-2.0 FRONT ELEVATION draws entry door 1 on the front wall, under the porch roof; A-1.0 puts door 1 in the Y 19'-2" wall. Built at Blender
+        +Y (frame.front).
+  front:
+    end: +Y, the 24'-0" wall with entry door 1 and the covered porch
+    note: The fact the manifest declares. Not published by this spec.
+    source: A-1.0 floor plan, door 1 and the 122 S.F. COVERED PORCH on the plan's left wall; A-2.0 FRONT ELEVATION shows door 1 under the porch roof
+  plan_date: MAR 2024
+  plan_date_note: A-0.0, A-1.0 and A-2.0 title blocks say MAR 2024 and give no day
+  designer: Laura Miller Design, El Dorado Hills CA; structural engineer in Rocklin CA
+  code_basis: 2022 California Residential Code
+  source_pdf_pages:
+    count: 20
+    derived: pdfinfo reports 20 pages
+option_selection:
+  chosen: studio
+  reason: 'A-1.0 draws two plans. "1 MODEL A2 FLOOR PLAN" is the whole building as a studio, fully dimensioned, with both schedules. "2 1 BEDROOM FLOOR
+    PLAN OPTION" is a partial plan of the rear half only: a partition, pocket door 7 and an egress window. The studio is the complete drawing, so it is
+    built; the one-bedroom plan is a future configurator choice, not a second model. This is the choice Laurel made for the same reason.'
+  decided: 2026-10-02, by the project owner (the factory plan's Willow decision), carried from Laurel's option_selection
+  source: A-1.0 drawings 1 MODEL A2 FLOOR PLAN and 2 1 BEDROOM FLOOR PLAN OPTION; A-1.0 LIGHT & VENTILATION CALCULATIONS list STUDIO and OPTIONAL BEDROOM
+    1
+sheet_index:
+  source: A-0.0 SHEET INDEX for ids and titles; each page's title block for its id
+  sheets:
+  - pdf_page: 1
+    id: A-0.0
+    title: Title sheet
+  - pdf_page: 2
+    id: A-0.1
+    title: CALGreen checklist
+  - pdf_page: 3
+    id: A-0.2
+    title: CALGreen checklist (cont)
+  - pdf_page: 4
+    id: A-1.0
+    title: Floor plan, door and window schedules, 1 bedroom option
+  - pdf_page: 5
+    id: A-1.1
+    title: Power plan
+  - pdf_page: 6
+    id: A-2.0
+    title: Roof plan and exterior elevations, window detail key
+  - pdf_page: 7
+    id: A-3.0
+    title: Stucco section details
+  - pdf_page: 8
+    id: A-3.1
+    title: Stucco plan details
+  - pdf_page: 9
+    id: A-3.2
+    title: Lap siding section details
+  - pdf_page: 10
+    id: A-3.3
+    title: Lap siding plan details
+  - pdf_page: 11
+    id: A-3.4
+    title: Fire details
+  - pdf_page: 12
+    id: null
+    title: Structural notes
+    note: portrait; no id read from its title block
+  - pdf_page: 13
+    id: null
+    title: Roof framing plan (S1.0 is printed on it)
+    note: portrait; no id read from its title block
+  - pdf_page: 14
+    id: null
+    title: Structural details
+    note: portrait; no id read from its title block
+  - pdf_page: 15
+    id: null
+    title: Structural details
+    note: portrait; no id read from its title block
+  - pdf_page: 16
+    id: null
+    title: Structural details
+    note: portrait; no id read from its title block
+  - pdf_page: 17
+    id: T24-1
+    title: Title 24 energy
+  - pdf_page: 18
+    id: T24-2
+    title: Title 24 energy
+  - pdf_page: 19
+    id: T24-3
+    title: Title 24 energy
+  - pdf_page: 20
+    id: T24-4
+    title: Title 24 energy
+  geometry_authority:
+  - A-1.0
+  - A-2.0
+frame:
+  handedness: right
+  up: +Z
+  front: +Y
+  x_increases: to the viewer's left, facing the front wall from outside
+  x_zero_end: 'living room: grid B on A-1.0, the six D windows, the SIDE (RIGHT) ELEVATION'
+  x_max_end: 'kitchen and bath: grid A on A-1.0, windows C and F, the SIDE (LEFT) ELEVATION'
+  evidence:
+  - SIDE (LEFT) ELEVATION draws windows C and F with the front (the porch roof) on the viewer's RIGHT. Facing an end wall from outside with the front on
+    your right means looking toward -X, so C and F are on the X-max end.
+  - 'SIDE (RIGHT) ELEVATION draws the six D windows with the front (the porch roof) on the viewer''s LEFT: looking toward +X, so the D windows are on the
+    X-zero end.'
+  - REAR ELEVATION draws window E and door 6 on the viewer's left and the electrical panel and condenser on its right; facing the rear wall from outside,
+    the viewer's right is toward X-max, so E and door 6 are on the X-zero side. A-1.0 puts them there.
+  - FRONT ELEVATION draws window B (the narrow tall sidelite) on the viewer's left of door 1; facing the front wall from outside, the viewer's left is toward
+    X-max, which is the grid A side where A-1.0 draws it.
+  source: A-2.0 SIDE (LEFT), SIDE (RIGHT), FRONT and REAR ELEVATIONS; A-1.0 floor plan. The plan is laid out as Laurel's A-1.0 is, so the frame is Laurel's.
+envelope:
+  width:
+    ft: 24.0
+    raw: 24'-0"
+    axis: X
+    source: A-1.0 floor plan, overall string on the front (left) wall
+  depth:
+    ft: 19.1667
+    raw: 19'-2"
+    axis: Y
+    source: A-1.0 floor plan, overall string along the bottom (grid B) wall
+  front_to_grid_2:
+    ft: 13.1667
+    raw: 13'-2"
+    source: A-1.0 floor plan, top string, grid 1 to grid 2
+  grid_2_to_rear:
+    ft: 6.0
+    raw: 6'-0"
+    source: A-1.0 floor plan, top string, grid 2 to grid 3
+  area_check:
+    value_sf: 460.0
+    derived: 24 x 19 1/6 (19'-2") = 460 exactly, the declared 460 S.F. (areas_declared.studio_sf)
+  grid_check:
+    ft: 19.1667
+    derived: 13'-2" + 6'-0" = 19'-2", the overall depth
+areas_declared:
+  studio_sf:
+    value: 460
+    source: 'A-0.0 project data ''S.F. OF PROPOSED ADU''; A-1.0 LIGHT & VENTILATION ''STUDIO: 460 S.F.''; A-2.0 ROOF PLAN NOTES ''ENCLOSED RAFTER AREA:
+      460 S.F.'''
+  optional_bedroom_sf:
+    value: 108
+    source: 'A-1.0 LIGHT & VENTILATION ''OPTIONAL BEDROOM 1: 108 S.F.'''
+    note: 1 bedroom option only
+  covered_porch_sf:
+    value: 122
+    source: A-1.0 floor plan '122 S.F. COVERED PORCH'
+    note: Outside the 460 sf, and a separate line on A-0.0's project data. It is the porch under the stick-framed roof, not a second plan option.
+levels:
+  datum: finished_floor
+  finished_floor:
+    ft: 0.0
+    raw: 0'-0"
+    source: A-2.0 all four elevations, F.F. 0'-0"
+  grade:
+    ft: -0.5
+    raw: -0'-6"
+    source: A-2.0 all four elevations, GRADE -0'-6"
+    note: Grade is 6" below the floor, as Laurel's.
+  top_of_plate:
+    ft: 8.0
+    raw: 8'-0"
+    label: T.P.
+    source: A-2.0 FRONT, REAR, SIDE (LEFT) and SIDE (RIGHT) ELEVATIONS and ROOF PLAN, T.P. 8'-0" on every one
+    note: 'ONE plate height on all four walls: Willow has no T.P. 1 / T.P. 2 pair as Laurel does.'
+  top_of_roof:
+    ft: 12.8958
+    raw: 12'-10 3/4"
+    source: A-2.0 REAR ELEVATION, 12'-10 3/4" TOP OF ROOF
+    note: The main gable's ridge, to the top of the roof, from F.F.
+roof:
+  form: two_gables
+  settled: TWO ROOFS, NOT ONE. A truss gable at 5"/1'-0" over the building, ridge along the 24'-0" direction (parallel to the front wall), and a stick-framed
+    gable at 3"/1'-0" over the covered porch on the front wall, its ridge running front to rear and meeting the main roof's front slope. The FRONT ELEVATION
+    shows the porch gable end with a 6X6 PT KING POST, two 6X6 PT POSTS and a 6X10 PT BEAM; the SIDE ELEVATIONS show the main gable end and the porch roof
+    as a lower stick-framed roof against it; the ROOF PLAN shows both, joined by two valleys. Preflight (WILLOW-PREFLIGHT.md) read the same.
+  source: A-2.0 FRONT, SIDE (RIGHT) and SIDE (LEFT) ELEVATIONS and ROOF PLAN; A-0.0 scope of work 'STICK FRAMED AND TRUSS ROOF'
+  main:
+    form: gable
+    framing: pre-manufactured trusses @ 24" o.c.
+    ridge_runs_along: X
+    ridge_at_y:
+      ft: 9.5833
+      derived: 'half the 19''-2" depth: the gable is drawn symmetric about the building (the SIDE ELEVATIONS'' apex sits at mid-depth)'
+      assumed: symmetric trusses; the truss profile is not in the set (see ceiling)
+    slope:
+      rise_in: 5
+      run_in: 12
+      raw: 5" / 1'-0"
+      source: A-2.0 ROOF PLAN slope arrow; A-2.0 SIDE (RIGHT) and SIDE (LEFT) ELEVATIONS slope arrows
+    overhangs:
+      rear_eave:
+        ft: 1.5
+        raw: 1'-6"
+        source: A-2.0 ROOF PLAN, 1'-6" (OVERHANG) at the rear edge
+      front_eave:
+        ft: 1.5
+        assumed: equal to the rear eave. The ROOF PLAN labels no front eave on the main roof (the porch roof hides it); the SIDE ELEVATIONS draw both main
+          eaves the same length, measured about 1.46 ft on the sheet at its stated 1/4" = 1'-0".
+      rakes:
+        ft: 1.0
+        raw: 1'-0"
+        source: A-2.0 ROOF PLAN, 1'-0" (OVERHANG) at both 24'-0" ends
+    ridge_vent_length:
+      ft: 24.25
+      raw: 24'-3"
+      source: A-2.0 ROOF PLAN NOTES, 24'-3" (24.25') LINEAR FEET OF RIDGE VENT
+  porch:
+    form: gable
+    framing: stick framed
+    ridge_runs_along: Y
+    slope:
+      rise_in: 3
+      run_in: 12
+      raw: 3" / 1'-0"
+      source: A-2.0 FRONT ELEVATION slope arrows, both sides of the porch gable
+    projects:
+      ft: 5.0
+      raw: 5'-0"
+      source: A-2.0 ROOF PLAN, 5'-0" (OVERHANG) at the front edge
+    side_eaves:
+      ft: 1.0
+      raw: 1'-0"
+      source: A-2.0 ROOF PLAN, 1'-0" (OVERHANG) at both 24'-0" ends; the FRONT ELEVATION draws the porch roof the same width as the main roof
+    supports: 6X10 PT beam on 6X6 PT posts, 6X6 PT king post in the gable
+    supports_source: A-2.0 FRONT ELEVATION labels; A-1.0 floor plan draws four posts at the porch's front edge
+    posts_in_plan:
+      count: 4
+      source: A-1.0 floor plan, four square post marks at the porch's outer edge (WOOD POSTS BELOW on the roof plan)
+    spans: the full 24'-0" front wall plus the 1'-0" side eaves, 26'-0"
+    junction_depth:
+      ft: 5.6333
+      derived: 'the porch ridge stands 13 ft (half of 26''-0") x 3/12 = 3.25 ft above T.P.; the main roof''s top is 4.8958 ft above T.P. at mid-depth and
+        falls 5/12 per ft toward the front wall, so it is 3.25 ft high (4.8958 - 3.25) x 12/5 = 3.95 ft before the front wall''s depth of 9.5833: 9.5833
+        - 3.95 = 5.6333 ft in from the front wall'
+    meets_main_roof: 'along two valleys. The porch ridge is level at T.P. plus half the 26''-0" span at 3"/1''-0" (3.25 ft), and it meets the main roof''s
+      front slope where that slope is as high: about 5.6 ft in from the front wall. The ROOF PLAN draws the valley meeting point about 5.1 ft in. Derived,
+      not dimensioned: no sheet gives the junction.'
+  heel:
+    derived: top of roof 12'-10 3/4" less T.P. 8'-0" = 4.8958 ft (58.75"); a 5:12 slope over half of 19'-2" (9'-7") rises 3.9931 ft (47.9"). The remaining
+      0.9028 ft (10.8") is the truss heel and the roofing, and no sheet dimensions it.
+    unexplained_in: 10.8
+    assumed: the 10.8" is split between a raised heel and the roof's thickness; the build must not guess it, so the truss profile (a deferred submittal)
+      settles it
+  ceiling:
+    settled: false
+    form: flat
+    at:
+      ft: 8.0
+      raw: 8'-0"
+      source: A-2.0 elevations T.P. 8'-0"
+    assumed: 'A FLAT CEILING AT THE PLATE, BUT THE PLAN SET DOES NOT DRAW IT. Evidence for it: A-2.0''s attic-access note measures head height from the
+      top of the ceiling framing members to the underside of the roof framing; A-1.0 draws a MIN. 22X30 ATTIC ACCESS hatch in the plan; A-2.0''s roof ventilation
+      is computed for an enclosed rafter area of the whole 460 S.F.; no A-1.0 room is tagged ''CEILINGS FOLLOW ROOF LINE'' as Laurel''s living room is.
+      What it does not show: a reflected ceiling plan, a building section or a truss profile. Note 14 of the truss notes on the structural notes sheet (page
+      12) says the TRUSS MANUFACTURER PROVIDES THE TRUSS PROFILE, so the profile is a deferred submittal and is NOT in this set.'
+    what_would_settle_it: the truss manufacturer's profile or a building section; neither is in the plan set, so this stays an assumption for this model.
+    source: A-2.0 ROOF PLAN NOTES (attic access, ventilation); A-1.0 floor plan (attic access hatch); structural notes page 12, truss note 14
+  roofing:
+    material: asphalt_shingle
+    source: A-2.0 ROOF PLAN NOTES 'ROOFING MATERIAL TO BE ASPHALT SHINGLE'; A-0.0 'COMPOSITE SHINGLES'
+  gutter:
+    style: seamless box gutter, downspouts at the porch corners
+    source: A-2.0 ROOF PLAN notes 'SEAMLESS BOX STYLE GUTTER', DOWNSPOUT leaders
+construction:
+  dimensions_to: face of stud
+  dimensions_to_source: A-1.0 floor plan note 'ALL DIMENSIONS TO FACE OF STUD U.N.O.'
+  exterior_wall:
+    framing: 2x6 exterior walls, bearing
+    source: A-1.0 WALL LEGEND '2X6 EXTERIOR WALL'; A-0.0 scope of work '2X6 EXTERIOR WALLS'
+    stud_depth:
+      ft: 0.4583
+      raw: 5 1/2"
+      assumed: the actual depth of a 2x6; A-3.0 and A-3.2 draw the stud but dimension none of the layers
+    interior_finish:
+      ft: 0.0417
+      raw: 1/2"
+      material: gypsum_board
+      source: A-3.0 detail 1 STUCCO WALL SECTION '1/2" GWB'; A-3.2 detail 1
+    cladding_options:
+    - id: stucco
+      layers:
+      - sheathing per structural
+      - WRB
+      - self furring lath
+      - 3 coat cement plaster
+      source: A-3.0 detail 1 STUCCO WALL SECTION
+    - id: fiber_cement_lap_siding
+      layers:
+      - sheathing per structural
+      - WRB
+      - fiber cement lap siding
+      source: A-3.2 detail 1 LAP SIDING WALL SECTION; A-3.2 LAP SIDING NOTES
+    sheathing:
+      ft: 0.0313
+      raw: 3/8"
+      source: S1.0 shearwall schedule (the roof framing sheet's notes); A-3.0 and A-3.2 say 'SHEATHING PER STRUCTURAL'
+      note: 'carried from Laurel''s reading: the build models one wall type. Not re-read on Willow''s structural sheets: settle at the build.'
+    cladding_modelled:
+      ft: 0.0
+      assumed: 'ZERO, ON PURPOSE. Neither A-3.0 (stucco) nor A-3.2 (lap siding) dimensions its cladding, and the two are not the same thickness in any real
+        assembly: three-coat cement plaster over self-furring lath runs about 7/8", fiber cement lap siding about 5/16" over its sheathing. Modelling each
+        at its own thickness would move the outer faces of the building when the finish changed, and variants .exterior_finish records that change as a
+        FINISH SWAP, not a geometry change -- the page swaps a baseColorFactor in the manifest (#131, #133), not a mesh. So the build stops the geometry
+        at the sheathing face and carries the cladding as a material only. The error is at most seven eighths of an inch on a 24-foot building, below what
+        the page can show at the distance a homeowner views it, and the overall dimensions this model publishes stay the ones A-1.0 draws.
+
+        '
+      revisit: '#131 and #133, if the configurator ever needs the two finishes to differ in section'
+    outer_face:
+      derived: 'face of stud + construction.exterior_wall.sheathing. The envelope dimensions are to face of stud (A-1.0 U.N.O.), so the modelled exterior
+        surface sits 3/8" outboard of X 0, X 24, Y 0 and Y 19.1667.
+
+        '
+      note: '#130''s elevation overlay compares this face against A-2.0'
+    casing_reveal:
+      ft: 0.0313
+      raw: 3/8"
+      source: A-3.0 details 3 and 4, 0'-0 3/8" at the metal casing bead
+  interior_wall:
+    framing: 2x4, gyp board both sides
+    source: 'A-1.0 WALL LEGEND ''2X4 INTERIOR WALL: GYP. BOARD BOTH SIDES'''
+    stud_depth:
+      ft: 0.2917
+      raw: 3 1/2"
+      assumed: the actual depth of a 2x4; not dimensioned on any sheet
+    interior_finish:
+      ft: 0.0417
+      raw: 1/2"
+      material: gypsum_board
+      assumed: 'A-1.0''s legend says GYP. BOARD BOTH SIDES and gives no thickness; the 1/2" A-3.0 and A-3.2 call for on the exterior walls'' inside face.
+        The fixtures'' measured backs agree: each sits 0.040-0.041 ft off a stud face'
+  foundation:
+    type: slab_on_grade
+    source: 'A-0.0 project data ''FOUNDATION: SLAB''; scope of work ''SLAB ON GRADE FOUNDATION'''
+    slab:
+      status: not read
+      note: the foundation plan's slab thickness is on a structural sheet this spec has not read; Willow's slab is built at Laurel's 4" until it is (assumed
+        below)
+      thickness:
+        ft: 0.3333
+        raw: 4"
+        assumed: Laurel's slab, same designer's sheet system; Willow's structural sheets were not read for this
+openings:
+  window_types:
+    source: A-1.0 Window Schedule
+    info: vinyl frame, U 0.29, SHGC 0.21, Energy Star, low-E
+    info_source: A-1.0 WINDOW INFORMATION
+    types:
+    - mark: A
+      source: A-1.0 Window Schedule
+      count_scheduled: 2
+      operation: single_hung
+      operation_raw: SINGLE HUNG (DOUBLE)
+      width:
+        ft: 4.0
+        raw: 4'-0"
+      height:
+        ft: 4.0
+        raw: 4'-0"
+      sill:
+        ft: 3.0
+        raw: 3'-0"
+    - mark: B
+      source: A-1.0 Window Schedule
+      count_scheduled: 1
+      operation: fixed
+      operation_raw: FIXED
+      width:
+        ft: 1.5
+        raw: 1'-6"
+      height:
+        ft: 6.6667
+        raw: 6'-8"
+      sill:
+        ft: 0.25
+        raw: 0'-3"
+    - mark: C
+      source: A-1.0 Window Schedule
+      count_scheduled: 1
+      operation: single_hung
+      operation_raw: SINGLE HUNG
+      width:
+        ft: 3.5
+        raw: 3'-6"
+      height:
+        ft: 3.5
+        raw: 3'-6"
+      sill:
+        ft: 3.5
+        raw: 3'-6"
+    - mark: D
+      source: A-1.0 Window Schedule
+      count_scheduled: 6
+      operation: fixed
+      operation_raw: FIXED
+      width:
+        ft: 1.5
+        raw: 1'-6"
+      height:
+        ft: 1.5
+        raw: 1'-6"
+      sill:
+        ft: 5.5
+        raw: 5'-6"
+    - mark: E
+      source: A-1.0 Window Schedule
+      count_scheduled: 1
+      operation: single_hung
+      operation_raw: SINGLE HUNG (DOUBLE)
+      width:
+        ft: 5.0
+        raw: 5'-0"
+      height:
+        ft: 4.0
+        raw: 4'-0"
+      sill:
+        ft: 3.0
+        raw: 3'-0"
+    - mark: F
+      source: A-1.0 Window Schedule
+      count_scheduled: 1
+      operation: slider
+      operation_raw: SLIDER
+      width:
+        ft: 3.0
+        raw: 3'-0"
+      height:
+        ft: 1.5
+        raw: 1'-6"
+      sill:
+        ft: 5.5
+        raw: 5'-6"
+  door_types:
+    source: A-1.0 Door Schedule
+    types:
+    - source: A-1.0 Door Schedule
+      mark: '1'
+      location: entry
+      application: exterior
+      hardware: entry
+      width:
+        ft: 3.0
+        raw: 3'-0"
+      height:
+        ft: 6.6667
+        raw: 6'-8"
+      note: 'Unlike Laurel''s door 1, the schedule here has NO sidelite: the narrow tall window B beside it is its own schedule row (fixed, 1''-6" by 6''-8",
+        sill 0''-3").'
+    - source: A-1.0 Door Schedule
+      mark: '2'
+      location: pantry
+      application: interior
+      description: bi-fold
+      width:
+        ft: 4.0
+        raw: 4'-0"
+      height:
+        ft: 7.0
+        raw: 7'-0"
+    - source: A-1.0 Door Schedule
+      mark: '3'
+      location: closet
+      application: interior
+      width:
+        ft: 2.3333
+        raw: 2'-4"
+      height:
+        ft: 6.6667
+        raw: 6'-8"
+    - source: A-1.0 Door Schedule
+      mark: '4'
+      location: laundry
+      application: interior
+      description: bi-fold (louvered)
+      width:
+        ft: 2.5
+        raw: 2'-6"
+      height:
+        ft: 7.0
+        raw: 7'-0"
+    - source: A-1.0 Door Schedule
+      mark: '5'
+      location: bathroom
+      application: interior
+      description: flat panel
+      hardware: privacy
+      width:
+        ft: 3.0
+        raw: 3'-0"
+      height:
+        ft: 6.6667
+        raw: 6'-8"
+    - source: A-1.0 Door Schedule
+      mark: '6'
+      location: rear entry
+      application: exterior
+      hardware: entry
+      glazing: obscure glass
+      width:
+        ft: 3.0
+        raw: 3'-0"
+      height:
+        ft: 6.6667
+        raw: 6'-8"
+    - source: A-1.0 Door Schedule
+      mark: '7'
+      location: optional bedroom
+      application: interior
+      description: pocket
+      hardware: privacy
+      option: one_bedroom
+      width:
+        ft: 3.0
+        raw: 3'-0"
+      height:
+        ft: 6.6667
+        raw: 6'-8"
+  front_wall:
+    wall: Y 19.1667; the string runs from grid A (X 24) to grid B (X 0)
+    string:
+    - 3'-7"
+    - 4'-0"
+    - 1'-10"
+    - 1'-7"
+    - 3'-0"
+    - 2'-5"
+    - 4'-0"
+    - 3'-7"
+    string_check:
+      ft: 24.0
+      derived: 3'-7" + 4'-0" + 1'-10" + 1'-7" + 3'-0" + 2'-5" + 4'-0" + 3'-7" = 24'-0"
+    source: A-1.0 floor plan, the dimension string along the front (left) wall, read from grid A down
+    openings:
+    - id: W-A1
+      type: A
+      x0: 16.4167
+      x1: 20.4167
+      derived: 'grid A is X 24: 24 - 3''-7" = 20.4167, less the 4''-0" window'
+    - id: W-B1
+      type: B
+      x0: 13.0
+      x1: 14.5833
+      derived: 20.4167 - 4'-0" - 1'-10" pier = 14.5833, less the 1'-7" opening the string gives it (the schedule's 1'-6" window plus its frame)
+      note: the string's 1'-7" is the rough opening; the schedule says 1'-6" wide. Built at the schedule width, centred in the 1'-7".
+    - id: D-1
+      type: '1'
+      x0: 10.0
+      x1: 13.0
+      derived: 14.5833 - 1'-7" = 13.0, less the 3'-0" door
+    - id: W-A2
+      type: A
+      x0: 3.5833
+      x1: 7.5833
+      derived: 'grid B is X 0: 3''-7" from it, then the 4''-0" window'
+  rear_wall:
+    wall: Y 0; the string runs from grid A toward grid B (X 0)
+    string:
+    - 9'-4"
+    - 3'-6"
+    - 3'-0"
+    - 1'-7"
+    - 5'-0"
+    - 1'-7"
+    string_check:
+      ft: 24.0
+      derived: 9'-4" + 3'-6" + 3'-0" + 1'-7" + 5'-0" + 1'-7" = 24'-0"
+    source: 'A-1.0 floor plan, the dimension strings along the rear (right) wall: 9''-4" from grid A, then 14''-8" in four parts to grid B'
+    openings:
+    - id: D-6
+      type: '6'
+      x0: 8.1667
+      x1: 11.1667
+      derived: 24 - 9'-4" - 3'-6" = 11.1667, less the 3'-0" door
+    - id: W-E1
+      type: E
+      x0: 1.5833
+      x1: 6.5833
+      derived: 8.1667 - 1'-7" = 6.5833, less the 5'-0" window; 1'-7" remains to grid B
+  end_wall_x24:
+    wall: X 24 (grid A), the kitchen and bath end; Y from 0 (rear) to 19.1667 (front)
+    source: 'A-1.0 floor plan, the top dimension strings: 4''-11" and 3''-6" from grid 1 (front), 3''-0" and 2''-0" to grid 3 (rear)'
+    string_from_front:
+    - 4'-11"
+    - 3'-6"
+    string_to_rear:
+    - 3'-0"
+    - 2'-0"
+    openings:
+    - id: W-C1
+      type: C
+      y0: 10.75
+      y1: 14.25
+      derived: front 19.1667 - 4'-11" = 14.25, less the 3'-6" window = 10.75
+    - id: W-F1
+      type: F
+      y0: 2.0
+      y1: 5.0
+      derived: 2'-0" from the rear, then the 3'-0" window
+  end_wall_x0:
+    wall: X 0 (grid B), the living room end; Y from 0 (rear) to 19.1667 (front)
+    string:
+    - 2'-6"
+    - 1'-6"
+    - 0'-3"
+    - 1'-6"
+    - 0'-3"
+    - 1'-6"
+    - 2'-3 1/2"
+    - 1'-10 1/2"
+    - 1'-6"
+    - 0'-3"
+    - 1'-6"
+    - 0'-3"
+    - 1'-6"
+    - 2'-6"
+    string_note: 'read from the bottom string on A-1.0 from grid 1 (front) to grid 3 (rear): the 0''-3" marks are the 3" between neighbouring windows'
+    string_check:
+      ft: 19.1667
+      derived: 2'-6" + (1'-6" + 3" + 1'-6" + 3" + 1'-6") + 2'-3 1/2" | grid 2 | 1'-10 1/2" + (1'-6" + 3" + 1'-6" + 3" + 1'-6") + 2'-6" = 19'-2"; the sheet's
+        own halves, split at grid 2, are 9'-9 1/2" and 9'-4 1/2"
+    halves:
+      first: 9'-9 1/2"
+      second: 9'-4 1/2"
+      source: A-1.0 floor plan, bottom dimension strings
+      gap_between_triples: 1'-10 1/2"
+    source: A-1.0 floor plan, the bottom dimension strings; A-2.0 SIDE (RIGHT) ELEVATION draws the six D windows as two triples
+    openings:
+    - id: W-D1
+      type: D
+      y0: 15.1667
+      y1: 16.6667
+      derived: 2.5 ft from the front corner along the bottom string, then the 1'-6" window
+    - id: W-D2
+      type: D
+      y0: 13.4167
+      y1: 14.9167
+      derived: 4.25 ft from the front corner along the bottom string, then the 1'-6" window
+    - id: W-D3
+      type: D
+      y0: 11.6667
+      y1: 13.1667
+      derived: 6.0 ft from the front corner along the bottom string, then the 1'-6" window
+    - id: W-D4
+      type: D
+      y0: 6.0
+      y1: 7.5
+      derived: 11.6667 ft from the front corner along the bottom string, then the 1'-6" window
+    - id: W-D5
+      type: D
+      y0: 4.25
+      y1: 5.75
+      derived: 13.4167 ft from the front corner along the bottom string, then the 1'-6" window
+    - id: W-D6
+      type: D
+      y0: 2.5
+      y1: 4.0
+      derived: 15.1667 ft from the front corner along the bottom string, then the 1'-6" window
+  count_check:
+    windows_drawn:
+      A: 2
+      B: 1
+      C: 1
+      D: 6
+      E: 1
+      F: 1
+    derived: 'the openings above: 2 A, 1 B, 1 C, 6 D, 1 E, 1 F = 12 windows, the schedule''s own counts (2+1+1+6+1+1)'
+interior_partitions:
+  grid_2:
+    y: 6.0
+    derived: 'envelope.grid_2_to_rear: grid 2 is 6''-0" from the rear face, 13''-2" from the front'
+    carries: the bath's front wall and the kitchen's rear limit
+  rooms:
+  - kitchen
+  - pantry (with the water heater)
+  - closet
+  - laundry (W/D)
+  - bath (tub
+  - toilet
+  - 36\" vanity)
+  - living
+  rooms_source: A-1.0 floor plan room tags
+  dimension_strings:
+    source: A-1.0 floor plan, interior dimension strings (the same eight strings Laurel's A-1.0 draws; each is on Willow's A-1.0 too)
+    status: CARRIED FROM LAUREL. The eight interior strings are on Willow's A-1.0 and the layout reads the same by eye (pantry, closet, laundry and bath
+      block); the partitions' numbers below are Laurel's, and verify_spec.py holds them to these strings. NOT re-read from Willow's vectors.
+    strings:
+    - raw: 6'-6 1/2"
+      drawn: beside the KITCHEN label
+      runs_along: X
+      ft: 6.5417
+    - raw: 5'-2"
+      drawn: above the PANTRY and door 2
+      runs_along: Y
+      ft: 5.1667
+    - raw: 2'-6"
+      drawn: beside the PANTRY
+      runs_along: X
+      ft: 2.5
+    - raw: 6'-2"
+      drawn: between the KITCHEN and the CLOSET
+      runs_along: X
+      ft: 6.1667
+    - raw: 3'-9"
+      drawn: in the BATH, beside door 5
+      runs_along: Y
+      ft: 3.75
+    - raw: 3'-0"
+      drawn: in the BATH, beside the toilet
+      runs_along: X
+      ft: 3.0
+    - raw: 3'-2"
+      drawn: below the W/D
+      runs_along: Y
+      ft: 3.1667
+    - raw: 7'-3"
+      drawn: below the CLOSET and W/D
+      runs_along: Y
+      ft: 7.25
+  layout:
+    datum: 'the frame above: X 0 and Y 0 are the outside faces of stud at the living-room end and the rear wall'
+    thickness:
+      ft: 0.2917
+      derived: construction.interior_wall.stud_depth, 3 1/2" -- gyp board is a finish (#132) and is not modelled here
+    height:
+      to: ceiling
+      assumed: Partitions stop at the ceiling, which is assumed FLAT AT T.P. 8'-0" (roof.ceiling, unsettled). Laurel's ran to the roof because its ceilings
+        follow the roof; Willow's A-1.0 does not say so, and a gable roof over a plate-height wall has no room for a partition to reach it.
+      what_would_settle_it: 'A building section through the bath, closet or laundry, or a reflected ceiling plan showing a flat ceiling there. A-1.1 is
+        the electrical and reflected plan and was not read for this.
+
+        '
+    partitions:
+    - id: P_bath_W
+      runs_along: X
+      at_ft: 6.0
+      studs_toward: +Y
+      from_ft: 14.9583
+      to_ft: 23.5417
+      derived: 'envelope.front_to_grid_2 and grid_2_to_rear put grid 2 at Y 6.0, which is 6''-0" from the rear wall''s outside face of stud. A-1.0 dimensions
+        to face of stud, so Y 6.0 is this wall''s bath-side face and its 3 1/2" studs run to Y 6.2917. It spans from the X 24 wall''s interior face (24
+        - 5 1/2" = 23.5417) to P_bath_S at X 14.9583.
+
+        '
+      separates:
+      - bath
+      - kitchen
+    - id: P_bath_S
+      runs_along: Y
+      at_ft: 14.9583
+      studs_toward: -X
+      from_ft: 0.4583
+      to_ft: 11.4583
+      derived: 'openings.rear_wall.string_start: the rear wall''s string totals 14''-11 1/2" and ends at grid B, so it starts at X 14.9583, at the bath''s
+        partition. Laurel left which face open; the scale check settles it as the bath-and-pantry side, with the studs running down to X 14.6667. It spans
+        from the rear wall''s interior face (0.4583) to P_block_W at Y 11.4583, and carries door 5.
+
+        '
+      separates:
+      - bath
+      - pantry
+      - laundry
+      - living
+    - id: P_block_W
+      runs_along: X
+      at_ft: 11.4583
+      studs_toward: -Y
+      from_ft: 11.2917
+      to_ft: 17.4583
+      derived: 'the 5''-2" string, whose ticks run from P_bath_W''s kitchen face: 6.2917 + 5.1667 = 11.4583, this wall''s living-room face; its studs run
+        to Y 11.1667. The 7''-3" string lands here too, from P_laundry_E. It spans the whole block depth, from P_block_S at X 11.2917 to P_pantry_N at X
+        17.4583. Laurel had it at 11.4167, half an inch toward the rear.
+
+        '
+      separates:
+      - living
+      - closet
+      - pantry
+    - id: P_laundry_W
+      runs_along: X
+      at_ft: 7.6667
+      studs_toward: -Y
+      from_ft: 11.2917
+      to_ft: 14.6667
+      derived: 'the 3''-2" string, from P_laundry_E''s face: 4.2083 + 3.1667 = 7.375 is this wall''s laundry face, and its studs run to 7.6667, the closet
+        face. That leaves the closet exactly 3''-6" (11.1667 - 7.6667): the closet is no string on the sheet, and now it is a check rather than the arithmetic
+        that placed this wall.
+
+        '
+      separates:
+      - closet
+      - laundry
+    - id: P_laundry_E
+      runs_along: X
+      at_ft: 4.2083
+      studs_toward: +Y
+      from_ft: 11.2917
+      to_ft: 14.6667
+      derived: 'three strings end on this face, and agree: 11.4583 - 7''-3" = 4.2083, the rear wall''s inside face 0.4583 + 3''-9" = 4.2083, and 7.375 -
+        3''-2" = 4.2083. The studs run to Y 4.5. Laurel read the first two strings as ending at 4.1667, half an inch short. A-1.0 draws this as two jamb
+        returns rather than a full wall, because the laundry opens through it. It is modelled as a wall so door 4 is a cut opening in it.
+
+        '
+      separates:
+      - laundry
+      - bath_approach
+    - id: P_block_S
+      runs_along: Y
+      at_ft: 11.5833
+      studs_toward: -X
+      from_ft: 4.2083
+      to_ft: 11.4583
+      derived: 'the 6''-2" string is the pantry and closet together, X 17.4583 to 11.2917, so 11.2917 is this wall''s living-room face and 11.5833 the closet
+        and laundry side. It spans the block''s width and carries door 3.
+
+        '
+      separates:
+      - living
+      - closet
+      - laundry
+    - id: P_pantry_N
+      runs_along: Y
+      at_ft: 17.1667
+      studs_toward: +X
+      from_ft: 6.2917
+      to_ft: 11.4583
+      derived: 'the 6''-6 1/2" string runs from the X 24 wall''s outside face of stud to X 17.4583, and the 2''-6" string runs from there back to P_bath_S
+        at X 14.9583: the pantry block, outside to outside. So 17.4583 is this wall''s kitchen face and 17.1667 its pantry face. It carries door 2.
+
+        '
+      separates:
+      - kitchen
+      - pantry
+    door_openings:
+    - id: D-2
+      type: '2'
+      in: P_pantry_N
+      along: Y
+      a_ft: 6.7478
+      b_ft: 10.7478
+      source: 'CARRIED FROM LAUREL: door 2''s opening position on A-1.0 is Laurel''s, read there from the PDF''s vectors. Willow''s A-1.0 draws the same
+        layout; its vectors have not been read (the Tier B interior overlay does that).'
+      assumed: the same plan geometry as Laurel's A-1.0; to be confirmed by Willow's interior overlay
+    - id: D-3
+      type: '3'
+      in: P_block_S
+      along: Y
+      a_ft: 8.2915
+      b_ft: 10.6249
+      source: 'CARRIED FROM LAUREL: door 3''s opening position on A-1.0 is Laurel''s, read there from the PDF''s vectors. Willow''s A-1.0 draws the same
+        layout; its vectors have not been read (the Tier B interior overlay does that).'
+      assumed: the same plan geometry as Laurel's A-1.0; to be confirmed by Willow's interior overlay
+    - id: D-4
+      type: '4'
+      in: P_laundry_E
+      along: X
+      a_ft: 11.875
+      b_ft: 14.375
+      source: 'CARRIED FROM LAUREL: door 4''s opening position on A-1.0 is Laurel''s, read there from the PDF''s vectors. Willow''s A-1.0 draws the same
+        layout; its vectors have not been read (the Tier B interior overlay does that).'
+      assumed: the same plan geometry as Laurel's A-1.0; to be confirmed by Willow's interior overlay
+    - id: D-5
+      type: '5'
+      in: P_bath_S
+      along: Y
+      a_ft: 0.75
+      b_ft: 3.75
+      source: 'CARRIED FROM LAUREL: door 5''s opening position on A-1.0 is Laurel''s, read there from the PDF''s vectors. Willow''s A-1.0 draws the same
+        layout; its vectors have not been read (the Tier B interior overlay does that).'
+      assumed: the same plan geometry as Laurel's A-1.0; to be confirmed by Willow's interior overlay
+    door_head:
+      from: floor
+      derived: each opening runs from the slab to its schedule height in openings.door_types; A-1.0 gives no head height, and a door sits on the floor
+windows:
+  source: 'A-1.0 Window Schedule, Operation column; A-1.0 WINDOW INFORMATION ''FRAME: VINYL'''
+  status: 'Tier B detail (frame and sash members) is not specified here: the Tier A build cuts the openings and the finish step adds the members.'
+  operations:
+    single_hung:
+      units: 2
+      meeting_rail: true
+      source: 'A-1.0 Window Schedule, marks A, C and E are SINGLE HUNG (A and E ''DOUBLE''): two stacked sashes'
+    fixed:
+      units: 1
+      meeting_rail: false
+      source: A-1.0 Window Schedule, marks B and D are FIXED
+    slider:
+      units: 2
+      meeting_rail: false
+      source: A-1.0 Window Schedule, mark F is a SLIDER
+discrepancies:
+- id: the-plan-set-does-not-draw-the-ceiling
+  impact: No reflected ceiling plan, building section or truss profile is in the set, so the form of the ceiling (flat at the plate, scissor, or partly
+    vaulted) cannot be read. The truss profile is a deferred submittal (structural note 14).
+  resolution: 'ASSUMED FLAT AT T.P. 8''-0" (roof.ceiling.settled: false). The evidence for it is the attic-access note, the attic-access hatch on A-1.0
+    and the ventilation calculation, and none of it is a drawing of the ceiling.'
+  source: A-2.0 ROOF PLAN NOTES; A-1.0 floor plan; structural notes page 12 note 14
+- id: the-window-b-string-is-a-rough-opening
+  impact: A-1.0's front-wall string gives 1'-7" for window B; the window schedule gives B a width of 1'-6".
+  resolution: THE SCHEDULE'S 1'-6" is the window, the string's 1'-7" the rough opening (the same 1" frame the other windows' strings do not show). The opening
+    is built 1'-6" wide, centred in 1'-7".
+  source: A-1.0 floor plan front-wall string; A-1.0 Window Schedule mark B
+- id: the-porch-junction-is-derived-not-dimensioned
+  impact: Where the porch roof meets the main roof is drawn but not dimensioned. The valley meeting point is about 5.1 ft in from the front wall on the
+    roof plan.
+  resolution: DERIVED from the two slopes and the plate height (about 5.6 ft); the 0.5 ft gap is the sheet's own drafting tolerance and the unexplained
+    10.8" of heel. The build holds the built junction to the roof plan's ink, not to this number.
+  source: A-2.0 ROOF PLAN and FRONT ELEVATION
+variants:
+  floor_plan_options:
+    studio: built
+    one_bedroom: a future configurator choice; door 7 and the 108 sf bedroom, A-1.0 option plan 2
+  source: A-1.0 drawings 1 and 2
+deferred_to_tier_b:
+- plan_overlay (interior ink)
+- fixtures and equipment
+- furniture
+- trim
+- finishes and textures
+- materials
+- the porch as a built structure (posts, beam, king post)
+- export and variants other than the option split

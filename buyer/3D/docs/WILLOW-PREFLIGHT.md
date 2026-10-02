@@ -116,3 +116,37 @@ profile or a section, before any partition is built to it.
   sheets I read, the roof is a gable main roof plus a gable porch roof, and I did not
   find a hip roof on any elevation or on the roof plan. Where the three HIP hits
   come from is unchecked.
+
+## Settled in the spec (A1, 2026-10-02)
+
+The open items above, as `models/willow_a2_460/spec.yaml` now answers them. Each is
+cited in the spec; this is the short form.
+
+- **Ceiling form: still not drawn, and cannot be read from this set.** Structural
+  note 14 (page 12) says the truss manufacturer provides the truss profile, so the
+  profile is a deferred submittal. The spec records a flat ceiling at T.P. 8'-0" as
+  an **assumption** (`roof.ceiling.settled: false`), on the attic-access note, the
+  attic hatch on A-1.0 and the ventilation calculation. A gate holds it to being
+  declared an assumption.
+- **Heel.** 4.8958 ft from T.P. to top of roof, less 3.9931 ft of 5:12 rise over half
+  the depth, leaves **10.8 inches** that no sheet dimensions. Recorded as derived, not
+  explained.
+- **Overhangs.** Main roof: rear eave 1'-6" and rakes 1'-0" (both labelled on the roof
+  plan); front eave assumed equal to the rear (the porch roof hides it; the side
+  elevations draw them equal). Porch roof: 5'-0" out from the front wall, 1'-0" side
+  eaves, so it is 26'-0" wide.
+- **Porch.** A 3:12 gable, ridge front to back, 3.25 ft above the plate at its ridge,
+  on a 6X10 beam and 6X6 posts with a 6X6 king post; four posts in plan; 122 sf.
+- **Where it meets the main roof: derived, 5.63 ft in from the front wall**, against
+  about 5.1 ft on the roof plan's ink. Not dimensioned on any sheet.
+- **Front and frame.** Willow's plan is laid out as Laurel's: front is the 24'-0" wall
+  at +Y, with the porch and door 1. Laurel's frame holds.
+- **Schedules.** Eight of Laurel's interior strings recur on Willow's A-1.0 and the
+  interior layout is carried over (a gate recomputes seven of them from the faces).
+  What differs: door 1 has **no sidelite** (window B, a fixed 1'-6" by 6'-8", stands
+  beside it); the side walls hold **six** 1'-6" D windows in two triples, window C is
+  3'-6" square on the X 24 wall with a small slider F, and E is 5'-0" by 4'-0".
+- **One thing for the build (#172).** Where the porch roof overlaps the main roof, the
+  *visible* surface is the **higher** of the two, but `Roof.under` returns the lower,
+  and plane extents are rectangles where the valley is diagonal. This is the "may need
+  to change" the roof module warned of; the build decides.

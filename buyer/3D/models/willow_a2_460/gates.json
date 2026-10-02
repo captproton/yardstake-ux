@@ -1,0 +1,23 @@
+{
+  "gates": [
+    {
+      "name": "spec lint (every number cited, drawn lengths on their sheets)",
+      "tier": "fast",
+      "requires": ["yaml", "bin:pdftotext"],
+      "cmd": ["{python}", "-m", "adu_kit.spec_lint", "models/willow_a2_460/spec.yaml",
+              "--pdf", "example plans/sacramento_adus/adu-plan-full-set-a2-willow.pdf"]
+    },
+    {
+      "name": "spec geometry (verify_spec.py)",
+      "tier": "fast",
+      "requires": ["yaml"],
+      "cmd": ["{python}", "models/willow_a2_460/verify_spec.py"]
+    },
+    {
+      "name": "spec geometry tests (each gate shown to bite)",
+      "tier": "fast",
+      "requires": ["yaml"],
+      "cmd": ["{python}", "-m", "unittest", "discover", "-s", "models/willow_a2_460", "-p", "test_*.py"]
+    }
+  ]
+}
