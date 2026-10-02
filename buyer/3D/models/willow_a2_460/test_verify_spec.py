@@ -173,6 +173,11 @@ class VerifySpec(unittest.TestCase):
             s["roof"]["porch"]["junction_depth"]["ft"] = 6.5
         self.assertGateFails(self.broken(change), "the porch roof meets the main roof")
 
+    def test_a_junction_that_adds_the_eaves_to_the_rise(self):
+        def change(s):
+            s["roof"]["porch"]["junction_depth"]["ft"] = 5.6333      # the earlier, wrong derivation
+        self.assertGateFails(self.broken(change), "the porch roof meets the main roof")
+
     def test_porch_eaves_not_the_rakes(self):
         def change(s):
             s["roof"]["porch"]["side_eaves"]["ft"] = 1.5

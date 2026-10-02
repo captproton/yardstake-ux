@@ -135,10 +135,11 @@ cited in the spec; this is the short form.
   plan); front eave assumed equal to the rear (the porch roof hides it; the side
   elevations draw them equal). Porch roof: 5'-0" out from the front wall, 1'-0" side
   eaves, so it is 26'-0" wide.
-- **Porch.** A 3:12 gable, ridge front to back, 3.25 ft above the plate at its ridge,
+- **Porch.** A 3:12 gable, ridge front to back, 3.0 ft above the plate at its ridge,
   on a 6X10 beam and 6X6 posts with a 6X6 king post; four posts in plan; 122 sf.
-- **Where it meets the main roof: derived, 5.63 ft in from the front wall**, against
-  about 5.1 ft on the roof plan's ink. Not dimensioned on any sheet.
+- **Where it meets the main roof: derived, 5.03 ft in from the front wall**, against
+  about 5.1 ft on the roof plan's ink, which agrees. Not dimensioned on any sheet. (A
+  first draft added the eaves to the rise and got 5.63 ft; review corrected it.)
 - **Front and frame.** Willow's plan is laid out as Laurel's: front is the 24'-0" wall
   at +Y, with the porch and door 1. Laurel's frame holds.
 - **Schedules.** Eight of Laurel's interior strings recur on Willow's A-1.0 and the

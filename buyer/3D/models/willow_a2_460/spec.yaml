@@ -315,15 +315,16 @@ roof:
           ft: 12.0
           derived: the middle of the 24'-0" front wall; the elevation draws it on the porch gable's ridge
         source: A-2.0 FRONT ELEVATION label '6X6 PT KING POST'
-    spans: the full 24'-0" front wall plus the 1'-0" side eaves, 26'-0"
+    spans: '26''-0" overall: the 24''-0" front wall (the bearing span, plate to plate at the end posts) plus the 1''-0" side eaves. The gable''s RISE is
+      measured over the 24''-0" span; the eaves continue the slope past the plates.'
     junction_depth:
-      ft: 5.6333
-      derived: 'the porch ridge stands 13 ft (half of 26''-0") x 3/12 = 3.25 ft above T.P.; the main roof''s top is 4.8958 ft above T.P. at mid-depth and
-        falls 5/12 per ft toward the front wall, so it is 3.25 ft high (4.8958 - 3.25) x 12/5 = 3.95 ft before the front wall''s depth of 9.5833: 9.5833
-        - 3.95 = 5.6333 ft in from the front wall'
-    meets_main_roof: 'along two valleys. The porch ridge is level at T.P. plus half the 26''-0" span at 3"/1''-0" (3.25 ft), and it meets the main roof''s
-      front slope where that slope is as high: about 5.6 ft in from the front wall. The ROOF PLAN draws the valley meeting point about 5.1 ft in. Derived,
-      not dimensioned: no sheet gives the junction.'
+      ft: 5.0333
+      derived: the porch ridge stands 12 ft (half of the 24'-0" bearing span, plate to plate at the posts) x 3/12 = 3.0 ft above T.P.; the 1'-0" side eaves
+        extend the same slope past the plates and do not add to the rise. The main roof's top is 4.8958 ft above T.P. at mid-depth and falls 5/12 per ft
+        toward the front wall, so it is 3.0 ft high (4.8958 - 3.0) x 12/5 = 4.55 ft before mid-depth, 9.5833 - 4.55 = 5.0333 ft in from the front wall
+    meets_main_roof: 'along two valleys. The porch ridge is level at T.P. plus half the 24''-0" bearing span at 3"/1''-0" (3.0 ft), and it meets the main
+      roof''s front slope where that slope is as high: about 5.03 ft in from the front wall. The ROOF PLAN draws the valley meeting point about 5.1 ft in,
+      which agrees within 0.07 ft. Derived, not dimensioned: no sheet gives the junction.'
   heel:
     derived: top of roof 12'-10 3/4" less T.P. 8'-0" = 4.8958 ft (58.75"); a 5:12 slope over half of 19'-2" (9'-7") rises 3.9931 ft (47.9"). The remaining
       0.9028 ft (10.8") is the truss heel and the roofing, and no sheet dimensions it.
@@ -986,11 +987,10 @@ discrepancies:
 - id: the-porch-junction-is-derived-not-dimensioned
   impact: Where the porch roof meets the main roof is drawn but not dimensioned. The valley meeting point is about 5.1 ft in from the front wall on the
     roof plan.
-  resolution: 'NOT RECONCILED HERE, ON PURPOSE, AND THE GAP IS UNEXPLAINED. The only machine-readable value is the derivation (roof.porch.junction_depth,
-    5.6333 ft); the roof plan''s ink reads about 5.1 ft, a 0.5 ft difference. The heel does NOT explain it: the derivation starts from top_of_roof, which
-    already includes the heel. Candidate causes, none checked: the valley point read off the sheet''s ink at its stated scale; the porch roof being stick-framed
-    over the trusses (overframing), which would raise its eave line above T.P.; the porch ridge not being level. The Willow build (#172) and its overlay
-    (#173) decide which governs, with the roof built and measured.'
+  resolution: DERIVED, AND THE INK AGREES. The derivation (roof.porch.junction_depth, 5.0333 ft) takes the porch ridge as 3.0 ft above T.P. (half the 24'-0"
+    bearing span at 3:12; the side eaves continue the slope and add no rise) and the main roof's front slope as 5/12 from its 4.8958 ft top; the roof plan's
+    ink reads about 5.1 ft, 0.07 ft away, within what a drawing at 1/4" = 1'-0" can show. Neither number is dimensioned on a sheet, so the build (#172)
+    and its overlay (#173) still hold the built junction to the sheet's ink.
   source: A-2.0 ROOF PLAN and FRONT ELEVATION
 variants:
   floor_plan_options:

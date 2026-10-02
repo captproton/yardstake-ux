@@ -339,10 +339,12 @@ def check(spec):
          f"{left * 12:.2f} in")
     porch = roof["porch"]
     pslope = porch["slope"]["rise_in"] / porch["slope"]["run_in"]
-    span_ft = float(width) + 2 * float(main["overhangs"]["rakes"]["ft"])
     gate(close(porch["side_eaves"]["ft"], main["overhangs"]["rakes"]["ft"]),
          "the porch roof's side eaves are the main roof's rakes (the front elevation draws them as one width)")
-    porch_rise = span_ft / 2 * pslope
+    # the rise is over the BEARING span (plate to plate at the end posts, X 0 to X 24); the side eaves
+    # continue the same slope past the plates and add nothing to it (the repository's roof convention:
+    # the plane's height is set at the plate line and merely extended over the overhang)
+    porch_rise = float(width) / 2 * pslope
     junction = half - (top - plate - porch_rise) / slope
     gate(close(porch["junction_depth"]["ft"], junction, 0.01),
          "the porch roof meets the main roof where the two slopes are level, as derived",
