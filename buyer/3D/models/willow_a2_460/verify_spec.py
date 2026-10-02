@@ -366,6 +366,19 @@ def check(spec):
     gate(0 < setback < float(porch["projects"]["ft"]),
          "the porch posts stand inside the porch roof's edge (setback is less than the 5'-0\" the roof projects)",
          f"setback {setback:.4f}, roof projects {float(porch['projects']['ft'])}")
+    fp = porch["footprint"]
+    gate(close(fp["width"]["ft"], width),
+         "the porch footprint is the front wall's width", f"{fp['width']['ft']} vs {float(width)}")
+    gate(close(float(fp["width"]["ft"]) * float(fp["depth"]["ft"]), fp["area"]["value_sf"], 0.5),
+         "the porch footprint's width x depth is the sheet's 122 sf",
+         f"{float(fp['width']['ft']) * float(fp['depth']['ft']):.4f} vs {fp['area']['value_sf']}")
+    gate(abs(float(fp["depth"]["ft"]) - float(porch["projects"]["ft"])) <= 1 / 12 + TOL,
+         "the porch depth is within an inch of the roof's 5'-0\" projection (two sheets' readings of one edge)",
+         f"depth {fp['depth']['ft']} vs projection {porch['projects']['ft']}")
+    second = float(posts["setback_second_reading"]["ft"])
+    gate(abs(second - setback) <= 2 / 12 + TOL and 0 < second < float(fp["depth"]["ft"]),
+         "A-1.0's two readings of the post line's setback agree within two inches and lie inside the porch",
+         f"{setback} vs {second}")
     gate(close(posts["king_post"]["at_x"]["ft"], float(width) / 2),
          "the king post is at the middle of the front wall (the porch ridge)",
          f"{posts['king_post']['at_x']['ft']} vs {float(width) / 2}")

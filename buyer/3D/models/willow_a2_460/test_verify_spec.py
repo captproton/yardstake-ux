@@ -341,6 +341,26 @@ class VerifySpec(unittest.TestCase):
             s["openings"]["window_types"]["types"][2]["operation"] = "awning"
         self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
 
+    def test_a_porch_footprint_of_the_wrong_width(self):
+        def change(s):
+            s["roof"]["porch"]["footprint"]["width"]["ft"] = 20.0
+        self.assertGateFails(self.broken(change), "the porch footprint is the front wall's width")
+
+    def test_a_porch_footprint_that_is_not_122_sf(self):
+        def change(s):
+            s["roof"]["porch"]["footprint"]["area"]["value_sf"] = 150
+        self.assertGateFails(self.broken(change), "the porch footprint's width x depth is the sheet's 122 sf")
+
+    def test_a_porch_depth_far_from_the_roof_projection(self):
+        def change(s):
+            s["roof"]["porch"]["footprint"]["depth"]["ft"] = 6.0
+        self.assertGateFails(self.broken(change), "the porch depth is within an inch of the roof's 5'-0\" projection")
+
+    def test_two_setback_readings_that_disagree(self):
+        def change(s):
+            s["roof"]["porch"]["posts"]["setback_second_reading"]["ft"] = 5.0
+        self.assertGateFails(self.broken(change), "A-1.0's two readings of the post line's setback agree")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]

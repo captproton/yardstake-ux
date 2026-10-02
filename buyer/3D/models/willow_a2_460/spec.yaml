@@ -241,6 +241,24 @@ roof:
       run_in: 12
       raw: 3" / 1'-0"
       source: A-2.0 FRONT ELEVATION slope arrows, both sides of the porch gable
+    footprint:
+      width:
+        ft: 24.0
+        raw: 24'-0"
+        source: 'A-1.0 floor plan, the overall string on the front (left) wall: the porch outline runs the whole front wall, grid A to grid B'
+      depth:
+        ft: 5.0833
+        derived: 122 S.F. / 24'-0" = 5.0833 ft (5'-1"). No string dimensions the porch outline itself; its depth is back-solved from the sheet's own area.
+        source: A-1.0 floor plan label '122 S.F. COVERED PORCH'
+      area:
+        value_sf: 122
+        source: A-1.0 floor plan label '122 S.F. COVERED PORCH'; A-0.0 project data 'COVERED PORCH'
+      area_check:
+        value_sf: 122.0
+        derived: 24 x 5.0833 = 122.0 (the depth is back-solved from the area, so this closes by construction; the independent check, held by a gate, is
+          that the depth is within an inch of the 5'-0" roof projection, two sheets' readings of the same edge)
+      outline_vs_roof: the dashed outline on A-1.0 is read as the porch roof's edge, 5'-0" out (A-2.0 ROOF PLAN); the 1" between that and the 5'-1" the
+        area implies is not explained by any sheet
     projects:
       ft: 5.0
       raw: 5'-0"
@@ -277,6 +295,12 @@ roof:
         raw: 4'-4 1/2"
         source: A-1.0 floor plan, the string from the front wall to the post line, beside the covered porch
       setback_note: to the posts' centre line, from the wall's outside face; A-1.0 draws the post marks at that line
+      setback_second_reading:
+        ft: 4.5
+        raw: 4'-6"
+        source: A-1.0 floor plan, the string along the grid B (bottom) wall, from the post line to the front wall's outside corner
+      setback_discrepancy: 'A-1.0 gives the post line''s distance from the front wall twice, 4''-4 1/2" (beside the window wall) and 4''-6" (at the grid
+        B corner): 1 1/2" apart. NOT RECONCILED; the spec takes 4''-4 1/2" and the overlay (#173) measures the posts against the sheet''s ink.'
       beam:
         size: 6X10 PT
         runs_along: X
@@ -962,9 +986,11 @@ discrepancies:
 - id: the-porch-junction-is-derived-not-dimensioned
   impact: Where the porch roof meets the main roof is drawn but not dimensioned. The valley meeting point is about 5.1 ft in from the front wall on the
     roof plan.
-  resolution: NOT RECONCILED HERE, ON PURPOSE. The only machine-readable value is the derivation (roof.porch.junction_depth, 5.6333 ft); the roof plan's
-    ink reads about 5.1 ft, and the 0.5 ft between them is within what the unexplained 10.8" of heel and the sheet's drafting tolerance could account for.
-    The Willow build (#172) and its overlay (#173) decide which governs, with the roof built and measured; neither number is dimensioned on a sheet.
+  resolution: 'NOT RECONCILED HERE, ON PURPOSE, AND THE GAP IS UNEXPLAINED. The only machine-readable value is the derivation (roof.porch.junction_depth,
+    5.6333 ft); the roof plan''s ink reads about 5.1 ft, a 0.5 ft difference. The heel does NOT explain it: the derivation starts from top_of_roof, which
+    already includes the heel. Candidate causes, none checked: the valley point read off the sheet''s ink at its stated scale; the porch roof being stick-framed
+    over the trusses (overframing), which would raise its eave line above T.P.; the porch ridge not being level. The Willow build (#172) and its overlay
+    (#173) decide which governs, with the roof built and measured.'
   source: A-2.0 ROOF PLAN and FRONT ELEVATION
 variants:
   floor_plan_options:
