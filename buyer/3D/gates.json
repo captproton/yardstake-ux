@@ -63,6 +63,16 @@
       ]
     },
     {
+      "name": "gate log and spec-read tests (adu_kit/test_gatelog.py)",
+      "tier": "fast",
+      "cmd": [
+        "{python}",
+        "-m",
+        "unittest",
+        "adu_kit.test_gatelog"
+      ]
+    },
+    {
       "name": "new_model.py intake and scaffold tests",
       "tier": "fast",
       "requires": [
