@@ -453,6 +453,36 @@ class VerifySpec(unittest.TestCase):
             s["roof"]["porch"]["posts"]["beam"]["x1"]["ft"] = 20.0
         self.assertGateFails(self.broken(change), "the beam runs from the first post to the last")
 
+    def test_a_roof_form_that_is_not_two_gables(self):
+        def change(s):
+            s["roof"]["form"] = "shed"
+        self.assertGateFails(self.broken(change), "the roof is two gables")
+
+    def test_a_main_roof_that_is_not_a_gable(self):
+        def change(s):
+            s["roof"]["main"]["form"] = "shed"
+        self.assertGateFails(self.broken(change), "the roof is two gables")
+
+    def test_a_porch_roof_that_is_not_a_gable(self):
+        def change(s):
+            s["roof"]["porch"]["form"] = "hip"
+        self.assertGateFails(self.broken(change), "the roof is two gables")
+
+    def test_a_main_ridge_along_y(self):
+        def change(s):
+            s["roof"]["main"]["ridge_runs_along"] = "Y"
+        self.assertGateFails(self.broken(change), "the roof is two gables")
+
+    def test_a_porch_ridge_along_x(self):
+        def change(s):
+            s["roof"]["porch"]["ridge_runs_along"] = "X"
+        self.assertGateFails(self.broken(change), "the roof is two gables")
+
+    def test_a_missing_ridge_direction(self):
+        def change(s):
+            del s["roof"]["porch"]["ridge_runs_along"]
+        self.assertGateFails(self.broken(change), "the roof is two gables")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]
