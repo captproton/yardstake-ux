@@ -81,10 +81,15 @@ class BuildLiterals(unittest.TestCase):
         # a Name that `.isupper()` calls ALL_CAPS, so the line was skipped --
         # and a 24 pasted over that lookup went unseen. The gate's own test
         # caught it, which is the reason the test exists.
-        declared = {n.lineno for n in tree.body
+        # ONLY THE VALUE ITSELF IS EXEMPT, NEVER THE LINE. Exempting every literal on the line of
+        # a module-level ALL_CAPS assignment let `SNEAKY = 1.0 + 24.0  # bookkeeping` through
+        # (review of #182): the one node that is a constant's declared value is the direct
+        # Constant on the right-hand side, and nothing else on that line is.
+        declared = {id(n.value) for n in tree.body
                     if isinstance(n, ast.Assign) and len(n.targets) == 1
                     and isinstance(n.targets[0], ast.Name)
-                    and _is_constant_name(n.targets[0].id)}
+                    and _is_constant_name(n.targets[0].id)
+                    and isinstance(n.value, ast.Constant)}
         # A SIGNED LITERAL IS TWO NODES, and ast.walk visits the inner one.
         # `-1` is UnaryOp(USub, Constant(1)), so the gate saw a bare 1, called
         # it an allowed index, and let a negative length through. Review found
@@ -105,7 +110,7 @@ class BuildLiterals(unittest.TestCase):
                     and isinstance(n.value, (int, float))
                     and not isinstance(n.value, bool)):
                 continue
-            if n.lineno in declared:          # the constant's own definition
+            if id(n) in declared:             # the constant's own declared value
                 continue
             if id(n) in signed:
                 value = signed[id(n)]
@@ -186,6 +191,24 @@ class BuildLiterals(unittest.TestCase):
             self.assertTrue(any(v == value for _, v in bad),
                             f"a pasted {value!r}, the value of {name}, "
                             f"was not caught; offenders were {bad}")
+
+    def test_a_dimension_inside_an_expression_on_a_constants_line_is_caught(self):
+        """Found by review of #182. The exemption was per LINE, so a building dimension written as
+        an expression on a constant's line passed both the literal gate and the comment gate."""
+        for expr in ("1.0 + 24.0", "24.0 * 1.0", "(24.0,)[0]", "max(24.0, 1.0)", "9.625 if True else 0.0"):
+            hurt = self.src.replace("CUT_MARGIN = ", f"SNEAKY = {expr}  # bookkeeping\nCUT_MARGIN = ", 1)
+            tree = ast.parse(hurt)
+            bad = self.offenders(tree, module_constants(tree))
+            self.assertTrue(any(v in (24.0, 9.625, 1.0) for _, v in bad),
+                            f"`SNEAKY = {expr}` was not caught; offenders were {bad}")
+
+    def test_a_plain_constant_is_still_exempt(self):
+        hurt = self.src.replace("CUT_MARGIN = ", "SNEAKY = 24.0  # bookkeeping\nCUT_MARGIN = ", 1)
+        tree = ast.parse(hurt)
+        # the declaration itself is exempt (the comment gate, not this one, polices it) ...
+        self.assertNotIn(24.0, [v for _, v in self.offenders(tree, module_constants(tree))])
+        # ... and it is seen as a constant, so the comment gate will check it
+        self.assertIn("SNEAKY", [n for n, _v, _l in module_constants(tree)])
 
     def test_a_negative_dimension_is_caught(self):
         """Found by review. `-1` is UnaryOp(USub, Constant(1)) and ast.walk

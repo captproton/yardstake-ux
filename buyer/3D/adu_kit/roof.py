@@ -31,6 +31,7 @@ to the last bit.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -228,9 +229,18 @@ def ceiling_from_spec(ceiling, roof: Roof = None):
                         "(or `follows: roof`)")
     at = ceiling.get("at")
     height = at.get("ft") if isinstance(at, dict) else None
-    if isinstance(height, bool) or not isinstance(height, (int, float)) or height != height:
-        raise RoofError(f"a flat ceiling needs roof.ceiling.at.ft to be a number, not {height!r}")
-    return Flat(float(height))
+    # ONE CONVERSION, UNDER TRY: an integer too large for a float raises OverflowError in float(),
+    # and NaN and both infinities pass an isinstance check, so every non-finite result is refused
+    # here rather than becoming geometry.
+    try:
+        if isinstance(height, bool) or not isinstance(height, (int, float)):
+            raise TypeError(height)
+        value = float(height)
+    except (TypeError, OverflowError):
+        raise RoofError(f"a flat ceiling needs roof.ceiling.at.ft to be a finite number, not {height!r}") from None
+    if not math.isfinite(value):
+        raise RoofError(f"a flat ceiling needs roof.ceiling.at.ft to be a finite number, not {height!r}")
+    return Flat(value)
 
 
 def ceiling_for(follows, roof: Roof):

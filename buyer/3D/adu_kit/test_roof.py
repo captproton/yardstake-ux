@@ -223,7 +223,8 @@ class CeilingFromSpec(unittest.TestCase):
                 ceiling_from_spec({"form": form, "at": {"ft": 8.0}})
 
     def test_a_flat_ceiling_needs_a_numeric_height(self):
-        for at in (None, {}, {"ft": None}, {"ft": "8"}, {"ft": True}, {"ft": float("nan")}, 8.0, [8.0]):
+        for at in (None, {}, {"ft": None}, {"ft": "8"}, {"ft": True}, {"ft": float("nan")}, {"ft": float("inf")},
+                   {"ft": float("-inf")}, {"ft": 10 ** 400}, {"ft": -(10 ** 400)}, 8.0, [8.0]):
             with self.subTest(at=at), self.assertRaises(RoofError):
                 ceiling_from_spec({"form": "flat", "at": at})
 
