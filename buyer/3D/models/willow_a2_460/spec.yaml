@@ -341,10 +341,13 @@ roof:
     assumed: 'A FLAT CEILING AT THE PLATE, BUT THE PLAN SET DOES NOT DRAW IT. Evidence for it: A-2.0''s attic-access note measures head height from the
       top of the ceiling framing members to the underside of the roof framing; A-1.0 draws a MIN. 22X30 ATTIC ACCESS hatch in the plan; A-2.0''s roof ventilation
       is computed for an enclosed rafter area of the whole 460 S.F.; no A-1.0 room is tagged ''CEILINGS FOLLOW ROOF LINE'' as Laurel''s living room is.
-      What it does not show: a reflected ceiling plan, a building section or a truss profile. Note 14 of the truss notes on the structural notes sheet (page
-      12) says the TRUSS MANUFACTURER PROVIDES THE TRUSS PROFILE, so the profile is a deferred submittal and is NOT in this set.'
+      What it does not show: a reflected ceiling plan, a building section or a truss profile. A-1.1, read for this (2026-10-02), is titled POWER PLAN: it
+      draws ceiling-mounted light fixtures and one ceiling fan/light but no ceiling outline, height or slope, so it is not a reflected ceiling plan and
+      does not settle the form. Note 14 of the truss notes on the structural notes sheet (page 12) says the TRUSS MANUFACTURER PROVIDES THE TRUSS PROFILE,
+      so the profile is a deferred submittal and is NOT in this set.'
     what_would_settle_it: the truss manufacturer's profile or a building section; neither is in the plan set, so this stays an assumption for this model.
-    source: A-2.0 ROOF PLAN NOTES (attic access, ventilation); A-1.0 floor plan (attic access hatch); structural notes page 12, truss note 14
+    source: A-2.0 ROOF PLAN NOTES (attic access, ventilation); A-1.0 floor plan (attic access hatch); A-1.1 POWER PLAN (ceiling fixtures only); structural
+      notes page 12, truss note 14
   roofing:
     material: asphalt_shingle
     source: A-2.0 ROOF PLAN NOTES 'ROOFING MATERIAL TO BE ASPHALT SHINGLE'; A-0.0 'COMPOSITE SHINGLES'
@@ -973,8 +976,9 @@ windows:
       source: A-1.0 Window Schedule, mark F is a SLIDER
 discrepancies:
 - id: the-plan-set-does-not-draw-the-ceiling
-  impact: No reflected ceiling plan, building section or truss profile is in the set, so the form of the ceiling (flat at the plate, scissor, or partly
-    vaulted) cannot be read. The truss profile is a deferred submittal (structural note 14).
+  impact: No reflected ceiling plan (A-1.1 is a power plan that draws ceiling fixtures but no ceiling geometry), building section or truss profile is in
+    the set, so the form of the ceiling (flat at the plate, scissor, or partly vaulted) cannot be read. The truss profile is a deferred submittal (structural
+    note 14).
   resolution: 'ASSUMED FLAT AT T.P. 8''-0" (roof.ceiling.settled: false). The evidence for it is the attic-access note, the attic-access hatch on A-1.0
     and the ventilation calculation, and none of it is a drawing of the ceiling.'
   source: A-2.0 ROOF PLAN NOTES; A-1.0 floor plan; structural notes page 12 note 14

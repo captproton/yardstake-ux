@@ -122,7 +122,8 @@ profile or a section, before any partition is built to it.
 The open items above, as `models/willow_a2_460/spec.yaml` now answers them. Each is
 cited in the spec; this is the short form.
 
-- **Ceiling form: still not drawn, and cannot be read from this set.** Structural
+- **Ceiling form: still not drawn, and cannot be read from this set.** (A-1.1, the power plan, was read
+  for this: it draws ceiling fixtures and a ceiling fan but no ceiling outline, height or slope.) Structural
   note 14 (page 12) says the truss manufacturer provides the truss profile, so the
   profile is a deferred submittal. The spec records a flat ceiling at T.P. 8'-0" as
   an **assumption** (`roof.ceiling.settled: false`), on the attic-access note, the
