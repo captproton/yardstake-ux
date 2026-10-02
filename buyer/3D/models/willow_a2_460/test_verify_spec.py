@@ -349,6 +349,19 @@ class VerifySpec(unittest.TestCase):
         self.assertNotIn("Traceback", r.stderr)
         self.assertIn("the spec has the blocks these gates read", r.stdout)
 
+    def test_malformed_yaml_is_a_failed_gate_not_a_traceback(self):
+        r = run("meta: [unclosed\nlevels: {a: 1\n")
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("[FAIL] the spec is valid YAML", r.stdout)
+
+    def test_an_unreadable_spec_path_is_readable_failure(self):
+        r = subprocess.run([sys.executable, str(VERIFY), str(HERE / "no_such_spec.yaml")],
+                           capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertIn("cannot read", r.stdout)
+
     def test_duplicate_keys_are_named(self):
         text = SPEC.read_text() + "\nlevels:\n  datum: finished_floor\n"
         r = run(text)
