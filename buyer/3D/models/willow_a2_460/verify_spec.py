@@ -68,9 +68,34 @@ def check(spec):
     width = parse_length(spec["envelope"]["width"]["raw"])
     depth = parse_length(spec["envelope"]["depth"]["raw"])
     by_id = {}
+    owner = {}
+    dupes = []
     for wall in ("front_wall", "rear_wall", "end_wall_x0", "end_wall_x24"):
         for row in o[wall]["openings"]:
+            if row["id"] in by_id:
+                dupes.append(row["id"])
             by_id[row["id"]] = row
+            owner[row["id"]] = wall
+
+    # WHICH WALL EACH OPENING IS ON. Positions are checked within a wall, so two openings swapped between
+    # the front and rear lists kept every id, coordinate, width and count and passed every gate below
+    # while the build would cut both into the wrong walls. This is the elevations' own list (A-2.0): the
+    # front has windows A (two), B and door 1; the rear window E and door 6; the X 24 end C and F; the X 0
+    # end the six D windows.
+    expected_walls = {
+        "front_wall": {"W-A1", "W-B1", "D-1", "W-A2"},
+        "rear_wall": {"D-6", "W-E1"},
+        "end_wall_x24": {"W-C1", "W-F1"},
+        "end_wall_x0": {f"W-D{i}" for i in range(1, 7)},
+    }
+    wrong_walls = []
+    for wall, want_ids in expected_walls.items():
+        have = {r["id"] for r in o[wall]["openings"]}
+        if have != want_ids:
+            wrong_walls.append(f"{wall} holds {sorted(have)}, the elevations draw {sorted(want_ids)}")
+    gate(not dupes and not wrong_walls,
+         "each wall block holds exactly the openings the elevations draw on it, each id once",
+         "; ".join(wrong_walls + [f"{i} is listed twice" for i in dupes]))
     doors = {str(d["mark"]): d for d in o["door_types"]["types"]}
     wins = {w["mark"]: w for w in o["window_types"]["types"]}
 
@@ -263,9 +288,10 @@ def check(spec):
     gate(not wrong, "the partition faces follow from the interior strings", "; ".join(wrong))
 
     rooms = spec["interior_partitions"]["rooms"]
-    gate(all(isinstance(r, str) and r.count("(") == r.count(")") and r.strip() for r in rooms),
-         "every room name is one whole tag (a list split at its commas leaves an unbalanced parenthesis)",
-         "; ".join(map(repr, rooms)))
+    gate(isinstance(rooms, list) and bool(rooms)
+         and all(isinstance(r, str) and r.count("(") == r.count(")") and r.strip() for r in rooms),
+         "the rooms are a non-empty list of whole tags (a list split at its commas leaves an unbalanced parenthesis)",
+         repr(rooms))
 
     x_in = (stud, float(width) - stud)
     y_in = (stud, float(depth) - stud)

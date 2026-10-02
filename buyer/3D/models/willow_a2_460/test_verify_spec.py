@@ -267,7 +267,34 @@ class VerifySpec(unittest.TestCase):
     def test_a_room_list_split_at_its_commas(self):
         def change(s):
             s["interior_partitions"]["rooms"] = ["kitchen", "bath (tub", "toilet", "36\" vanity)"]
-        self.assertGateFails(self.broken(change), "every room name is one whole tag")
+        self.assertGateFails(self.broken(change), "the rooms are a non-empty list of whole tags")
+
+    def test_a_scalar_rooms_value(self):
+        def change(s):
+            s["interior_partitions"]["rooms"] = "kitchen"
+        self.assertGateFails(self.broken(change), "the rooms are a non-empty list of whole tags")
+
+    def test_an_empty_rooms_list(self):
+        def change(s):
+            s["interior_partitions"]["rooms"] = []
+        self.assertGateFails(self.broken(change), "the rooms are a non-empty list of whole tags")
+
+    def test_two_openings_swapped_between_the_front_and_rear_walls(self):
+        def change(s):
+            o = s["openings"]
+            a = next(r for r in o["front_wall"]["openings"] if r["id"] == "W-A2")
+            e = next(r for r in o["rear_wall"]["openings"] if r["id"] == "W-E1")
+            o["front_wall"]["openings"].remove(a)
+            o["rear_wall"]["openings"].remove(e)
+            o["front_wall"]["openings"].append(e)
+            o["rear_wall"]["openings"].append(a)
+        self.assertGateFails(self.broken(change), "each wall block holds exactly the openings the elevations draw")
+
+    def test_an_opening_listed_on_two_walls(self):
+        def change(s):
+            o = s["openings"]
+            o["rear_wall"]["openings"].append(dict(o["front_wall"]["openings"][0]))
+        self.assertGateFails(self.broken(change), "each wall block holds exactly the openings the elevations draw")
 
     def test_a_zero_run_is_a_readable_failure_not_a_traceback(self):
         def change(s):
