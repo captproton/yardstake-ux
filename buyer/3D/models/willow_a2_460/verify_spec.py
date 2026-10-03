@@ -215,7 +215,10 @@ def check(spec):
             h = w["height"]["ft"]
             lo, hi = frame_w, h - frame_w                   # between the sill and head members
             centre = ratio * h
-            if not (lo + thick / 2 <= centre <= hi - thick / 2):
+            # STRICT, with a margin: a rail whose edge exactly touches the sill or head member leaves a
+            # zero-height pane (review of #182), and a margin of TOL (a few thousandths of an inch) is zero in
+            # any model, so "touching" cannot hide behind a float.
+            if not (lo + thick / 2 + TOL < centre < hi - thick / 2 - TOL):
                 rail_bad.append(f"window {w['mark']}: the rail band {centre - thick / 2:.4f}..{centre + thick / 2:.4f} ft "
                                 f"is outside the sash's {lo:.4f}..{hi:.4f}")
     gate(not rail_bad, "every meeting rail lies inside its sash, between the sill and head members",
@@ -240,10 +243,10 @@ def check(spec):
             across = (wd - 2 * frame_w) if units == 1 else min(step - frame_w - mull / 2,
                                                                 step - mull if units > 2 else step - frame_w - mull / 2)
             up = ht - 2 * frame_w                          # between the sill and head members
-            if across <= 0:
+            if across <= TOL:
                 fit_bad.append(f"window {w['mark']} ({wd} ft wide, {units} unit(s)): frame {frame_w} and mullion {mull} "
                                f"leave no clear opening across it ({across:.4f})")
-            if up <= 0:
+            if up <= TOL:
                 fit_bad.append(f"window {w['mark']} ({ht} ft high): frame {frame_w} leaves no clear opening up it ({up:.4f})")
     gate(not fit_bad, "every window's frame and mullion leave a clear opening, in both dimensions and in every unit",
          "; ".join(fit_bad))

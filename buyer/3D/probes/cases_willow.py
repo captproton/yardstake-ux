@@ -13,6 +13,7 @@ checking does (found on #177; the same rule as cases_kitgates.py).
   * the walls built a foot low                             _walls_to_the_plate
   * the slab built half a foot too thick                   _walls_to_the_plate
   * the slab built a foot short on one side                _slab_is_the_footprint
+  * the sheathing skins never built                        _sheathing_on_every_wall
   * a partition built half a foot from the spec            every_partition_built
   * one window never cut                                   every_row_built
   * one door never given a leaf                            every_row_built
@@ -67,6 +68,13 @@ def _slab_a_foot_short(work: Path) -> None:
            'box("Slab", 0.0, W, 0.0, D, -slab_t, 0.0, site)',
            'box("Slab", 0.0, W - 1.0, 0.0, D, -slab_t, 0.0, site)',
            "the slab a foot short")
+
+
+def _no_sheathing_skins(work: Path) -> None:
+    """Disable the branch that builds the four skins. skin_of stays empty, so every_row_built
+    expects no skin cuts and used to pass."""
+    _patch(work, "    if sheath:\n        faces = {", "    if False:\n        faces = {",
+           "no sheathing skins")
 
 
 def _partitions_in_the_wrong_place(work: Path) -> None:
@@ -163,6 +171,8 @@ CASES = [
           _slab_half_a_foot_too_thick, "the walls and partitions run from the slab to the plate"),
     _case("the slab built a foot short on one side (_slab_is_the_footprint)",
           _slab_a_foot_short, "the slab is the building's footprint, X 0..W and Y 0..D"),
+    _case("the sheathing skins are never built (_sheathing_on_every_wall)",
+          _no_sheathing_skins, "every exterior wall carries its sheathing skin, outside its face of stud"),
     _case("the partitions built half a foot from where the spec puts them (every_partition_built)",
           _partitions_in_the_wrong_place, "every partition in the spec was built, where the spec puts it"),
     _case("a window in the schedule is never cut (every_row_built)",

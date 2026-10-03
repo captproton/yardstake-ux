@@ -298,6 +298,9 @@ def report(spec, geo, colls):
     ok, why = _slab_is_the_footprint(spec, geo)
     gate(ok, "the slab is the building's footprint, X 0..W and Y 0..D", why)
 
+    ok, why = _sheathing_on_every_wall(spec, geo)
+    gate(ok, "every exterior wall carries its sheathing skin, outside its face of stud", why)
+
     ok, why = every_partition_built(spec, geo)
     gate(ok, "every partition in the spec was built, where the spec puts it", why)
 
@@ -371,6 +374,34 @@ def _slab_is_the_footprint(spec, geo):
         if abs(lo[axis]) > MESH_TOL or abs(hi[axis] - span) > MESH_TOL:
             wrong.append(f"the slab measures {'XY'[axis]} {lo[axis]:.4f}..{hi[axis]:.4f}, "
                          f"the envelope is 0..{span:.4f}")
+    return not wrong, "; ".join(wrong)
+
+
+def _sheathing_on_every_wall(spec, geo):
+    """Each of the four walls has its sheathing skin, the spec's thickness thick, just outside it.
+
+    The skins are the modelled exterior surface. `every_row_built` expects skin cuts only for the skins
+    `skin_of` lists, so a build that never made them listed none, expected none, and passed every gate
+    (review of #182). Read from the SCENE by name, never from `geo`, and held to the spec: a skin must
+    exist for each wall, and stand sheath thick beyond the wall's own outer face.
+    """
+    sheath = spec["construction"]["exterior_wall"]["sheathing"]["ft"]
+    if not sheath:
+        return True, ""
+    W, D = geo["W"], geo["D"]
+    # (axis the skin is thin on, its outer and inner coordinates), derived from the envelope here
+    want = {"Sheathing_rear": (AXIS_Y, -sheath, 0.0), "Sheathing_front": (AXIS_Y, D, D + sheath),
+            "Sheathing_x0": (AXIS_X, -sheath, 0.0), "Sheathing_x24": (AXIS_X, W, W + sheath)}
+    wrong = []
+    for name, (axis, lo_want, hi_want) in want.items():
+        ob = bpy.data.objects.get(name)
+        if ob is None:
+            wrong.append(f"{name} was never built")
+            continue
+        lo, hi = world_bbox([ob])
+        if abs(lo[axis] - lo_want) > MESH_TOL or abs(hi[axis] - hi_want) > MESH_TOL:
+            wrong.append(f"{name} measures {'XY'[axis]} {lo[axis]:.4f}..{hi[axis]:.4f}, "
+                         f"{sheath} thick outside the wall is {lo_want:.4f}..{hi_want:.4f}")
     return not wrong, "; ".join(wrong)
 
 

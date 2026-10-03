@@ -613,6 +613,20 @@ class VerifySpec(unittest.TestCase):
             s["windows"]["mullion"]["ft"] = "0.1458"
         self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
 
+    def test_a_rail_whose_edge_exactly_touches_the_sill(self):
+        """Review of #182: the bounds were inclusive, so a rail resting exactly on the sill member (a
+        zero-height pane) passed. Window C is the shortest single-hung, 3.5 ft."""
+        def change(s):
+            w = s["windows"]
+            w["meeting_rail"]["ratio"] = (w["frame_to_glass"]["ft"] + w["meeting_rail"]["thickness"]["ft"] / 2) / 3.5
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_rail_whose_edge_exactly_touches_the_head(self):
+        def change(s):
+            w = s["windows"]
+            w["meeting_rail"]["ratio"] = (3.5 - w["frame_to_glass"]["ft"] - w["meeting_rail"]["thickness"]["ft"] / 2) / 3.5
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]
