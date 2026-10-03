@@ -56,6 +56,8 @@ gate, skip = LOG.gate, LOG.skip
 # file to zero.
 CUT_MARGIN = 1.0        # ft a cutter stands proud of the wall, so no face is coplanar
 RULE = 76               # characters across, for the printed report
+AXIS_X = 0              # index of X in a vertex or a bounding-box corner
+AXIS_Y = 1              # index of Y in a vertex or a bounding-box corner
 
 # the exterior wall each opening block belongs to, and the object that is its wall
 EXTERIOR = [("front_wall", "Wall_front", "x0", "x1", "x"),
@@ -367,9 +369,9 @@ def _frame_not_mirrored(spec, geo):
                 "end_wall_x0": "Wall_x0", "end_wall_x24": "Wall_x24"}
     W, D, t = geo["W"], geo["D"], geo["t"]
     # the exterior band each wall occupies, as (axis, lo, hi)
-    band = {"Wall_front": (1, D - t, D), "Wall_rear": (1, 0.0, t),
-            "Wall_x0": (0, 0.0, t), "Wall_x24": (0, W - t, W)}
-    checked, wrong = 0, []
+    band = {"Wall_front": (AXIS_Y, D - t, D), "Wall_rear": (AXIS_Y, 0.0, t),
+            "Wall_x0": (AXIS_X, 0.0, t), "Wall_x24": (AXIS_X, W - t, W)}
+    checked, wrong = [], []
     for o in geo["built"]:
         if o.get("block") is None:
             continue
@@ -380,7 +382,7 @@ def _frame_not_mirrored(spec, geo):
             continue
         axis, want_lo, want_hi = band[block_of[want_block]]
         lo, hi = world_bbox([geo["walls"][o["wall"]]])
-        checked += 1
+        checked.append(o["id"])
         if abs(lo[axis] - want_lo) > MESH_TOL or abs(hi[axis] - want_hi) > MESH_TOL:
             wrong.append(f"{o['id']} ({mark}) is cut into {o['wall']}, {'XY'[axis]} "
                          f"{lo[axis]:.3f}..{hi[axis]:.3f}; the elevations draw it on "

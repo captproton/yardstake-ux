@@ -34,9 +34,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 BUILD = HERE / "build.py"
 
-# 0 and 0.0 are the frame's origin and a floor at Z 0; 1 and 2 index pairs and
-# halve spans. None of them is a length read off a sheet.
-DATUM_AND_INDEX = {0, 1, 2}
+# 0 and 0.0 are the frame's origin and a floor at Z 0. An int 1 or 2 is allowed only where its
+# POSITION says it is not a length: inside a subscript (an index, or index arithmetic like
+# `argv.index("--") + 1`), or as the divisor `/ 2` that halves a span. `int` alone proves nothing
+# (review of #182: replacing a width with a bare 1 or 2 left the gate green), so the context is
+# read from the syntax tree. None of these is a length read off a sheet.
+DATUM = {0}
+INDEX_OR_HALVING = {1, 2}
 
 
 def _is_constant_name(name):
@@ -104,6 +108,18 @@ class BuildLiterals(unittest.TestCase):
                 value = n.operand.value
                 signed[id(n.operand)] = -value if isinstance(n.op, ast.USub) else value
 
+        # WHERE A BARE 1 OR 2 IS NOT A LENGTH: every int inside a subscript's slice, and the 2 that
+        # divides a span in half. Collected by position, so `W = 1` and `W = D + 1` are not on it.
+        positional = set()
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Subscript):
+                positional.update(id(c) for c in ast.walk(n.slice)
+                                  if isinstance(c, ast.Constant) and isinstance(c.value, int))
+            if (isinstance(n, ast.BinOp) and isinstance(n.op, (ast.Div, ast.FloorDiv))
+                    and isinstance(n.right, ast.Constant) and n.right.value == 2
+                    and isinstance(n.right.value, int)):
+                positional.add(id(n.right))
+
         bad = []
         for n in ast.walk(tree):
             if not (isinstance(n, ast.Constant)
@@ -130,7 +146,9 @@ class BuildLiterals(unittest.TestCase):
             # allowed index -- so a one-foot length written as a float read as
             # a list subscript. The only float that is a datum is 0.0, which
             # is where this frame's origin and its finished floor both sit.
-            if isinstance(n.value, int) and n.value in DATUM_AND_INDEX:
+            if isinstance(n.value, int) and n.value in DATUM:
+                continue
+            if isinstance(n.value, int) and n.value in INDEX_OR_HALVING and id(n) in positional:
                 continue
             if isinstance(n.value, float) and n.value == 0.0:
                 continue
@@ -185,6 +203,8 @@ class BuildLiterals(unittest.TestCase):
         Every value this module declares is tried here, so adding a constant
         cannot quietly re-open the hole."""
         for name, value, _lineno in self.consts:
+            if value in DATUM:                 # zero is the frame's origin, not a length
+                continue
             hurt = self.src.replace('env["width"]["ft"]', repr(value), 1)
             tree = ast.parse(hurt)
             bad = self.offenders(tree, module_constants(tree))
@@ -209,6 +229,32 @@ class BuildLiterals(unittest.TestCase):
         self.assertNotIn(24.0, [v for _, v in self.offenders(tree, module_constants(tree))])
         # ... and it is seen as a constant, so the comment gate will check it
         self.assertIn("SNEAKY", [n for n, _v, _l in module_constants(tree)])
+
+    def test_a_bare_one_or_two_as_a_dimension_is_caught(self):
+        """Found by review of #182. `int` was treated as an index, so a one- or two-foot dimension
+        written as a bare 1 or 2 passed. Position decides now: not inside a subscript, not the
+        divisor of a halving, so it is a length."""
+        for literal, value in (("1", 1), ("2", 2)):
+            for where in ('env["width"]["ft"]', 'env["depth"]["ft"]'):
+                hurt = self.src.replace(where, literal, 1)
+                tree = ast.parse(hurt)
+                bad = self.offenders(tree, module_constants(tree))
+                self.assertTrue(any(v == value for _, v in bad),
+                                f"a pasted {literal} for {where} was not caught; offenders were {bad}")
+
+    def test_one_added_to_a_dimension_is_caught(self):
+        for expr in ('env["width"]["ft"] + 1', 'D - 1', "t * 2", "2 * t", "D + 2"):
+            hurt = self.src.replace("    head = ceiling.under_y(0.0)\n", f"    head = {expr}\n", 1)
+            tree = ast.parse(hurt)
+            bad = self.offenders(tree, module_constants(tree))
+            self.assertTrue(any(v in (1, 2) for _, v in bad),
+                            f"`head = {expr}` was not caught; offenders were {bad}")
+
+    def test_an_index_and_a_halving_are_still_allowed(self):
+        hurt = self.src.replace("    head = ceiling.under_y(0.0)\n",
+                                "    head = ceiling.under_y(0.0)\n    _a = walls[0][1] / 2\n    _b = argv[argv.index('x') + 1:]\n", 1)
+        tree = ast.parse(hurt)
+        self.assertEqual(self.offenders(tree, module_constants(tree)), [])
 
     def test_a_negative_dimension_is_caught(self):
         """Found by review. `-1` is UnaryOp(USub, Constant(1)) and ast.walk
