@@ -586,6 +586,33 @@ class VerifySpec(unittest.TestCase):
             with self.subTest(leaf=bad):
                 self.assertGateFails(self.broken(change), "the door leaf is a positive thickness thinner than the thinnest wall")
 
+    def test_a_frame_that_swallows_the_small_fixed_windows(self):
+        """Review of #182: frame_to_glass 1.0 passed the rail gate (the shortest single-hung is 3.5 ft high)
+        and turned the 1.5 ft fixed D windows into solid plates."""
+        def change(s):
+            s["windows"]["frame_to_glass"]["ft"] = 1.0
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_frame_that_closes_only_the_narrow_windows(self):
+        def change(s):
+            s["windows"]["frame_to_glass"]["ft"] = 0.8      # D is 1.5 wide and 1.5 high; every single-hung still fits
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_mullion_wider_than_its_unit(self):
+        def change(s):
+            s["windows"]["mullion"]["ft"] = 4.0             # A is 4 ft wide in two units; the slider F is 3 ft
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_mullion_that_closes_only_the_slider(self):
+        def change(s):
+            s["windows"]["mullion"]["ft"] = 3.0             # F is 3 ft in two units: 1.5 - 0.1667 - 1.5 < 0; A and E still have glass
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_mullion_that_is_not_a_number_is_named_by_the_rail_gate(self):
+        def change(s):
+            s["windows"]["mullion"]["ft"] = "0.1458"
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]

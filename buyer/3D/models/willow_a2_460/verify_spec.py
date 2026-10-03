@@ -221,6 +221,33 @@ def check(spec):
     gate(not rail_bad, "every meeting rail lies inside its sash, between the sill and head members",
          "; ".join(rail_bad))
 
+    # EVERY WINDOW LEAVES GLASS. sash_geom lays a jamb at each end (frame_to_glass wide), a sill and a head
+    # member (the same), and a mullion centred between each pair of units. A frame as wide as the window, or a
+    # mullion wider than its unit, overlaps the members into a solid plate while sash_members, which only counts
+    # boxes, stays green (review of #182: frame_to_glass 1.0 turned the 1.5 ft fixed D windows into plates).
+    # So for EVERY window type, in BOTH dimensions, the clear opening between the members must be positive.
+    fit_bad = []
+    if number(frame_w) and number(win["mullion"]["ft"]):
+        mull = win["mullion"]["ft"]
+        for w in o["window_types"]["types"]:
+            op = ops.get(w["operation"])
+            if op is None or isinstance(op.get("units"), bool) or not isinstance(op.get("units"), int) or op["units"] < 1:
+                continue                                    # the operations gate already names these
+            wd, ht, units = w["width"]["ft"], w["height"]["ft"], op["units"]
+            step = wd / units
+            # the narrowest clear opening across the width: end unit (jamb on one side, half a mullion on the
+            # other), or an inner unit (half a mullion each side); a lone unit has a jamb at each end
+            across = (wd - 2 * frame_w) if units == 1 else min(step - frame_w - mull / 2,
+                                                                step - mull if units > 2 else step - frame_w - mull / 2)
+            up = ht - 2 * frame_w                          # between the sill and head members
+            if across <= 0:
+                fit_bad.append(f"window {w['mark']} ({wd} ft wide, {units} unit(s)): frame {frame_w} and mullion {mull} "
+                               f"leave no clear opening across it ({across:.4f})")
+            if up <= 0:
+                fit_bad.append(f"window {w['mark']} ({ht} ft high): frame {frame_w} leaves no clear opening up it ({up:.4f})")
+    gate(not fit_bad, "every window's frame and mullion leave a clear opening, in both dimensions and in every unit",
+         "; ".join(fit_bad))
+
     # THE DOOR LEAF FITS ITS WALL. The leaf's thickness is centred on the wall's centre plane, so it must be a
     # positive finite number thinner than the thinnest wall it stands in (the interior partitions), or the
     # leaf inverts or protrudes while every build gate stays green (review of #182).
