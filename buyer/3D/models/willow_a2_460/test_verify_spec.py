@@ -533,6 +533,59 @@ class VerifySpec(unittest.TestCase):
             s["windows"]["frame_to_glass"]["ft"] = -0.1
         self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
 
+    def test_a_meeting_rail_thickness_that_is_a_string(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["thickness"]["ft"] = "0.1"
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_thickness_that_is_a_boolean(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["thickness"]["ft"] = True
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_ratio_that_is_a_boolean(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["ratio"] = True
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_the_single_hung_rail_flag_switched_off(self):
+        def change(s):
+            s["windows"]["operations"]["single_hung"]["meeting_rail"] = False
+        self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_fixed_window_given_a_rail(self):
+        def change(s):
+            s["windows"]["operations"]["fixed"]["meeting_rail"] = True
+        self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_truthy_non_boolean_rail_flag(self):
+        for bad in (1, "true", "yes", [1]):
+            def change(s, bad=bad):
+                s["windows"]["operations"]["single_hung_double"]["meeting_rail"] = bad
+            with self.subTest(flag=bad):
+                self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_units_that_are_a_boolean_or_a_string(self):
+        for bad in (True, "1"):
+            def change(s, bad=bad):
+                s["windows"]["operations"]["single_hung"]["units"] = bad
+            with self.subTest(units=bad):
+                self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_door_leaf_that_is_negative_zero_or_a_string(self):
+        for bad in (-0.1, 0, "0.1", True, float("inf")):
+            def change(s, bad=bad):
+                s["openings"]["door_types"]["leaf_thickness"]["ft"] = bad
+            with self.subTest(leaf=bad):
+                self.assertGateFails(self.broken(change), "the door leaf is a positive thickness thinner than the thinnest wall")
+
+    def test_a_door_leaf_as_thick_as_the_wall(self):
+        for bad in (0.2917, 0.4583, 1.0):
+            def change(s, bad=bad):
+                s["openings"]["door_types"]["leaf_thickness"]["ft"] = bad
+            with self.subTest(leaf=bad):
+                self.assertGateFails(self.broken(change), "the door leaf is a positive thickness thinner than the thinnest wall")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]
