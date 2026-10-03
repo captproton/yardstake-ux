@@ -627,6 +627,13 @@ class VerifySpec(unittest.TestCase):
             w["meeting_rail"]["ratio"] = (3.5 - w["frame_to_glass"]["ft"] - w["meeting_rail"]["thickness"]["ft"] / 2) / 3.5
         self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
 
+    def test_a_sash_deeper_than_its_wall(self):
+        for bad in (1.0, 0.2292):                  # 0.2292 x 2 is exactly the 5.5 inch wall: no room left
+            def change(s, bad=bad):
+                s["windows"]["proud_of_glass"]["ft"] = bad
+            with self.subTest(proud=bad):
+                self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]

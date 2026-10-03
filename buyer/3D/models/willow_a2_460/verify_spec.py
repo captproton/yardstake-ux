@@ -248,6 +248,13 @@ def check(spec):
                                f"leave no clear opening across it ({across:.4f})")
             if up <= TOL:
                 fit_bad.append(f"window {w['mark']} ({ht} ft high): frame {frame_w} leaves no clear opening up it ({up:.4f})")
+    # AND IT FITS ITS WALL. A sash's members straddle the wall's centre plane by proud_of_glass each way, so
+    # twice it must be less than the exterior wall they stand in; proud_of_glass 1.0 passed the checks above
+    # and built every sash two feet deep through a 5.5 inch wall (review of #182).
+    proud = win["proud_of_glass"]["ft"]
+    stud = spec["construction"]["exterior_wall"]["stud_depth"]["ft"]
+    if number(proud) and number(stud) and not 2 * proud < stud:
+        fit_bad.append(f"proud_of_glass {proud} makes a sash {2 * proud:.4f} ft deep, deeper than the {stud} ft wall it stands in")
     gate(not fit_bad, "every window's frame and mullion leave a clear opening, in both dimensions and in every unit",
          "; ".join(fit_bad))
 

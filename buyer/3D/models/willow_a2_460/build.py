@@ -328,6 +328,9 @@ def report(spec, geo, colls):
     ok, why = sash_members(spec, geo)
     gate(ok, "every sash carries the members its declared operation implies", why)
 
+    ok, why = _built_openings_are_the_spec_rows(spec, geo)
+    gate(ok, "every opening was built to the spec's own row: the same ids, walls, spans and heights", why)
+
     ok, why = _sashes_and_leaves_in_their_openings(spec, geo)
     gate(ok, "every sash and leaf sits in its opening: its span along the wall, its height and its wall plane", why)
 
@@ -459,6 +462,50 @@ def _frame_not_mirrored(spec, geo):
                          f"{want_block} ({want_lo:.3f}..{want_hi:.3f})")
     if not checked:
         wrong.append("no exterior opening was available to check, so nothing was held to the elevations")
+    return not wrong, "; ".join(wrong)
+
+
+def _built_openings_are_the_spec_rows(spec, geo):
+    """The records the build keeps of its openings ARE the spec's rows.
+
+    `every_row_built` derives each wall's expected volume loss and corners from `geo["built"]`, and the
+    sash and leaf gate compares each mesh with the same record, so a build that halved every interior door
+    (or shifted every window) in BOTH its cutters and its records passed all of them (review of #182). This
+    gate reads the spans from the spec's rows itself: exterior rows by their block, interior doors by
+    `a_ft`/`b_ft`, heights from the schedules; the walls from its own table. It also requires the same SET
+    of ids, so an opening that was never recorded cannot hide.
+    """
+    wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
+    dt = {str(d["mark"]): d for d in spec["openings"]["door_types"]["types"]}
+    blocks = (("front_wall", "Wall_front", "x0", "x1"), ("rear_wall", "Wall_rear", "x0", "x1"),
+              ("end_wall_x0", "Wall_x0", "y0", "y1"), ("end_wall_x24", "Wall_x24", "y0", "y1"))
+    want = {}
+    for block, wall, lo_key, hi_key in blocks:
+        for row in spec["openings"][block]["openings"]:
+            if row["id"].startswith("W-"):
+                ty = wt[row["type"]]
+                z0 = ty["sill"]["ft"]
+                z1 = z0 + ty["height"]["ft"]
+            else:
+                z0, z1 = 0.0, dt[str(row["type"])]["height"]["ft"]
+            want[row["id"]] = (wall, row[lo_key], row[hi_key], z0, z1)
+    for d in spec["interior_partitions"]["layout"]["door_openings"]:
+        want[d["id"]] = (d["in"], d["a_ft"], d["b_ft"], 0.0, dt[str(d["type"])]["height"]["ft"])
+    got = {o["id"]: o for o in geo["built"]}
+    wrong = []
+    for oid in sorted(set(want) - set(got)):
+        wrong.append(f"{oid} is in the spec and was never recorded as built")
+    for oid in sorted(set(got) - set(want)):
+        wrong.append(f"{oid} was built but is not a row of the spec")
+    for oid in sorted(set(want) & set(got)):
+        wall, a0, a1, z0, z1 = want[oid]
+        o = got[oid]
+        if o["wall"] != wall:
+            wrong.append(f"{oid} was cut into {o['wall']}, the spec puts it in {wall}")
+        for what, have, need in (("starts", o["a0"], a0), ("ends", o["a1"], a1),
+                                 ("rises from", o["z0"], z0), ("rises to", o["z1"], z1)):
+            if abs(have - need) > MESH_TOL:
+                wrong.append(f"{oid} {what} {have:.4f}, the spec's row says {need:.4f}")
     return not wrong, "; ".join(wrong)
 
 

@@ -1004,8 +1004,8 @@ interior_partitions:
       derived: each opening runs from the slab to its schedule height in openings.door_types; A-1.0 gives no head height, and a door sits on the floor
 windows:
   source: 'A-1.0 Window Schedule, Operation column; A-1.0 WINDOW INFORMATION ''FRAME: VINYL'''
-  status: The sash members are a MODELLING choice (no sheet dimensions them). Each value below is carried from Laurel's or the barn cabin's spec, where
-    it is declared assumed, and is assumed here for the same reason; the elevation overlay (#173) is where a wrong one shows.
+  status: The sash members are a MODELLING choice (no sheet specifies their dimensions). Each value below is carried from Laurel's or the barn cabin's spec,
+    where it is declared assumed, and is assumed here for the same reason; the elevation overlay (#173) is where a wrong one shows.
   frame_to_glass:
     ft: 0.1667
     raw: 2"

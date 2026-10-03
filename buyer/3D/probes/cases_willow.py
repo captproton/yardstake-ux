@@ -15,6 +15,8 @@ checking does (found on #177; the same rule as cases_kitgates.py).
   * the slab built a foot short on one side                _slab_is_the_footprint
   * the sheathing skins never built                        _sheathing_on_every_wall
   * a skin cut short along its wall                        _sheathing_on_every_wall
+  * every interior door halved, in cut and record          _built_openings_are_the_spec_rows
+  * every exterior opening halved, in cut and record       _built_openings_are_the_spec_rows
   * the width read from the depth's key in the build        footprint (the gates' own envelope)
   * the depth read from the width's key in the build        footprint
   * the wall thickness read from the sheathing's key        footprint
@@ -156,6 +158,26 @@ def _the_wall_thickness_read_from_the_sheathing(work: Path) -> None:
            "t read from the sheathing")
 
 
+def _interior_doors_halved(work: Path) -> None:
+    """Both the cutter and the record take half the door's span, so the cut, the leaf and the record all
+    agree with each other and only the spec's row disagrees."""
+    _patch(work,
+           '        cutter(f"cut_{d[\'id\']}", d["in"], d["a_ft"], d["b_ft"], 0.0, ty["height"]["ft"], along)',
+           '        cutter(f"cut_{d[\'id\']}", d["in"], d["a_ft"], (d["a_ft"] + d["b_ft"]) / 2, 0.0, ty["height"]["ft"], along)',
+           "interior doors halved in the cut")
+    _patch(work,
+           '        built.append(dict(id=d["id"], wall=d["in"], a0=d["a_ft"], a1=d["b_ft"],',
+           '        built.append(dict(id=d["id"], wall=d["in"], a0=d["a_ft"], a1=(d["a_ft"] + d["b_ft"]) / 2,',
+           "interior doors halved in the record")
+
+
+def _exterior_openings_halved(work: Path) -> None:
+    _patch(work,
+           "            a0, a1 = row[lo], row[hi]",
+           "            a0, a1 = row[lo], (row[lo] + row[hi]) / 2",
+           "exterior openings halved")
+
+
 def _partitions_in_the_wrong_place(work: Path) -> None:
     """Every partition built half a foot from where the spec puts it. Dropping one would crash
     the build before any gate ran, and a partition in the wrong place is the other thing the gate
@@ -276,6 +298,12 @@ CASES = [
           _the_depth_read_from_the_width, "the shell is"),
     _case("the wall thickness read from the sheathing's key in the build (footprint)",
           _the_wall_thickness_read_from_the_sheathing, "the shell is"),
+    _case("every interior door halved in both its cut and its record (_built_openings_are_the_spec_rows)",
+          _interior_doors_halved,
+          "every opening was built to the spec's own row: the same ids, walls, spans and heights"),
+    _case("every exterior opening halved in both its cut and its record (_built_openings_are_the_spec_rows)",
+          _exterior_openings_halved,
+          "every opening was built to the spec's own row: the same ids, walls, spans and heights"),
     _case("the partitions built half a foot from where the spec puts them (every_partition_built)",
           _partitions_in_the_wrong_place, "every partition in the spec was built, where the spec puts it"),
     _case("a window in the schedule is never cut (every_row_built)",
