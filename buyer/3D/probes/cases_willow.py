@@ -15,6 +15,9 @@ checking does (found on #177; the same rule as cases_kitgates.py).
   * the slab built a foot short on one side                _slab_is_the_footprint
   * the sheathing skins never built                        _sheathing_on_every_wall
   * a skin cut short along its wall                        _sheathing_on_every_wall
+  * the width read from the depth's key in the build        footprint (the gates' own envelope)
+  * the depth read from the width's key in the build        footprint
+  * the wall thickness read from the sheathing's key        footprint
   * a sash shifted along its wall                          _sashes_and_leaves_in_their_openings
   * every sash built half a foot short                     _sashes_and_leaves_in_their_openings
   * a sash set off its wall's centre plane                 _sashes_and_leaves_in_their_openings
@@ -136,6 +139,23 @@ def _a_leaf_off_the_wall_plane(work: Path) -> None:
            "a leaf off the wall plane")
 
 
+def _the_width_read_from_the_depth(work: Path) -> None:
+    """A wrong key in the BUILD. The gates used to read W back from the build's own record, so they
+    agreed with the mistake; they take the envelope from the spec now."""
+    _patch(work, '    W = env["width"]["ft"]', '    W = env["depth"]["ft"]', "W read from the depth")
+
+
+def _the_depth_read_from_the_width(work: Path) -> None:
+    _patch(work, '    D = env["depth"]["ft"]', '    D = env["width"]["ft"]', "D read from the width")
+
+
+def _the_wall_thickness_read_from_the_sheathing(work: Path) -> None:
+    _patch(work,
+           '    t = con["exterior_wall"]["stud_depth"]["ft"]',
+           '    t = con["exterior_wall"]["sheathing"]["ft"]',
+           "t read from the sheathing")
+
+
 def _partitions_in_the_wrong_place(work: Path) -> None:
     """Every partition built half a foot from where the spec puts it. Dropping one would crash
     the build before any gate ran, and a partition in the wrong place is the other thing the gate
@@ -250,6 +270,12 @@ CASES = [
           _every_leaf_twice_as_thick, SASHES_AND_LEAVES),
     _case("a leaf set off its wall's centre plane (_sashes_and_leaves_in_their_openings)",
           _a_leaf_off_the_wall_plane, SASHES_AND_LEAVES),
+    _case("the width read from the depth's key in the build (footprint)",
+          _the_width_read_from_the_depth, "the shell is"),
+    _case("the depth read from the width's key in the build (footprint)",
+          _the_depth_read_from_the_width, "the shell is"),
+    _case("the wall thickness read from the sheathing's key in the build (footprint)",
+          _the_wall_thickness_read_from_the_sheathing, "the shell is"),
     _case("the partitions built half a foot from where the spec puts them (every_partition_built)",
           _partitions_in_the_wrong_place, "every partition in the spec was built, where the spec puts it"),
     _case("a window in the schedule is never cut (every_row_built)",

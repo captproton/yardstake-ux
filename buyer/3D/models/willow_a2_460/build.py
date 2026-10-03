@@ -276,6 +276,14 @@ def build(spec, cut_openings=True):
 # ---------------------------------------------------------------------------
 def report(spec, geo, colls):
     env, lv = spec["envelope"], spec["levels"]
+    # THE GATES' ENVELOPE IS READ FROM THE SPEC HERE, NOT FROM THE BUILD'S OWN RECORD. build() puts the W, D, t
+    # and it it BUILT WITH into geo, and the gates (the kit's footprint among them) used to read them back, so a
+    # wrong key in build() (D read from the width, say) moved the gates' expectation with the geometry and every
+    # gate agreed with the mistake (review of #182). These lookups are written separately, so a slip in one
+    # place shows against the other. `geo` is rebound for everything below.
+    geo = dict(geo, W=env["width"]["ft"], D=env["depth"]["ft"],
+               t=spec["construction"]["exterior_wall"]["stud_depth"]["ft"],
+               it=spec["interior_partitions"]["layout"]["thickness"]["ft"])
     W, D = geo["W"], geo["D"]
     print("=" * RULE)
     print('Willow A2 460sf -- slab, walls, partitions and openings (#172)')
