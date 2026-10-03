@@ -320,6 +320,9 @@ def report(spec, geo, colls):
     ok, why = sash_members(spec, geo)
     gate(ok, "every sash carries the members its declared operation implies", why)
 
+    ok, why = _sashes_and_leaves_in_their_openings(spec, geo)
+    gate(ok, "every sash and leaf sits in its opening: its span along the wall, its height and its wall plane", why)
+
     ok, why = _window_b_unit_in_its_rough_opening(spec, geo)
     gate(ok, "window B's sash is its 1'-6\" unit, centred in the 1'-7\" rough opening the wall is cut to", why)
 
@@ -448,6 +451,63 @@ def _frame_not_mirrored(spec, geo):
                          f"{want_block} ({want_lo:.3f}..{want_hi:.3f})")
     if not checked:
         wrong.append("no exterior opening was available to check, so nothing was held to the elevations")
+    return not wrong, "; ".join(wrong)
+
+
+def _sashes_and_leaves_in_their_openings(spec, geo):
+    """Every sash and every leaf is MEASURED in its opening, off its mesh.
+
+    `every_row_built` checks the wall's cut and that a `Sash_`/`Leaf_` object EXISTS, and `sash_members`
+    counts boxes, so a sash shifted along its wall, built the wrong height, or set off the wall's centre
+    plane, and a leaf of the wrong width, height, thickness or position, all passed (review of #182).
+    Each member is held to: its span along the wall (the opening, or window B's unit), its height
+    (the schedule's sill to head for a window, the floor to the leaf's height for a door), and its
+    thickness band, centred on the wall's centre plane (a sash straddles it by `proud_of_glass` each
+    way, a leaf by half its thickness). The expectations are derived HERE from the spec and the
+    envelope, not read from the build's own variables.
+    """
+    W, D, t, it = geo["W"], geo["D"], geo["t"], geo["it"]
+    proud = spec["windows"]["proud_of_glass"]["ft"]
+    leaf_t = spec["openings"]["door_types"]["leaf_thickness"]["ft"]
+    wt = {w["mark"]: w for w in spec["openings"]["window_types"]["types"]}
+    dt = {str(d["mark"]): d for d in spec["openings"]["door_types"]["types"]}
+    plane_of = {"Wall_front": D - t / 2, "Wall_rear": t / 2, "Wall_x0": t / 2, "Wall_x24": W - t / 2}
+    partitions = {r["id"]: r for r in spec["interior_partitions"]["layout"]["partitions"]}
+    wrong = []
+    for o in geo["built"]:
+        window = o["id"].startswith("W-")
+        ob = bpy.data.objects.get(("Sash_" if window else "Leaf_") + o["id"])
+        if ob is None:
+            wrong.append(f"{o['id']} has no {'sash' if window else 'leaf'}")
+            continue
+        if o["wall"] in plane_of:
+            plane = plane_of[o["wall"]]
+        elif o["wall"] in partitions:
+            lo_p, hi_p = partition_band(partitions[o["wall"]], it)
+            plane = (lo_p + hi_p) / 2
+        else:
+            wrong.append(f"{o['id']} is cut into {o['wall']}, which is neither an exterior wall nor a partition")
+            continue
+        if window:
+            ty = wt[o["row"]["type"]]
+            a0, a1 = o["row"].get("unit_x0", o["a0"]), o["row"].get("unit_x1", o["a1"])
+            z0 = ty["sill"]["ft"]
+            z1 = z0 + ty["height"]["ft"]
+            half = proud
+        else:
+            a0, a1 = o["a0"], o["a1"]
+            z0, z1 = 0.0, dt[str(o["row"]["type"])]["height"]["ft"]
+            half = leaf_t / 2
+        along = AXIS_X if o["along"] == "x" else AXIS_Y
+        thin = AXIS_Y if along == AXIS_X else AXIS_X
+        lo, hi = world_bbox([ob])
+        for what, got_lo, got_hi, want_lo, want_hi in (
+                ("along the wall", lo[along], hi[along], a0, a1),
+                ("in height", lo[2], hi[2], z0, z1),
+                ("across the wall", lo[thin], hi[thin], plane - half, plane + half)):
+            if abs(got_lo - want_lo) > MESH_TOL or abs(got_hi - want_hi) > MESH_TOL:
+                wrong.append(f"{ob.name} measures {got_lo:.4f}..{got_hi:.4f} {what}, "
+                             f"its opening wants {want_lo:.4f}..{want_hi:.4f}")
     return not wrong, "; ".join(wrong)
 
 

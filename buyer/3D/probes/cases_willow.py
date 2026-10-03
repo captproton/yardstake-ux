@@ -15,6 +15,12 @@ checking does (found on #177; the same rule as cases_kitgates.py).
   * the slab built a foot short on one side                _slab_is_the_footprint
   * the sheathing skins never built                        _sheathing_on_every_wall
   * a skin cut short along its wall                        _sheathing_on_every_wall
+  * a sash shifted along its wall                          _sashes_and_leaves_in_their_openings
+  * every sash built half a foot short                     _sashes_and_leaves_in_their_openings
+  * a sash set off its wall's centre plane                 _sashes_and_leaves_in_their_openings
+  * a leaf a half foot short along its wall                _sashes_and_leaves_in_their_openings
+  * every leaf built twice as thick                        _sashes_and_leaves_in_their_openings
+  * a leaf set off its wall's centre plane                 _sashes_and_leaves_in_their_openings
   * a partition built half a foot from the spec            every_partition_built
   * one window never cut                                   every_row_built
   * one door never given a leaf                            every_row_built
@@ -84,6 +90,50 @@ def _a_skin_cut_short_along_its_wall(work: Path) -> None:
            '"Wall_rear":  box_geom(-sheath, W + sheath, -sheath, 0.0, 0.0, head),',
            '"Wall_rear":  box_geom(-sheath, W, -sheath, 0.0, 0.0, head),',
            "a skin cut short")
+
+
+def _a_sash_shifted_along_its_wall(work: Path) -> None:
+    """W-A1, an ordinary window (not B, which has its own gate), half a foot along its wall."""
+    _patch(work,
+           '            sashes.append(_glazed(f"Sash_{o[\'id\']}", along, plane, u0, u1, o["z0"], o["z1"],',
+           '            u0, u1 = (u0 + 0.5, u1 + 0.5) if o["id"] == "W-A1" else (u0, u1)\n'
+           '            sashes.append(_glazed(f"Sash_{o[\'id\']}", along, plane, u0, u1, o["z0"], o["z1"],',
+           "a sash shifted along its wall")
+
+
+def _every_sash_half_a_foot_short(work: Path) -> None:
+    _patch(work,
+           "        parts = sash_geom(along, plane, a0, a1, z0, z1, f2g, proud,",
+           "        parts = sash_geom(along, plane, a0, a1, z0, z1 - 0.5, f2g, proud,",
+           "every sash short")
+
+
+def _a_sash_off_the_wall_plane(work: Path) -> None:
+    _patch(work,
+           "        plane = (lo + hi) / 2                 # spec.windows.glazing_plane: the wall's centre",
+           '        plane = (lo + hi) / 2 + (0.1 if o["id"] == "W-C1" else 0.0)',
+           "a sash off the wall plane")
+
+
+def _a_leaf_short_along_its_wall(work: Path) -> None:
+    _patch(work,
+           '        spec_box = ((o["a0"], o["a1"], d0, d1, o["z0"], o["z1"]) if along == "x"',
+           '        spec_box = ((o["a0"], o["a1"] - 0.5, d0, d1, o["z0"], o["z1"]) if along == "x"',
+           "a leaf short along its wall")
+
+
+def _every_leaf_twice_as_thick(work: Path) -> None:
+    _patch(work,
+           "        d0, d1 = plane - leaf_t / 2, plane + leaf_t / 2",
+           "        d0, d1 = plane - leaf_t, plane + leaf_t",
+           "every leaf twice as thick")
+
+
+def _a_leaf_off_the_wall_plane(work: Path) -> None:
+    _patch(work,
+           "        d0, d1 = plane - leaf_t / 2, plane + leaf_t / 2",
+           "        d0, d1 = plane - leaf_t / 2 + 0.2, plane + leaf_t / 2 + 0.2",
+           "a leaf off the wall plane")
 
 
 def _partitions_in_the_wrong_place(work: Path) -> None:
@@ -163,6 +213,9 @@ def _window_b_built_to_the_rough_opening(work: Path) -> None:
            "window B built to the rough opening")
 
 
+SASHES_AND_LEAVES = "every sash and leaf sits in its opening: its span along the wall, its height and its wall plane"
+
+
 def _fails(label: str) -> dict:
     return dict(contains=f"[FAIL] {label}")
 
@@ -185,6 +238,18 @@ CASES = [
     _case("one sheathing skin is cut short along its wall (_sheathing_on_every_wall)",
           _a_skin_cut_short_along_its_wall,
           "every exterior wall carries its sheathing skin, outside its face of stud"),
+    _case("a sash shifted along its wall (_sashes_and_leaves_in_their_openings)",
+          _a_sash_shifted_along_its_wall, SASHES_AND_LEAVES),
+    _case("every sash built half a foot short (_sashes_and_leaves_in_their_openings)",
+          _every_sash_half_a_foot_short, SASHES_AND_LEAVES),
+    _case("a sash set off its wall's centre plane (_sashes_and_leaves_in_their_openings)",
+          _a_sash_off_the_wall_plane, SASHES_AND_LEAVES),
+    _case("a leaf a half foot short along its wall (_sashes_and_leaves_in_their_openings)",
+          _a_leaf_short_along_its_wall, SASHES_AND_LEAVES),
+    _case("every leaf built twice as thick (_sashes_and_leaves_in_their_openings)",
+          _every_leaf_twice_as_thick, SASHES_AND_LEAVES),
+    _case("a leaf set off its wall's centre plane (_sashes_and_leaves_in_their_openings)",
+          _a_leaf_off_the_wall_plane, SASHES_AND_LEAVES),
     _case("the partitions built half a foot from where the spec puts them (every_partition_built)",
           _partitions_in_the_wrong_place, "every partition in the spec was built, where the spec puts it"),
     _case("a window in the schedule is never cut (every_row_built)",
