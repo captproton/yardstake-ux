@@ -88,6 +88,15 @@ def check(spec):
         "end_wall_x24": {"W-C1", "W-F1"},
         "end_wall_x0": {f"W-D{i}" for i in range(1, 7)},
     }
+    drawn = spec["frame"]["drawn_on"]["walls"]
+    elev = []
+    for wall in expected_walls:
+        for r in o[wall]["openings"]:
+            kind = str(r["type"])
+            mark = f"door_{kind}" if kind in {str(d["mark"]) for d in o["door_types"]["types"]} else kind
+            if drawn.get(mark) != wall:
+                elev.append(f"{r['id']} is in {wall}, the elevations draw {mark} on {drawn.get(mark)!r}")
+    gate(not elev, "every opening is on the wall the elevations draw its mark on (frame.drawn_on)", "; ".join(elev))
     wrong_walls = []
     for wall, want_ids in expected_walls.items():
         have = {r["id"] for r in o[wall]["openings"]}
@@ -165,10 +174,98 @@ def check(spec):
             continue
         raw = w["operation_raw"].upper()
         want_units = 2 if "DOUBLE" in raw or raw == "SLIDER" else 1
-        if op["units"] != want_units:
-            bad_ops.append(f"window {w['mark']} ({w['operation_raw']}): operation {w['operation']} has units {op['units']}, expected {want_units}")
+        # the RAW values, not coerced: `True == 1` and `"1" != 1` are exactly the shapes the builder receives
+        if isinstance(op["units"], bool) or not isinstance(op["units"], int) or op["units"] != want_units:
+            bad_ops.append(f"window {w['mark']} ({w['operation_raw']}): operation {w['operation']} has units {op['units']!r}, expected {want_units}")
+        # A SINGLE HUNG window has a meeting rail between its sashes and no other type does. The builder and
+        # sash_members both trust this flag, so a flag flipped to false removed every rail with every gate green
+        # (review of #182): it must be a real boolean and it must agree with the schedule's own words.
+        want_rail = "SINGLE HUNG" in raw
+        if op["meeting_rail"] is not want_rail:
+            bad_ops.append(f"window {w['mark']} ({w['operation_raw']}): operation {w['operation']} has meeting_rail "
+                           f"{op['meeting_rail']!r}, the schedule says {want_rail}")
     gate(not bad_ops, "every window's operation has the number of side-by-side units its schedule text says",
          "; ".join(bad_ops))
+
+    # THE MEETING RAIL STAYS INSIDE ITS SASH. `ratio` is where the rail sits as a fraction of the opening's
+    # height; sash_members only counts members, so a ratio of 2 put every rail above its window while every
+    # gate stayed green (review of #182). The rail's band, centred on sill + ratio x height, must lie between
+    # the sill and head members, and the frame's own modelling values must be positive finite NUMBERS. The raw
+    # values are validated, never coerced: float("0.1") passes and the builder, which receives the string,
+    # fails at `thickness / 2`; float(True) is 1.0.
+    win = spec["windows"]
+    rail = win["meeting_rail"]
+
+    def number(x):
+        return not isinstance(x, bool) and isinstance(x, (int, float)) and 0 < x < float("inf")
+
+    frame_w, thick, ratio = win["frame_to_glass"]["ft"], rail["thickness"]["ft"], rail["ratio"]
+    rail_bad = []
+    for key in ("frame_to_glass", "mullion", "proud_of_glass"):
+        if not number(win[key]["ft"]):
+            rail_bad.append(f"windows.{key} is {win[key]['ft']!r}, not a positive length")
+    if not number(thick):
+        rail_bad.append(f"meeting_rail.thickness is {thick!r}, not a positive length")
+    if not (number(ratio) and ratio < 1):
+        rail_bad.append(f"meeting_rail.ratio is {ratio!r}, not a fraction between 0 and 1")
+    if not rail_bad:
+        for w in o["window_types"]["types"]:
+            if "SINGLE HUNG" not in w["operation_raw"].upper():
+                continue                                    # the schedule's words, not the flag the build trusts
+            h = w["height"]["ft"]
+            lo, hi = frame_w, h - frame_w                   # between the sill and head members
+            centre = ratio * h
+            # STRICT, with a margin: a rail whose edge exactly touches the sill or head member leaves a
+            # zero-height pane (review of #182), and a margin of TOL (a few thousandths of an inch) is zero in
+            # any model, so "touching" cannot hide behind a float.
+            if not (lo + thick / 2 + TOL < centre < hi - thick / 2 - TOL):
+                rail_bad.append(f"window {w['mark']}: the rail band {centre - thick / 2:.4f}..{centre + thick / 2:.4f} ft "
+                                f"is outside the sash's {lo:.4f}..{hi:.4f}")
+    gate(not rail_bad, "every meeting rail lies inside its sash, between the sill and head members",
+         "; ".join(rail_bad))
+
+    # EVERY WINDOW LEAVES GLASS. sash_geom lays a jamb at each end (frame_to_glass wide), a sill and a head
+    # member (the same), and a mullion centred between each pair of units. A frame as wide as the window, or a
+    # mullion wider than its unit, overlaps the members into a solid plate while sash_members, which only counts
+    # boxes, stays green (review of #182: frame_to_glass 1.0 turned the 1.5 ft fixed D windows into plates).
+    # So for EVERY window type, in BOTH dimensions, the clear opening between the members must be positive.
+    fit_bad = []
+    if number(frame_w) and number(win["mullion"]["ft"]):
+        mull = win["mullion"]["ft"]
+        for w in o["window_types"]["types"]:
+            op = ops.get(w["operation"])
+            if op is None or isinstance(op.get("units"), bool) or not isinstance(op.get("units"), int) or op["units"] < 1:
+                continue                                    # the operations gate already names these
+            wd, ht, units = w["width"]["ft"], w["height"]["ft"], op["units"]
+            step = wd / units
+            # the narrowest clear opening across the width: end unit (jamb on one side, half a mullion on the
+            # other), or an inner unit (half a mullion each side); a lone unit has a jamb at each end
+            across = (wd - 2 * frame_w) if units == 1 else min(step - frame_w - mull / 2,
+                                                                step - mull if units > 2 else step - frame_w - mull / 2)
+            up = ht - 2 * frame_w                          # between the sill and head members
+            if across <= TOL:
+                fit_bad.append(f"window {w['mark']} ({wd} ft wide, {units} unit(s)): frame {frame_w} and mullion {mull} "
+                               f"leave no clear opening across it ({across:.4f})")
+            if up <= TOL:
+                fit_bad.append(f"window {w['mark']} ({ht} ft high): frame {frame_w} leaves no clear opening up it ({up:.4f})")
+    # AND IT FITS ITS WALL. A sash's members straddle the wall's centre plane by proud_of_glass each way, so
+    # twice it must be less than the exterior wall they stand in; proud_of_glass 1.0 passed the checks above
+    # and built every sash two feet deep through a 5.5 inch wall (review of #182).
+    proud = win["proud_of_glass"]["ft"]
+    stud = spec["construction"]["exterior_wall"]["stud_depth"]["ft"]
+    if number(proud) and number(stud) and not 2 * proud < stud:
+        fit_bad.append(f"proud_of_glass {proud} makes a sash {2 * proud:.4f} ft deep, deeper than the {stud} ft wall it stands in")
+    gate(not fit_bad, "every window's frame and mullion leave a clear opening, in both dimensions and in every unit",
+         "; ".join(fit_bad))
+
+    # THE DOOR LEAF FITS ITS WALL. The leaf's thickness is centred on the wall's centre plane, so it must be a
+    # positive finite number thinner than the thinnest wall it stands in (the interior partitions), or the
+    # leaf inverts or protrudes while every build gate stays green (review of #182).
+    leaf = o["door_types"]["leaf_thickness"]["ft"]
+    thinnest = spec["interior_partitions"]["layout"]["thickness"]["ft"]
+    gate(number(leaf) and number(thinnest) and leaf < thinnest,
+         "the door leaf is a positive thickness thinner than the thinnest wall it stands in",
+         f"leaf {leaf!r}, the thinnest wall {thinnest!r}")
 
     # ── the rear wall: its string runs from grid A to grid B ──────────────
     rear = [parse_length(s) for s in o["rear_wall"]["string"]]

@@ -31,6 +31,7 @@ to the last bit.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -198,6 +199,48 @@ class Flat:
 
     def covers_y(self, y: float) -> bool:
         return True
+
+
+def ceiling_from_spec(ceiling, roof: Roof = None):
+    """The ceiling a spec's whole `roof.ceiling` block describes (#172).
+
+    Laurel's block says `follows: roof`; Willow's says `form: flat` and gives the height in
+    `at.ft`, the first model whose ceiling is not the roof's underside (an attic sits above
+    it). `ceiling_for` took only the first, and said a flat ceiling "needs its height from the
+    spec: add it when a model has one": this is that.
+
+    THE SPEC IS READ, NOT OBEYED. A block that names both, or neither, or a flat ceiling with no
+    numeric height, is a readable error and not a guess; a `follows` block still goes through
+    `ceiling_for`, so Laurel's behaviour is unchanged.
+    """
+    if not isinstance(ceiling, dict):
+        raise RoofError(f"roof.ceiling is {ceiling!r}, not a mapping")
+    has_follows, has_form = "follows" in ceiling, "form" in ceiling
+    if has_follows and has_form:
+        raise RoofError("roof.ceiling names both `follows` and `form`; it is one or the other")
+    if has_follows:
+        if roof is None:
+            raise RoofError("roof.ceiling follows the roof, and no roof was given")
+        return ceiling_for(ceiling["follows"], roof)
+    if not has_form:
+        raise RoofError("roof.ceiling names neither `follows` nor `form`")
+    if ceiling["form"] != "flat":
+        raise RoofError(f"roof.ceiling.form is {ceiling['form']!r}; this builder knows only 'flat' "
+                        "(or `follows: roof`)")
+    at = ceiling.get("at")
+    height = at.get("ft") if isinstance(at, dict) else None
+    # ONE CONVERSION, UNDER TRY: an integer too large for a float raises OverflowError in float(),
+    # and NaN and both infinities pass an isinstance check, so every non-finite result is refused
+    # here rather than becoming geometry.
+    try:
+        if isinstance(height, bool) or not isinstance(height, (int, float)):
+            raise TypeError(height)
+        value = float(height)
+    except (TypeError, OverflowError):
+        raise RoofError(f"a flat ceiling needs roof.ceiling.at.ft to be a finite number, not {height!r}") from None
+    if not math.isfinite(value):
+        raise RoofError(f"a flat ceiling needs roof.ceiling.at.ft to be a finite number, not {height!r}")
+    return Flat(value)
 
 
 def ceiling_for(follows, roof: Roof):

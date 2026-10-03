@@ -40,9 +40,10 @@ from typing import Callable, Optional
 THREE_D = Path(__file__).resolve().parents[1]  # buyer/3D
 BARN = "barn_cabin_524"
 LAUREL = "laurel_a1_460"
+WILLOW = "willow_a2_460"
 # Models whose own Blender scripts a probe may run. make_base copies these
 # whole, rather than the spec-and-export skeleton the index checks need.
-BLENDER_MODELS = (BARN, LAUREL)
+BLENDER_MODELS = (BARN, LAUREL, WILLOW)
 
 # What the checks read. Anything else under buyer/3D is not needed to run them.
 ROOT_FILES = ("build_index.py", "verify_index.py", "verify_prototype.py")

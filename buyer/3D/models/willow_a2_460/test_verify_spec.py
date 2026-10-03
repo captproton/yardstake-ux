@@ -483,6 +483,157 @@ class VerifySpec(unittest.TestCase):
             del s["roof"]["porch"]["ridge_runs_along"]
         self.assertGateFails(self.broken(change), "the roof is two gables")
 
+    def test_an_elevation_fact_that_disagrees_with_the_openings(self):
+        def change(s):
+            s["frame"]["drawn_on"]["walls"]["C"] = "end_wall_x0"
+        self.assertGateFails(self.broken(change), "every opening is on the wall the elevations draw its mark on")
+
+    def test_a_window_drawn_on_the_wrong_wall_of_the_openings(self):
+        def change(s):
+            o = s["openings"]
+            e = next(r for r in o["rear_wall"]["openings"] if r["id"] == "W-E1")
+            o["rear_wall"]["openings"].remove(e)
+            o["front_wall"]["openings"].append(e)
+        self.assertGateFails(self.broken(change), "every opening is on the wall the elevations draw its mark on")
+
+    def test_a_mark_the_elevations_do_not_draw(self):
+        def change(s):
+            del s["frame"]["drawn_on"]["walls"]["F"]
+        self.assertGateFails(self.broken(change), "every opening is on the wall the elevations draw its mark on")
+
+    def test_a_meeting_rail_ratio_above_the_window(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["ratio"] = 2
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_ratio_of_zero_or_less(self):
+        for bad in (0, -0.5):
+            def change(s, bad=bad):
+                s["windows"]["meeting_rail"]["ratio"] = bad
+            with self.subTest(ratio=bad):
+                self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_ratio_that_is_not_a_number(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["ratio"] = "half"
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_too_thick_for_the_sash(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["thickness"]["ft"] = 3.5      # as tall as window C: no room for the sill and head
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_that_lands_on_the_sill(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["ratio"] = 0.01
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_frame_width_that_is_not_positive(self):
+        def change(s):
+            s["windows"]["frame_to_glass"]["ft"] = -0.1
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_thickness_that_is_a_string(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["thickness"]["ft"] = "0.1"
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_thickness_that_is_a_boolean(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["thickness"]["ft"] = True
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_meeting_rail_ratio_that_is_a_boolean(self):
+        def change(s):
+            s["windows"]["meeting_rail"]["ratio"] = True
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_the_single_hung_rail_flag_switched_off(self):
+        def change(s):
+            s["windows"]["operations"]["single_hung"]["meeting_rail"] = False
+        self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_fixed_window_given_a_rail(self):
+        def change(s):
+            s["windows"]["operations"]["fixed"]["meeting_rail"] = True
+        self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_truthy_non_boolean_rail_flag(self):
+        for bad in (1, "true", "yes", [1]):
+            def change(s, bad=bad):
+                s["windows"]["operations"]["single_hung_double"]["meeting_rail"] = bad
+            with self.subTest(flag=bad):
+                self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_units_that_are_a_boolean_or_a_string(self):
+        for bad in (True, "1"):
+            def change(s, bad=bad):
+                s["windows"]["operations"]["single_hung"]["units"] = bad
+            with self.subTest(units=bad):
+                self.assertGateFails(self.broken(change), "every window's operation has the number of side-by-side units")
+
+    def test_a_door_leaf_that_is_negative_zero_or_a_string(self):
+        for bad in (-0.1, 0, "0.1", True, float("inf")):
+            def change(s, bad=bad):
+                s["openings"]["door_types"]["leaf_thickness"]["ft"] = bad
+            with self.subTest(leaf=bad):
+                self.assertGateFails(self.broken(change), "the door leaf is a positive thickness thinner than the thinnest wall")
+
+    def test_a_door_leaf_as_thick_as_the_wall(self):
+        for bad in (0.2917, 0.4583, 1.0):
+            def change(s, bad=bad):
+                s["openings"]["door_types"]["leaf_thickness"]["ft"] = bad
+            with self.subTest(leaf=bad):
+                self.assertGateFails(self.broken(change), "the door leaf is a positive thickness thinner than the thinnest wall")
+
+    def test_a_frame_that_swallows_the_small_fixed_windows(self):
+        """Review of #182: frame_to_glass 1.0 passed the rail gate (the shortest single-hung is 3.5 ft high)
+        and turned the 1.5 ft fixed D windows into solid plates."""
+        def change(s):
+            s["windows"]["frame_to_glass"]["ft"] = 1.0
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_frame_that_closes_only_the_narrow_windows(self):
+        def change(s):
+            s["windows"]["frame_to_glass"]["ft"] = 0.8      # D is 1.5 wide and 1.5 high; every single-hung still fits
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_mullion_wider_than_its_unit(self):
+        def change(s):
+            s["windows"]["mullion"]["ft"] = 4.0             # A is 4 ft wide in two units; the slider F is 3 ft
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_mullion_that_closes_only_the_slider(self):
+        def change(s):
+            s["windows"]["mullion"]["ft"] = 3.0             # F is 3 ft in two units: 1.5 - 0.1667 - 1.5 < 0; A and E still have glass
+        self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
+    def test_a_mullion_that_is_not_a_number_is_named_by_the_rail_gate(self):
+        def change(s):
+            s["windows"]["mullion"]["ft"] = "0.1458"
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_rail_whose_edge_exactly_touches_the_sill(self):
+        """Review of #182: the bounds were inclusive, so a rail resting exactly on the sill member (a
+        zero-height pane) passed. Window C is the shortest single-hung, 3.5 ft."""
+        def change(s):
+            w = s["windows"]
+            w["meeting_rail"]["ratio"] = (w["frame_to_glass"]["ft"] + w["meeting_rail"]["thickness"]["ft"] / 2) / 3.5
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_rail_whose_edge_exactly_touches_the_head(self):
+        def change(s):
+            w = s["windows"]
+            w["meeting_rail"]["ratio"] = (3.5 - w["frame_to_glass"]["ft"] - w["meeting_rail"]["thickness"]["ft"] / 2) / 3.5
+        self.assertGateFails(self.broken(change), "every meeting rail lies inside its sash")
+
+    def test_a_sash_deeper_than_its_wall(self):
+        for bad in (1.0, 0.2292):                  # 0.2292 x 2 is exactly the 5.5 inch wall: no room left
+            def change(s, bad=bad):
+                s["windows"]["proud_of_glass"]["ft"] = bad
+            with self.subTest(proud=bad):
+                self.assertGateFails(self.broken(change), "every window's frame and mullion leave a clear opening")
+
     def test_a_missing_block_names_itself(self):
         def change(s):
             del s["openings"]["end_wall_x0"]
