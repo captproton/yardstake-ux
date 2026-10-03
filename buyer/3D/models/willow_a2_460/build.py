@@ -389,19 +389,25 @@ def _sheathing_on_every_wall(spec, geo):
     if not sheath:
         return True, ""
     W, D = geo["W"], geo["D"]
-    # (axis the skin is thin on, its outer and inner coordinates), derived from the envelope here
-    want = {"Sheathing_rear": (AXIS_Y, -sheath, 0.0), "Sheathing_front": (AXIS_Y, D, D + sheath),
-            "Sheathing_x0": (AXIS_X, -sheath, 0.0), "Sheathing_x24": (AXIS_X, W, W + sheath)}
+    # each skin's whole plan extent, X then Y, derived from the envelope here: the front and rear skins
+    # run the full width PLUS a sheathing at each end (they wrap the end walls' corners), the end skins
+    # the full depth. Thickness alone was not enough (review of #182: a rear skin cut to W left its last
+    # 3/8 inch bare while every gate passed), so BOTH axes are held for every skin.
+    want = {"Sheathing_rear": ((-sheath, W + sheath), (-sheath, 0.0)),
+            "Sheathing_front": ((-sheath, W + sheath), (D, D + sheath)),
+            "Sheathing_x0": ((-sheath, 0.0), (0.0, D)),
+            "Sheathing_x24": ((W, W + sheath), (0.0, D))}
     wrong = []
-    for name, (axis, lo_want, hi_want) in want.items():
+    for name, spans in want.items():
         ob = bpy.data.objects.get(name)
         if ob is None:
             wrong.append(f"{name} was never built")
             continue
         lo, hi = world_bbox([ob])
-        if abs(lo[axis] - lo_want) > MESH_TOL or abs(hi[axis] - hi_want) > MESH_TOL:
-            wrong.append(f"{name} measures {'XY'[axis]} {lo[axis]:.4f}..{hi[axis]:.4f}, "
-                         f"{sheath} thick outside the wall is {lo_want:.4f}..{hi_want:.4f}")
+        for axis, (lo_want, hi_want) in ((AXIS_X, spans[0]), (AXIS_Y, spans[1])):
+            if abs(lo[axis] - lo_want) > MESH_TOL or abs(hi[axis] - hi_want) > MESH_TOL:
+                wrong.append(f"{name} measures {'XY'[axis]} {lo[axis]:.4f}..{hi[axis]:.4f}, "
+                             f"its wall's skin is {lo_want:.4f}..{hi_want:.4f}")
     return not wrong, "; ".join(wrong)
 
 

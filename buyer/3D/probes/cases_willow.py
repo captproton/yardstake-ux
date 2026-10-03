@@ -14,6 +14,7 @@ checking does (found on #177; the same rule as cases_kitgates.py).
   * the slab built half a foot too thick                   _walls_to_the_plate
   * the slab built a foot short on one side                _slab_is_the_footprint
   * the sheathing skins never built                        _sheathing_on_every_wall
+  * a skin cut short along its wall                        _sheathing_on_every_wall
   * a partition built half a foot from the spec            every_partition_built
   * one window never cut                                   every_row_built
   * one door never given a leaf                            every_row_built
@@ -75,6 +76,14 @@ def _no_sheathing_skins(work: Path) -> None:
     expects no skin cuts and used to pass."""
     _patch(work, "    if sheath:\n        faces = {", "    if False:\n        faces = {",
            "no sheathing skins")
+
+
+def _a_skin_cut_short_along_its_wall(work: Path) -> None:
+    """The rear skin stops at W instead of W + sheath: its last 3/8 inch of wall is bare."""
+    _patch(work,
+           '"Wall_rear":  box_geom(-sheath, W + sheath, -sheath, 0.0, 0.0, head),',
+           '"Wall_rear":  box_geom(-sheath, W, -sheath, 0.0, 0.0, head),',
+           "a skin cut short")
 
 
 def _partitions_in_the_wrong_place(work: Path) -> None:
@@ -173,6 +182,9 @@ CASES = [
           _slab_a_foot_short, "the slab is the building's footprint, X 0..W and Y 0..D"),
     _case("the sheathing skins are never built (_sheathing_on_every_wall)",
           _no_sheathing_skins, "every exterior wall carries its sheathing skin, outside its face of stud"),
+    _case("one sheathing skin is cut short along its wall (_sheathing_on_every_wall)",
+          _a_skin_cut_short_along_its_wall,
+          "every exterior wall carries its sheathing skin, outside its face of stud"),
     _case("the partitions built half a foot from where the spec puts them (every_partition_built)",
           _partitions_in_the_wrong_place, "every partition in the spec was built, where the spec puts it"),
     _case("a window in the schedule is never cut (every_row_built)",
