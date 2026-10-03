@@ -179,6 +179,37 @@ def check(spec):
     gate(not bad_ops, "every window's operation has the number of side-by-side units its schedule text says",
          "; ".join(bad_ops))
 
+    # THE MEETING RAIL STAYS INSIDE ITS SASH. `ratio` is where the rail sits as a fraction of the opening's
+    # height; sash_members only counts members, so a ratio of 2 put every rail above its window while every
+    # gate stayed green (review of #182). The rail's band, centred on sill + ratio x height, must lie between
+    # the sill and head members, and the frame's own modelling values must be positive.
+    win = spec["windows"]
+    rail = win["meeting_rail"]
+    frame_w = float(win["frame_to_glass"]["ft"])
+    thick = float(rail["thickness"]["ft"])
+    ratio = rail["ratio"]
+    rail_bad = []
+    for key in ("frame_to_glass", "mullion", "proud_of_glass"):
+        v = win[key]["ft"]
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 < v < float("inf"):
+            rail_bad.append(f"windows.{key} is {v!r}, not a positive length")
+    if isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not 0 < ratio < 1:
+        rail_bad.append(f"meeting_rail.ratio is {ratio!r}, not a fraction between 0 and 1")
+    elif not (isinstance(thick, float) and 0 < thick < float("inf")):
+        rail_bad.append(f"meeting_rail.thickness is {thick!r}, not a positive length")
+    else:
+        for w in o["window_types"]["types"]:
+            if not ops[w["operation"]]["meeting_rail"]:
+                continue
+            h = float(w["height"]["ft"])
+            lo, hi = frame_w, h - frame_w                   # between the sill and head members
+            centre = ratio * h
+            if not (lo + thick / 2 <= centre <= hi - thick / 2):
+                rail_bad.append(f"window {w['mark']}: the rail band {centre - thick / 2:.4f}..{centre + thick / 2:.4f} ft "
+                                f"is outside the sash's {lo:.4f}..{hi:.4f}")
+    gate(not rail_bad, "every meeting rail lies inside its sash, between the sill and head members",
+         "; ".join(rail_bad))
+
     # ── the rear wall: its string runs from grid A to grid B ──────────────
     rear = [parse_length(s) for s in o["rear_wall"]["string"]]
     gate(sum(rear) == width, "the rear wall's string sums to the width", f"{sum(rear)} vs {width}")

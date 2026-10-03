@@ -295,6 +295,9 @@ def report(spec, geo, colls):
     ok, why = _walls_to_the_plate(spec, geo)
     gate(ok, f'the walls and partitions run from the slab to the plate, T.P. {ft(lv["top_of_plate"]["ft"])}', why)
 
+    ok, why = _slab_is_the_footprint(spec, geo)
+    gate(ok, "the slab is the building's footprint, X 0..W and Y 0..D", why)
+
     ok, why = every_partition_built(spec, geo)
     gate(ok, "every partition in the spec was built, where the spec puts it", why)
 
@@ -349,6 +352,25 @@ def _walls_to_the_plate(spec, geo):
         lo, hi = world_bbox([slab])
         if abs(hi[2]) > MESH_TOL or abs(lo[2] + slab_t) > MESH_TOL:
             wrong.append(f"the slab runs {lo[2]:.4f}..{hi[2]:.4f}, its top is the floor, {slab_t} thick")
+    return not wrong, "; ".join(wrong)
+
+
+def _slab_is_the_footprint(spec, geo):
+    """The slab covers the envelope, to face of stud: X 0..W and Y 0..D.
+
+    `footprint()` measures the four wall objects, and `_walls_to_the_plate` measures the slab only
+    in Z, so a slab built a foot short on one side passed every gate (review of #182). The slab is
+    the floor the partitions stand on and the model's footprint on the ground.
+    """
+    slab = bpy.data.objects.get("Slab")
+    if slab is None:
+        return False, "the slab was never built"
+    lo, hi = world_bbox([slab])
+    wrong = []
+    for axis, span in ((AXIS_X, geo["W"]), (AXIS_Y, geo["D"])):
+        if abs(lo[axis]) > MESH_TOL or abs(hi[axis] - span) > MESH_TOL:
+            wrong.append(f"the slab measures {'XY'[axis]} {lo[axis]:.4f}..{hi[axis]:.4f}, "
+                         f"the envelope is 0..{span:.4f}")
     return not wrong, "; ".join(wrong)
 
 
