@@ -335,6 +335,12 @@ One line per pull request. Mark each **Done** with its number.
    porch posts and beam are in the spec for the build. #171 stays open until the spec
    is accepted as enough for the build.
 5. [#172](https://github.com/captproton/yardstake-ux/issues/172) **Willow build**, with the gable class (A2).
+   **Slice 1 merged 2026-10-03** ([#182](https://github.com/captproton/yardstake-ux/pull/182), after ten
+   review rounds): slab, walls, partitions and every opening, 13 build gates, 26 probes, on the kit
+   (`ceiling_from_spec`, `rectangle.partition_band`). **Slice 2 (the two roofs, the valley probe, the gable
+   ends) and slice 3 (the porch posts and beam) are next.** Lessons carried into them: a gate's expectation
+   comes from the spec by its own lookups, never from the build's variables or records; a gate that measures
+   an object measures every axis; and a probe that replaces the gate with a pass must turn BAD.
 6. [#173](https://github.com/captproton/yardstake-ux/issues/173) **Willow overlay** (A3).
 7. [#170](https://github.com/captproton/yardstake-ux/issues/170) **Willow export** (A4): Willow is on the page.
 8. [#174](https://github.com/captproton/yardstake-ux/issues/174) **Timing and lessons** appended here (Phase 5); then Concord's plan.
